@@ -421,8 +421,8 @@ class Installer {
 		$this->input('dbCharset', 'DB Charset', $values['dbCharset']); 
 		echo "<p style='width: 135px; float: left; margin-top: 0;'><label>DB Engine</label><br />"; 
 		echo "<select name='dbEngine'>";
-		echo "<option value='MyISAM'" . ($values['dbEngine'] != 'InnoDB' ? " selected" : "") . ">MyISAM</option>"; 
-		echo "<option value='InnoDB'" . ($values['dbEngine'] == 'InnoDB' ? " selected" : "") . ">InnoDB</option>";
+		echo "<option value='MyISAM'" , ($values['dbEngine'] != 'InnoDB' ? " selected" : "") , ">MyISAM</option>"; 
+		echo "<option value='InnoDB'" , ($values['dbEngine'] == 'InnoDB' ? " selected" : "") , ">InnoDB</option>";
 		echo "</select></p>";
 		echo "</div>";
 
@@ -496,7 +496,7 @@ class Installer {
 		$this->p("What host names will this installation run on now and in the future? Please enter one host per line. You may also choose to leave this blank to auto-detect on each request, but we recommend using this whitelist for the best security in production environments."); 
 		$this->p("This field is recommended but not required. You can set this later by editing the file <u>/site/config.php</u> (setting \$config->httpHosts).", "detail"); 
 		$rows = substr_count($values['httpHosts'], "\n") + 2; 
-		echo "<p><textarea name='httpHosts' rows='$rows' style='width: 100%;'>" . htmlentities($values['httpHosts'], ENT_QUOTES, 'UTF-8') . "</textarea></p>";
+		echo "<p><textarea name='httpHosts' rows='$rows' style='width: 100%;'>" , htmlentities($values['httpHosts'], ENT_QUOTES, 'UTF-8') , "</textarea></p>";
 
 		$this->btn("Continue", 4); 
 
@@ -871,7 +871,7 @@ class Installer {
 		$this->input("admin_name", "Admin Login URL", $clean['admin_name'], false, "name"); 
 		$js = "$('link#colors').attr('href', $('link#colors').attr('href').replace(/main-.*$/, 'main-' + $(this).val() + '.css'))";
 		echo "<p class='ui-helper-clearfix'><label>Color Theme<br /><select name='colors' id='colors' onchange=\"$js\">";
-		foreach($this->colors as $color) echo "<option value='$color'>" . ucfirst($color) . "</option>";
+		foreach($this->colors as $color) echo "<option value='$color'>" , ucfirst($color) , "</option>";
 		echo "</select></label> <span class='detail'><i class='fa fa-angle-left'></i> Change for a live preview</span></p>";
 		
 		$this->p("<i class='fa fa-info-circle'></i> You can change the admin URL later by editing the admin page and changing the name on the settings tab.<br /><i class='fa fa-info-circle'></i> You can change the colors later by going to Admin <i class='fa fa-angle-right'></i> Modules <i class='fa fa-angle-right detail'></i> Core <i class='fa fa-angle-right detail'></i> Admin Theme <i class='fa fa-angle-right'></i> Settings.", "detail"); 

@@ -14,7 +14,7 @@ if(!empty($_POST['submit'])) {
 			if(!preg_match('/^[-A-Z0-9\., ]+$/iD', $city)) continue; 
 
 			// print the city
-			echo "\n\t<li>" . htmlspecialchars($city) . "</li>";
+			echo "\n\t<li>" , htmlspecialchars($city) , "</li>";
 		}
 
 		echo "\n</ul>";

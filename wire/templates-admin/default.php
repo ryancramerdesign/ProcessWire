@@ -154,7 +154,7 @@ if(!$browserTitle) $browserTitle = __(strip_tags($page->get('title|name')), __FI
 
 			<?php endif; ?>
 
-			ProcessWire <?php echo $config->version . ' <!--v' . $config->systemVersion; ?>--> &copy; <?php echo date("Y"); ?> Ryan Cramer 
+			ProcessWire <?php echo $config->version , ' <!--v' , $config->systemVersion; ?>--> &copy; <?php echo date("Y"); ?> Ryan Cramer 
 			</p>
 
 			<?php if($config->debug && $this->user->isSuperuser()) include($config->paths->adminTemplates . "debug.inc"); ?>

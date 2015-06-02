@@ -81,7 +81,7 @@ class InputfieldPageTableAjax extends Wire {
 		if(!$inputfield) return;
 		echo $inputfield->render();
 		if($this->notes) {
-			echo "<p class='notes'>" . $this->wire('sanitizer')->entities($this->notes) . "</p>";
+			echo "<p class='notes'>" , $this->wire('sanitizer')->entities($this->notes) , "</p>";
 			$this->notes = '';
 		}
 		exit; 
