@@ -87,7 +87,7 @@ you through the rest of the installation.
 #### The homepage works but nothing else does
 
 This indicates that Apache is not properly reading your .htaccess file. 
-First we need to determine if Apache is reading your .htacess file at all.
+First we need to determine if Apache is reading your .htaccess file at all.
 To do this, open the .htaccess file in an editor and type in some random
 characters at the top, like `lkjalefkjalkef` and save. Load your site in 
 your browser. You should get a "500 Error". If you do not, that means 
