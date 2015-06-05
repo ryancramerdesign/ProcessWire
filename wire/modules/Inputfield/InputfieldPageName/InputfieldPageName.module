@@ -2,6 +2,17 @@
 
 /**
  * An Inputfield for handling ProcessWire "name" fields
+ * 
+ * @property Page|null $parentPage
+ * @property string $sanitizeMethod Default = 'pageName'
+ * @property string $languageSupportLabel
+ * @property bool|int $slashUrls whether a trailing slash should be shown in the URL preview (default=1)
+ * 
+ * optional checkbox associated with the input, for use with language support
+ * @property string $checkboxName Leave blank to disable 
+ * @property string $checkboxLabel
+ * @property string $checkboxValue
+ * @property bool $checkboxChecked 
  *
  */
 class InputfieldPageName extends InputfieldName implements ConfigurableModule {
@@ -100,6 +111,13 @@ class InputfieldPageName extends InputfieldName implements ConfigurableModule {
 		'ź' => 'z',
 		);
 
+	/**
+	 * Whether or not the system has LanguageSupportPageNames module installed
+	 * 
+	 * @var bool
+	 * 
+	 */
+	protected $hasLanguagePageNames = false;
 
 	public function init() {
 		parent::init();
@@ -116,20 +134,24 @@ class InputfieldPageName extends InputfieldName implements ConfigurableModule {
 		$this->set('checkboxChecked', false); 
 
 		$this->description = $this->_("Any combination of letters (a-z), numbers (0-9), dashes or underscores (no spaces)."); // Field description describing what characters are allowed
+		$this->hasLanguagePageNames = $this->wire('modules')->isInstalled('LanguageSupportPageNames'); 
 	}
 
 	public function ___render() {
 		
-		$hasLanguagePageNames = $this->wire('modules')->isInstalled('LanguageSupportPageNames'); 
 
 		$url = '';
 		$out = '';
 		$box = '';
 		$user = $this->wire('user');
+		$languages = $this->wire('languages');
+		$sanitizer = $this->wire('sanitizer');
+		$editable = $this->attr('disabled') ? false : true; 
+		if($editable && $languages && $this->hasLanguagePageNames && !$languages->editable($user->language)) $editable = false;
 		
 		if($this->parentPage) {
 			$url = $this->parentPage->path;
-			if($hasLanguagePageNames && $this->parentPage->id == $this->wire('config')->rootPageID) {
+			if($this->hasLanguagePageNames && $this->parentPage->id == $this->wire('config')->rootPageID) {
 				if($user->language->isDefault()) {
 					$parentName = $this->parentPage->name;
 					if(!trim($url, '/') && $parentName) $url = "/$parentName";
@@ -141,24 +163,28 @@ class InputfieldPageName extends InputfieldName implements ConfigurableModule {
 
 			if($this->checkboxName) {
 				$checked = $this->checkboxChecked ? " checked='checked'" : '';
-				$name = wire('sanitizer')->entities($this->checkboxName); 
-				$value = wire('sanitizer')->entities($this->checkboxValue); 
-				$label = wire('sanitizer')->entities($this->checkboxLabel); 
-				$box = "<label class='checkbox detail'><input type='checkbox' name='$name' value='$value'$checked /> $label</label>";
+				$disabled = $editable ? '' : " disabled='disabled'";
+				$name = $sanitizer->entities($this->checkboxName); 
+				$value = $sanitizer->entities($this->checkboxValue); 
+				$label = $sanitizer->entities($this->checkboxLabel); 
+				$box = 
+					"<label class='checkbox detail'>" . 
+					"<input type='checkbox' name='$name' value='$value'$checked$disabled /> $label" . 
+					"</label>";
 			}
 
-			$label = wire('sanitizer')->entities($this->languageSupportLabel); 
-			$id = wire('sanitizer')->entities($this->attr('id')); 
+			$label = $sanitizer->entities($this->languageSupportLabel); 
+			if(!$editable) $label = "<s>$label</s>";
+			$id = $sanitizer->entities($this->attr('id')); 
 			$out .= "<div class='LanguageSupport'>" . 
-					"<label for='$id' class='LanguageSupportLabel detail'>" . 
-					"$label</label>";
+					"<label for='$id' class='LanguageSupportLabel detail'>$label</label>";
 		}
 
 		$value = $this->attr('value'); 
 		$link = '';
 		$slashUrls = (int) $this->slashUrls;
 
-		if(strlen($value) && $hasLanguagePageNames) {
+		if(strlen($value) && $this->hasLanguagePageNames) {
 			$link = $this->wire('config')->urls->root . trim($url, '/') . "/$value" . ($slashUrls ? '/' : ''); 
 			$link = "<a href='$link'>";
 		}
@@ -169,7 +195,10 @@ class InputfieldPageName extends InputfieldName implements ConfigurableModule {
 		if($link) $p .= "</a>";
 		$p .= "</p>";
 		$out .= $p;
+		$disabled = $this->attr('disabled');
+		if(!$editable) $this->attr('disabled', 'disabled');
 		$out .= parent::___render();
+		if(!$editable && !$disabled) $this->removeAttr('disabled'); // restore previous state
 		if($this->languageSupportLabel) $out .= $box . "</div>";
 
 		// make the replacements part of the JS config	
@@ -177,6 +206,16 @@ class InputfieldPageName extends InputfieldName implements ConfigurableModule {
 		$this->config->js($this->className(), array('replacements' => $replacements)); 
 
 		return $out; 
+	}
+	
+	public function ___processInput(WireInputData $input) {
+		if($this->attr('disabled')) return $this;
+		$languages = $this->wire('languages');
+		if($languages && $this->hasLanguagePageNames) {
+			$user = $this->wire('user');
+			if(!$languages->editable($user->language)) return $this;
+		}
+		return parent::___processInput($input);
 	}
 
 	static public function replacementStringToArray($str) {

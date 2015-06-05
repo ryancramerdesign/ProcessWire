@@ -146,15 +146,21 @@ class User extends Page {
 	protected function ___hasPagePermission($name, Page $page = null) {
 
 		if($this->isSuperuser()) return true; 
+		$permissions = $this->wire('permissions');
 
+		// convert $name to a Permission object (if it isn't already)
 		if($name instanceof Page) {
-			$permission = $name; 
+			$permission = $name;
+		} else if($name == 'page-rename') {
+			// optional permission that, if not installed, page-edit is substituted for
+			$permission = $permissions->get('page-rename');
+			if(!$permission->id) $permission = $permissions->get('page-edit');
 		} else {
 			$p = $name; 
 			// page-add and page-create don't actually exist in the DB, so we substitute page-edit for them 
 			// code later on will make sure they exist in the template's addRoles/createRoles
 			if(in_array($name, array('page-add', 'page-create'))) $p = 'page-edit';
-			$permission = $this->fuel('permissions')->get("name=$p"); 
+			$permission = $permissions->get($p); 
 		}
 
 		if(!$permission || !$permission->id) return false;
@@ -163,7 +169,6 @@ class User extends Page {
 		if(empty($roles)) return false; 
 		$has = false; 
 		$accessTemplate = is_null($page) ? null : $page->getAccessTemplate();
-		
 
 		foreach($roles as $key => $role) {
 
@@ -179,12 +184,18 @@ class User extends Page {
 				// if($name == 'page-edit' && !in_array($role->id, $page->getAccessTemplate()->editRoles)) continue; 
 
 				// all page- permissions except page-view and page-add require page-edit access on $page, so check against that
-				if(strpos($name, 'page-') === 0 && $name != 'page-view' && $name != 'page-add' && !in_array($role->id, $accessTemplate->editRoles)) continue;
+				if(strpos($name, 'page-') === 0 
+					&& $name != 'page-view' 
+					&& $name != 'page-add' 
+					&& !in_array($role->id, $accessTemplate->editRoles)) continue;
 
 				// check against addRoles, createRoles if the permission requires it
-				if($name == 'page-add' && !in_array($role->id, $accessTemplate->addRoles)) continue;
-					else if($name == 'page-create' && !in_array($role->id, $accessTemplate->createRoles)) continue;
-					//else if($name == 'page-delete' && !in_array($role->id, $accessTemplate->deleteRoles)) continue;
+				if($name == 'page-add' && !in_array($role->id, $accessTemplate->addRoles)) {
+					continue;
+				} else if($name == 'page-create' && !in_array($role->id, $accessTemplate->createRoles)) {
+					continue;
+				}
+				//else if($name == 'page-delete' && !in_array($role->id, $accessTemplate->deleteRoles)) continue;
 			}
 
 			if($role->hasPermission($permission)) { 

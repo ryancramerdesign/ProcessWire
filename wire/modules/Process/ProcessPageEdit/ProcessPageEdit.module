@@ -634,12 +634,13 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 
 		// name
 		if(($this->page->id > 1 || $this->wire('modules')->isInstalled('LanguageSupportPageNames')) && !$this->page->template->nameContentTab) {
+			/** @var InputfieldPageName $field */
 			$field = $this->modules->get('InputfieldPageName');
 			$field->attr('value', $this->page->name); 
 			$field->attr('name', '_pw_page_name');
 			$field->slashUrls = $this->page->template->slashUrls;
 			$field->required = $this->page->id != 1;
-			if($field->attr('value') && !$this->page->editable('name', false)) {
+			if(!$this->page->editable('name', false)) {
 				$field->attr('disabled', 'disabled'); 
 				$field->required = false;
 			}

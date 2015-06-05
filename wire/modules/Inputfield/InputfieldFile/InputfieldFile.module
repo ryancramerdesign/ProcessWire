@@ -2,6 +2,22 @@
 
 /**
  * An Inputfield for handling file uploads
+ * 
+ * @property string $extensions Allowed file extensions, space separated
+ * @property int $maxFiles Maximum number of files allowed
+ * @property int $maxFilesize Maximum file size
+ * @property bool $useTags Whether or not tags are enabled
+ * @property bool|int $unzip Whether or not unzip is enabled
+ * @property bool|int $overwrite Whether or not overwrite mode is enabled
+ * @property int $descriptionRows Number of rows for description field (default=1, 0=disable)
+ * @property string $destinationPath Destination path for uploaded file
+ * @property string $itemClass Class name(s) for each file item (default=InputfieldFileItem ui-widget ui-widget-content)
+ * @property string $descriptionFieldLabel Label for description field (default=Description)
+ * @property string $tagsFieldLabel Label for tags field (default=Tags)
+ * @property bool|int $noUpload Set to true or 1 to disable uploading to this field
+ * @property bool|int $noLang Set to true or 1 to disable multi-language descriptions
+ * @property bool|int $noAjax Set to true or 1 to disable ajax uploading
+ * @property bool|int $uploadOnlyMode Set to true or 1 to disable existing file list display
  *
  */
 class InputfieldFile extends Inputfield implements InputfieldItemList {
@@ -157,10 +173,14 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 					if(empty($descriptionFieldLabel)) $descriptionFieldLabel = $language->get('name');
 					$descriptionFieldLabel = $this->wire('sanitizer')->entities($descriptionFieldLabel);
 					if(!$language->isDefault()) $descriptionFieldName = "description{$language->id}_$id";
-					$tabID = "langTab_{$id}__$language";
-					$tabs .= "<li><a href='#$tabID'>" . $language->get('title|name') . "</a></li>";
-					$out .= "<div class='InputfieldFileDescription LanguageSupport' data-language='$language' id='$tabID'>"; // open wrapper
 					$labelClass .= ' LanguageSupportLabel';
+					if(!$languages->editable($language)) {
+						$labelClass .= ' LanguageNotEditable';
+						$descriptionFieldLabel = "<s>$descriptionFieldLabel</s>";
+					}
+					$tabID = "langTab_{$id}__$language";
+					$tabs .= "<li><a href='#$tabID'>$descriptionFieldLabel</a></li>";
+					$out .= "<div class='InputfieldFileDescription LanguageSupport' data-language='$language' id='$tabID'>"; // open wrapper
 				} else {
 					$out .= "<div class='InputfieldFileDescription'>"; // open wrapper
 				}
@@ -417,6 +437,7 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 
 		// multi-language descriptions
 		if($languages) foreach($languages as $language) {
+			if(!$languages->editable($language)) continue; 
 			$key = $language->isDefault() ? "description_$id" : "description{$language->id}_$id";
 			if(!isset($input[$key])) continue; 
 			$value = trim($input[$key]); 

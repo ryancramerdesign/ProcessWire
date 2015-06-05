@@ -439,11 +439,14 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 	 */
 	public function hookInputfieldPageNameRenderAfter(HookEvent $event) {
 
+		/** @var InputfieldPageName $inputfield */
 		$inputfield = $event->object; 
 		if($inputfield->languageSupportLabel) return; // prevent recursion
 
 		$user = wire('user');
 		$page = $this->process == 'ProcessPageEdit' ? $this->process->getPage() : new NullPage();
+		/** @var Languages $languages */
+		$languages = $this->wire('languages');
 		$savedLanguage = $user->language; 
 		$savedValue = $inputfield->attr('value');
 		$savedName = $inputfield->attr('name'); 
@@ -452,13 +455,15 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 		$inputfield->setTrackChanges(false);
 		$out = ''; 
 
-		$language = wire('languages')->get('default');
+		$language = $languages->getDefault();
 		$user->language = $language; 
 		$inputfield->languageSupportLabel = $language->get('title|name');
 		$out .= $inputfield->render();
+		$editable = true; 
+		if($page->id && !$page->editable('name', false)) $editable = false;
 
 		// add labels and inputs for other languages
-		foreach(wire('languages') as $language) {
+		foreach($languages as $language) {
 			if($language->isDefault()) continue; 
 			$user->language = $language; 
 			$value = $page->get("name$language"); 
@@ -474,7 +479,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 			$inputfield->checkboxValue = 1; 
 			$inputfield->checkboxLabel = $this->_('Active?'); 
 			$inputfield->checkboxChecked = $page->get($inputfield->checkboxName) > 0 || $page->id == 0;
-
+			if(!$editable) $inputfield->attr('disabled', 'disabled');
 			$out .= $inputfield->render();
 		}
 
@@ -501,11 +506,16 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 		$inputfield = $event->object; 
 		//$page = $this->process == 'ProcessPageEdit' ? $this->process->getPage() : new NullPage();
 		$page = $this->process->getPage();
+		if($page->id && !$page->editable('name', false)) return; // name is not editable
 		$input = $event->arguments[0];
+		/** @var Languages $languages */
+		$languages = $this->wire('languages');
+		$sanitizer = $this->wire('sanitizer');
 
-		foreach(wire('languages') as $language) {
+		foreach($languages as $language) {
 
 			if($language->isDefault()) continue; 
+			if(!$languages->editable($language)) continue;
 
 			// set language status 
 			$key = "status" . (int) $language->id; 
@@ -517,12 +527,15 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 
 			// set language page name
 			$name = $inputfield->attr('name') . $language;
-			$value = wire('sanitizer')->pageName($input->$name); 
+			$value = $sanitizer->pageName($input->$name); 
 			if($value === $page->name) $value = '';
 			$key = "name$language";
 			if($value == $page->get($key)) continue; 
-			if($page->id) $page->set($key, $value); 
-				else $page->setQuietly($key, $value); // avoid non-template exception when new page
+			if($page->id) {
+				$page->set($key, $value);
+			} else {
+				$page->setQuietly($key, $value); // avoid non-template exception when new page
+			}
 		}
 	}
 

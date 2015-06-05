@@ -446,7 +446,7 @@ class LanguageSupportFields extends WireData implements Module {
 	 *
 	 * @param string $altFieldName
 	 * @param bool $returnLanguage Specify true if you want this function to return the language rather than the parent field name. 
-	 * @return string Returns blank string if none found
+	 * @return string|Language Returns blank string if none found
 	 *
 	 */
 	public function getAlternateFieldParent($altFieldName, $returnLanguage = false) {
@@ -471,6 +471,29 @@ class LanguageSupportFields extends WireData implements Module {
 	 */
 	public function getAlternateFieldLanguage($altFieldName) {
 		return $this->getAlternateFieldParent($altFieldName, true);
+	}
+
+	/**
+	 * Is the given field name a language alternate field?
+	 * 
+	 * If it is, the Language of the field is returned.
+	 * If it isn't, then boolean false is returned. 
+	 * 
+	 * This method also accounts for default language. 
+	 * 
+	 * @param string $name
+	 * @return bool|Language
+	 * 
+	 */
+	public function isAlternateField($name) {
+		if(isset($this->multilangAlternateFields[$name])) {
+			// default language for an alternate field set
+			return $this->wire('languages')->getDefault();
+		}
+		if(!strpos($name, '_')) return false;
+		$language = $this->getAlternateFieldParent($name, true);
+		if($language && $language->id) return $language; 
+		return false;
 	}
 
 	/**

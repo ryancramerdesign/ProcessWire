@@ -132,6 +132,16 @@ abstract class Inputfield extends WireData implements Module {
 	protected $defaultID = '';
 
 	/**
+	 * Whether or not this Inputfield is editable
+	 * 
+	 * When false, its processInput method won't be called by InputfieldWrapper's processInput
+	 * 
+	 * @var bool
+	 * 
+	 */
+	protected $editable = true; 
+
+	/**
 	 * Construct the Inputfield, setting defaults for all properties
 	 *
 	 */
@@ -937,6 +947,20 @@ abstract class Inputfield extends WireData implements Module {
 		}
 
 		return $str; 
+	}
+
+	/**
+	 * Get or set editable state
+	 * 
+	 * When set to false, this Inputfield's processInput() method won't be called by InputfieldWrapper.
+	 * 
+	 * @param bool|null $setEditable Specify bool to set the editable state
+	 * @return bool Returns the current editable state
+	 * 
+	 */
+	public function editable($setEditable = null) {
+		if(!is_null($setEditable)) $this->editable = $setEditable ? true : false;
+		return $this->editable;
 	}
 	
 	/**

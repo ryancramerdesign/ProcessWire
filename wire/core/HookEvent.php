@@ -16,7 +16,7 @@
  *
  * HookEvents have the following properties available: 
  *
- * @property Wire $object Instance of the object where the Hook event originated. 
+ * @property Wire|WireData|WireArray|Process|Fieldtype|Inputfield|Module $object Instance of the object where the Hook event originated. 
  * 
  * @property string $method The name of the method that was called to generate the Hook event. 
  * 

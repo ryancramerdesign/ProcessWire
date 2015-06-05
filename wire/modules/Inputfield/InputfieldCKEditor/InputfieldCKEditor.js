@@ -58,6 +58,7 @@ function initCKEditorTab(event, ui) {
 	var cfgName = $a.attr('data-cfgName');
 	var editor = CKEDITOR.replace(editorID, config[cfgName]);
 	editor.on('blur', ckeBlurEvent);
+	editor.on('change', ckeBlurEvent);
 	$a.addClass('InputfieldCKEditor_init'); 
 	ui.oldTab.find('a').addClass('InputfieldCKEditor_init'); // in case it was the starting one
 }
@@ -94,6 +95,7 @@ $(document).ready(function() {
 			// visible CKEditor
 			var editor = CKEDITOR.replace(editorID, config[cfgName]);
 			editor.on('blur', ckeBlurEvent);
+			editor.on('change', ckeBlurEvent);
 		}
 	}
 
@@ -120,6 +122,7 @@ $(document).ready(function() {
 			var configName = $t.attr('data-configName'); 
 			var editor = CKEDITOR.inline($(this).attr('id'), config[configName]); 
 			editor.on('blur', ckeBlurEvent);
+			editor.on('change', ckeBlurEvent);
 			var n = inlineCKEditors.length; 
 			inlineCKEditors[n] = editor; 
 			$t.attr('data-n', n); 

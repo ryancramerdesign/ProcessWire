@@ -197,10 +197,14 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 		$this->pages->addHook('deleteReady', $this, 'hookPageDeleteReady'); 
 		$this->addHook('Page::setLanguageValue', $this, 'hookPageSetLanguageValue');
 		$this->addHook('Page::getLanguageValue', $this, 'hookPageGetLanguageValue'); 
+		
 
 		if($this->wire('modules')->isInstalled('LanguageSupportFields')) {
 			$this->LanguageSupportFields = wire('modules')->get('LanguageSupportFields'); 
-			$this->LanguageSupportFields->LS_init(); 
+			$this->LanguageSupportFields->LS_init();
+			if($languages->getPageEditPermissions('none') && !$this->user->hasPermission('page-edit-lang-none')) {
+				$this->addHookBefore('InputfieldWrapper::renderInputfield', $this, 'hookInputfieldWrapperBeforeRenderInputfield');
+			}
 		}
 	
 		if($numOtherLanguages && $numOtherLanguages != count($this->otherLanguagePageIDs)) {
@@ -256,6 +260,44 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 	}
 
 	/**
+	 * Returns whether or not Inputfield is editable for current user in language context
+	 * 
+	 * Takes the page-edit-lang-none permission into account
+	 * 
+	 * @param Inputfield $inputfield
+	 * @return bool
+	 * 
+	 */
+	protected function editableInputfield(Inputfield $inputfield) {
+		$alwaysAllowInputfields = array(
+			'InputfieldWrapper',
+			'InputfieldPageName',
+			'InputfieldSubmit',
+			'InputfieldButton',
+			'InputfieldHidden',
+		);
+		$user = $this->wire('user');
+		if($user->isSuperuser()) return true; 
+		if($inputfield->useLanguages) return true; 
+		if(!$this->LanguageSupportFields) return true; 
+		$permissions = $this->wire('languages')->getPageEditPermissions();
+		if(!isset($permissions['none'])) return true;
+		if(!$this->wire('process') instanceof WirePageEditor) return true;
+		if($inputfield->name == 'delete_page') return true;
+		$allow = false;
+		foreach($alwaysAllowInputfields as $type) {
+			if($inputfield instanceof $type) {
+				$allow = true;
+				break;
+			}
+		}
+		if($allow) return true;
+		if($inputfield->hasFieldtype && $this->LanguageSupportFields->isAlternateField($inputfield->name)) return true; 
+		if($this->wire('languages')->editable('none')) return true; 
+		return false;
+	}
+	
+	/**
 	 * Hook before Inputfield::render to set proper default language value
 	 *
 	 * Only applies to Inputfields that have: useLanguages == true
@@ -263,19 +305,38 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 	 */
 	public function hookInputfieldBeforeRender(HookEvent $event) {
 
+		/** @var Inputfield $inputfield */
 		$inputfield = $event->object; 
-		if(!$inputfield->useLanguages) return; 
-
-		$userLanguage = $this->wire('user')->language; 
+		$user = $this->wire('user');
+		$userLanguage = $user->language;
 		if(!$userLanguage) return;
-		
-	
+
 		// set 'value' attribute to default language values	
 		if($userLanguage->id !== $this->defaultLanguagePageID) {
 			$t = $inputfield->trackChanges();
 			if($t) $inputfield->setTrackChanges(false);
 			$inputfield->attr('value', $inputfield->get('value' . $this->defaultLanguagePageID)); 
 			if($t) $inputfield->setTrackChanges(true); 
+		}
+	}
+	
+	/**
+	 * Hook before InputfieldWrapper::renderInputfield 
+	 *
+	 * Only applies to Inputfields that have: useLanguages == false.
+	 * Applies only if page-edit-lang-none permission is installed.
+	 *
+	 */
+	public function hookInputfieldWrapperBeforeRenderInputfield(HookEvent $event) {
+
+		/** @var Inputfield $inputfield */
+		$inputfield = $event->arguments(0);
+		if($inputfield->useLanguages) return;
+		$renderValueMode = $event->arguments(1);
+
+		if(!$this->editableInputfield($inputfield) && !$renderValueMode) {
+			$event->return = '';
+			$event->replace = true;
 		}
 	}
 
@@ -292,9 +353,22 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 		
 		$label = (string) $language->title;
 		if(!strlen($label)) $label = $language->name; 
+		$class = 'LanguageSupport';
+		$labelClass = 'LanguageSupportLabel detail';
+		if(!$this->wire('languages')->editable($language)) {
+			$labelClass .= ' LanguageNotEditable';
+			$class .= ' LanguageNotEditable';
+			$label = "<s>$label</s>";
+			$out = 
+				"<p class='detail'>" . 
+				sprintf($this->_('Changes to this field will not be saved because you do not have permission for language: %s.'), 
+					$language->get('title|name')) . 
+				"</p>" . 
+				$out;
+		}
 		
-		$out  = "\n<div class='LanguageSupport' id='langTab_$id' data-language='$language->id'>" . 
-				"\n<label for='$id' class='LanguageSupportLabel detail'>$label</label>" . $out . 
+		$out  = "\n<div class='$class' id='langTab_$id' data-language='$language->id'>" . 
+				"\n<label for='$id' class='$labelClass'>$label</label>" . $out . 
 				"\n</div>";
 		return $out; 
 	}
@@ -308,9 +382,12 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 	public function hookInputfieldAfterRender(HookEvent $event) {
 
 		static $numLanguages = null;
+		if(!$event->return) return; // if already empty, nothing to do
+		
 		/** @var Inputfield $inputfield */
-		$inputfield = $event->object; 
+		$inputfield = $event->object;
 		$name = $inputfield->attr('name'); 
+		
 		/** @var Languages $languages */
 		$languages = $this->wire('languages');
 		if(is_null($numLanguages)) $numLanguages = $languages->count();
@@ -321,15 +398,14 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 			else if($name == 'title' && $inputfield->label == 'Title') $inputfield->label = $this->_('Title'); // Label for 'title' field used throughout ProcessWire
 
 		// check if this is a language alternate field (i.e. title_es or title)
-		if($this->LanguageSupportFields && strpos($name, '_') && wire('fields')->get($name)) {
-			$language = $this->LanguageSupportFields->getAlternateFieldLanguage($name); 
-			if($language && $language->id) {
+		if($this->LanguageSupportFields) {
+			$language = $this->LanguageSupportFields->isAlternateField($name);
+			if($language) {
 				$event->return = $this->wrapInputfieldOutput($event->return, $inputfield->attr('id'), $language); 			
 				return;
 			}
 		}
 
-		// if inputfield doesn't have a 'useLanguages' var set in it, then we're done, abort
 		if(!$inputfield->useLanguages || $numLanguages < 2) return;
 
 		// keep originals to restore later (including $name, which we already got above)
@@ -343,7 +419,7 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 		$out = '';
 		
 		foreach($languages as $language) {
-			$languageID = (int) $language->id; 
+			$languageID = (int) $language->id;
 
 			if($language->isDefault) { 
 				// default language
@@ -361,7 +437,7 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 				$inputfield->setAttribute('value', $inputfield->$valueAttr); 
 				$o = $inputfield->___render(); 
 			}
-
+			
 			$out .= $this->wrapInputfieldOutput($o, $newID, $language);
 			if($this->languageTabs) $this->languageTabs->addTab($inputfield, $language); 
 		}
@@ -380,14 +456,35 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 	}
 
 	/**
-	 * Hook before Inputfield::processInput to process input for other languages
-	 *
-	 * Only applies to Inputfields that have: useLanguages == true
+	 * Hook before Inputfield::processInput to process input for other languages (or prevent it)
 	 *
 	 */
 	public function hookInputfieldBeforeProcessInput(HookEvent $event) {
-		// ensures default language values are populated
-		$this->hookInputfieldBeforeRender($event); 
+		
+		/** @var Inputfield $inputfield */
+		$inputfield = $event->object;
+		$replace = false; 
+		
+		if($inputfield->useLanguages) {
+			// native multi-language field
+			$this->hookInputfieldBeforeRender($event); // ensures default language values are populated
+			if(!$this->wire('languages')->editable($this->defaultLanguagePage)) $replace = true; 
+			
+		} else {
+			// not a native multi-language field, check if it's language alternate or not editable
+			if(!$this->editableInputfield($inputfield)) {
+				$replace = true;
+			} else if($inputfield->hasFieldtype) {
+				$language = $this->LanguageSupportFields->isAlternateField($inputfield->name);
+				if($language && !$this->wire('languages')->editable($language)) $replace = true;
+			}
+		}
+		
+		if($replace) {
+			// if field or language not editable, prevent processInput from running
+			$event->replace = true;
+			$event->return = $inputfield;
+		}
 	}
 
 	/**
@@ -398,8 +495,8 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 	 */
 	public function hookInputfieldAfterProcessInput(HookEvent $event) {
 
-		$inputfield = $event->object; 
 		/** @var Inputfield $inputfield */
+		$inputfield = $event->object;
 		if(!$inputfield->useLanguages) return;
 		$post = $event->arguments[0];
 		$languages = $this->wire('languages');	
@@ -409,10 +506,17 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 		$id = $inputfield->attr('id');
 		$value = $inputfield->attr('value');
 		$required = $inputfield->required; 
-
+		
+	
 		// process and set value for each language
 		foreach($languages as $language) {
-			if($language->isDefault) continue; 
+			
+			// default language was already handled
+			if($language->isDefault()) continue; 
+			
+			// if language isn't editable, don't process it
+			if(!$languages->editable($language)) continue; 
+			
 			$languageID = (int) $language->id; 	
 			$newID = $id . "__$languageID";
 			$newName = $name . "__$languageID";

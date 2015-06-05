@@ -15,7 +15,7 @@
  * 
  * http://processwire.com
  * 
- * Optional special permissions that affect $page->editable() behavior:
+ * Optional special permissions that are optional (by default, not installed):
  * 
  * 1. page-publish: when installed, editable() returns false, when it would otherwise return true, 
  *    on published pages, if user doesn't have page-publish permission in their roles. 
@@ -24,7 +24,23 @@
  *    return true, if user's role has this permission and they are not the $page->createdUser. 
  *    This is a permission that reduces access rather than increasing it. Note that
  *    page-edit-created does nothing if the user doesn't have page-edit permission. 
- *
+ * 
+ * 3. page-rename: when installed, user must have this permission in their role before they
+ *    can change the name of a published page. They can still change the name of an unpublished
+ *    page. When not installed, this permission falls back to page-edit. 
+ * 
+ * 4. page-edit-lang-default: when installed on a multi-language site, user must have this 
+ *    permission in order edit multi-language fields in "default" language. This permission
+ *    is also required to create or delete pages (if user already has other permissions that enable
+ *    them to create or delete pages). 
+ * 
+ * 5. page-edit-lang-[language_name]: when installed on a multi-language site, user must have
+ *    this permission to edit multi-language fields in the [language_name] language.
+ * 
+ * 6. page-edit-lang-none: when installed on a multi-language site, user must have this 
+ *    permission to edit non-multi-language fields. They must also have it to create or delete
+ *    pages (if user already has other permissions that enable that). 
+ * 
  */
 
 class PagePermissions extends WireData implements Module {
@@ -55,6 +71,14 @@ class PagePermissions extends WireData implements Module {
 	 *
 	 */
 	protected $hasPageEditCreated = null;
+
+	/**
+	 * Array of optional permission name => boolean of whether the system has it
+	 * 
+	 * @var array
+	 * 
+	 */
+	protected $hasOptionalPermissions = array();
 
 	/**
 	 * Establish permission hooks
@@ -251,6 +275,15 @@ class PagePermissions extends WireData implements Module {
 			if($page->template->noChangeTemplate) return false;
 			if(!$user->hasPermission('page-template', $page)) return false; 
 		}
+		
+		if($name == 'name') {
+			// if page has no name (and not homepage), then it needs one, so it is allowed
+			if($page->id > 1 && !strlen($page->name)) return true; 
+			// if page is not yet published, user with page-edit can still change name
+			if($page->isUnpublished()) return true;
+			// otherwise verify page-rename permission
+			return $user->hasPermission('page-rename', $page);
+		}
 
 		if($name == 'parent' || $name == 'parent_id') {
 			if($page->template->noMove) return false; 
@@ -309,6 +342,7 @@ class PagePermissions extends WireData implements Module {
 	 */
 	public function viewable($event) {
 
+		/** @var Page $page */
 		$page = $event->object; 
 		$viewable = true; 
 		$user = $this->wire('user'); 
@@ -359,6 +393,9 @@ class PagePermissions extends WireData implements Module {
 	 * Access to the process takes over 'page-view' access to the page so that the administrator
 	 * doesn't need to setup a separate role just for 'view' access in the admin. Instead, they just
  	 * give the existing roles access to the admin process and then 'view' access is assumed for that page.
+	 * 
+	 * @param Page $page
+	 * @return bool
 	 *
 	 */
 	protected function processViewable(Page $page) {
@@ -377,6 +414,8 @@ class PagePermissions extends WireData implements Module {
 	 *
 	 * A listable page may appear in a listing, but doesn't mean that the user can actually 
 	 * view the page or that the page is renderable. 
+	 * 
+	 * @param HookEvent $event
 	 *
 	 */
 	public function listable($event) {
@@ -398,6 +437,8 @@ class PagePermissions extends WireData implements Module {
 
 	/**
 	 * Is the page deleteable by the current user?
+	 * 
+	 * @param HookEvent $event
 	 *
 	 */
 	public function deleteable($event) {
@@ -413,15 +454,25 @@ class PagePermissions extends WireData implements Module {
 				// make sure the page is editable and user has page-delete permission, if not dealing with superuser
 				$deleteable = $page->editable() && $user->hasPermission("page-delete", $page);
 			}
+			if($deleteable && $this->wire('languages')) {
+				// in multi-language environment, if user can't edit default language or can't edit non-multi-language fields,
+				// then deny access to delete the page
+				if(!$this->hasPageEditLangDefault($user, $page) || !$this->hasPageEditLangNone($user, $page)) {
+					$deleteable = false;
+				}
+			}
 		}
 		$event->return = $deleteable;
 	}
 
 	/**
 	 * Is the page trashable by the current user?
+	 * 
+	 * @param HookEvent $event
 	 *
 	 */
 	public function trashable($event) {
+		/** @var Page $page */
 		$page = $event->object;
 		if($page->is(Page::statusTrash) || $page->template->noTrash) {
 			// if page is already in trash, or template doesn't allow placement in trash, we return false
@@ -436,24 +487,31 @@ class PagePermissions extends WireData implements Module {
 	 *
 	 * Optionally specify the page to be added as the first argument for additional access checking.
 	 * i.e. if($page->addable($somePage))
+	 * 
+	 * @param HookEvent $event
 	 *
 	 */
 	public function addable($event) {
 
+		/** @var Page $page */
 		$page = $event->object; 
 		$user = $this->wire('user'); 
 		$addable = false; 
+		$_ADDABLE = false; // if we really mean it
+		$superuser = $user->isSuperuser();
 
 		if($page->template->noChildren) {
 			$addable = false; 
 
-		} else if($user->isSuperuser()) {
+		} else if($superuser) {
 			$addable = true; 
+			$_ADDABLE = true;
 
 		} else if(in_array($page->id, $this->wire('config')->usersPageIDs) && $user->hasPermission('user-admin')) {
 			// users with user-admin access adding a page to users: add access is assumed
 			// rather than us having a separate 'users' template where access is defined
 			$addable = true; 
+			$_ADDABLE = true;
 
 		} else if($user->hasPermission('page-add', $page)) {
 			// user has page-add permission, now we need to check that they have access
@@ -468,7 +526,14 @@ class PagePermissions extends WireData implements Module {
 				$addable = false;
 			}	
 		}
-
+	
+		// check additional permissions if in multi-language environment
+		if($addable && !$_ADDABLE && $this->wire('languages')) {
+			if(!$this->hasPageEditLangDefault($user, $page) || !$this->hasPageEditLangNone($user, $page)) {
+				// if user can't edit default language, or can't edit non-multi-language fields, then deny add access
+				$addable = false;
+			}
+		}
 
 		$event->return = $addable;
 	}
@@ -478,6 +543,10 @@ class PagePermissions extends WireData implements Module {
 	 *
 	 * When this function is called, it has already been determined that the user has page-add permission.
 	 * So this is just narrowing down to make sure they have access on a template. 
+	 * 
+	 * @param Page $page
+	 * @param User $user
+	 * @return bool
 	 *
 	 */
 	protected function addableTemplate(Page $page, User $user) {
@@ -523,12 +592,15 @@ class PagePermissions extends WireData implements Module {
 	 *
 	 * Without arguments, it just checks that the user is allowed to move the page (not where they are allowed to)
 	 * Optionally specify a $parent page as the first argument to check if they are allowed to move to that parent.
+	 * 
+	 * @param HookEvent $event
 	 *
 	 */
 	public function moveable($event) {
 		$page = $event->object; 
 		$moveable = $page->editable('parent');
 		if($moveable && count($event->arguments) && $event->arguments[0] instanceof Page) {
+			/** @var Page $parent */
 			$parent = $event->arguments[0];
 			$moveable = $parent->addable($page);
 		}
@@ -538,6 +610,8 @@ class PagePermissions extends WireData implements Module {
 
 	/**
 	 * Is the given page sortable by the current user?
+	 * 
+	 * @param HookEvent $event
 	 *
 	 */
 	public function sortable($event) {
@@ -551,6 +625,8 @@ class PagePermissions extends WireData implements Module {
 	 * Is the page publishable by the current user?
 	 *
 	 * A field name may optionally be specified as the first argument, in which case the field on that page will also be checked for access. 
+	 * 
+	 * @param HookEvent $event
 	 *
 	 */
 	protected function publishable($event) {
@@ -569,7 +645,7 @@ class PagePermissions extends WireData implements Module {
 		}
 
 		// if there is no page-publish permission, then it's publishable
-		$perm = wire('permissions')->get('page-publish'); 
+		$perm = $this->wire('permissions')->get('page-publish'); 
 		if(!$perm->id) return;
 	
 		// if Page is a user, and user has user-admin permission, they can also publish the user
@@ -581,6 +657,64 @@ class PagePermissions extends WireData implements Module {
 		// if we made it here, then page is not publishable
 		$event->return = false; 
 	}
+	
+	/**
+	 * Returns true if given user has the optional language permission, or false if not
+	 *
+	 * In a non-multi-language system, this method will always return true.
+	 * In a multi-language system that doesn't have the permission installed, this always returns true.
+	 * In a multi-language system that DOES have it installed, methods returns true when user has it via one of their roles.
+	 * This method assumes the user is already known to have any pre-requisite permissions.
+	 *
+	 * @param string $name Permission name i.e. page-edit-lang-none, page-edit-lang-default, etc.
+	 * @param User $user
+	 * @param Page|Template $context Optional Page or Template context
+	 * @return bool
+	 *
+	 */
+	protected function hasLangPermission($name, User $user, $context = null) {
+		if($user->isSuperuser()) return true;
+		if(!array_key_exists($name, $this->hasOptionalPermissions)) {
+			if($this->wire('languages')) {
+				$this->hasOptionalPermissions[$name] = $this->wire('permissions')->get($name)->id > 0;
+			} else {
+				// not applicable since multi-language not installed
+				$this->hasOptionalPermissions[$name] = false;
+			}
+		}
+		if($this->hasOptionalPermissions[$name]) {
+			// now check if the user has this permission
+			return $user->hasPermission($name, $context);
+		} else {
+			// system doesn't need to consider this permission
+			return true;
+		}
+	}
+
+	/**
+	 * Returns true if given user is allowed to edit values in default language
+	 * 
+	 * @param User $user
+	 * @param Page|Template $context
+	 * @return bool
+	 * 
+	 */
+	protected function hasPageEditLangDefault(User $user, $context = null) {
+		return $this->hasLangPermission('page-edit-lang-default', $user, $context); 
+	}
+	
+	/**
+	 * Returns true if given user is allowed to edit non-multi-language values
+	 *
+	 * @param User $user
+	 * @param Page|Template $context
+	 * @return bool
+	 *
+	 */
+	protected function hasPageEditLangNone(User $user, $context = null) {
+		return $this->hasLangPermission('page-edit-lang-none', $user, $context);
+	}
+	
 
 	/**
 	 * Can the user create pages from this template?

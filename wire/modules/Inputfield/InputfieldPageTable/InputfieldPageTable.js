@@ -15,13 +15,17 @@ function InputfieldPageTableDialog() {
 				if(sort.length) ajaxURL += '&InputfieldPageTableSort=' + sort.replace(/\|/g, ',');
 				$.get(ajaxURL, function(data) {
 					$container.html(data);
-					$container.effect('highlight', 500);
-					InputfieldPageTableSortable($container.find('table'));
+					$container.effect('highlight', 500, function() {
+						var $table = $container.find('table');
+						$table.find('tbody').css('overflow', 'visible');
+						InputfieldPageTableSortable($table);
+					});
 				});
 			}
 		}
 	}
 	var $iframe = pwModalWindow(url, modalSettings, 'medium');
+	var closeOnSaveReady = false;
 	
 	if($a.is('.InputfieldPageTableAdd')) closeOnSave = false; 
 
@@ -40,15 +44,35 @@ function InputfieldPageTableDialog() {
 		//$icontents.find('#breadcrumbs ul.nav, #_ProcessPageEditDelete, #_ProcessPageEditChildren').hide();
 		$icontents.find('#_ProcessPageEditDelete, #_ProcessPageEditChildren').hide();
 
-		closeOnSave = noclose == 0 && $icontents.find('#ProcessPageAdd').size() == 0; 
-
+		closeOnSave = noclose == 0 && $icontents.find('#ProcessPageAdd').length == 0; 
+		
+		if(closeOnSave && closeOnSaveReady) {
+			if($icontents.find(".NoticeError, .NoticeWarning, .ui-state-error").length == 0) {
+				if(typeof Notifications != "undefined") {
+					var messages = [];
+					$icontents.find(".NoticeMessage").each(function() {
+						messages[messages.length] = $(this).text();
+					});
+					if(messages.length > 0) setTimeout(function() {
+						for(var i = 0; i < messages.length; i++) {
+							Notifications.message(messages[i]);
+						}
+					}, 500);
+				}
+				$iframe.dialog('close');
+				return;
+			} else {
+				// errors occurred, so keep it open
+			}
+		}
+	
 		// copy buttons in iframe to dialog
 		$icontents.find("#content form button.ui-button[type=submit]").each(function() {
 			var $button = $(this); 
 			var text = $button.text();
 			var skip = false;
 			// avoid duplicate buttons
-			for(i = 0; i < buttons.length; i++) {
+			for(var i = 0; i < buttons.length; i++) {
 				if(buttons[i].text == text || text.length < 1) skip = true; 
 			}
 			if(!skip) {
@@ -57,9 +81,7 @@ function InputfieldPageTableDialog() {
 					'class': ($button.is('.ui-priority-secondary') ? 'ui-priority-secondary' : ''), 
 					'click': function() {
 						$button.click();
-						if(closeOnSave) setTimeout(function() { 
-							$iframe.dialog('close'); 
-						}, 500); 
+						if(closeOnSave) closeOnSaveReady = true; 
 						if(!noclose) closeOnSave = true; // only let closeOnSave happen once
 					}
 				};
@@ -88,10 +110,21 @@ function InputfieldPageTableUpdate($table) {
 }
 
 function InputfieldPageTableSortable($table) {
-
+	
 	$table.find('tbody').sortable({
 		axis: 'y',
 		start: function(event, ui) {
+			var widths = [];
+			var n = 0;
+			$table.find('thead').find('th').each(function() {
+				widths[n] = $(this).width();
+				n++;
+			});
+			n = 0;
+			ui.helper.find('td').each(function() {
+				$(this).attr('width', widths[n]);
+				n++;
+			});
 		},
 		stop: function(event, ui) {
 			InputfieldPageTableUpdate($(this)); 

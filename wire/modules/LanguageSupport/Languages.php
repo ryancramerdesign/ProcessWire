@@ -49,6 +49,22 @@ class Languages extends PagesType {
 	protected $savedLanguage = null;
 
 	/**
+	 * Language-specific page-edit permissions, if installed (i.e. page-edit-lang-es, page-edit-lang-default, etc.)
+	 *
+	 * @var null|array Becomes an array once its been populated
+	 *
+	 */
+	protected $pageEditPermissions = null;
+
+	/**
+	 * Cached results from editable() method, indexed by user_id.language_id
+	 * 
+	 * @var array
+	 * 
+	 */
+	protected $editableCache = array();
+
+	/**
 	 * Return the LanguageTranslator instance for the given language
 	 * 
 	 * @param Language $language
@@ -205,6 +221,136 @@ class Languages extends PagesType {
 		} else {
 			return parent::getParents();
 		}
+	}
+
+	/**
+	 * Get all language-specific page-edit permissions, or individually one of htem
+	 *
+	 * @param string $name Optionally specify a permission or language name to change return value.
+	 * @return array|string|bool of Permission names indexed by language name, or:
+	 *  - If given a language name, it will return permission name (if exists) or false if not. 
+	 *  - If given a permission name, it will return the language name (if exists) or false if not. 
+	 *
+	 */
+	public function getPageEditPermissions($name = '') {
+		
+		$prefix = "page-edit-lang-";
+		
+		if(!is_array($this->pageEditPermissions)) {
+			$this->pageEditPermissions = array();
+			$langNames = array();
+			foreach($this->wire('languages') as $language) {
+				$langNames[$language->name] = $language->name;
+			}
+			foreach($this->wire('permissions') as $permission) {
+				if(strpos($permission->name, $prefix) !== 0) continue;
+				if($permission->name === $prefix . 'none') {
+					$this->pageEditPermissions['none'] = $permission->name;
+					continue;
+				}
+				foreach($langNames as $langName) {
+					$permissionName = $prefix . $langName;
+					if($permission->name === $permissionName) {
+						$this->pageEditPermissions[$langName] = $permissionName;
+						break;
+					}
+				}
+			}
+		}
+		
+		if($name) {
+			if(strpos($name, $prefix) === 0) {
+				// permission name specified: will return language name or false
+				return array_search($name, $this->pageEditPermissions);
+			} else {
+				// language name specified: will return permission name or false
+				return isset($this->pageEditPermissions[$name]) ? $this->pageEditPermissions[$name] : false;
+			}
+			
+		} else {
+			return $this->pageEditPermissions;
+		}
+	}
+
+	/**
+	 * Return applicable page-edit permission name for given language
+	 * 
+	 * A blank string is returned if there is no applicable permission
+	 * 
+	 * @param int|string|Language $language
+	 * @return string
+	 * 
+	 */
+	public function getPageEditPermission($language) {
+		$permissions = $this->getPageEditPermissions();
+		if($language === 'none' && isset($permissions['none'])) return $permissions['none'];
+		if(!$language instanceof Language) {
+			$language = $this->get($this->wire('sanitizer')->pageName($language));
+		}
+		if(!$language || !$language->id) return '';
+		return isset($permissions[$language->name]) ? $permissions[$language->name] : '';
+	}
+
+	/**
+	 * Does current user have edit access for page fields in given language?
+	 * 
+	 * @param Language|int|string $language
+	 * @return bool
+	 * 
+	 */
+	public function editable($language) {
+		
+		$user = $this->wire('user');
+		if($user->isSuperuser()) return true; 
+		if(empty($language)) return false;
+		$cacheKey = "$user->id.$language";
+		
+		if(array_key_exists($cacheKey, $this->editableCache)) {
+			// accounts for 'none', or language ID
+			return $this->editableCache[$cacheKey];
+		}
+		
+		if($language === 'none') {
+			// page-edit-lang-none permission applies to non-multilanguage fields, if present
+			$permissions = $this->getPageEditPermissions();
+			if(isset($permissions['none'])) {
+				// if the 'none' permission exists, then the user must have it in order to edit non-multilanguage fields
+				$has = $user->hasPermission('page-edit') && $user->hasPermission($permissions['none']); 
+			} else {
+				// if the page-edit-lang-none permission doesn't exist, then it's not applicable
+				$has = $user->hasPermission('page-edit');
+				$this->message("none has=" . (int) $has);
+			}
+			$this->editableCache[$cacheKey] = $has;
+			
+		} else {
+			
+			if(!$language instanceof Language) $language = $this->get($this->wire('sanitizer')->pageName($language));
+			if(!$language || !$language->id) return false;
+		
+			$cacheKey = "$user->id.$language->id";
+			
+			if(array_key_exists($cacheKey, $this->editableCache)) {
+				return $this->editableCache[$cacheKey];
+			}
+			
+			if(!$user->hasPermission('page-edit')) {
+				// page-edit is a pre-requisite permission
+				$has = false;
+			} else {
+				$permissionName = $this->getPageEditPermission($language);
+				// if a language-specific page-edit permission doesn't exist, then fallback to regular page-edit permission
+				if(!$permissionName) {
+					$has = true;
+				} else {
+					$has = $user->hasPermission($permissionName);
+				}
+			}
+			
+			$this->editableCache[$cacheKey] = $has; 
+		}
+		
+		return $has; 
 	}
 
 	/**

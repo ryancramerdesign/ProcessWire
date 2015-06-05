@@ -99,10 +99,15 @@ class LanguageTabs extends WireData implements Module {
 	 * 
 	 */
 	public function addTab(Inputfield $inputfield, Language $language) {
+		$liClass = '';
 		$class = $inputfield->isEmpty() ? " class='langTabEmpty'" : "";
 		$title = $this->wire('sanitizer')->entities1($language->get('title|name'));
+		if(!$this->wire('languages')->editable($language)) {
+			$title = "<s>$title</s>";
+			$liClass = " class='LanguageNotEditable'";
+		}
 		$id = $inputfield->attr('id'); 
-		$this->tabs[] = "<li><a$class href='#langTab_$id'>$title</a></li>";
+		$this->tabs[] = "<li$liClass><a$class href='#langTab_$id'>$title</a></li>";
 	}
 
 	/**

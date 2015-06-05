@@ -20,6 +20,7 @@
  * @property bool $renderValueMode True when only rendering values, i.e. no inputs (default=false)
  * @property int $columnWidthSpacing Percentage spacing between columns or 0 for none. Default pulled from $config->inputfieldColumnWidthSpacing.
  * @property bool $useDependencies Whether or not to consider dependencies during processing (default=true)
+ * @property bool|null $InputfieldWrapper_isPreRendered Whether or not children have been pre-rendered (internal use only)
  *
  */
 
@@ -352,8 +353,12 @@ class InputfieldWrapper extends Inputfield implements Countable, IteratorAggrega
 
 			// The inputfield's classname is always used in it's LI wrapper
 			$ffAttrs = array(
-				'class' => str_replace(array('{class}', '{name}'), array($inputfield->className(), $inputfield->attr('name')), $classes['item'])
-				);
+				'class' => str_replace(
+						array('{class}', '{name}'), 
+						array($inputfield->className(), $inputfield->attr('name')
+						), 
+						$classes['item'])
+					);
 			if($inputfield instanceof InputfieldItemList) $ffAttrs['class'] .= " InputfieldItemList";
 			if($collapsed) $ffAttrs['class'] .= " collapsed$collapsed";
 
@@ -491,9 +496,10 @@ class InputfieldWrapper extends Inputfield implements Countable, IteratorAggrega
 	 * @return string Rendered output
 	 * 
 	 */
-	public function renderInputfield(Inputfield $inputfield, $renderValueMode = false) {
+	public function ___renderInputfield(Inputfield $inputfield, $renderValueMode = false) {
+		
 		$inputfield->renderReady($this, $renderValueMode);
-		if(!$renderValueMode) return $inputfield->render();
+		if(!$renderValueMode && $inputfield->editable()) return $inputfield->render();
 	
 		// renderValueMode
 		$out = $inputfield->renderValue();
@@ -514,6 +520,7 @@ class InputfieldWrapper extends Inputfield implements Countable, IteratorAggrega
 		if(!$this->children) return $this; 
 
 		foreach($this->children as $key => $child) {
+			/** @var Inputfield $child */
 
 			// skip over the field if it is not processable
 			if(!$this->isProcessable($child)) continue; 	
@@ -547,6 +554,9 @@ class InputfieldWrapper extends Inputfield implements Countable, IteratorAggrega
 	 * 
 	 */
 	protected function isProcessable(Inputfield $inputfield) {
+		
+		if(!$inputfield->editable()) return false;
+		
 		// visibility settings that aren't saveable
 		static $skipTypes = array(
 			Inputfield::collapsedHidden,

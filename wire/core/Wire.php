@@ -27,6 +27,7 @@
  * @property Templates $templates
  * @property Pages $pages
  * @property Page $page
+ * @property Process $process
  * @property Modules $modules
  * @property Permissions $permissions
  * @property Roles $roles
