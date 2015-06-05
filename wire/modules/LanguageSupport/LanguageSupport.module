@@ -474,7 +474,7 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 			// not a native multi-language field, check if it's language alternate or not editable
 			if(!$this->editableInputfield($inputfield)) {
 				$replace = true;
-			} else if($inputfield->hasFieldtype) {
+			} else if($inputfield->hasFieldtype && $this->LanguageSupportFields) {
 				$language = $this->LanguageSupportFields->isAlternateField($inputfield->name);
 				if($language && !$this->wire('languages')->editable($language)) $replace = true;
 			}
