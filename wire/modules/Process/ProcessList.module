@@ -25,6 +25,7 @@ class ProcessList extends Process {
 			'summary' => __('Lists the Process assigned to each child page of the current', __FILE__), // getModuleInfo summary
 			'version' => 101, 
 			'permanent' => true, 
+			'useNavJSON' => true, 
 			'permission' => 'page-view',
 			);
 	}
@@ -78,6 +79,28 @@ class ProcessList extends Process {
 		$out .= "\n</dl>";
 		if(!$cnt) $out = '';
 		return $out; 
+	}
+
+	/**
+	 * Output JSON list of navigation items for this (intended to for ajax use)
+	 * 
+	 * For 2.5+ admin themes
+	 *
+	 */
+	public function ___executeNavJSON(array $options = array()) {
+		$children = array();
+
+		foreach($this->page->children("check_access=0") as $child) {
+			if(!$child->viewable()) continue;
+			$children[] = $child;
+		}
+		
+		$options['items'] = $children;
+		$options['itemLabel'] = 'title|name';
+		$options['edit'] = '{name}/';
+		$options['add'] = '';
+		
+		return parent::___executeNavJSON($options);
 	}
 }
 
