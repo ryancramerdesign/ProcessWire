@@ -188,8 +188,9 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 	 * Returns an array of templates that are allowed to be used here
 	 *
 	 */
-	protected function ___getAllowedTemplates() {
+	protected function ___getAllowedTemplates($parent = null) {
 
+		if(is_null($parent)) $parent = $this->parent; 
 		if(is_array($this->allowedTemplates)) return $this->allowedTemplates;
 
 		$user = $this->wire('user');
@@ -199,16 +200,16 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 		$usersPageIDs = $this->wire('config')->usersPageIDs;
 		$userTemplateIDs = $this->wire('config')->userTemplateIDs; 
 
-		if($this->parent->is(Page::statusUnpublished)) {
-			$parentEditable = $this->parent->editable();
+		if($parent->is(Page::statusUnpublished)) {
+			$parentEditable = $parent->editable();
 		} else {
 			// temporarily put the parent in an unpublished status so that we can check it from 
 			// the proper context: when page-publish permission exists, a page not not editable
 			// if a user doesn't have page-publish permission to it, even though it may still
 			// be editable if it was unpublished. 
-			$this->parent->addStatus(Page::statusUnpublished); 
-			$parentEditable = $this->parent->editable(); 
-			$this->parent->removeStatus(Page::statusUnpublished); 
+			$parent->addStatus(Page::statusUnpublished); 
+			$parentEditable = $parent->editable(); 
+			$parent->removeStatus(Page::statusUnpublished); 
 		}
 		
 		foreach($allTemplates as $t) {
@@ -216,20 +217,20 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 			if($t->noParents) continue;
 			if($t->useRoles && !$user->hasPermission('page-create', $t)) continue;  
 			if(!$t->useRoles && !$parentEditable) continue; 
-			if(!$t->useRoles && !$user->hasPermission('page-create', $this->parent)) continue;
+			if(!$t->useRoles && !$user->hasPermission('page-create', $parent)) continue;
 
 			if(count($allParents) == 1) {
-				if(count($this->parent->template->childTemplates)) {
+				if(count($parent->template->childTemplates)) {
 					// check that this template is allowed by the defined parent
-					if(!in_array($t->id, $this->parent->template->childTemplates)) continue;
+					if(!in_array($t->id, $parent->template->childTemplates)) continue;
 				}
 			}
 
 			if(count($t->parentTemplates)) {
 				// this template is only allowed for certain parents
 				$allow = false;
-				foreach($allParents as $parent) {
-					if(in_array($parent->template->id, $t->parentTemplates)) {
+				foreach($allParents as $_parent) {
+					if(in_array($_parent->template->id, $t->parentTemplates)) {
 						$allow = true;
 						break;
 					}
@@ -240,19 +241,19 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 			if(in_array($t->id, $userTemplateIDs)) {
 				// this is a user template: allow any parents defined in $config->usersPageIDs
 				$allow = false;
-				foreach($allParents as $parent) {
-					if(in_array($parent->id, $usersPageIDs)) {
+				foreach($allParents as $_parent) {
+					if(in_array($_parent->id, $usersPageIDs)) {
 						$allow = true;
 						break;
 					}
 				}
 				if(!$allow) continue;
 				
-			} else if($t->name == 'role' && $this->parent->id != $this->config->rolesPageID) {
+			} else if($t->name == 'role' && $parent->id != $this->config->rolesPageID) {
 				// only allow role templates below rolesPageID
 				continue;
 				
-			} else if($t->name == 'permission' && $this->parent->id != $this->config->permissionsPageID) {
+			} else if($t->name == 'permission' && $parent->id != $this->config->permissionsPageID) {
 				// only allow permission templates below permissionsPageID
 				continue;
 			}

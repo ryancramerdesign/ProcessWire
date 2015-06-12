@@ -25,7 +25,7 @@
  * @property string $icon
  * @property bool $useRoles Whether or not access control is enabled (same as $field->flags & Field::flagAccess)
  * @property array $editRoles Role IDs with edit access, applicable only if $field->useRoles is true.
- * @property array $viewRoles Role IDs with view access, applicable only if $field->useRoles is true. 
+ * @property array $viewRoles Role IDs with view access, applicable only if $field->useRoles is true.
  * 
  * Added by PagePermissions.module:
  * @method bool editable() Returns whether or not field is editable by current user. Optionally specify a Page as first argument.
@@ -661,6 +661,8 @@ class Field extends WireData implements Saveable, Exportable {
 
 	/**
 	 * Return the default value for this field (if set), or null otherwise. 
+	 * 
+	 * @deprecated Use $field->type->getDefaultValue($page, $field) instead. 
 	 *
 	 */
 	public function getDefaultValue() {

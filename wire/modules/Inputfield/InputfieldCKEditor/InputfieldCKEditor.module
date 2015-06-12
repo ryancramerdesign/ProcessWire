@@ -35,7 +35,7 @@ class InputfieldCKEditor extends InputfieldTextarea {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'CKEditor',
-			'version' => 143, 
+			'version' => 144, 
 			'summary' => __('CKEditor textarea rich text editor.', __FILE__),
 			'installs' => array('MarkupHTMLPurifier'), 
 			);
@@ -156,6 +156,8 @@ class InputfieldCKEditor extends InputfieldTextarea {
 			$value = explode(',', $value); 
 		} else if($key == 'extraAllowedContent') {
 			$value = str_replace(array("\r\n", "\n"), "; ", trim($value)); 
+		} else if($key == 'configName') {
+			$this->configName = $value;
 		}
 		
 		return parent::set($key, $value); 

@@ -104,46 +104,48 @@ $(document).ready(function() {
 	 * 
 	 */
 
-	var $inlines = $(".InputfieldCKEditorInline[contenteditable=true]"); 
+	// var $inlines = $(".InputfieldCKEditorInline[contenteditable=true]"); 
 	var pageID = $("#Inputfield_id").val();
 
 	CKEDITOR.disableAutoInline = true; 
+	
+	$(document).on('mouseover', '.InputfieldCKEditorInline[contenteditable=true]', function() {
 
-	if($inlines.size() > 0) {
+		// if($inlines.size() > 0) {
+		// $inlines.mouseover(function() {
+		
+		// we initialize the inline editor only when moused over
+		// so that a page can handle lots of editors at once without
+		// them all being active
+		
+		var $t = $(this);
+		if($t.is(".InputfieldCKEditorLoaded")) return;
+		$t.effect('highlight', {}, 500); 
+		$t.attr('contenteditable', 'true'); 
+		var configName = $t.attr('data-configName'); 
+		var editor = CKEDITOR.inline($(this).attr('id'), config[configName]); 
+		editor.on('blur', ckeBlurEvent);
+		editor.on('change', ckeBlurEvent);
+		var n = inlineCKEditors.length; 
+		inlineCKEditors[n] = editor; 
+		$t.attr('data-n', n); 
+		$t.addClass("InputfieldCKEditorLoaded"); 
+	});
 
-		$inlines.mouseover(function() {
-			// we initialize the inline editor only when moused over
-			// so that a page can handle lots of editors at once without
-			// them all being active
+	$("form.InputfieldForm").submit(function() {
+		$(this).find('.InputfieldCKEditorInline').each(function() {
 			var $t = $(this);
-			if($t.is(".InputfieldCKEditorLoaded")) return;
-			$t.effect('highlight', {}, 500); 
-			$t.attr('contenteditable', 'true'); 
-			var configName = $t.attr('data-configName'); 
-			var editor = CKEDITOR.inline($(this).attr('id'), config[configName]); 
-			editor.on('blur', ckeBlurEvent);
-			editor.on('change', ckeBlurEvent);
-			var n = inlineCKEditors.length; 
-			inlineCKEditors[n] = editor; 
-			$t.attr('data-n', n); 
-			$t.addClass("InputfieldCKEditorLoaded"); 
-		});
-
-		$("form.InputfieldForm").submit(function() {
-			$(this).find('.InputfieldCKEditorInline').each(function() {
-				var $t = $(this);
-				var value; 
-				if($t.is('.InputfieldCKEditorLoaded')) {
-					var n = parseInt($t.attr('data-n')); 
-					var editor = inlineCKEditors[n];
-					// getData() ensures there are no CKE specific remnants in the markup
-					value = editor.getData();
-				} else {
-					value = $t.html();
-				}
-				var $input = $t.next('input'); 
-				$input.attr('value', value); 
-			}); 
-		}); 	
-	}
+			var value; 
+			if($t.is('.InputfieldCKEditorLoaded')) {
+				var n = parseInt($t.attr('data-n')); 
+				var editor = inlineCKEditors[n];
+				// getData() ensures there are no CKE specific remnants in the markup
+				value = editor.getData();
+			} else {
+				value = $t.html();
+			}
+			var $input = $t.next('input'); 
+			$input.attr('value', value); 
+		}); 
+	}); 	
 }); 

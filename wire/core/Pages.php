@@ -852,6 +852,22 @@ class Pages extends Wire {
 			// auto assign a sort
 			$page->sort = $page->parent->numChildren();
 		}
+
+		foreach($page->template->fieldgroup as $field) {
+			if($page->__isset($field->name)) continue; // value already set
+			if(!strlen($field->defaultValue)) continue; // no defaultValue property defined with Fieldtype config inputfields
+			try {
+				$blankValue = $field->type->getBlankValue($page, $field);
+				if(is_object($blankValue) || is_array($blankValue)) continue; // we don't currently handle complex types
+				$defaultValue = $field->type->getDefaultValue($page, $field);
+				if(is_object($defaultValue) || is_array($defaultValue)) continue; // we don't currently handle complex types
+				if("$blankValue" !== "$defaultValue") {
+					$page->set($field->name, $defaultValue);
+				}
+			} catch(Exception $e) {
+				$this->warning($e->getMessage());
+			}
+		}
 	}
 
 	/**

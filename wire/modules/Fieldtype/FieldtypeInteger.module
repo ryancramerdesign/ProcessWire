@@ -129,6 +129,15 @@ class FieldtypeInteger extends Fieldtype {
 		$f->addOption(1, $this->_('No - Blank and 0 have different meanings')); 
 		$f->attr('value', (int) $field->zeroNotEmpty);
 		$inputfields->add($f); 
+		
+		$f = $this->wire('modules')->get('InputfieldInteger');
+		$f->attr('name', 'defaultValue');
+		$f->label = $this->_('Default value'); 
+		$f->description = $this->_('This value is assigned as the default for this field on newly created pages. It does not affect existing pages.');
+		$f->collapsed = Inputfield::collapsedBlank;
+		$f->attr('value', strlen($field->defaultValue) ? (int) $field->defaultValue : ''); 
+		$inputfields->add($f);
+		
 		return $inputfields; 
 	}
 
