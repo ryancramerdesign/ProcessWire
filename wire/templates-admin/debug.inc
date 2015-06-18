@@ -137,8 +137,14 @@
 				<tbody>
 				<?php 
 				$hooks = array_merge(wire()->getHooks('*'), Wire::$allLocalHooks); 
-				ksort($hooks); 
-				foreach($hooks as $key => $hook) {
+				$hooksSorted = array();
+				foreach($hooks as $hook) {
+					$whenKey = $hook['options']['before'] ? '0' : '1';
+					$sortKey = $hook['options']['fromClass'] . ":$hook[method]:$whenKey:" . $hook['options']['priority'];
+					$hooksSorted[$sortKey] = $hook;
+				}
+				ksort($hooksSorted);
+				foreach($hooksSorted as $key => $hook) {
 					$suffix = $hook['options']['type'] == 'method' ? '()' : '';
 					$toObject = !empty($hook['toObject']) ? $hook['toObject'] : '';
 					$toMethod = $hook['toMethod'];

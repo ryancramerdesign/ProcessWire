@@ -27,8 +27,10 @@
  * @property array $editRoles Role IDs with edit access, applicable only if $field->useRoles is true.
  * @property array $viewRoles Role IDs with view access, applicable only if $field->useRoles is true.
  * 
- * Added by PagePermissions.module:
- * @method bool editable() Returns whether or not field is editable by current user. Optionally specify a Page as first argument.
+ * @method bool viewable(Page $page = null, User $user = null)
+ * @method bool editable(Page $page = null, User $user = null)
+ * @method Inputfield getInputfield(Page $page, $contextStr = '')
+ * @method InputfieldWrapper getConfigInputfields()
  * 
  * @todo add modified date property
  *

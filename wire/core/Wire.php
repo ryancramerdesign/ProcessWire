@@ -378,20 +378,24 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 
 		$realMethod = "___$method";
 		if($type == 'method') $result['methodExists'] = method_exists($this, $realMethod);
-		if(!$result['methodExists'] && !self::isHooked($method . ($type == 'method' ? '()' : ''))) return $result; // exit quickly when we can
+		if(!$result['methodExists'] && !self::isHooked($method . ($type == 'method' ? '()' : ''))) {
+			return $result; // exit quickly when we can
+		}
 
-		$hooks = $this->getHooks();
+		$hooks = $this->getHooks($method);
 
 		foreach(array('before', 'after') as $when) {
 
 			if($type === 'method' && $when === 'after' && $result['replace'] !== true) {
-				if($result['methodExists']) $result['return'] = call_user_func_array(array($this, $realMethod), $arguments); 
-					else $result['return'] = null;
+				if($result['methodExists']) {
+					$result['return'] = call_user_func_array(array($this, $realMethod), $arguments);
+				} else {
+					$result['return'] = null;
+				}
 			}
 
 			foreach($hooks as $priority => $hook) {
 
-				if($hook['method'] !== $method) continue; 
 				if(!$hook['options'][$when]) continue; 
 
 				$event = new HookEvent(); 
@@ -435,30 +439,68 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 */
 	public function getHooks($method = '', $type = 0) {
 
-		$hooks = $type === 2 ? array() : $this->localHooks; 
-
-		if($type !== 1) {
-			// static hooks
-			foreach(self::$staticHooks as $className => $staticHooks) {
-				// join in any related static hooks to the instance hooks
-				if($this instanceof $className || $method == '*') {
-					// TODO determine if the local vs static priority level may be damaged by the array_merge
-					$hooks = array_merge($hooks, $staticHooks); 
+		$hooks = array();
+	
+		// first determine which local hooks when should include
+		if($type !== 2) {
+			if($method && $method !== '*') {
+				// populate all local hooks for given method
+				if(isset($this->localHooks[$method])) $hooks = $this->localHooks[$method];
+			} else {
+				// populate all local hooks, regardless of method
+				// note: sort of return hooks is no longer priority based
+				// @todo account for '*' method, which should return all hooks regardless of instance
+				foreach($this->localHooks as $method => $methodHooks) {
+					$hooks = array_merge(array_values($hooks), array_values($methodHooks));
 				}
 			}
 		}
-
-		if($method && $method != '*') {
-			$methodHooks = array();
-			foreach($hooks as $priority => $hook) {
-				if($hook['method'] == $method) $methodHooks[$priority] = $hook;
+	
+		// if only local hooks requested, we can return them now
+		if($type === 1) return $hooks;
+		
+		$needSort = false;
+		
+		// join in static hooks
+		foreach(self::$staticHooks as $className => $staticHooks) {
+			if(!$this instanceof $className && $method !== '*') continue;
+			// join in any related static hooks to the local hooks
+			if($method && $method !== '*') {
+				// retrieve all static hooks for method
+				if(!empty($staticHooks[$method])) {
+					if(count($hooks)) {
+						$collisions = array_intersect_key($hooks, $staticHooks[$method]);
+						$hooks = array_merge($hooks, $staticHooks[$method]);
+						if(count($collisions)) {
+							// identify and resolve priority collisions
+							foreach($collisions as $priority => $hook) {
+								$n = 0;
+								while(isset($hooks["$priority.$n"])) $n++;
+								$hooks["$priority.$n"] = $hook;
+							}
+						}
+						$needSort = true;
+					} else {
+						$hooks = $staticHooks[$method];
+					}
+				}
+			} else {
+				// no method specified, retrieve all for class
+				// note: priority-based array indexes are no longer in tact
+				$hooks = array_values($hooks);
+				foreach($staticHooks as $_method => $methodHooks) {
+					$hooks = array_merge($hooks, array_values($methodHooks));
+				}
 			}
-			$hooks = $methodHooks;
+		}
+		
+		if($needSort && count($hooks) > 1) {
+			ksort($hooks, SORT_NATURAL);
 		}
 
 		return $hooks;
 	}
-
+	
 	/**
 	 * Returns true if the method/property hooked, false if it isn't.
 	 *
@@ -475,7 +517,7 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 * 	Class::property
 	 * 	method()
 	 * 	property
-	 * @param Wire|null $instance Optional instance to check against (see isThisHooked method for details)
+	 * @param Wire|null $instance Optional instance to check against (see hasHook method for details)
 	 * 	Note that if specifying an $instance, you may not use the Class::method() or Class::property options for $method argument.
 	 * @return bool
 	 *
@@ -508,6 +550,7 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 * @param string $method Method() or property name
 	 * @return bool
 	 * @throws WireException whe you try to call it with a Class::something() type method. 
+	 * @todo differentiate between "method()" and "property"
 	 *
 	 */
 	public function hasHook($method) {
@@ -520,21 +563,19 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 		// quick exit when possible
 		if(!in_array($method, self::$hookMethodCache)) return false; 
 
-		// first check local hooks attached to this instance
-		$_method = rtrim($method, '()'); 
-		foreach($this->localHooks as $hook) {
-			if($hook['method'] != $_method) continue; 
-			// @todo differentiate between hooked property and method
+		$_method = rtrim($method, '()');
+		
+		if(!empty($this->localHooks[$_method])) {
+			// first check local hooks attached to this instance
 			$hooked = true;
-			break;
-		}
-
-		// then check static hooks with this class and parents
-		if(!$hooked) { 
+		} else if(!empty(self::$staticHooks[get_class($this)][$_method])) {
+			// now check if hooked in this class
+			$hooked = true;
+		} else {
+			// check parent classes
 			$classes = class_parents($this, false);
-			array_unshift($classes, get_class($this));
 			foreach($classes as $class) {
-				if(array_key_exists("$class::$method", self::$hookMethodCache)) {
+				if(!empty(self::$staticHooks[$class][$_method])) {
 					$hooked = true;
 					break;
 				}
@@ -595,19 +636,42 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 			if(!isset(self::$staticHooks[$hookClass])) self::$staticHooks[$hookClass] = array();
 			$hooks =& self::$staticHooks[$hookClass]; 
 			$options['allInstances'] = true; 
+			$local = 0;
 
 		} else {
 			// hook only this instance
 			$hookClass = '';
 			$hooks =& $this->localHooks;
+			$local = 1;
 		}
 
-		$priority = (int) $options['priority']; 
-		while(isset($hooks[$priority])) $priority++;
-		$id = "$hookClass:$priority";
-		$options['priority'] = $priority; 
+		$priority = (string) $options['priority']; 
+		if(!isset($hooks[$method])) {
+			if(ctype_digit($priority)) $priority = "$priority.0";
+			$hooks[$method] = array();
+		} else {
+			if(strpos($priority, '.')) {
+				// priority already specifies a sub value: extract it
+				list($priority, $n) = explode('.', $priority);
+				$options['priority'] = $priority; // without $n
+				$priority .= ".$n";
+			} else {
+				$n = 0;
+				$priority .= ".0";
+			}
+			// come up with a priority that is unique for this class/method across both local and static hooks
+			while(($hookClass && isset(self::$staticHooks[$hookClass][$method][$priority])) 
+				|| isset($this->localHooks[$method][$priority])) {
+				$n++;
+				$priority = "$options[priority].$n";
+			}
+		}
+	
+		// Note hookClass is always blank when this is a local hook
+		$id = "$hookClass:$priority:$method";
+		$options['priority'] = $priority;
 
-		$hooks[$priority] = array(
+		$hooks[$method][$priority] = array(
 			'id' => $id, 
 			'method' => $method, 
 			'toObject' => $toObject, 
@@ -623,14 +687,16 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 		// keep track of all local hooks combined when debug mode is on
 		if($this->wire('config')->debug && $hooks === $this->localHooks) {
 			$debugClass = $this->className();
-			$debugID = $debugClass . $id;
+			$debugID = ($local ? $debugClass : '') . $id;
 			while(isset(self::$allLocalHooks[$debugID])) $debugID .= "_";
-			$debugHook = $hooks[$priority];
+			$debugHook = $hooks[$method][$priority];
 			$debugHook['method'] = $debugClass . "->" . $debugHook['method'];
 			self::$allLocalHooks[$debugID] = $debugHook;
 		}
 
-		ksort($hooks); // sort by priority
+		// sort by priority, if more than one hook for the method
+		if(count($hooks[$method]) > 1) ksort($hooks[$method], SORT_NATURAL); 
+		
 		return $id;
 	}
 
@@ -707,9 +773,14 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 *
 	 */
 	public function removeHook($hookId) {
-		list($hookClass, $priority) = explode(':', $hookId); 
-		if(!$hookClass) unset($this->localHooks[$priority]); 
-			else unset(self::$staticHooks[$hookClass][$priority]); 
+		if(strpos($hookId, ':')) {
+			list($hookClass, $priority, $method) = explode(':', $hookId); 
+			if(empty($hookClass)) {
+				unset($this->localHooks[$method][$priority]);	
+			} else {
+				unset(self::$staticHooks[$hookClass][$method][$priority]);
+			}
+		}
 		return $this;
 	}
 

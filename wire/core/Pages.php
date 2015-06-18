@@ -24,6 +24,9 @@
  * @method bool trash() trash(Page $page, $save = true) Move a page to the trash. If you have already set the parent to somewhere in the trash, then this method won't attempt to set it again.
  * @method bool delete() delete(Page $page, $recursive = false) Permanently delete a page and it's fields. Unlike trash(), pages deleted here are not restorable. If you attempt to delete a page with children, and don't specifically set the $recursive param to True, then this method will throw an exception. If a recursive delete fails for any reason, an exception will be thrown.
  * @method Page|NullPage clone() clone(Page $page, Page $parent = null, $recursive = true, $options = array()) Clone an entire page, it's assets and children and return it.
+ * 
+ * @property bool cloning Whether or not a clone() operation is currently active
+ * @property bool outputFormatting Current default output formatting mode. 
  *
  * @todo Some methods here (find, save, etc.) need their own dedicated classes. 
  * @todo Update saveField to accept array of field names as an option. 
@@ -1599,10 +1602,11 @@ class Pages extends Wire {
 		}
 
 		// make sure that we have a unique name
+		
 		while(count($parent->children("name=$name, include=all"))) {
 			$name = $page->name . '-' . (++$n); 
 		}
-
+		
 		// Ensure all data is loaded for the page
 		foreach($page->template->fieldgroup as $field) {
 			$page->get($field->name); 
@@ -1619,6 +1623,22 @@ class Pages extends Wire {
 		if(isset($options['set']) && is_array($options['set'])) {
 			foreach($options['set'] as $key => $value) {
 				$copy->set($key, $value); 
+			}
+			if(isset($options['set']['modified'])) {
+				$options['quiet'] = true; // allow for modified date to be set
+				if(!isset($options['set']['modified_users_id'])) {
+					// since 'quiet' also allows modified user to be set, make sure that it
+					// is still updated, if not specifically set. 
+					$copy->modified_users_id = $this->wire('user')->id; 
+				}
+			}
+			if(isset($options['set']['modified_users_id'])) {
+				$options['quiet'] = true; // allow for modified user to be set
+				if(!isset($options['set']['modified'])) {
+					// since 'quiet' also allows modified tie to be set, make sure that it
+					// is still updated, if not specifically set. 
+					$copy->modified = time();
+				}
 			}
 		}
 
