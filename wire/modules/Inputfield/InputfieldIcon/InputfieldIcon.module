@@ -6,7 +6,7 @@ class InputfieldIcon extends Inputfield {
 		return array(
 			'title' => __('Icon', __FILE__), // Module Title
 			'summary' => __('Select an icon', __FILE__), // Module Summary
-			'version' => 2,
+			'version' => 3,
 		);
 	}
 	
