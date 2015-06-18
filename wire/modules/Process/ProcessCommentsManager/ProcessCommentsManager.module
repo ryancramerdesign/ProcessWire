@@ -59,16 +59,31 @@ class ProcessCommentsManager extends Process {
 
 
 	/**
-	 * Statuses and labels that a Comment can have
+	 * Statuses that a Comment can have
 	 *
 	 */
 	protected $statuses = array();
+
+    /**
+     * Statuses labels that a Comment can have
+     *
+     */
+    protected $statusLabels = array();
 
 	/**
 	 * Number of comments to show per page
 	 *
 	 */
 	protected $limit = 10;
+
+    /**
+     * Construction SystemNotifications
+     *
+     */
+    public function __construct() {
+        $path = $this->wire('config')->paths->FieldtypeComments;
+        require_once($path . "Comment.php");
+    }
 
 	/**
 	 * Initialize the comments manager and define the statuses
@@ -77,11 +92,17 @@ class ProcessCommentsManager extends Process {
 	public function init() {
 		parent::init();
 		$this->statuses = array(
-			Comment::statusApproved => $this->_('approved'),
-			Comment::statusPending => $this->_('pending'),
-			Comment::statusSpam => $this->_('spam'),
-			Comment::statusDelete => $this->_('delete')
-			); 
+			Comment::statusApproved => 'approved', // $this->_('approved'),
+			Comment::statusPending => 'pending', // $this->_('pending'),
+			Comment::statusSpam => 'spam', // $this->_('spam'),
+			Comment::statusDelete => 'delete', // $this->_('delete')
+			);
+        $this->statusLabels = array(
+            Comment::statusApproved => $this->_('Approved'),
+            Comment::statusPending => $this->_('Pending'),
+            Comment::statusSpam => $this->_('Spam'),
+            Comment::statusDelete => $this->_('Delete')
+        );
 	}
 
 	/**
@@ -257,7 +278,7 @@ class ProcessCommentsManager extends Process {
 			$type .= 
 				"<label class='CommentStatus'>" . 
 				"<input type='radio' name='CommentStatus{$comment->id}' value='$status'$checked />&nbsp;" . 
-				"<small>$label</small>" . 
+				"<small>{$this->statusLabels[$status]}</small>" .
 				"</label> &nbsp; ";
 		}
 
@@ -390,7 +411,7 @@ class ProcessCommentsManager extends Process {
 		foreach($this->statuses as $status => $label) {
 			if($status == Comment::statusDelete) continue; 
 			$class = $this->input->urlSegment3 === $label ? 'on' : '';
-			$tabs["tabStatus$status"] = "<a class='$class' href='../$label/'>" . ucfirst($label) . "</a>";
+			$tabs["tabStatus$status"] = "<a class='$class' href='../$label/'>" . $this->statusLabels[$status] . "</a>";
 		}
 
 		$tabsOut = $wireTabs->renderTabList($tabs);
