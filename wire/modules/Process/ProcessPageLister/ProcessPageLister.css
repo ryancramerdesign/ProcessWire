@@ -64,6 +64,15 @@
 #ProcessListerResults .actions {
 	display: none;
 	line-height: 1.3em;
+	text-transform: lowercase;  
+}
+#ProcessListerResults .actions a.PageExtras i {
+	margin-left: 3px;
+	margin-right: 2px; 
+}
+#ProcessListerResults .actions a.PageExtras.open i {
+	margin-left: 2px;
+	margin-right: 3px; 
 }
 /*
 #ProcessListerResults tr:hover {

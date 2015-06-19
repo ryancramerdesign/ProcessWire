@@ -183,7 +183,8 @@ class MarkupPagerNav extends Wire implements Module {
 		if(!$this->totalItems) return '';
 
 		$this->options = array_merge($this->options, $options); 
-		$this->itemsPerPage = $items->getLimit(); 
+		$limit = $items->getLimit();
+		if($limit) $this->itemsPerPage = $limit;
 		$this->pageNum = $items->getStart() < $this->itemsPerPage  ? 1 : ceil($items->getStart() / $this->itemsPerPage)+1; 
 
 		if(is_null($this->options['page'])) $this->options['page'] = $this->wire('page'); 

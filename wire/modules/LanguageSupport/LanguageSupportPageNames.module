@@ -719,19 +719,39 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 	 */
 	public function hookPageSaveReady(HookEvent $event) {
 
+		/** @var Page $page */
 		$page = $event->arguments[0];
+		/** @var Pages $pages */
+		$pages = $event->object; 
 		$extraData = $event->return; 
 		if(!is_array($extraData)) $extraData = array();
 		$alwaysActiveTypes = array('User', 'Role', 'Permission', 'Language'); 
+		
+		$defaultN = 1;
+		if($pages->cloning && preg_match('/^(.+)-(\d+)$/', $page->name, $matches)) {
+			$defaultN = (int) $matches[2];
+		}
 
-		foreach(wire('languages') as $language) {
+		foreach($this->wire('languages') as $language) {
+			
 			if($language->isDefault()) continue; 
 			$language_id = (int) $language->id; 
 
 			// populate a name123 field for each language
 			$name = "name$language_id";
-			$value = wire('sanitizer')->pageName($page->get($name)); 
-			if(!strlen($value)) $value = 'NULL';
+			$value = $this->wire('sanitizer')->pageName($page->get($name)); 
+			if(!strlen($value)) {
+				$value = 'NULL';
+			} else if($pages->cloning) {
+				// this save is the result of a clone() operation
+				// make sure that the name is unique for other languages
+				$newValue = $value;
+				while($page->parent->children("$name=$newValue, include=all")->count() > 0) {
+					$newValue = $value . "-$defaultN";
+					$defaultN++;
+				}
+				$value = $newValue; 
+			}
 			$extraData[$name] = $value; 
 
 			// populate a status123 field for each language

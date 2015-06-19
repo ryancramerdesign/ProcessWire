@@ -730,8 +730,8 @@ $config->substituteModules = array(
  * #property int limit Number of items to show per pagination (default=50)
  * #property int speed Animation speed in ms for opening/closing lists (default=200)
  * #property bool useHoverActions Show page actions when page is hovered? (default=false)
- * #property int hoverActionDelay Delay in ms between hovering a page and showing the actions (default=250)
- * #property int hoverActionFade Time in ms to spend fading in or out the actions (default=150)
+ * #property int hoverActionDelay Delay in ms between hovering a page and showing the actions (default=100)
+ * #property int hoverActionFade Time in ms to spend fading in or out the actions (default=100)
  * 
  * @var array
  * 

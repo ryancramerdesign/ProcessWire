@@ -135,6 +135,7 @@
 .InputfieldSelector .selector-counter {
 	width: 50%; 
 	float: right; 
+	margin-bottom: 1em;
 	text-align: right; 
 }
 
@@ -156,4 +157,10 @@
 .InputfieldSelector .or-notes {
 	display: none; 
 	margin-bottom: 0;
+}
+
+.InputfieldSelector .or-notes,
+.InputfieldSelector .notes {
+	clear: both;
+	margin-top: 1em;
 }

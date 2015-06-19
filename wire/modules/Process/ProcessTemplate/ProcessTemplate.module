@@ -1690,7 +1690,16 @@ class ProcessTemplate extends Process {
 		$this->template->slashUrls = (int) $form->get('slashUrls')->attr('value');
 		$this->template->altFilename = basename($form->get('altFilename')->attr('value'), "." . $this->config->templateExtension);
 		$this->template->guestSearchable = (int) $form->get('guestSearchable')->attr('value'); 
-		$this->template->pageLabelField = $this->fuel('sanitizer')->names($form->get('pageLabelField')->attr('value'));
+		
+		$pageLabelField = $form->get('pageLabelField')->attr('value');
+		if(strpos($pageLabelField, '{') !== false && strpos($pageLabelField, '}')) {
+			// {tag} format string, keep as-is
+		} else {
+			// sanitize to names string
+			$pageLabelField = $this->wire('sanitizer')->names($form->get('pageLabelField')->attr('value'));
+		}
+		$this->template->pageLabelField = $pageLabelField;
+		
 		$this->template->setIcon($form->get('pageLabelIcon')->attr('value'));
 		$this->template->childNameFormat = $this->fuel('sanitizer')->text($form->get('childNameFormat')->attr('value')); 
 		$this->template->cache_time = $form->get('cache_time')->attr('value'); 

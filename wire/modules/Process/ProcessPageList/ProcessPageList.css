@@ -107,29 +107,6 @@
 	top: 3px; 
 }
 
-/*
-.PageList .PageListStatusLocked a.PageListPage,
-.PageList .PageListStatusLocked a.PageListPage:hover {
-	padding-right: 10px;
-}
-*/
-
-.PageList .PageListAccessOff a.PageListPage,
-.PageList .PageListAccessOff a.PageListPage:hover {
-	/*
-	padding-right: 10px;
-	background: url(images/lock.gif) center right no-repeat; 
-	*/
-}
-
-.PageList .PageListAccessOn a.PageListPage,
-.PageList .PageListAccessOn a.PageListPage:hover {
-	/*
-	padding-right: 13px;
-	background: url(images/unlock.png) center right no-repeat; 
-	*/
-}
-
 
 .PageList .PageListID7 a.PageListPage,
 .PageList .PageListID7 a.PageListPage:hover,
@@ -139,10 +116,6 @@
 	padding-right: 0;
 	background: none; 
 }
-
-
-
-.PageList .PageListStatusSystem a.PageListPage { }
 
 .PageList .PageListStatusUnpublished a.PageListPage {
 	text-decoration: line-through; 
@@ -234,10 +207,6 @@
  */
 .PageListItem + .PageListActions {
 	margin: 0 !important; 
-}
-
-.PageListActionTrash {
-	float: right;
 }
 
 #PageListContainer.PageListContainerPage .PageListActionTrash {
@@ -340,6 +309,15 @@
 	height: 1em; 
 	width: auto; 
 	border-left: 2px solid #999; 
+}
+
+.PageListActionExtras i.fa {
+	margin-left: 3px;
+	margin-right: 2px;
+}
+.PageListActionExtras i.fa-flip-horizontal {
+	margin-left: 2px;
+	margin-right: 3px;
 }
 
 

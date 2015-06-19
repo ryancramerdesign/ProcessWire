@@ -382,6 +382,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		$s->attr('name', 'filters'); 
 		$s->attr('id', 'ProcessListerFilters'); 
 		$s->initValue = $this->initSelector; 
+		if($this->template) $s->initTemplate = $this->template;
 		$s->label = $this->_('Filters'); 
 		$s->addLabel = $this->_('Add Filter'); 
 		$s->icon = 'search-plus';
@@ -718,6 +719,19 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		if($this->initSelector && strpos($selector, $this->initSelector) === false) {
 			$selector = "$this->initSelector, $selector";
 		}
+		
+		// optionally limit results to just those present in CSV row_page_id POST var containing page IDs, like: 1,2,3
+		if(isset($_POST['row_page_id'])) {
+			$pageIDs = array();
+			foreach(explode(',', $this->wire('input')->post('row_page_id')) as $id) {
+				$id = (int) $id;
+				if($id) $pageIDs[] = $id;
+			}
+			if(count($pageIDs)) {
+				$selector .= ", id=" . implode('|', $pageIDs);
+				return $this->validateSelector($selector);
+			}
+		}
 
 		if(stripos($selector, 'limit=') === false) {
 			// no limit is specified in the selector
@@ -1018,6 +1032,13 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 			// count
 			$value = $value->count();
 
+		} else if($field && $field->type && $field->type->isHooked($field->type->className() . '::markupValue()')) {
+			// if the markupValue method is hooked, let it have control
+			if($subname == 'data') $subname = '';
+			$value = $field->type->markupValue($p, $field, $value, $subname);
+			// value may be MarkupFieldtype object
+			$value = (string) $value;
+
 		} else if($value instanceof Page || $value instanceof PageArray) {
 			// pages
 			if($value instanceof Page) $value = array($value); 
@@ -1108,56 +1129,108 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 	protected function ___buildListerTableColActions(Page $p, $value) {
 		$class = '';
 		$icon = '';
+		$statusIcon = '';
 		$isTrash = false; 
 		if(!strlen($value)) $value = $this->_('Blank'); 
 		if($p->is(Page::statusHidden)) $class .= " PageListStatusHidden";
 		if($p->is(Page::statusUnpublished)) $class .= " PageListStatusUnpublished";
-		if($p->is(Page::statusLocked)) $class .= " PageListStatusLocked";
+		if($p->is(Page::statusLocked)) {
+			$class .= " PageListStatusLocked";
+			$statusIcon .= wireIconMarkup('lock', 'fw ui-priority-secondary');
+		}
 		if($p->is(Page::statusTrash)) {
 			$isTrash = true; 	
 			$class .= " PageListStatusTrash PageListStatusUnpublished";
-			$icon = wireIconMarkup('trash-o', 'fw'); 
-		} else {
-			$icon = $p->template->getIcon();
-			$icon = $icon ? wireIconMarkup($icon, 'fw') : '';	
+			$statusIcon .= wireIconMarkup('trash-o', 'fw ui-priority-secondary'); 
 		}
+		if($p->getAccessParent() === $p && $p->parent->id) {
+			if($p->getAccessTemplate()->hasRole('guest')) {
+				if(!$p->parent->getAccessTemplate()->hasRole('guest') && !$p->isTrash()) {
+					$class .= ' PageListAccessOn';
+					$statusIcon .= wireIconMarkup('key', 'fw fa-flip-horizontal ui-priority-secondary');
+				}
+			} else if($p->parent->getAccessTemplate()->hasRole('guest')) {
+				$class .= ' PageListAccessOff';
+				$statusIcon .= wireIconMarkup('key', 'fw ui-priority-secondary');
+			}
+		}
+		$icon = $p->template->getIcon();
+		$icon = $icon ? wireIconMarkup($icon, 'fw') : '';	
 		if($class) $value = "<span class='" . trim($class) . "'>$value</span>";
 
+		$actions = $this->getPageActions($p);
+		unset($actions['move']); // not applicable in Lister
+		
 		$viewMode = $this->viewMode;
 		$editMode = $this->editMode; 
-		$editable = $editMode != self::windowModeHide ? $p->editable() : false;
-		$viewable = $viewMode != self::windowModeHide ? $p->viewable() : false; 
-		$addable = $editMode != self::windowModeHide ? $p->addable() : false; 
+		$editable = $editMode != self::windowModeHide ? isset($actions['edit']) : false;
+		$viewable = $viewMode != self::windowModeHide ? isset($actions['view']) : false; 
+		$addable = $editMode != self::windowModeHide ? isset($actions['new']) : false; 
 
 		if($editable || $viewable || $addable) {
+			
 			$directURL = '';
-			$class2 = ''; // $viewable && $editable ? '' : ' autoclick'; 
 			$actionsOut = '';
+			
 			if($editable) {
-				$editURL = $this->editURL . "?id=$p->id";
-				$class = $editMode == self::windowModeModal ? " modal" : "";
-				$target = $editMode == self::windowModeBlank ? " target='_blank'" : "";
-				if($editMode == self::windowModeDirect) $directURL = $editURL;
-				$actionsOut .= "<a$target class='PageEdit$class$class2' href='$editURL'>" . $this->_('edit') . "</a>&nbsp;";
+				$class = $editMode == self::windowModeModal ? "modal" : "";
+				$target = $editMode == self::windowModeBlank ? "_blank" : "";
+				if($editMode == self::windowModeDirect) $directURL = $actions['edit']['url'];
+				$actionsOut .= $this->renderListerTableColAction($actions['edit'], $class, $target);
+				unset($actions['edit']);
+			} else {
+				unset($actions['edit']);
 			}
+			
 			if($viewable) { 
-				$class = $viewMode == self::windowModeModal ? " modal" : "";
-				$target = $viewMode == self::windowModeBlank ? " target='_blank'" : "";
+				$class = $viewMode == self::windowModeModal ? "modal" : "";
+				$target = $viewMode == self::windowModeBlank ? "_blank" : "";
 				if($viewMode == self::windowModeDirect) $directURL = $p->url;
-				$actionsOut .= "<a$target class='PageView$class$class2' href='$p->url'>" . $this->_('view') . "</a>&nbsp;";
+				$actionsOut .= $this->renderListerTableColAction($actions['view'], $class, $target);
+				unset($actions['view']);
+			} else {
+				unset($actions['view']);
 			}
+			
 			if($addable) {
-				$addURL = $this->addURL . "?parent_id=$p->id";
-				$class = $editMode == self::windowModeModal ? " modal" : "";
-				$target = $editMode == self::windowModeBlank ? " target='_blank'" : "";
-				$actionsOut .= "<a$target class='PageAdd PageEdit$class$class2' href='$addURL'>" . $this->_('new') . "</a>&nbsp;";
+				$actions['new']['url'] = $this->addURL . "?parent_id=$p->id";
+				$class = $editMode == self::windowModeModal ? "modal" : "";
+				$target = $editMode == self::windowModeBlank ? "_blank" : "";
+				$actionsOut .= $this->renderListerTableColAction($actions['new'], "$class PageAdd PageEdit", $target);
+				unset($actions['new']);
+			} else {
+				unset($actions['new']);
 			}
-
+			
 			if($directURL) {
 				// click goes directly to edit or view
-				$value = "$icon<a id='page$p->id' href='$directURL'>$value</a>";
+				$value = "<a id='page$p->id' href='$directURL'>$icon$value$statusIcon</a>";
+				
 			} else {
 				// click opens actions
+				foreach($actions as $name => $action) {
+					if($name == 'extras' && empty($action['extras'])) continue;
+					$actionsOut .= $this->renderListerTableColAction($action); 
+				}
+				// extra actions
+				if(isset($actions['extras'])) {
+					foreach($actions['extras']['extras'] as $name => $action) {
+						$class = empty($action['ajax']) ? '' : 'ajax';
+						$target = '';
+						if($name == 'copy' && $class != 'ajax') {
+							// when using 'copy' action support modal mode like for edits
+							if($editMode == self::windowModeModal) {
+								$class .= " modal";
+							} else {
+								// make it redirect back to this Lister after a page clone
+								$action['url'] .= "&redirect_page={$this->page}";
+							}
+							$target = $editMode == self::windowModeBlank ? "_blank" : "";
+						}
+						$actionsOut .= $this->renderListerTableColAction($action, "$class PageExtra Page$action[cn]", $target);
+					}
+				}
+
 				if($actionsOut) $actionsOut = "<div class='actions'>$actionsOut</div>";
 				$class = 'actions_toggle';
 				if(in_array($p->id, $this->openPageIDs)) {
@@ -1165,11 +1238,47 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 					unset($this->openPageIDs[$p->id]); 
 					$this->sessionSet('openPageIDs', $this->openPageIDs); // ensure it is only used once
 				}
-				$value = "<a class='$class' id='page$p->id' href='#'>$icon$value</a> $actionsOut";
+				$value = "<a class='$class' id='page$p->id' href='#'>$icon$value$statusIcon</a> $actionsOut";
 			}
 		}
 		if($isTrash) $value = "<div class='ui-priority-secondary'>$value</div>";
 		return $value; 
+	}
+
+	/**
+	 * Render an action for a page 
+	 * 
+	 * @param array $action Action array from ProcessPageListActions
+	 * @param string $class Class name for action
+	 * @param string $target Target window (empty or _blank)
+	 * @return string Rendered action
+	 * 
+	 */
+	protected function renderListerTableColAction(array $action, $class = '', $target = '') {
+		if(!$target && !empty($action['target'])) $target = $action['target'];
+		if($target) $target = " target='$target'";
+		if(!empty($action['cn'])) $action['cn'] = 'Page' . $action['cn'];
+		$class = trim($action['cn'] . " $class"); 
+		return "<a$target class='$class' href='$action[url]'>$action[name]</a> ";
+	}
+
+	/**
+	 * Get an array of actions allowed for the given page
+	 * 
+	 * @param Page $p
+	 * @return array()
+	 * 
+	 */
+	protected function getPageActions(Page $p) {
+		
+		static $pageListRender = null;
+		
+		if(is_null($pageListRender)) {
+			require_once($this->wire('config')->paths->ProcessPageList . 'ProcessPageListRenderJSON.php');
+			$pageListRender = new ProcessPageListRenderJSON($this->wire('page'), new PageArray()); 
+		}
+		
+		return $pageListRender->getPageActions($p);
 	}
 
 	/**

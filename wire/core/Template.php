@@ -182,7 +182,7 @@ class Template extends WireData implements Saveable, Exportable {
 		'guestSearchable' => 0, 	// pages appear in search results even when user doesn't have access?
 		'pageClass' => '', 		// class for instantiated page objects. 'Page' assumed if blank, or specify class name. 
 		'childNameFormat' => '',	// Name format for child pages. when specified, the page-add UI step can be skipped when adding chilcren. Counter appended till unique. Date format assumed if any non-pageName chars present. Use 'title' to pull from title field. 
-		'pageLabelField' => '',		// CSV or space separated string of field names to be displayed by ProcessPageList (overrides those set with ProcessPageList config)
+		'pageLabelField' => '',		// CSV or space separated string of field names to be displayed by ProcessPageList (overrides those set with ProcessPageList config). May also be a markup {tag} format string. 
 		'noGlobal' => 0, 		// template should ignore the 'global' option of fields?
 		'noMove' => 0,			// pages using this template are not moveable?
 		'noTrash' => 0,			// pages using thsi template may not go in trash? (i.e. they will be deleted not trashed)

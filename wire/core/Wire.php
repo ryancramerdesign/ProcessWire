@@ -495,7 +495,7 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 		}
 		
 		if($needSort && count($hooks) > 1) {
-			ksort($hooks, SORT_NATURAL);
+			defined("SORT_NATURAL") ? ksort($hooks, SORT_NATURAL) : uksort($hooks, "strnatcmp");
 		}
 
 		return $hooks;
@@ -695,7 +695,9 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 		}
 
 		// sort by priority, if more than one hook for the method
-		if(count($hooks[$method]) > 1) ksort($hooks[$method], SORT_NATURAL); 
+		if(count($hooks[$method]) > 1) {
+			defined("SORT_NATURAL") ? ksort($hooks[$method], SORT_NATURAL) : uksort($hooks[$method], "strnatcmp");
+		}
 		
 		return $id;
 	}

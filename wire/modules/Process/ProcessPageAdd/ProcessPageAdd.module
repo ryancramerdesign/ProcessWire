@@ -66,7 +66,11 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 		if(!$parentTemplate) throw new WireException("Unable to locate parent template " . reset($parentTemplates)); 
 		$parents = $this->wire('pages')->find("template=$parentTemplate, include=hidden, limit=500, sort=name"); 
 		if(!count($parents)) throw new WireException("No usable parents match this template"); 
-		if(count($parents) == 1) $this->wire('session')->redirect("./parent_id=" . $parents->first()->id);
+		if(count($parents) == 1) {
+			$url = "./parent_id=" . $parents->first()->id; 
+			if($this->wire('input')->get('modal')) $url .= "&modal=1";
+			$this->wire('session')->redirect($url);
+		}
 
 		$templateLabel = $this->getTemplateLabel($template); 
 		$parentTemplateLabel = $this->getTemplateLabel($parentTemplate); 
@@ -75,12 +79,20 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 		$form->method = 'get';
 		$form->action = './';
 		$form->attr('id', 'select_parent_form'); 
+	
+		if($this->wire('input')->get('modal')) {
+			$f = $this->wire('modules')->get('InputfieldHidden');
+			$f->attr('name', 'modal');
+			$f->attr('value', 1);
+			$form->add($f);
+		}
+		
 		$f = $this->wire('modules')->get('InputfieldSelect'); 
 		$f->attr('name', 'parent_id'); 
 		$f->attr('id', 'select_parent_id'); 
 		$f->label = sprintf($this->_('Where do you want to add the new %s?'), "\"$templateLabel\""); 
 		$f->description = sprintf($this->_('Please select a parent %s page below:'), "\"$parentTemplateLabel\""); 
-
+		
 		$options = array();
 		foreach($parents as $parent) {
 			if(!$parent->addable()) continue; 
@@ -625,7 +637,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 
 		if($page->id) { 
 			$this->createdPageMessage($page); 
-			$this->session->redirect("../edit/?id=$page->id&new=1"); 
+			$this->session->redirect("../edit/?id=$page->id&new=1" . ($this->wire('input')->get('modal') ? '&modal=1' : '')); 
 		} else {
 			return false;
 		}

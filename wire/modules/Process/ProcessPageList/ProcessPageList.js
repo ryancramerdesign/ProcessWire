@@ -379,13 +379,13 @@ $(document).ready(function() {
 				//if(curPagination+1 < maxPaginationLinks && curPagination+1 < numPaginations) {
 				if(curPagination+1 < numPaginations) {
 					$nextBtn = $blankItem.clone();
-					$nextBtn.find("a").html("<i class='fa fa-angle-right'></i>").attr('href', curPagination+1); // .addClass('ui-priority-secondary'); 
+					$nextBtn.find("a").html("<i class='fa fa-angle-right'></i>").attr('href', curPagination+1); 
 					$list.append($nextBtn);
 				}
 
 				if(curPagination > 0) {
 					$prevBtn = $blankItem.clone();
-					$prevBtn.find("a").attr('href', curPagination-1).html("<i class='fa fa-angle-left'></i>"); // .addClass('ui-priority-secondary');
+					$prevBtn.find("a").attr('href', curPagination-1).html("<i class='fa fa-angle-left'></i>"); 
 					$list.prepend($prevBtn); 
 				}
 
@@ -516,19 +516,26 @@ $(document).ready(function() {
 				$children.each(function(n, child) {
 					$ul.append(listChild(child)); 
 				}); 	
-
-				$("a.PageListPage", $ul).click(clickChild); 
-				/*
-				.dblclick(function() {
-					var href = $(this).siblings('ul').find('li.PageListActionEdit a').attr('href');
-					if(href) window.open(href, "_self");
-				});
-				*/
-				$(".PageListActionMove a", $ul).click(clickMove); 
-				$(".PageListActionSelect a", $ul).click(clickSelect); 
-				$(".PageListTriggerOpen a.PageListPage", $ul).click();
-
+				
+				addClickEvents($ul);
+				
 				return $list; 
+			}
+
+			/**
+			 * 
+			 * @param $ul Any element that contains items needing click events attached
+			 * 
+			 */
+			function addClickEvents($ul) {
+				
+				$("a.PageListPage", $ul).click(clickChild);
+				$(".PageListActionMove a", $ul).click(clickMove);
+				$(".PageListActionSelect a", $ul).click(clickSelect);
+				$(".PageListTriggerOpen a.PageListPage", $ul).click();
+				$(".PageListActionExtras > a", $ul).on('click', clickExtras);
+				
+				// if(options.useHoverActions) $(".PageListActionExtras > a", $ul).on('mouseover', clickExtras);
 			}
 
 			/**
@@ -556,7 +563,6 @@ $(document).ready(function() {
 				if(child.status & 4) $li.addClass('PageListStatusLocked'); 
 				if(child.addClass && child.addClass.length) $li.addClass(child.addClass); 
 				if(child.type && child.type.length > 0) if(child.type == 'System') $li.addClass('PageListStatusSystem'); 
-				if(child.rm) $li.addClass('trashable'); 
 
 				$(options.openPageIDs).each(function(n, id) {
 					if(child.id == id) $li.addClass('PageListTriggerOpen'); 
@@ -576,17 +582,193 @@ $(document).ready(function() {
 					if(child.id == $container.val()) links = [{ name: options.selectUnselectLabel, url: options.selectUnselectHref }]; 
 				}
 
+				var $lastAction = null;
 				$(links).each(function(n, action) {
+					var actionName;
 					if(action.name == options.selectSelectLabel) actionName = 'Select';
 						else if(action.name == options.selectUnselectLabel) actionName = 'Select'; 
 						else actionName = action.cn; // cn = className
 
-					var $a = $("<a></a>").html(action.name).attr('href', action.url); 
-					$actions.append($("<li></li>").addClass('PageListAction' + actionName).append($a)); 
+					var $a = $("<a></a>").html(action.name).attr('href', action.url);
+					if(typeof action.extras != "undefined") {
+						$a.data('extras', action.extras);
+					}
+					var $action = $("<li></li>").addClass('PageListAction' + actionName).append($a);
+					if(actionName == 'Extras') $lastAction = $action; 
+						else $actions.append($action);
 				}); 
+				if($lastAction) {
+					$actions.append($lastAction);
+					$lastAction.addClass('ui-priority-secondary');
+				}
 
 				$li.append($actions); 
 				return $li;
+			}
+
+			/**
+			 * Extra actions button click handler
+			 * 
+			 */
+			function clickExtras(e) {
+
+				var $a = $(this);
+				var extras = $a.data('extras');
+				if(typeof extras == "undefined") return false;
+			
+				var $li = $a.closest('.PageListItem');
+				var $actions = $a.closest('.PageListActions');
+				var $lastItem = null;
+				var $icon = $a.children('i.fa');
+				var $extraActions = $actions.find("li.PageListActionExtra");
+			
+				/*
+				if($extraActions.length && e.type != 'click') {
+					// mouseover only opens, but a click is required to close
+					return;
+				}
+				*/
+				
+				$icon.toggleClass('fa-flip-horizontal');
+			
+				if($extraActions.length) {
+					$extraActions.fadeOut(100, function() {
+						$extraActions.remove();
+					}); 
+					return false;
+				}
+				
+				for(var extraKey in extras) {
+					
+					var extra = extras[extraKey];
+					var $extraLink = $("<a />")
+						.addClass('PageListActionExtra PageListAction' + extra.cn)
+						.attr('href', extra.url)
+						.html(extra.name);
+				
+					/*
+					if(extra.cn == 'Trash') {
+						// handler for trash action
+						$extraLink.click(function() {
+							trashPage($li);
+							return false;
+						});
+						
+					} else 
+					*/
+					if(typeof extra.ajax != "undefined" && extra.ajax == true) {
+						// ajax action
+						$extraLink.click(function () {
+							
+							$li.find('.PageListActions').hide();
+							var $spinner = $("<i class='fa fa-spin fa-fw fa-spinner ui-priority-secondary'></i>");
+							$li.append($spinner);
+							
+							$.post($(this).attr('href') + '&render=json', { action: extraKey }, function (data) {
+								
+								if (data.success) {
+									
+									$li.fadeOut('fast', function() {
+										
+										var addNew = false;
+										var removeItem = data.remove;
+										var refreshChildren = data.refreshChildren;
+										var $liNew = false;
+										
+										if(typeof data.child != "undefined") {
+											// prepare update existing item
+											$liNew = listChild(data.child);
+										} else if(typeof data.newChild != "undefined") {
+											// prepare append new item
+											$liNew = listChild(data.newChild);
+											addNew = true; 
+										}
+										
+										// display a message for a second to let them know what was done
+										if($liNew) {
+											var $msg = $("<span />").addClass('notes').html(data.message);
+											$msg.prepend("&nbsp;<i class='fa fa-check-square ui-priority-secondary'></i>&nbsp;");
+											$liNew.append($msg);
+											addClickEvents($liNew);
+										}
+										
+										if(addNew) {
+											// append new item
+											$spinner.fadeOut('normal', function() { $spinner.remove() }); 
+											$liNew.hide();
+											$li.after($liNew);
+											$liNew.slideDown();
+										} else if($liNew) {
+											// update existing item
+											if($li.hasClass('PageListItemOpen')) $liNew.addClass('PageListItemOpen');
+											$li.replaceWith($liNew);
+										}
+										
+										$li.fadeIn('fast', function () {
+											// display message for 1 second, then remove
+											setTimeout(function () {
+												$msg.fadeOut('normal', function () { 
+													if(removeItem) {
+														var $numChildren = $liNew.closest('.PageList').prev('.PageListItem').children('.PageListNumChildren'); 
+														if($numChildren.length) {
+															var numChildren = parseInt($numChildren.text());
+															if(numChildren > 0) $numChildren.text(numChildren-1); 
+														}
+														$liNew.next('.PageList').fadeOut('fast');
+														$liNew.fadeOut('fast', function() {
+															$liNew.remove();
+														});
+													} else {
+														$msg.remove();
+													}
+												});
+											}, 1000);
+										});
+									
+										// refresh the children of the page represented by refreshChildren
+										if(refreshChildren) {
+											var $refreshParent = $(".PageListID" + refreshChildren);
+											if($refreshParent.length) {
+												$refreshParent.addClass('PageListForceReload'); 
+												var $a = $refreshParent.children('a.PageListPage'); 
+												if($refreshParent.hasClass('PageListItemOpen')) {
+													$a.click();
+													setTimeout(function() { $a.click(); }, 250);
+												} else {
+													$a.click();
+												}
+											}
+										}
+									});
+									
+								} else {
+									// data.success === false, so display error
+									alert(data.message);
+								}
+							});
+							return false;
+						});
+					} else {
+						// some other action where the direct URL can be used, so we don't need to do anything
+					}
+					
+					var $extraLinkItem = $("<li />").addClass('PageListActionExtra PageListAction' + extra.cn).append($extraLink);
+					$extraLink.hide();
+					
+					if(extra.cn == 'Trash') {
+						$li.addClass('trashable');
+						// ensure the Trash item is always the last one
+						$lastItem = $extraLinkItem;
+					} else {
+						$actions.append($extraLinkItem);
+					}
+				}
+				
+				if($lastItem) $actions.append($lastItem);
+				
+				$actions.find(".PageListActionExtra a").fadeIn(50);
+				
+				return false;
 			}
 
 			/**
@@ -614,7 +796,8 @@ $(document).ready(function() {
 					}); 
 				} else {
 					$li.addClass("PageListItemOpen"); 
-					if(parseInt($li.children('.PageListNumChildren').text()) > 0) {
+					var numChildren = parseInt($li.children('.PageListNumChildren').text()); 
+					if(numChildren > 0 || $li.hasClass('PageListForceReload')) {
 						ignoreClicks = true; 
 						loadChildren(id, $li, 0, false); 
 					}
@@ -699,16 +882,7 @@ $(document).ready(function() {
 				var $actions = $li.children("ul.PageListActions");
 				var $moveAction = $("<span class='PageListMoveNote detail'><i class='fa fa-fw fa-sort'></i> " + options.moveInstructionLabel + "<i class='fa fa-fw fa-angle-left'></i></span>");
 				$moveAction.append($cancelLink);
-				
-				if($li.hasClass('trashable')) { 
-					var $trashLink = $("<a class='PageListActionTrash ui-priority-secondary' href='#'><i class='fa fa-trash-o'></i> " + options.trashLabel + "</i></a>").click(function() {
-						trashPage($li);
-						return false;
-					});
-					$li.addClass('ui-helper-clearfix');
-					$moveAction.append($trashLink);
-				}
-				
+			
 				$actions.before($moveAction); 
 				
 				$li.addClass('PageListSortItem'); 

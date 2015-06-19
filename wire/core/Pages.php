@@ -1469,10 +1469,23 @@ class Pages extends Wire {
 			throw new WireException("Unable to load trash page defined by config::trashPageID"); 
 		}
 		$page->addStatus(Page::statusTrash); 
-		if(!$page->parent->isTrash()) $page->parent = $trash;
-		if(!preg_match('/^' . $page->id . '_.+/', $page->name)) {
-			// make the name unique when in trash, to avoid namespace collision
-			$page->name = $page->id . "_" . $page->name; 
+		if(!$page->parent->isTrash()) {
+			$parentPrevious = $page->parent; 
+			$page->parent = $trash;
+		} else if($page->parentPrevious && $page->parentPrevious->id != $page->parent->id) {
+			$parentPrevious = $page->parentPrevious; 
+		} else {
+			$parentPrevious = null;
+		}
+		if(!preg_match('/^' . $page->id . '(\.\d+\.\d+)?_.+/', $page->name)) {
+			// make the name unique when in trash, to avoid namespace collision and maintain parent restore info
+			$name = $page->id; 
+			if($parentPrevious && $parentPrevious->id) {
+				$name .= "." . $parentPrevious->id;
+				$name .= "." . $page->sort; 
+			}
+			$name .= "_" . $page->name; 
+			$page->name = $name;
 		}
 		if($save) $this->save($page); 
 		$this->savePageStatus($page->id, Page::statusTrash, true, false); 
@@ -1484,7 +1497,8 @@ class Pages extends Wire {
 	/**
 	 * Restore a page from the trash back to a non-trash state
 	 *
-	 * Note that this method assumes already have set a new parent, but have not yet saved
+	 * Note that this method assumes already have set a new parent, but have not yet saved.
+	 * If you do not set a new parent, then it will restore to the original parent, when possible.
 	 *
 	 * @param Page $page
 	 * @param bool $save Set to false if you only want to prep the page for restore (i.e. being saved elsewhere)
@@ -1492,16 +1506,42 @@ class Pages extends Wire {
 	 *
 	 */
 	protected function ___restore(Page $page, $save = true) {
-		if(preg_match('/^(' . $page->id . ')_(.+)$/', $page->name, $matches)) {
-			$name = $matches[2]; 
-			if(!count($page->parent->children("name=$name"))) 
+		
+		if(preg_match('/^(' . $page->id . ')((?:\.\d+\.\d+)?)_(.+)$/', $page->name, $matches)) {
+	
+			if($matches[2]) {
+				list($unused, $parentID, $sort) = explode('.', $matches[2]);
+				$parentID = (int) $parentID;
+				$sort = (int) $sort;
+			} else {
+				$parentID = 0;
+				$sort = 0;
+			}
+			$name = $matches[3]; 
+			
+			if($parentID && $page->parent->isTrash() && !$page->parentPrevious) {
+				// no new parent was defined, so use the one in the page name
+				$newParent = $this->get($parentID); 
+				if($newParent->id && $newParent->id != $page->id) {
+					$page->parent = $newParent; 
+					$page->sort = $sort; 
+				}
+			}
+			if(!count($page->parent->children("name=$name, include=all"))) {
 				$page->name = $name;  // remove namespace collision info if no collision
+			}
 		}
-		$page->removeStatus(Page::statusTrash); 
-		if($save) $page->save();
-		$this->savePageStatus($page->id, Page::statusTrash, true, true); 
-		$this->restored($page);
-		$this->debugLog('restore', $page, true); 
+	
+		if(!$page->parent->isTrash()) {
+			$page->removeStatus(Page::statusTrash);
+			if($save) $page->save();
+			$this->savePageStatus($page->id, Page::statusTrash, true, true);
+			$this->restored($page);
+			$this->debugLog('restore', $page, true);
+		} else {
+			if($save) $page->save();
+		}
+		
 		return true; 
 	}
 

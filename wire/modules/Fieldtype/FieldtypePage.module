@@ -836,7 +836,7 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 			'input' => 'number', 
 			);
 
-		$info['subfields'] = $subfields; 
+		$info['subfields'] = $subfields;
 
 		return $info; 
 	}

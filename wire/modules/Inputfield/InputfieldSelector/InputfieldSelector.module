@@ -59,7 +59,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Selector',
-			'version' => 24,
+			'version' => 25,
 			'summary' => 'Build a page finding selector visually.',
 			'author' => 'Avoine + ProcessWire',
 			'autoload' => "template=admin", 
@@ -729,6 +729,10 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 				$_name = $name; // $_name is for output only
 				if($hasSubfields) $_name = rtrim($_name, '.') . $this->subfieldIdentifier;
 				$label = $field['label'];
+				if($name == 'title' && $optgroupName == 'system' && $this->initTemplate) {
+					$contextField = $this->initTemplate->fieldgroup->getFieldContext($name);
+					if($contextField) $label = $contextField->label;
+				}
 				if($settings['showFieldLabels'] == 2) $label .= " [$name]";
 				if($hasSubfields) $label .= $this->subfieldIdentifier;
 				$selected = $selectedValue == $name ? ' selected' : '';
@@ -1056,6 +1060,17 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 							// get selectable options from InputfieldPage
 							foreach($inputfield->getSelectablePages($page) as $item) {
 								$options[$item->id] = $item->get('title|name'); 
+							}
+							if(!count($options) 
+								&& ($field->parent_id || $field->template_id) 
+								&& ($field->findPagesCode || $field->findPagesSelector)) {
+								// see if we can locate options purely with the parent or template
+								$findSelector = array("include=unpublished, limit=500, sort=name");
+								if($field->parent_id) $findSelector[] = "parent_id=" . (int) $field->parent_id; 
+								if($field->template_id) $findSelector[] = "templates_id=" . (int) $field->template_id; 
+								foreach($this->wire('pages')->find(implode(', ', $findSelector)) as $item) {
+									$options[$item->id] = $item->get('title|name');
+								}
 							}
 							
 						} else {
