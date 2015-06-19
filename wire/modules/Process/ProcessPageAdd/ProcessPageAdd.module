@@ -588,7 +588,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 			// if not specified in get variable, next check parent template for setting
 			$nameFormat = $nameFormatTemplate;
 		}
-		$class = $template->pageClass ? $page->template->pageClass : 'Page';
+		$class = $template->pageClass ? $template->pageClass : 'Page';
 		$page = new $class(); 
 		$page->template = $template;	
 		$page->parent = $parent; 
