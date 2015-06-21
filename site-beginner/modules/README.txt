@@ -4,7 +4,7 @@ HOW TO INSTALL MODULES
 This directory /site/modules/ is where you may install additional plugin modules.
 
 If the module you want to install contains only one file, like Helloworld.module,
-you may place it directly in /site/modules/. If the modue contains multiple files,
+you may place it directly in /site/modules/. If the module contains multiple files,
 you should create a new directory for it. The directory should be the same as the
 module name, minus the ".module" part. For example, if we were to create a dir for
 the Helloworld.module file, we would create /site/modules/Helloworld/ and place
