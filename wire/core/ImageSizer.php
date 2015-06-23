@@ -1845,6 +1845,38 @@ class ImageSizer extends Wire {
 		return ($phpMaxMem - $curMem >= $imgMem + (3 * 1048576)) ? true : false;
 	}
 
-
+	/**
+	 * Check orientation (@horst)
+	 *
+	 * @param mixed $image, pageimage or filename
+	 * @param mixed $correctionArray, null or array by reference
+	 * @return bool
+	 *
+	 */
+	static public function imageIsRotated($image, &$correctionArray = null) {
+		if($image instanceof Pageimage) {
+			$fn = $image->filename;
+		} elseif(is_readable($image)) {
+			$fn = $image;
+		} else {
+			return null;
+		}
+		// first value is rotation-degree and second value is flip-mode: 0=NONE | 1=HORIZONTAL | 2=VERTICAL
+		$corrections = array(
+			'1' => array(  0, 0),
+			'2' => array(  0, 1),
+			'3' => array(180, 0),
+			'4' => array(  0, 2),
+			'5' => array(270, 1),
+			'6' => array(270, 0),
+			'7' => array( 90, 1),
+			'8' => array( 90, 0)
+			);
+		if(!function_exists('exif_read_data')) return null;
+		$exif = @exif_read_data($fn, 'IFD0');
+		if(!is_array($exif) || !isset($exif['Orientation']) || !in_array(strval($exif['Orientation']), array_keys($corrections))) return null;
+		$correctionArray = $corrections[strval($exif['Orientation'])];
+		return $correctionArray[0] > 0;
+	}
 
 }
