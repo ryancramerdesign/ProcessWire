@@ -1879,4 +1879,37 @@ class ImageSizer extends Wire {
 		return $correctionArray[0] > 0;
 	}
 
+	/**
+	 * Check if GIF-image is animated or not (@horst)
+	 *
+	 * @param mixed $image, pageimage or filename
+	 * @return bool
+	 *
+	 */
+	static public function imageIsAnimatedGif($image) {
+		if($image instanceof Pageimage) {
+			$fn = $image->filename;
+		} elseif(is_readable($image)) {
+			$fn = $image;
+		} else {
+			return null;
+		}
+		$info = getimagesize($fn);
+		if(IMAGETYPE_GIF != $info[2]) return false;
+		if(self::checkMemoryForImage(array($info[0], $info[1]))) {
+			return (bool) preg_match('/\x00\x21\xF9\x04.{4}\x00(\x2C|\x21)/s', file_get_contents($fn));
+		}
+		// we have not enough free memory to load the complete image at once, so we do it in chunks
+		if(!($fh = @fopen($fn, 'rb'))) {
+			return null;
+		}
+		$count = 0;
+		while(!feof($fh) && $count < 2) {
+			$chunk = fread($fh, 1024 * 100); //read 100kb at a time
+			$count += preg_match_all('#\x00\x21\xF9\x04.{4}\x00[\x2C\x21]#s', $chunk, $matches);
+		}
+		fclose($fh);
+		return $count > 1;
+	}
+
 }
