@@ -393,15 +393,12 @@ class ImageSizer extends Wire {
 		if($gdWidth == $targetWidth && $gdWidth == $this->image['width'] &&  $gdHeight == $this->image['height'] && $gdHeight == $targetHeight) {
 			
 			// this is the case if the original size is requested or a greater size but upscaling is set to false
+			
+			// the current version is allready the desired result, we only may have to apply compression where possible
+			$this->sharpening = 'none'; // we set sharpening to none
 
-			// since we have added support for crop-before-resize, we have to check for this
-			if(!is_array($this->cropExtra)) {
-				// the sourceimage is allready the targetimage, we can leave here
-				@imagedestroy($image);
-				return true;
-			}
-			// we have a cropped_before_resized image and need to save this version,
-			// so we let pass it through without further manipulation, we just need to copy it into the final memimage called "$thumb"
+			// and copy the current image into the final memimage called "$thumb",
+			// then we let pass it through without further manipulation
 			if(self::checkMemoryForImage(array(imagesx($image), imagesy($image), 3)) === false) {
 				throw new WireException(basename($source) . " - not enough memory to copy the final cropExtra");
 			}
