@@ -489,25 +489,37 @@ class ImageSizer extends Wire {
 		rename($dest, $source); // $dest is the intermediate filename ({basename}_tmp{.ext})
 
 		// @horst: if we've retrieved IPTC-Metadata from sourcefile, we write it back now
-		if($this->iptcRaw) {
-			$content = iptcembed($this->iptcPrepareData(), $this->filename);
-			if($content !== false) {
-				$dest = preg_replace('/\.' . $this->extension . '$/', '_tmp.' . $this->extension, $this->filename); 
-				if(strlen($content) == @file_put_contents($dest, $content, LOCK_EX)) {
-					// on success we replace the file
-					unlink($this->filename);
-					rename($dest, $this->filename);
-				} else {
-					// it was created a temp diskfile but not with all data in it
-					if(file_exists($dest)) @unlink($dest);
-				}
-			}
-		}
+		$this->writeBackIptc();
 
 		$this->loadImageInfo($this->filename, true); 
 		$this->modified = true; 
 		
 		return true;
+	}
+	
+	/**
+	 * Default IPTC Handling: if we've retrieved IPTC-Metadata from sourcefile, we write it into the variation here
+	 * but we omitt custom tags for internal use
+	 *
+	 * @param bool $includeCustomTags, default is FALSE
+	 * @return bool
+ 	 *
+	 */
+	public function writeBackIptc($includeCustomTags = false) {
+		if(!$this->iptcRaw) return;
+		$content = iptcembed($this->iptcPrepareData($includeCustomTags), $this->filename);
+		if($content === false) return;
+		$dest = preg_replace('/\.' . $this->extension . '$/', '_tmp.' . $this->extension, $this->filename); 
+		if(strlen($content) == @file_put_contents($dest, $content, LOCK_EX)) {
+			// on success we replace the file
+			unlink($this->filename);
+			rename($dest, $this->filename);
+			return true;
+		} else {
+			// it was created a temp diskfile but not with all data in it
+			if(file_exists($dest)) @unlink($dest);
+			return false;
+		}
 	}
 
 	/**
@@ -1131,10 +1143,12 @@ class ImageSizer extends Wire {
 	 * @return string $iptcNew
 	 *
 	 */
-	protected function iptcPrepareData() {
+	protected function iptcPrepareData($includeCustomTags = false) {
+		$customTags = array('213','214','215','216','217');
 		$iptcNew = '';
 		foreach(array_keys($this->iptcRaw) as $s) {
 			$tag = substr($s, 2);
+			if(!$includeCustomTags && in_array($tag, $customTags)) continue;
 			if(substr($s, 0, 1) == '2' && in_array($tag, $this->validIptcTags) && is_array($this->iptcRaw[$s])) {
 				foreach($this->iptcRaw[$s] as $row) {
 					$iptcNew .= $this->iptcMakeTag(2, $tag, $row);
@@ -1910,6 +1924,27 @@ class ImageSizer extends Wire {
 		}
 		fclose($fh);
 		return $count > 1;
+	}
+
+	/**
+	 * Possibility to clean IPTC data, also for original images (@horst)
+	 *
+	 * @param mixed $image, pageimage or filename
+	 * @return mixed, null or bool
+	 *
+	 */
+	static public function imageResetIPTC($image) {
+		if($image instanceof Pageimage) {
+			$fn = $image->filename;
+		} elseif(is_readable($image)) {
+			$fn = $image;
+		} else {
+			return null;
+		}
+		$is = new ImageSizer($fn);
+		$result = false !== $is->writeBackIptc() ? true : false;
+		unset($is);
+		return $result;
 	}
 
 }
