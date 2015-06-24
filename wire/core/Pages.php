@@ -1591,6 +1591,10 @@ class Pages extends Wire {
 		foreach($page->template->fieldgroup as $field) {
 			$page->get($field->name); 
 		}
+		
+		$oldStatus = $page->status;
+		$page->status = $page->status | Page::statusSystemOverride;
+		$page->status = 1;
 
 		// clone in memory
 		$copy = clone $page; 
@@ -1618,6 +1622,8 @@ class Pages extends Wire {
 			$this->cloning = true; 
 			$options['ignoreFamily'] = true; // skip family checks during clone
 			$this->save($copy, $options);
+			$copy->status = $oldStatus;
+			$copy->save();
 		} catch(Exception $e) {
 			$this->cloning = false;
 			throw $e;
