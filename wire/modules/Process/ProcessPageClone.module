@@ -113,7 +113,6 @@ class ProcessPageClone extends Process {
 	public function hasPermission(Page $page) {
 		$user = $this->user; 
 
-		if($page->is(Page::statusSystem)) return false; 
 		if($page->parent->template->noChildren) return false; 
 		if($page->template->noParents) return false; 
 
