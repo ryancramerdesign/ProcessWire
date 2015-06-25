@@ -1339,8 +1339,6 @@ class Pages extends Wire {
 		$query->bindValue(':pages_id', $pages_id, PDO::PARAM_INT); 
 		$query->execute();
 
-		if(!$numChildren) return true; 
-
 		$insertSql = ''; 
 		$id = $pages_id; 
 		$cnt = 0;
@@ -1362,6 +1360,8 @@ class Pages extends Wire {
 			$sql = "INSERT INTO pages_parents (pages_id, parents_id) VALUES" . rtrim($insertSql, ","); 
 			$database->exec($sql);
 		}
+		
+		if(!$numChildren) return true; 
 
 		// find all children of $pages_id that themselves have children
 		$sql = 	"SELECT pages.id, COUNT(children.id) AS numChildren " . 
