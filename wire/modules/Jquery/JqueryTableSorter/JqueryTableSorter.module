@@ -12,4 +12,10 @@ class JqueryTableSorter extends ModuleJS {
 	}
 
 	// note ModuleJS automatically loads any JS or CSS files with the same basename as this module
+
+	public function __construct() {
+		$this->addComponents(array(
+			'widgets' => 'widgets.min.js'
+		));
+	}
 }

@@ -754,7 +754,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 	 *
 	 */
 	public function getPage() {
-		return $this->page; 
+		return $this->page ? $this->page : new NullPage(); 
 	}
 	
 	public function setEditor(WirePageEditor $editor) {

@@ -36,12 +36,14 @@ var AdminDataTable = {
 				var $th = $(this);
 				if(!thcolor.length) thcolor = $th.css('color');
 				if($th.children().length) {
+					// get beyond the tablesorter-header if there is one
+					if($th.children('.tablesorter-header-inner').length) $th = $th.children();
 					// th might have hidden parts that we don't want
 					var $th2 = $th.clone();
 					$th2.children().remove();
 					if($th2.text().length) $th = $th2;
 				}
-				labels[n] = $th.text();
+				labels[n] = $th.html();
 			});
 		});
 		$table.children('tbody').children('tr').each(function() {
@@ -94,7 +96,26 @@ var AdminDataTable = {
 	
 	init: function() {
 		AdminDataTable.ready = true;
-		$("table.AdminDataTableSortable").tablesorter();
+		$("table.AdminDataTableSortable").each(function() {
+			var $table = $(this);
+			var options = {};
+			if($table.hasClass('AdminDataTableResizable')) {
+				options = {
+					widgets: ['resizable'], 
+					widgetOptions: { resizable: true }
+				}
+			}
+			$table.tablesorter(options);
+		});
+		$("table.AdminDataTableResizable").each(function() {
+			var $table = $(this);
+			if($table.hasClass('AdminDataTableSortable')) return; // already handled above
+			$table.find('th').data("sorter", false);
+			$table.tablesorter({
+				widgets: ['resizable'],
+				widgetOptions: { resizable: true }
+			});
+		});
 		
 		var resizeTimeout = null;
 		$(window).resize(function() {

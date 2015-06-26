@@ -52,14 +52,17 @@ var InputfieldPageName = {
 };
 
 jQuery(document).ready(function($) {
-
-	$(".InputfieldPageName").find("input[type=text]").keyup(function() {
+	
+	$(document).on("keyup", ".InputfieldPageName input[type=text]", function() {
 		var value = InputfieldPageName.sanitize($(this).val());
 		InputfieldPageName.updatePreview($(this), value); 
 		
-	}).blur(function() {
+	}).on("blur", ".InputfieldPageName input[type=text]", function() {
 		var value = InputfieldPageName.sanitize($(this).val());
 		$(this).val(value); 
 		InputfieldPageName.updatePreview($(this), value); 
-	}).keyup();
+	});
+	$(document).on("reloaded", ".InputfieldPageName", function() {
+		$(this).find("input[type=text]").keyup();
+	});
 }); 

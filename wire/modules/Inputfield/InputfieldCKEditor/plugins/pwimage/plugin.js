@@ -77,7 +77,12 @@
 
 	function loadIframeImagePicker(editor) {
 
-		var page_id = $("#Inputfield_id").val(); 
+		var $in = $("#Inputfield_id"); 
+		if($in.length) {
+			var page_id = $in.val();
+		} else {
+			var page_id = $("#" + editor.name).closest('.Inputfield').attr('data-pid');
+		}
 		var edit_page_id = page_id; 
 		var file = '';
 		var imgClass = '';

@@ -142,10 +142,9 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 
 		$page = wire('page'); 
 
-		if($page->template == 'admin' && ($page->process == 'ProcessPageEdit' || $page->process == 'ProcessPageAdd')) {
+		if($page->template == 'admin' && $page->process && in_array('WirePageEditor', class_implements($page->process))) { 
 			// when in admin, add inputs for each language's page name
-			$page->addHookBefore('ProcessPageEdit::execute', $this, 'hookProcessPageEditExecute'); 
-			// $page->addHookAfter('ProcessPageEdit::buildFormSettings', $this, 'hookProcessPageEditSettings'); 
+			$page->addHookBefore('WirePageEditor::execute', $this, 'hookWirePageEditorExecute'); 
 			$this->addHookAfter('InputfieldPageName::render', $this, 'hookInputfieldPageNameRenderAfter'); 	
 			$this->addHookAfter('InputfieldPageName::processInput', $this, 'hookInputfieldPageNameProcess'); 
 		}
@@ -410,26 +409,15 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 	}
 
 	/**
-	 * Hook into ProcessPageEdit to remove the non-applicable default home name of 'home'
+	 * Hook into WirePageEditor (i.e. ProcessPageEdit) to remove the non-applicable default home name of 'home'
 	 *
 	 */
-	public function hookProcessPageEditExecute(HookEvent $event) {
+	public function hookWirePageEditorExecute(HookEvent $event) {
 		$page = $event->object->getPage();
 		if($page->id == 1) {
 			if($page->name == self::HOME_NAME_DEFAULT) $page->name = '';
 		}
 	}
-
-	/**
-	 * Hook into ProcessPageEdit to remove the non-applicable default home name of 'home'
-	 *
-	public function hookProcessPageEditSettings(HookEvent $event) {
-		$page = $event->object->getPage();
-		if($page->id == 1) {
-			if($page->name == self::HOME_NAME_DEFAULT) $page->name = '';
-		}
-	}
-	 */
 
 	/**
 	 * Hook into the page name render for when in ProcessPageEdit
@@ -444,7 +432,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 		if($inputfield->languageSupportLabel) return; // prevent recursion
 
 		$user = wire('user');
-		$page = $this->process == 'ProcessPageEdit' ? $this->process->getPage() : new NullPage();
+		$page = $this->process instanceof WirePageEditor ? $this->process->getPage() : new NullPage();
 		/** @var Languages $languages */
 		$languages = $this->wire('languages');
 		$savedLanguage = $user->language; 
@@ -519,8 +507,10 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 
 			// set language status 
 			$key = "status" . (int) $language->id; 
-			$value = (int) $input->$key; 
+			$value = (int) $input->{"$key$inputfield->checkboxSuffix"};
 			if($page->get($key) != $value) {
+				$inputfield->trackChange($key);
+				$inputfield->trackChange('value');
 				if($page->id) $page->set($key, $value); 
 					else $page->setQuietly($key, $value); 
 			}

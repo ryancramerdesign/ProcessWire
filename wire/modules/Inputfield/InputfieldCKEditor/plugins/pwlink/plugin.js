@@ -96,7 +96,12 @@
 
 	function loadIframeLinkPicker(editor) {
 
-		var pageID = $("#Inputfield_id").val();
+		var $in = $("#Inputfield_id"); 
+		if($in.length) {
+			var pageID = $in.val();
+		} else {
+			var pageID = $("#" + editor.name).closest('.Inputfield').attr('data-pid');
+		}
 
 		// language support
 		var $textarea = $('#' + editor.name); // get textarea of this instance
@@ -176,13 +181,13 @@
 				}
 			},
 			buttons: [ {
-				class: "pw_link_submit_insert", 
-				html: "<i class='fa fa-link'></i> " + insertLinkLabel,
-				click: clickInsert
+				'class': "pw_link_submit_insert", 
+				'html': "<i class='fa fa-link'></i> " + insertLinkLabel,
+				'click': clickInsert
 			}, {
-				html: "<i class='fa fa-times-circle'></i> " + cancelLabel,
-				click: function() { $iframe.dialog("close"); },
-				class: 'ui-priority-secondary'
+				'html': "<i class='fa fa-times-circle'></i> " + cancelLabel,
+				'click': function() { $iframe.dialog("close"); },
+				'class': 'ui-priority-secondary'
 				}
 			]
 		};

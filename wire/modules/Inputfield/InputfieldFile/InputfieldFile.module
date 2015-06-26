@@ -26,7 +26,7 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 		return array(
 			'title' => __('Files', __FILE__), // Module Title
 			'summary' => __('One or more file uploads (sortable)', __FILE__), // Module Summary
-			'version' => 118,
+			'version' => 119,
 			'permanent' => true, 
 			);
 	}
@@ -100,7 +100,9 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 			else if($last == 'k') $this->maxFilesize = $filesize*1024;
 			else $this->maxFilesize = (5*1024)*1024; 
 		
-		if($this->wire('input')->get('uploadOnlyMode')) $this->uploadOnlyMode = true; 
+		if($this->wire('input')->get('uploadOnlyMode')) $this->uploadOnlyMode = true;
+		$this->addClass('InputfieldItemList', 'wrapClass');
+		$this->addClass('InputfieldHasFileList', 'wrapClass');
 	}
 
 	/**

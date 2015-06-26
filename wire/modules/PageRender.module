@@ -56,7 +56,7 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 	 */
 	public function init() {
 		$this->config = $this->fuel('config'); 
-		$this->addHook('Page::render', $this, 'renderPage'); 
+		$this->addHook('Page::render', $this, 'renderPage');
 		$this->pages->addHookAfter('save', $this, 'clearCacheFile'); 
 		$this->pages->addHookAfter('delete', $this, 'clearCacheFile'); 
 		// $this->addHookAfter('Fieldtype::savePageField', $this, 'savePageField'); // removed, see note in commented function

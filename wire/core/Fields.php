@@ -10,6 +10,8 @@
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
+ * 
+ * @method Field get($key)
  *
  */
 

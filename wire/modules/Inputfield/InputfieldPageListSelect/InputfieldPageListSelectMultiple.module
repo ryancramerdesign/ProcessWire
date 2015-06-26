@@ -20,7 +20,7 @@ class InputfieldPageListSelectMultiple extends Inputfield implements InputfieldH
 		return array(
 			'title' => __('Page List Select Multiple', __FILE__), // Module Title
 			'summary' => __('Selection of multiple pages from a ProcessWire page tree list', __FILE__), // Module Summary
-			'version' => 101,
+			'version' => 102,
 			'permanent' => true, 
 			);
 	}
@@ -35,6 +35,7 @@ class InputfieldPageListSelectMultiple extends Inputfield implements InputfieldH
 		$this->set('selectLabel', $this->_('Select'));
 		$this->set('unselectLabel', $this->_('Unselect'));
 		$this->set('moreLabel', $this->_('More'));
+		$this->set('removeLabel', $this->_('Remove'));
 	}
 
 	protected function renderListItem($label, $value, $class = '') {
@@ -44,7 +45,7 @@ class InputfieldPageListSelectMultiple extends Inputfield implements InputfieldH
 			"<span class='ui-icon ui-icon-arrowthick-2-n-s'></span>" . 
 			"<span class='itemValue'>$value</span>" . 
 			"<span class='itemLabel'>$label</span> " . 
-			"<a class='itemRemove' href='#'><span class='ui-icon ui-icon-trash'>remove</span></a>" . 
+			"<a class='itemRemove' title='$this->removeLabel' href='#'><i class='fa fa-trash-o'></i></a>" . 
 			"</li>";
 		return $out; 
 	}
@@ -67,29 +68,22 @@ class InputfieldPageListSelectMultiple extends Inputfield implements InputfieldH
 		
 		$out .= "\n</ol>";
 
+		$this->addClass('InputfieldPageListSelectMultipleData');
 		$attrs = $this->getAttributes();
 		unset($attrs['value']); 
 		$value = implode(',', $this->value); 
-		$attrStr = $this->getAttributesString($attrs) . " value='$value'";
+		
+		$attrs['value'] = $value;
+		$attrs['data-root'] = $this->parent_id; // rootPageID
+		$attrs['data-href'] = "#wrap_{$this->id}"; // selectSelectHref
+		$attrs['data-start'] = $this->startLabel; // selectStartLabel
+		$attrs['data-cancel'] = $this->cancelLabel; // selectCancelLabel
+		$attrs['data-select'] = $this->selectLabel; // selectSelectLabel
+		$attrs['data-unselect'] = $this->unselectLabel; // selectUnselectLabel
+		$attrs['data-more'] = $this->moreLabel; // moreLabel
+	
+		$attrStr = $this->getAttributesString($attrs);
 		$out .=	"\n<input type='text' $attrStr />";
-
-		$out .= "\n<script>$(document).ready(function() { " . 
-			"var t = $('#{$this->id}'); " . 
-			"t.ProcessPageList({ " . 
-				"mode: 'select', " . 
-				"rootPageID: {$this->parent_id}, " . 
-				"selectShowPageHeader: false, " . 
-				"selectSelectHref: '#wrap_{$this->id}', " .
-				"selectStartLabel: '$this->startLabel', " .
-				"selectCancelLabel: '$this->cancelLabel', " .
-				"selectSelectLabel: '$this->selectLabel', " .
-				"selectUnselectLabel: '$this->unselectLabel', " .
-				"moreLabel: '$this->moreLabel' " . 
-			"}).hide()" . 
-			".bind('pageSelected', t, InputfieldPageListSelectMultiple.pageSelected)" . 
-			"}); " . 
-			"InputfieldPageListSelectMultiple.init($('#{$this->id}_items')); " . 
-			"</script>";
 
 		return $out; 
 	}

@@ -224,6 +224,7 @@ class ProcessTemplateExportImport extends Wire {
 			}
 
 			$markup = $this->modules->get('InputfieldMarkup');
+			$markup->addClass('InputfieldCheckboxes');
 			$markup->value = "";
 			$fieldset->add($markup);
 			

@@ -18,6 +18,8 @@
  * @property string $findPagesSelector
  * @property int|bool $addable
  * @property int|bool $allowUnpub
+ * 
+ * @todo update labelFieldName to support "title|name" and "{title}, {id}", format. 
  *
  */
 class InputfieldPage extends Inputfield implements ConfigurableModule {
@@ -69,7 +71,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Page',
-			'version' => 104,
+			'version' => 105,
 			'summary' => 'Select one or more pages',
 			'permanent' => true, 
 			);
@@ -297,7 +299,6 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 				$selector = str_replace($tag, "=$value", $selector); 
 			}
 		}
-
 		return $selector; 
 	}
 
@@ -311,7 +312,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 
 		$page = $this->page; 
 		$process = $this->wire('process'); 
-		if($process && $process->className() == 'ProcessPageEdit') $page = $process->getPage();
+		if($process && $process instanceof WirePageEditor) $page = $process->getPage();
 
 		$inputfield->attr('name', $this->attr('name')); 
 		$inputfield->attr('id', $this->attr('id')); 

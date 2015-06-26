@@ -190,6 +190,7 @@ class ProcessFieldExportImport extends Wire {
 			}
 
 			$markup = $this->modules->get('InputfieldMarkup');
+			$markup->addClass('InputfieldCheckboxes');
 			$markup->value = "";
 			$fieldset->add($markup);
 			
@@ -274,6 +275,7 @@ class ProcessFieldExportImport extends Wire {
 				($no && $numChangesField ? "<span class='detail'>(" . $this->_('click yes to show changes') . ")</span>" : "") .
 				"</p>";
 
+			$f->renderReady();
 			$markup->value .= $f->render();
 			$data[$name] = $fieldData;
 		}

@@ -38,6 +38,8 @@
  * @method void install()
  * @method void uninstall()
  * 
+ * @property bool $_exportMode True when Fieldtype is exporting config data, false otherwise. 
+ * 
  */
 abstract class Fieldtype extends WireData implements Module {
 

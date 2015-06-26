@@ -68,6 +68,16 @@ class FieldtypeTextarea extends FieldtypeText {
 	public function sanitizeValue(Page $page, Field $field, $value) {
 		return parent::sanitizeValue($page, $field, $value); 
 	}
+
+	public function ___markupValue(Page $page, Field $field, $value = null, $property = '') {
+		if(is_null($value)) $value = $page->getFormatted($field->name);
+		if($field->contentType >= self::contentTypeHTML) {
+			$value = $this->formatValue($page, $field, $value); 	
+		} else {
+			$value = parent::___markupValue($page, $field, $value, $property);
+		}
+		return $value; 
+	}
 	
 	public function ___formatValue(Page $page, Field $field, $value) {
 		$value = parent::___formatValue($page, $field, $value);

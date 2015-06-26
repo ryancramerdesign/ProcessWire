@@ -945,6 +945,8 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 	protected function buildListerTable(PageArray $results) {
 
 		$table = $this->modules->get('MarkupAdminDataTable');
+		$table->setSortable(false);
+		$table->setResizable(true);
 		$columns = $this->sessionGet('columns'); 
 		if(!$columns) $columns = $this->columns; 
 		$fields = array();
@@ -952,23 +954,23 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 
 		foreach($columns as $key => $name) {
 			$subname = '';
-			if(strpos($name, '.')) list($name, $subname) = explode('.', $name); 
-			$field = $this->template ? $this->template->fieldgroup->getField($name, true) : $this->fields->get($name); 
-			$label = $field ? $field->getLabel() : ''; 
+			if(strpos($name, '.')) list($name, $subname) = explode('.', $name);
+			$field = $this->template ? $this->template->fieldgroup->getField($name, true) : $this->fields->get($name);
+			$label = $field ? $field->getLabel() : '';
 			if(!$label) $label = isset($this->systemLabels[$name]) ? $this->systemLabels[$name] : $name;
 			$icon = $field ? $field->getIcon(true) : '';
 			if($subname) {
-				$subfield = $this->fields->get($subname); 
-				$label .= ".";
+				$subfield = $this->fields->get($subname);
+				$label .= ".<wbr>";
 				if($subfield) {
 					$label .= $subfield->getLabel();
-					$subicon = $subfield->getIcon(true); 
-					if($subicon) $icon = $subicon; 
+					$subicon = $subfield->getIcon(true);
+					if($subicon) $icon = $subicon;
 				} else {
 					$label .= $subname;
 				}
 			}
-			$icon = $icon ? wireIconMarkup($icon, 'fw') : ''; 
+			$icon = $icon ? "<i>" . wireIconMarkup($icon) . '&nbsp;</i>' : '';
 			$header[$key] = "$icon$label<b>$name</b>";
 			$fields[$name] = $field; 
 		}
@@ -1000,7 +1002,6 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 
 		foreach($columns as $cnt => $name) {
 			$value = $this->buildListerTableCol($p, $fields, $name); 
-			if(!$cnt) $value = $this->buildListerTableColActions($p, $value); 
 			$values[] = $value; 
 		}
 
@@ -1023,6 +1024,9 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		$fullname = $name; 
 		if(strpos($name, '.')) list($name, $subname) = explode('.', $name); 
 		if($name == 'config' || $subname == 'config') return 'Not allowed';
+		
+		reset($fields); 
+		$isFirstCol = key($fields) == $name; 
 
 		$field = isset($fields[$name]) ? $fields[$name] : $this->wire('fields')->get($name);
 		if(is_null($value)) $value = $p->getUnformatted($name);
@@ -1041,13 +1045,19 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 
 		} else if($value instanceof Page || $value instanceof PageArray) {
 			// pages
-			if($value instanceof Page) $value = array($value); 
-			$newValue = array();
 			if(!$subname) $subname = 'title|name';
-			foreach($value as $v) {
-				$newValue[] = $this->buildListerTableCol($v, $fields, $subname); 
+			if($delimiter == '<br />') {
+				// default delimiter: let markupValue handle it (default output)
+				$value = $field->type->markupValue($p, $field, $value, $subname);
+			} else {
+				// custom delimiter specified, so we'll custom render it here
+				if($value instanceof Page) $value = array($value); 
+				$newValue = array();
+				foreach($value as $v) {
+					$newValue[] = $field->type->markupValue($p, $field, $v, $subname);
+				}
+				$value = implode($delimiter, $newValue);
 			}
-			$value = implode($delimiter, $newValue); 
 			
 		} else if($value instanceof WireArray && !$value instanceof Pagefiles) {
 			// WireArray type unknown to Lister
@@ -1111,6 +1121,8 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 			if($subname && is_object($value)) $value = $value->$subname;
 			$value = $this->wire('sanitizer')->entities($value); 
 		}
+	
+		if($isFirstCol) $value = $this->buildListerTableColActions($p, $value); 
 
 		return $value; 
 
@@ -1231,7 +1243,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 					}
 				}
 
-				if($actionsOut) $actionsOut = "<div class='actions'>$actionsOut</div>";
+				if($actionsOut) $actionsOut = "<div class='PageListerActions actions'>$actionsOut</div>";
 				$class = 'actions_toggle';
 				if(in_array($p->id, $this->openPageIDs)) {
 					$class .= ' open';
@@ -1403,7 +1415,9 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		$out .= "<h2 class='lister_headline'>$headline " . 
 				"<span id='lister_open_cnt' class='ui-priority-secondary'>" . 
 				"<i class='fa fa-check-square-o'></i> <span>0</span> " . $this->_('selected') . "</span></h2>" . 
-				$pagerOut . $tableOut . $pagerOut; 
+				$pagerOut . 
+				"<div id='ProcessListerTable'>$tableOut</div>" . 
+				$pagerOut; 
 
 		if($this->wire('config')->debug) {
 			$out .= "<p id='ProcessListerSelector' class='notes'>" . $this->wire('sanitizer')->entities($this->finalSelector) . "</p>";
@@ -1465,12 +1479,6 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		if(!$this->wire('page')) return;
 		$modules = $this->wire('modules');
 	
-		/*
-		if($modules->isInstalled('ProcessLister') && $this->wire('user')->isSuperuser()) {
-			$this->error('Please uninstall Modules > Site > ProcessLister - this module (ProcessPageLister) has now replaced it.'); 
-		}
-		*/
-		
 		$this->setupOpenPageIDs();
 	
 		if($this->wire('config')->ajax) {
@@ -1484,8 +1492,9 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		$selector = $this->sessionGet('selector'); 
 		if(!$selector) $this->sessionSet('selector', $this->defaultSelector); 
 
-		$modules->get('JqueryWireTabs'); 
+		$modules->get('JqueryWireTabs');
 		$modules->get('MarkupAdminDataTable'); // to ensure css/js load
+		$modules->get('JqueryTableSorter')->use('widgets');
 
 		$out = '';
 		if(!$this->wire('input')->get('minimal')) {
@@ -1495,37 +1504,50 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 			}
 			$out .= $this->renderExtras(); 
 		}
+		
 		$out .= "<div id='ProcessListerResults' class='PageList $this->className'></div>";
-
+		
+		$out .= $this->renderButtons();
+		$out .= $this->renderFooter();
+		
+		return "<div id='ProcessLister'>$out</div>"; 
+	}
+	
+	protected function renderFooter() {
+		$modules = $this->wire('modules');
+		$info = $modules->getModuleInfo($this);
+		$out = "<p class='detail version'>$info[title] v" . $modules->formatVersion($info['version']) . " &beta;</p>";
+		return $out; 
+	}
+	
+	protected function renderButtons() {
 		$action = '';
-		if($this->parent && $this->parent->id) { 
-			$action = "?parent_id={$this->parent->id}"; 
+		$out = '';
+		
+		if($this->parent && $this->parent->id) {
+			$action = "?parent_id={$this->parent->id}";
 
 		} else if($this->template && ($parent = $this->template->getParentPage(true))) {
 			if($parent->id) $action = "?parent_id={$parent->id}"; // defined parent
-				else $action = "?template_id={$this->template->id}"; // multiple possible parents
+			else $action = "?template_id={$this->template->id}"; // multiple possible parents
 		}
-		
+
 		if($action && !$this->wire('input')->get('minimal')) {
-			$btn = $modules->get('InputfieldButton');
+			$btn = $this->wire('modules')->get('InputfieldButton');
 			$btnClass = 'PageAddNew';
 			if($this->editMode == self::windowModeModal) {
 				$action .= "&modal=1";
 				$btnClass .= " modal";
 			}
-			$btn->attr('value', $this->_('Add New')); 
-			$btn->href = $this->addURL . $action; 
-			$btn->addClass('head_button_clone'); 
+			$btn->attr('value', $this->_('Add New'));
+			$btn->href = $this->addURL . $action;
+			$btn->addClass('head_button_clone');
 			$btn->icon = 'plus-circle';
-			$btnOut = str_replace("<a ", "<a class='$btnClass' ", $btn->render());
-			if($this->editMode == self::windowModeBlank) $btnOut = str_replace("<a " ,"<a target='_blank' ", $btnOut); 
-			$out .= $btnOut; 
+			$out = str_replace("<a ", "<a class='$btnClass' ", $btn->render());
+			if($this->editMode == self::windowModeBlank) $out = str_replace("<a " ,"<a target='_blank' ", $btnOut);
 		}
-
-		$info = $modules->getModuleInfo($this); 
-		$out .= "<p class='detail version'>$info[title] v" . $modules->formatVersion($info['version']) . " &beta;</p>";
 		
-		return "<div id='ProcessLister'>$out</div>"; 
+		return $out; 
 	}
 
 	/**

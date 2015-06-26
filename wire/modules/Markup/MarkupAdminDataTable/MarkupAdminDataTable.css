@@ -60,6 +60,17 @@ table.AdminDataList td > .sort-date {
 	display: none; 	
 }
 
+/*
+table.AdminDataTableResizable,
+table.AdminDataTableResizable *,
+table.AdminDataTableResizable *:before,
+table.AdminDataTableResizable *:after {
+	-moz-box-sizing: content-box;
+	-webkit-box-sizing: content-box;
+	box-sizing: content-box;
+}
+*/
+
 
 @media only screen and (max-width: 767px) {
 	

@@ -20,7 +20,7 @@ class InputfieldPageName extends InputfieldName implements ConfigurableModule {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Page Name',
-			'version' => 104,
+			'version' => 105,
 			'summary' => 'Text input validated as a ProcessWire Page name field',
 			'permanent' => true, 
 			);
@@ -132,6 +132,7 @@ class InputfieldPageName extends InputfieldName implements ConfigurableModule {
 		$this->set('checkboxLabel', ''); 
 		$this->set('checkboxValue', ''); 
 		$this->set('checkboxChecked', false); 
+		$this->set('checkboxSuffix', ''); 
 
 		$this->description = $this->_("Any combination of letters (a-z), numbers (0-9), dashes or underscores (no spaces)."); // Field description describing what characters are allowed
 		$this->hasLanguagePageNames = $this->wire('modules')->isInstalled('LanguageSupportPageNames'); 
@@ -169,7 +170,7 @@ class InputfieldPageName extends InputfieldName implements ConfigurableModule {
 				$label = $sanitizer->entities($this->checkboxLabel); 
 				$box = 
 					"<label class='checkbox detail'>" . 
-					"<input type='checkbox' name='$name' value='$value'$checked$disabled /> $label" . 
+					"<input type='checkbox' name='$name{$this->checkboxSuffix}' value='$value'$checked$disabled /> $label" . 
 					"</label>";
 			}
 

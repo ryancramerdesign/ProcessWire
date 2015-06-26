@@ -12,13 +12,17 @@ function setupLanguageTabs($form) {
 	$langTabs.each(function() {
 		var $this = $(this);
 		if($this.hasClass('ui-tabs')) return;
-		var $parent = $this.parent('.InputfieldContent'); 
+		var $inputfield = $this.closest('.Inputfield');
 		$this.tabs({ active: config.LanguageTabs.activeTab });
-		var $span = $("<span></span>")
-			.attr('title', config.LanguageTabs.title)
-			.attr('class', 'langTabsToggle')
-			.append("<i class='fa fa-folder-o'></i>");
-		$parent.prev('.InputfieldHeader').append($span);
+		if($inputfield.length) $inputfield.addClass('hasLangTabs');
+		var $parent = $this.parent('.InputfieldContent'); 
+		if($parent.length) {
+			var $span = $("<span></span>")
+				.attr('title', config.LanguageTabs.title)
+				.attr('class', 'langTabsToggle')
+				.append("<i class='fa fa-folder-o'></i>");
+			$parent.prev('.InputfieldHeader').append($span);
+		}
 	});
 }
 
@@ -58,6 +62,9 @@ $(document).ready(function() {
 	$(document).on('click', '.langTabsToggle', toggleLanguageTabs); 
 	$(document).on('reloaded', '.Inputfield', function() {
 		setupLanguageTabs($(this));
-	}); 
+	});
+	$(document).on('AjaxUploadDone', '.InputfieldHasFileList .InputfieldFileList', function() {
+		setupLanguageTabs($(this));
+	});
 }); 
 

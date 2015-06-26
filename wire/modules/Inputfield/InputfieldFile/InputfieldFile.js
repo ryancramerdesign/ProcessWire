@@ -363,7 +363,8 @@ $(document).ready(function() {
 	 * #PageIDIndictator.size indicates PageEdit, which we're limiting AjaxUpload to since only ProcessPageEdit has the ajax handler
 	 * 
 	 */
-	if (window.File && window.FileList && window.FileReader && $("#PageIDIndicator").size() > 0) {  
+	if (window.File && window.FileList && window.FileReader 
+		&& ($("#PageIDIndicator").length > 0 || $('.InputfieldAllowAjaxUpload').length > 0)) {  
 		InitHTML5('');  
 	} else {
 		InitOldSchool();
@@ -390,7 +391,8 @@ $(document).ready(function() {
 		setTimeout(windowResize, 1000); 
 	}).resize();
 	
-	$(document).on('reloaded', '.InputfieldFileMultiple, .InputfieldFileSingle', function(event) {
+	//$(document).on('reloaded', '.InputfieldFileMultiple, .InputfieldFileSingle', function(event) {
+	$(document).on('reloaded', '.InputfieldHasFileList', function(event) {
 		initSortable($(this).find(".InputfieldFileList"));
 		InitHTML5($(this)); 
 	}); 

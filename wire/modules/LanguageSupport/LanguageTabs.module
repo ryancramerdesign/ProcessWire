@@ -19,7 +19,7 @@ class LanguageTabs extends WireData implements Module {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Languages Support - Tabs',
-			'version' => 111,
+			'version' => 112,
 			'summary' => 'Organizes multi-language fields into tabs for a cleaner easier to use interface.',
 			'author' => 'adamspruijt, ryan', 
 			'singular' => true,

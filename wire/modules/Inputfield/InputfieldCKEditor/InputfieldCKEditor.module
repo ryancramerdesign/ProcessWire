@@ -35,7 +35,7 @@ class InputfieldCKEditor extends InputfieldTextarea {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'CKEditor',
-			'version' => 144, 
+			'version' => 145, 
 			'summary' => __('CKEditor textarea rich text editor.', __FILE__),
 			'installs' => array('MarkupHTMLPurifier'), 
 			);
@@ -396,6 +396,7 @@ class InputfieldCKEditor extends InputfieldTextarea {
 	 */
 	protected function renderNormal() {
 		//$out = parent::___render() . "<script>CKEDITOR.replace('$this->id', config.$this->configName);</script>";
+		$this->addClass('InputfieldCKEditorNormal');
 		$out = parent::___render() . "<script>config.InputfieldCKEditor.editors.$this->id = '$this->configName';</script>";
 		return $out; 
 	}

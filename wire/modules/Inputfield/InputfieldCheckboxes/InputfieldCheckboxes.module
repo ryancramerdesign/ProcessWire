@@ -1,12 +1,21 @@
 <?php
 
+/**
+ * Class InputfieldCheckboxes
+ * 
+ * @property bool $table Whether or not to display as a table
+ * @property string $thead Pipe "|" separated list of table headings. Do the same for the addOption() labels. 
+ * @property int|bool $optionColumns Specify 1 for inline list of options, or qty of columns to list options in.
+ * 
+ */
+
 class InputfieldCheckboxes extends InputfieldSelectMultiple implements InputfieldHasArrayValue {
 
 	public static function getModuleInfo() {
 		return array(
 			'title' => __('Checkboxes', __FILE__), // Module Title
 			'summary' => __('Multiple checkbox toggles', __FILE__), // Module Summary
-			'version' => 103,
+			'version' => 104,
 			'permanent' => true, 
 			);
 	}

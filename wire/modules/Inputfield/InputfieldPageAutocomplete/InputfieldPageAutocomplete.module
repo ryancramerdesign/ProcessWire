@@ -18,7 +18,7 @@ class InputfieldPageAutocomplete extends Inputfield implements InputfieldHasArra
 		return array(
 			'title' => __('Page Auto Complete', __FILE__), // Module Title
 			'summary' => __('Multiple Page selection using auto completion and sorting capability. Intended for use as an input field for Page reference fields.', __FILE__), // Module Summary
-			'version' => 105,
+			'version' => 106,
 			);
 	}
 
@@ -147,22 +147,32 @@ class InputfieldPageAutocomplete extends Inputfield implements InputfieldHasArra
 				else $disableChars = "data-disablechars='$disableChars' ";
 		}
 		
+		$attrs =
+			"data-max='$max' " . 
+			"data-url='$url' " . 
+			"data-label='$labelField' " . 
+			"data-search='$searchField' " . 
+			"data-operator='$operator' ";
+		
 		$out .= <<< _OUT
 
 		<p>
-		<input type='hidden' name='{$this->name}[]' data-max='$max' id='$id' value='$value' />
+		<input type='hidden' name='{$this->name}[]' id='$id' class='InputfieldPageAutocompleteData' value='$value' $attrs/>
 		<input type='text' data-parent-input='$id' id='{$id}_input' class='$class' value='' $disableChars/>
 		<i class='fa fa-fw fa-angle-double-right InputfieldPageAutocompleteStatus'></i>
 		<span class='notes InputfieldPageAutocompleteNote'><br />$addNote</span>
 		</p>
+		
+_OUT;
+	
+		/*
 		<script>
 		$(document).ready(function() { 
 			InputfieldPageAutocomplete.init('$id', '$url', '$labelField', '$searchField', '$operator');
+			console.log('initAutocomplete: $id');
 		}); 
 		</script>
-
-_OUT;
-
+		*/
 		return $out; 
 	}
 

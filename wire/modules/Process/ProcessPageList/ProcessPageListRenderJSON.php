@@ -63,8 +63,8 @@ class ProcessPageListRenderJSON extends ProcessPageListRender {
 
 		if(!$label) $label = $this->getPageLabel($page);
 		
-		if(count($icons)) foreach($icons as $icon) {
-			$label .= "<i class='PageListStatusIcon fa fa-$icon'></i>";
+		if(count($icons)) foreach($icons as $n => $icon) {
+			$label .= "&nbsp;<i class='PageListStatusIcon fa fa-$icon'></i>";
 		}
 
 		$a = array(

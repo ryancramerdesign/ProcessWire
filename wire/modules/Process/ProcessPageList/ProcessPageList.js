@@ -233,7 +233,8 @@ $(document).ready(function() {
 				var $pageLabel = $("<p></p>").addClass("PageListSelectName"); 
 				if(options.selectShowPageHeader) $pageLabel.append($loading); 
 
-				var $action = $("<a></a>").addClass("PageListSelectActionToggle").attr('href', '#').text(options.selectStartLabel).click(function() {
+				var $action = $("<a></a>").addClass("PageListSelectActionToggle").attr('href', '#')
+					.text(options.selectStartLabel).click(function() {
 
 					if($(this).text() == options.selectStartLabel) {
 

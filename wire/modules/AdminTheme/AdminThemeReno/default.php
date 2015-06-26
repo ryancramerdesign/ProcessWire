@@ -18,7 +18,7 @@
 if(!defined("PROCESSWIRE")) die();
 
 if(!isset($content)) $content = '';
-$version = $adminTheme->version . 'c';
+$version = $adminTheme->version . 'd';
 $searchForm = $user->hasPermission('page-edit') ? $modules->get('ProcessPageSearch')->renderSearchForm($adminTheme->getSearchPlaceholder()) : '';
 
 $config->styles->prepend($config->urls->adminTemplates . "styles/" . ($adminTheme->colors ? "$adminTheme->colors" : "main") . ".css?v=$version"); 

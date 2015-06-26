@@ -33,7 +33,8 @@
 
 	}
 
-	.PageListPagination {
+	.PageListPagination,
+	.AdminDataTable .PageListPagination {
 		padding-top: 0.5em; 
 
 		li {
@@ -46,6 +47,7 @@
 	}
 
 	.PageListPagination,
+	.AdminDataTable .PageListPagination,
 	.MarkupPagerNav {
 		color: text-color;
 		font-size: $pagination-font-size; 
@@ -71,6 +73,7 @@
 	}
 
 	.PageListPaginationCurrent a,
+	.AdminDataTable .PageListPaginationCurrent a, 
 	.MarkupPagerNavOn a {
 		color: $pagination-link-current-color; 
 		background: $pagination-link-current-bg; 

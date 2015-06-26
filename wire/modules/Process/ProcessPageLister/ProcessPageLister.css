@@ -11,7 +11,7 @@
 	white-space: nowrap; 
 }
 
-#ProcessListerResults p {
+.AdminDataTable p {
 	margin: 1em 0;
 }
 
@@ -23,7 +23,8 @@
 	width: 100%;
 }
 
-#ProcessListerResults thead th b {
+#ProcessListerResults thead th b,
+#ProcessListerResults .th b {
 	display: none; 
 }
 
@@ -61,18 +62,25 @@
 	display: none; 
 }
 */
-#ProcessListerResults .actions {
+#ProcessListerResults .PageListerActions {
 	display: none;
 	line-height: 1.3em;
 	text-transform: lowercase;  
 }
-#ProcessListerResults .actions a.PageExtras i {
+#ProcessListerResults .PageListerActions a.PageExtra {
+	margin-bottom: 3px;
+}
+#ProcessListerResults .PageListerActions a.PageExtras i {
 	margin-left: 3px;
 	margin-right: 2px; 
 }
-#ProcessListerResults .actions a.PageExtras.open i {
+#ProcessListerResults .PageListerActions a.PageExtras.open i {
 	margin-left: 2px;
 	margin-right: 3px; 
+}
+
+#ProcessListerResults .row_message {
+	display: inline;
 }
 /*
 #ProcessListerResults tr:hover {
@@ -129,6 +137,10 @@
 	margin: 0;
 }
 
+#ProcessListerResults .nobr {
+	white-space: nowrap; 
+}
+
 
 #filters_spinner {
 	float: right; 
@@ -142,6 +154,11 @@
 p.version {
 	clear: both; 
 	padding-top: 1em; 
+}
+
+#ProcessListerTable {
+	clear: both;
+	position: relative;
 }
 
 

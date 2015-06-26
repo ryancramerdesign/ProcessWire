@@ -15,6 +15,7 @@ class MarkupAdminDataTable extends ModuleJS {
 	protected $actions = array();
 	protected $encodeEntities = true; 
 	protected $sortable = true; 
+	protected $resizable = false;
 	protected $class = '';
 	protected $caption = '';
 	protected $responsive = self::responsiveYes; 
@@ -24,7 +25,7 @@ class MarkupAdminDataTable extends ModuleJS {
 		return array(
 			'title' => 'Admin Data Table', 
 			'summary' => 'Generates markup for data tables used by ProcessWire admin', 
-			'version' => 106, 
+			'version' => 107, 
 			'permanent' => true, 
 			);
 	}
@@ -106,7 +107,11 @@ class MarkupAdminDataTable extends ModuleJS {
 		} else if($this->responsive == self::responsiveAlt) {
 			$tableClass .= " AdminDataTableResponsive AdminDataTableResponsiveAlt";
 		}
-		if($this->sortable) $tableClass .= " AdminDataTableSortable"; 
+		if($this->sortable) $tableClass .= " AdminDataTableSortable";
+		if($this->resizable) {
+			$tableClass .= " AdminDataTableResizable";
+			$this->modules->get("JqueryTableSorter")->use('widgets');
+		}
 		$out = '';
 		$maxCols = 0;
 		$id = $this->id ? $this->id : "AdminDataTable" . (++self::$instanceCnt);
@@ -189,6 +194,10 @@ class MarkupAdminDataTable extends ModuleJS {
 
 	public function setSortable($sortable) {
 		$this->sortable = $sortable ? true : false;
+	}
+	
+	public function setResizable($resizable) {
+		$this->resizable = $resizable ? true : false;
 	}
 
 	public function setCaption($caption) {

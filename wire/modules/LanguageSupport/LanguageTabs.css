@@ -2,6 +2,10 @@
 	padding-bottom: 0;
 }
 
+#content .langTabsContainer .InputfieldError {
+	margin-bottom: 0;
+}
+
 .langTabs{
 	padding: 0;
 }

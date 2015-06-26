@@ -55,16 +55,18 @@ function InputfieldDatetimeDatepicker($t) {
 			$t.val(str); 
 		}); 
 	}
+	
+	$t.addClass('initDatepicker');
 }
 
 jQuery(document).ready(function($) {
 
-	$("input.InputfieldDatetimeDatepicker").each(function(n) {
+	$("input.InputfieldDatetimeDatepicker:not(.InputfieldDatetimeDatepicker3):not(.initDatepicker)").each(function(n) {
 		InputfieldDatetimeDatepicker($(this)); 
 	});
 
-	$(document).on('focus', 'input.InputfieldDatetimeDatepicker3', function() {
-		if($(this).is('.hasDatepicker')) return;
-		InputfieldDatetimeDatepicker($(this)); 	
-	}); 
+	$(document).on('focus', 'input.InputfieldDatetimeDatepicker3:not(.hasDatepicker)', function() {
+		InputfieldDatetimeDatepicker($(this));
+	});
+	
 }); 

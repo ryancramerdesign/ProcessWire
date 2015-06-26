@@ -170,6 +170,27 @@ var InputfieldPageAutocomplete = {
 		}); 
 
 	},
+	
+	/**
+	 * Same as init() but only requires the Inputfield where autocomplete lives
+	 *
+	 * @param $inputfield
+	 *
+	 */
+	initFromInputfield: function($inputfield) {
+		var $a = $inputfield.find(".InputfieldPageAutocompleteData");
+		if(!$a.length) return;
+		InputfieldPageAutocomplete.init(
+			$a.attr('id'),
+			$a.attr('data-url'),
+			$a.attr('data-label'),
+			$a.attr('data-search'),
+			$a.attr('data-operator')
+		);
+		console.log($a);
+		console.log("init autocomplete: " + $a.attr('data-id'));
+	},
+
 
 	/**
 	 * Callback function executed when a page is selected from PageList
@@ -242,9 +263,17 @@ var InputfieldPageAutocomplete = {
 }; 
 
 $(document).ready(function() {
+	
+	$(".InputfieldPageAutocomplete").each(function() {
+		InputfieldPageAutocomplete.initFromInputfield($(this));
+	});
+	
+	$(document).on('reloaded', '.InputfieldPageAutocomplete, .InputfieldPage', function() {
+		InputfieldPageAutocomplete.initFromInputfield($(this));
+	});
 
-	//$(".InputfieldPageAutocomplete ol li a.itemRemove").live('click', function() { // live() deprecated
-	$(".InputfieldPageAutocomplete ol").on('click', 'a.itemRemove', function() {
+	$(document).on('click', '.InputfieldPageAutocomplete ol a.itemRemove', function() {
+		// $(".InputfieldPageAutocomplete ol").on('click', 'a.itemRemove', function() {
 		var $li = $(this).parent(); 
 		var $ol = $li.parent(); 
 		var id = $li.children(".itemValue").text();
@@ -252,7 +281,6 @@ $(document).ready(function() {
 		InputfieldPageAutocomplete.rebuildInput($ol); 
 		return false; 
 	});
-
 }); 
 
 

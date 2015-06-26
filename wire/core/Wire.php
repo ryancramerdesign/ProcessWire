@@ -572,8 +572,10 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 			// now check if hooked in this class
 			$hooked = true;
 		} else {
-			// check parent classes
+			// check parent classes and interfaces
 			$classes = class_parents($this, false);
+			$interfaces = class_implements($this);
+			if(is_array($interfaces)) $classes = array_merge($interfaces, $classes);
 			foreach($classes as $class) {
 				if(!empty(self::$staticHooks[$class][$_method])) {
 					$hooked = true;

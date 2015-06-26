@@ -52,5 +52,11 @@
 		td a:hover {
 			color: $link-hover-color; 
 		}
+	
+		td .ui-state-hover a,
+		td .ui-state-active a, 
+		td .ui-state-default a {
+			color: $ui-state-default-color;
+		}
 	}
 }

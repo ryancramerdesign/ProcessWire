@@ -604,8 +604,10 @@ function InputfieldDependencies() {
 	/*** Start InputfieldDependencies *************************************************/
 
 	InputfieldDependenciesProcessing = true; 
-	$(".InputfieldStateShowIf, .InputfieldStateRequiredIf").each(function() {
-		setupDependencyField($(this)); 
+	$(".InputfieldForm:not(.InputfieldFormNoDependencies)").each(function() {
+		$(this).find(".InputfieldStateShowIf, .InputfieldStateRequiredIf").each(function() {
+			setupDependencyField($(this));
+		});
 	});
 	InputfieldDependenciesProcessing = false;
 }
@@ -824,6 +826,35 @@ function InputfieldColumnWidths() {
 	}); 
 }
 
+/**
+ * Event to call before a page is unloaded (beforeunload event)
+ * 
+ * If window should not be unloaded, it returns a string of text with reason why.
+ * 
+ * @param e
+ * @returns {string}
+ * 
+ */
+function InputfieldFormBeforeUnloadEvent(e) {
+	var $changes = $(".InputfieldFormConfirm:not(.InputfieldFormSubmitted) .InputfieldStateChanged");
+	if($changes.length == 0) return '';
+	var msg = $('.InputfieldFormConfirm:eq(0)').attr('data-confirm') + "\n";
+	$changes.each(function() {
+		var $header = $(this).find(".InputfieldHeader:eq(0)");
+		if($header.length) {
+			name = $header.text();
+		} else {
+			name = $(this).attr('data-label');
+			if(!name || !name.length) {
+				name = $(this).find(':input').attr('name');
+			}
+		}
+		if(name.length) msg += "\n• " + $.trim(name);
+	});
+	(e || window.event).returnValue = msg; // Gecko and Trident
+	return msg; // Gecko and WebKit
+}
+
 /*****************************************************************************************************
  * Setup the toggles for Inputfields and the animations that occur between opening and closing
  * 
@@ -904,26 +935,13 @@ function InputfieldStates() {
 	});
 
 	// confirm changed forms that user navigates away from before submitting
-	var $form = $(".InputfieldFormConfirm"); 
-	if($form.length) {
-		$form.on('change', ':input', function() {
-			$(this).closest('.Inputfield').addClass('InputfieldStateChanged');
-		});
-		$form.on("submit", function() {
-			$(this).addClass('InputfieldFormSubmitted');
-		});
-		window.addEventListener("beforeunload", function(e) {
-			var $changes = $(".InputfieldFormConfirm:not(.InputfieldFormSubmitted) .InputfieldStateChanged");
-			if($changes.length == 0) return;
-			var msg = $form.attr('data-confirm') + "\n";
-			$changes.each(function() {
-				var name = $(this).find(".InputfieldHeader:eq(0)").text();
-				msg += "\n• " + $.trim(name);
-			});
-			(e || window.event).returnValue = msg; // Gecko and Trident
-			return msg; // Gecko and WebKit
-		});
-	};
+	$(document).on('change', '.InputfieldFormConfirm :input', function() {
+		$(this).closest('.Inputfield').addClass('InputfieldStateChanged');
+	});
+	$(document).on('submit', '.InputfieldFormConfirm', function() {
+		$(this).addClass('InputfieldFormSubmitted');
+	});
+	window.addEventListener("beforeunload", InputfieldFormBeforeUnloadEvent);
 }
 
 /*********************************************************************************************
