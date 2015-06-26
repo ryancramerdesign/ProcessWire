@@ -1042,8 +1042,17 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 			$value = $field->type->markupValue($p, $field, $value, $subname);
 			// value may be MarkupFieldtype object
 			$value = (string) $value;
+			
+		} else if($value instanceof Page) {
+			// page
+			if(!$subname) $subname = 'title|name';
+			if($field && $field->type) {
+				$value = $field->type->markupValue($p, $field, $value, $subname);
+			} else {
+				$value = $this->wire('sanitizer')->entities($value->getUnformatted($subname));
+			}
 
-		} else if($value instanceof Page || $value instanceof PageArray) {
+		} else if($value instanceof PageArray) {
 			// pages
 			if(!$subname) $subname = 'title|name';
 			if($delimiter == '<br />') {
@@ -1051,7 +1060,6 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 				$value = $field->type->markupValue($p, $field, $value, $subname);
 			} else {
 				// custom delimiter specified, so we'll custom render it here
-				if($value instanceof Page) $value = array($value); 
 				$newValue = array();
 				foreach($value as $v) {
 					$newValue[] = $field->type->markupValue($p, $field, $v, $subname);
