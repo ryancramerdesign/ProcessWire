@@ -183,6 +183,7 @@ var ProcessLister = {
 	_submitSuccess: function(data) {
 		
 		if(ProcessLister.refreshRowPageIDs.length) {
+		
 			for(var n in ProcessLister.refreshRowPageIDs) {
 				var pageID = ProcessLister.refreshRowPageIDs[n];
 				// update one row
@@ -207,6 +208,16 @@ var ProcessLister = {
 				}
 			}
 			ProcessLister.refreshRowPageIDs = [];
+			
+			var pos = data.indexOf('ProcessListerScript');
+			if(pos) {
+				var js = data.substring(pos+21);
+				if(js != '</div>') {
+					js = js.substring(0, js.length-6);
+					console.log(js);
+					$("body").append(js);
+				}
+			}
 
 		} else {
 			// update entire table
@@ -243,9 +254,9 @@ var ProcessLister = {
 			});
 			ProcessLister.clickAfterRefresh = '';
 		}
-
+		
 		ProcessLister.spinner.fadeOut();
-
+		
 		setTimeout(function() {
 			ProcessLister.results.trigger('loaded');
 			$("a.actions_toggle.open").click().removeClass('open'); // auto open items corresponding to "open" get var

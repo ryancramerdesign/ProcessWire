@@ -1423,7 +1423,6 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 			$out .= "<p id='ProcessListerSelector' class='notes'>" . $this->wire('sanitizer')->entities($this->finalSelector) . "</p>";
 			//$out .= "<p id='ProcessListerSelector' class='notes'>" . $this->wire('sanitizer')->entities($findSelector) . "</p>";
 		}
-
 		return $out; 
 	}
 

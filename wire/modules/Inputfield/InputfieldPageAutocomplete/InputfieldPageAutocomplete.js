@@ -180,6 +180,7 @@ var InputfieldPageAutocomplete = {
 	initFromInputfield: function($inputfield) {
 		var $a = $inputfield.find(".InputfieldPageAutocompleteData");
 		if(!$a.length) return;
+		if($a.hasClass('InputfieldPageAutocompleteInit')) return;
 		InputfieldPageAutocomplete.init(
 			$a.attr('id'),
 			$a.attr('data-url'),
@@ -187,8 +188,7 @@ var InputfieldPageAutocomplete = {
 			$a.attr('data-search'),
 			$a.attr('data-operator')
 		);
-		console.log($a);
-		console.log("init autocomplete: " + $a.attr('data-id'));
+		$a.addClass('InputfieldPageAutocompleteInit');
 	},
 
 
