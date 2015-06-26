@@ -171,6 +171,10 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 				$secondaryID .= md5($options['prependFile'] . '+' . $options['appendFile'] . '+' . $options['filename']) . '+';
 			}
 
+            if ($this->config->ajax) {
+                $secondaryID .= 'ajax+';
+            }
+
 			if($pageNum > 1) $secondaryID .= "page{$pageNum}";
 			$secondaryID = rtrim($secondaryID, '+'); 
 			if(wire('languages')) { 
