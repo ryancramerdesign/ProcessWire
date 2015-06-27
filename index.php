@@ -178,7 +178,9 @@ function ProcessWireBootConfig() {
 	ini_set('session.use_only_cookies', 1);
 	ini_set('session.cookie_httponly', 1); 
 	ini_set('session.gc_maxlifetime', $config->sessionExpireSeconds);
-	ini_set('session.cookie_secure', (bool) $config->https); 
+	if ($config->https) {
+		ini_set('session.cookie_secure', 1); 
+	}
 	
 	if(ini_get('session.save_handler') == 'files') {
 		if(ini_get('session.gc_probability') == 0) {
