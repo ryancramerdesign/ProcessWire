@@ -1339,8 +1339,6 @@ class Pages extends Wire {
 		$query->bindValue(':pages_id', $pages_id, PDO::PARAM_INT); 
 		$query->execute();
 
-		if(!$numChildren) return true; 
-
 		$insertSql = ''; 
 		$id = $pages_id; 
 		$cnt = 0;
@@ -1362,6 +1360,8 @@ class Pages extends Wire {
 			$sql = "INSERT INTO pages_parents (pages_id, parents_id) VALUES" . rtrim($insertSql, ","); 
 			$database->exec($sql);
 		}
+		
+		if(!$numChildren) return true; 
 
 		// find all children of $pages_id that themselves have children
 		$sql = 	"SELECT pages.id, COUNT(children.id) AS numChildren " . 
@@ -1591,6 +1591,10 @@ class Pages extends Wire {
 		foreach($page->template->fieldgroup as $field) {
 			$page->get($field->name); 
 		}
+		
+		$oldStatus = $page->status;
+		$page->status = $page->status | Page::statusSystemOverride;
+		$page->status = 1;
 
 		// clone in memory
 		$copy = clone $page; 
@@ -1618,6 +1622,8 @@ class Pages extends Wire {
 			$this->cloning = true; 
 			$options['ignoreFamily'] = true; // skip family checks during clone
 			$this->save($copy, $options);
+			$copy->status = $oldStatus;
+			$copy->save();
 		} catch(Exception $e) {
 			$this->cloning = false;
 			throw $e;
