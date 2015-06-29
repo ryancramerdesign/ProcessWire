@@ -83,8 +83,8 @@ class ProcessPageList extends Process implements ConfigurableModule {
 			if(!empty($settings['useHoverActions'])) $this->set('useHoverActions', true); 
 			$this->set('hoverActionDelay', isset($settings['hoverActionDelay']) ? (int) $settings['hoverActionDelay'] : 100);
 			$this->set('hoverActionFade', isset($settings['hoverActionFade']) ? (int) $settings['hoverActionFade'] : 100);
-			$this->set('speed', isset($settings['speed']) ? (int) $settings['speed'] : self::defaultSpeed);
-			$this->set('limit', isset($settings['limit']) ? (int) $settings['limit'] : self::defaultLimit);
+			if($this->speed == self::defaultSpeed) $this->set('speed', isset($settings['speed']) ? (int) $settings['speed'] : self::defaultSpeed);
+			if($this->limit == self::defaultLimit) $this->set('limit', isset($settings['limit']) ? (int) $settings['limit'] : self::defaultLimit);
 		}
 	}
 
@@ -288,10 +288,14 @@ class ProcessPageList extends Process implements ConfigurableModule {
 			$fields->append($field);
 		}
 
+		$defaultNote1 = __('Default value is %d.');
+		$defaultNote2 = __('If left at the default value, this setting can also be specified in the $config->pageList array.');
+		
 		$field = $modules->get("InputfieldInteger");
 		$field->attr('name', 'limit');
 		$field->attr('value', !empty($data['limit']) ? (int) $data['limit'] : self::defaultLimit);
 		$field->label = __('Number of pages to display before pagination');
+		$field->notes = sprintf($defaultNote1, self::defaultLimit) . ' ' . $defaultNote2;
 		$fields->append($field);
 
 		$field = $modules->get("InputfieldInteger");
@@ -299,6 +303,7 @@ class ProcessPageList extends Process implements ConfigurableModule {
 		$field->attr('value', array_key_exists('speed', $data) ? (int) $data['speed'] : self::defaultSpeed);
 		$field->label = __('Animation Speed (in ms)');
 		$field->description = __('This is the speed at which each branch in the page tree animates up or down. Lower numbers are faster but less visible. For no animation specify 0.'); // Animation speed description 
+		$field->notes = sprintf($defaultNote1, self::defaultSpeed) . ' ' . $defaultNote2;
 		$fields->append($field);
 
 		return $fields; 

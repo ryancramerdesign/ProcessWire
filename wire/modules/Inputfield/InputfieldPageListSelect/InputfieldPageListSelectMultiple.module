@@ -70,10 +70,8 @@ class InputfieldPageListSelectMultiple extends Inputfield implements InputfieldH
 
 		$this->addClass('InputfieldPageListSelectMultipleData');
 		$attrs = $this->getAttributes();
-		unset($attrs['value']); 
-		$value = implode(',', $this->value); 
+		unset($attrs['value']);
 		
-		$attrs['value'] = $value;
 		$attrs['data-root'] = $this->parent_id; // rootPageID
 		$attrs['data-href'] = "#wrap_{$this->id}"; // selectSelectHref
 		$attrs['data-start'] = $this->startLabel; // selectStartLabel
@@ -83,6 +81,7 @@ class InputfieldPageListSelectMultiple extends Inputfield implements InputfieldH
 		$attrs['data-more'] = $this->moreLabel; // moreLabel
 	
 		$attrStr = $this->getAttributesString($attrs);
+		$attrStr = "value='" . implode(',', $this->value) . "' $attrStr";
 		$out .=	"\n<input type='text' $attrStr />";
 
 		return $out; 

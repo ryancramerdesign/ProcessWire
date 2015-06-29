@@ -770,6 +770,7 @@ class InputfieldCKEditor extends InputfieldTextarea {
 		$f->attr('name', 'extraPlugins');
 		$f->label = $this->_('Extra Plugins');
 		$f->description = $this->_('The following plugins were found. Check the box next to each plugin you would like to load.'); 
+		$f->description .= ' ' . $this->_('At least one plugin must be checked.');
 		$f->notes = $this->_('To add more plugins, place them in **/site/modules/InputfieldCKEditor/plugins/[name]/**, replacing **[name]** with the name of the plugin.'); 
 		$plugins = $this->findPlugins(true);
 		ksort($plugins); 

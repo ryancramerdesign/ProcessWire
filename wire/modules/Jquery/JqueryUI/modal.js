@@ -114,7 +114,8 @@ function pwModalWindowSettings(name) {
 		},
 		beforeClose: function(event, ui) {
 			if(options.hideOverflow) {
-				parent.jQuery('body').css('overflow', 'auto');
+				//parent.jQuery('body').css('overflow', 'auto');
+				parent.jQuery('body').css('overflow', '');
 			}
 		}
 	}

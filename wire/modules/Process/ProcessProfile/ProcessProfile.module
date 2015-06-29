@@ -14,7 +14,7 @@
  *
  */
 
-class ProcessProfile extends Process implements ConfigurableModule {
+class ProcessProfile extends Process implements ConfigurableModule, WirePageEditor {
 
 	public static function getModuleInfo() {
 		return array(
@@ -37,9 +37,11 @@ class ProcessProfile extends Process implements ConfigurableModule {
 	}
 
 	public function ___execute() {
+		
 		$this->user = $this->wire('user'); 
-		$this->setFuel('processHeadline', $this->_("Profile:") . ' ' . $this->user->name); // Primary Headline (precedes the username)
+		$this->headline($this->_("Profile:") . ' ' . $this->user->name); // Primary Headline (precedes the username)
 		$form = $this->buildForm();
+		
 		if($this->input->post->submit_save_profile) {
 			$this->processInput($form); 
 			$this->session->redirect("./"); 
@@ -61,6 +63,7 @@ class ProcessProfile extends Process implements ConfigurableModule {
 		$form->attr('method', 'post'); 
 		$form->attr('enctype', 'multipart/form-data');
 		$form->attr('autocomplete', 'off'); 
+		$form->addClass('InputfieldFormConfirm');
 
 		foreach($this->user->fields as $field) {
 			if($field->name == 'roles' || !in_array($field->name, $this->profileFields)) continue;
@@ -77,7 +80,7 @@ class ProcessProfile extends Process implements ConfigurableModule {
 		$field->attr('id+name', 'submit_save_profile'); 
 		$field->addClass('head_button_clone'); 
 		$form->add($field); 
-
+	
 		return $form; 
 	}
 
@@ -160,6 +163,16 @@ class ProcessProfile extends Process implements ConfigurableModule {
 		$inputfields->add($f);
 
 		return $inputfields;
+	}
+
+	/**
+	 * For WirePageEditor interface
+	 * 
+	 * @return Page
+	 * 
+	 */
+	public function getPage() {
+		return $this->wire('user');
 	}
 
 

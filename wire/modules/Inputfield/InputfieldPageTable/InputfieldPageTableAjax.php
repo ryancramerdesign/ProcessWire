@@ -43,7 +43,6 @@ class InputfieldPageTableAjax extends Wire {
 		if(!$fieldName) return;
 
 		$processPage = $this->wire('page'); 
-		// if(!is_a($processPage->process, 'WirePageEditor', true)) return; // not ProcessPageEdit or compatible, requires PHP 5.3.9+
 		if(!in_array('WirePageEditor', class_implements((string) $processPage->process))) return; // not ProcessPageEdit or compatible
 
 		$field = $this->wire('fields')->get($this->wire('sanitizer')->fieldName($fieldName)); 
@@ -54,7 +53,7 @@ class InputfieldPageTableAjax extends Wire {
 
 		$page = $this->wire('pages')->get($pageID); 
 		if(!$page->id) return;
-		if(!$page->editable()) return;
+		if(!$page->editable($field->name)) return;
 		
 		$page->of(false);
 		$page->get($field->name); // preload, fixes issue #518 with formatted version getting loaded when it shouldn't

@@ -831,13 +831,10 @@ function InputfieldColumnWidths() {
  * 
  * If window should not be unloaded, it returns a string of text with reason why.
  * 
- * @param e
- * @returns {string}
- * 
  */
 function InputfieldFormBeforeUnloadEvent(e) {
 	var $changes = $(".InputfieldFormConfirm:not(.InputfieldFormSubmitted) .InputfieldStateChanged");
-	if($changes.length == 0) return '';
+	if($changes.length == 0) return;
 	var msg = $('.InputfieldFormConfirm:eq(0)').attr('data-confirm') + "\n";
 	$changes.each(function() {
 		var $header = $(this).find(".InputfieldHeader:eq(0)");

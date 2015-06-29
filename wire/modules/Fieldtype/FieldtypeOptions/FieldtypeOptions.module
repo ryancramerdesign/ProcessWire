@@ -294,7 +294,11 @@ class FieldtypeOptions extends FieldtypeMulti implements Module {
 			}
 			$options = $this->manager->findOptionsByProperty($query->field, $subfield, $operator, $value);
 			$option = $options->first();
-			$operator = '='; // since we are now just matching IDs of already found options
+			if($operator != '=' && $operator != '!=') {
+				// for fulltext operations...
+				// since we are now just matching IDs of already found options
+				$operator = '='; 
+			}
 			$subfield = 'data';
 			$value = $option ? $option->id : null;
 		}

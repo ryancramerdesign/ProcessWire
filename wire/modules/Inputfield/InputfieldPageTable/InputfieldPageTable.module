@@ -112,6 +112,7 @@ class InputfieldPageTable extends Inputfield {
 		$out = $this->renderTable($columns);
 
 		$editID = (int) $this->wire('input')->get('id');
+		if(!$editID && $this->wire('process') instanceof WirePageEditor) $editID = $this->wire('process')->getPage()->id;
 		$parentID = $this->parent_id ? $this->parent_id : $editID;
 
 		// render the 'Add New' buttons for each template
@@ -162,8 +163,8 @@ class InputfieldPageTable extends Inputfield {
 	protected function ___renderTable(array $columns) {
 
 		$value = $this->attr('value'); 
-		if(!count($value)) return ''; // if nothing in the value, just return blank
 		$this->wire('modules')->get('MarkupAdminDataTable'); // for styles
+		if(!count($value)) return ''; // if nothing in the value, just return blank
 		// $template = $this->template_id ? $this->wire('templates')->get((int) $this->template_id) : null;
 		$template = count($this->rowTemplates) > 0 ? reset($this->rowTemplates) : null;
 		$fields = array();
@@ -281,7 +282,8 @@ class InputfieldPageTable extends Inputfield {
 
 		foreach($columns as $column => $width) {
 			if(!$n) $column .= "|name"; // in case first/link field was not populated, use name as a backup
-			$url = $n++ ? "" : "./?id=$item->id&modal=1";
+			
+			$url = $n++ ? "" : $this->wire('config')->urls->admin . "page/edit/?id=$item->id&modal=1";
 			$out .= $this->renderTableCol($item, $fields, $column, $width, $url); 
 		}
 

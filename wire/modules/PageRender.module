@@ -130,6 +130,7 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 	 */
 	public function getCacheFile($page, array $options = array()) {
 
+		$config = $this->wire('config');
 		$defaults = array(
 			'prependFile' => '',
 			'appendFile' => '', 
@@ -137,7 +138,7 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 			);
 
 		$options = array_merge($defaults, $options); 
-		$path = $this->config->paths->cache . self::cacheDirName . "/";
+		$path = $config->paths->cache . self::cacheDirName . "/";
 		if(is_object($page)) {
 			$id = $page->id;
 			$cacheTime = $page->template->cache_time; 
@@ -148,12 +149,12 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 		
 		if(!is_dir($path)) {
 			if(!@wireMkdir($path, true)) throw new WireException("Cache path does not exist: $path");
-			if($this->config->chmodDir) chmod($path, octdec($this->config->chmodDir));
+			if($config->chmodDir) chmod($path, octdec($config->chmodDir));
 		}
 
 		$cacheFile = new CacheFile($path, $id, $cacheTime);
-		if($this->config->chmodFile) $cacheFile->setChmodFile($this->config->chmodFile);
-		if($this->config->chmodDir) $cacheFile->setChmodDir($this->config->chmodDir);
+		if($config->chmodFile) $cacheFile->setChmodFile($config->chmodFile);
+		if($config->chmodDir) $cacheFile->setChmodDir($config->chmodDir);
 
 		if($this->wire('page') === $page) {
 			// this part is skipped if arguments provided an id (int) rather than a Page object
@@ -170,11 +171,12 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 			if($options['prependFile'] || $options['appendFile'] || $options['filename']) {
 				$secondaryID .= md5($options['prependFile'] . '+' . $options['appendFile'] . '+' . $options['filename']) . '+';
 			}
-
+			if($config->ajax) $secondaryID .= 'ajax+'; // #1262
+			if($config->https) $secondaryID .= 'https+';
 			if($pageNum > 1) $secondaryID .= "page{$pageNum}";
 			$secondaryID = rtrim($secondaryID, '+'); 
-			if(wire('languages')) { 
-				$language = wire('user')->language; 
+			if($this->wire('languages')) { 
+				$language = $this->wire('user')->language; 
 				if($language && $language->id && !$language->isDefault()) $secondaryID .= "_" . $language->id;
 			}
 			if($secondaryID) $cacheFile->setSecondaryID($secondaryID);

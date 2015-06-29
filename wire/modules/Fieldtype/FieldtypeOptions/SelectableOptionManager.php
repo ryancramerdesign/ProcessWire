@@ -566,6 +566,7 @@ class SelectableOptionManager extends Wire {
 				if($query->execute()) $cnt++;
 			} catch(Exception $e) {
 				$this->error("Option $option->id '$option->title': " . $e->getMessage());
+				if(strpos($e->getMessage(), '42S22')) $this->updateLanguages();
 			}
 		}
 		
