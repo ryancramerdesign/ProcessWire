@@ -157,8 +157,15 @@ class ProcessPageClone extends Process {
 	 * 
 	 */
 	protected function getSuggestedNameAndTitle($page) {
-		$n = 1;
-		while(count($page->parent->children("include=all, name={$page->name}-$n"))) $n++;
+		$n = 0;
+		$name = '';
+		do {
+			$n++;
+			$name = $page->name; 
+			$nStr = "-$n";
+			if(strlen($name) + strlen($nStr) > Pages::nameMaxLength) $name = substr($name, 0, Pages::nameMaxLength - strlen($nStr));
+			$name .= $nStr;
+		} while($this->wire('pages')->count("parent=$page->parent, include=all, name=$name"));
 		$copy = $this->_('(copy)'); 
 		$copyN = $this->_('(copy %d)');
 		$title = $page->title;
@@ -168,7 +175,6 @@ class ProcessPageClone extends Process {
 		$regexCopyN = str_replace(array('(', ')'), array('\\(', '\\)'), $regexCopyN);
 		$title = preg_replace("/$regexCopyN/", '', $title);
 		$title .= ' ' . ($n > 1 ? sprintf($copyN, $n) : $copy);
-		$name = $page->name . '-' . $n;
 		$result = array('name' => $name, 'title' => $title, 'n' => $n);
 		if($this->wire('modules')->isInstalled('LanguageSupportPageNames')) {
 			foreach($this->wire('languages') as $language) {

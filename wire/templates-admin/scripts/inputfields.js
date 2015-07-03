@@ -906,13 +906,17 @@ function InputfieldStates() {
 		$('label.InputfieldHeader > i.toggle-icon').hover(function() {
 			var $label = $(this).parent('label');
 			if($label.length == 0) return;
-			var text = $label.attr('for').replace(/^Inputfield_/, ''); 
-			$label.append(" <span class='detail'>" + text + "</span>"); 
+			var text = $label.attr('for').replace(/^Inputfield_/, '');
+			if(text.length) {
+				var $tip = $("<small class='InputfieldNameTip ui-priority-secondary'>&nbsp;" + text + "&nbsp;</small>");
+				$tip.css('float', 'right');
+				$label.append($tip);
+			}
 			
 		}, function() {
 			var $label = $(this).parent('label');
 			if($label.length == 0) return;
-			$label.find('span.detail').remove();
+			$label.find('.InputfieldNameTip').remove();
 		}); 
 	}
 

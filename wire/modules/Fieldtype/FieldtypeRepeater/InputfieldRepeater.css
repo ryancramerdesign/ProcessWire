@@ -22,6 +22,14 @@
 	top: 0;
 }
 
+.Inputfields .InputfieldRepeater .InputfieldRepeaterItem > .InputfieldHeader {
+	line-height: 1em;
+	padding: 0.5em;
+}
+.Inputfields .InputfieldRepeater .InputfieldRepeaterItem > .InputfieldHeader .toggle-icon {
+	line-height: 1em;
+}
+
 .Inputfields .InputfieldRepeater .InputfieldRepeaterNewItem {
 	display: none; 
 	margin-bottom: 1em !important; 
@@ -33,20 +41,18 @@
 }
 
 .InputfieldRepeaterDrag {
-	position: absolute;
-	left: 6px;
-	margin-top: 1px; 
+	cursor: ns-resize;
+	opacity: 0.7;
+	line-height: 1em;
 }
 	.InputfieldRepeaterDrag:hover {
 		cursor: move; 	
+		opacity: 1.0;
 	}
 
 .InputfieldRepeater .InputfieldFieldset > label > .InputfieldRepeaterTrash {
-	position: absolute;
-	right: 1em; 
-	margin-top: 0; 
-	z-index: 999; 
 	cursor: pointer; 
+	float: right;
 }
 
 .InputfieldRepeater ul.Inputfields + .InputfieldRepeaterAddItem {

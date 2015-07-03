@@ -36,6 +36,12 @@
 class Pages extends Wire {
 
 	/**
+	 * Max length for page name
+	 * 
+	 */
+	const nameMaxLength = 128;
+
+	/**
 	 * Instance of PageFinder (when cached)
 	 *
 	 */
@@ -964,10 +970,13 @@ class Pages extends Wire {
 
 			do {
 				$name = $pageName;
-				if($n > 0) $name .= "-" . ($numChildren+$n);
-				$child = $page->parent->child("name=$name, include=all"); // see if another page already has the same name
+				if($n > 0) {
+					$nStr = "-" . ($numChildren + $n);
+					if(strlen($name) + strlen($nStr) > self::nameMaxLength) $name = substr($name, 0, self::nameMaxLength - strlen($nStr));
+					$name .= $nStr;
+				}
 				$n++;
-			} while($child->id);
+			} while($n < 100 && $this->count("parent=$page->parent, name=$name, include=all"));
 
 			$page->name = $name;
 			$page->set('_hasAutogenName', true); // for savePageQuery, provides adjustName behavior for new pages
@@ -1123,6 +1132,8 @@ class Pages extends Wire {
 		}
 
 		$n = 0;
+		$tries = 0;
+		$maxTries = 100;
 
 		do { 
 			$result = false; 
@@ -1152,10 +1163,12 @@ class Pages extends Wire {
 					// determine if current name format already has a trailing number
 					if(preg_match('/^(.+?)-(\d+)$/', $pageName, $matches)) {
 						// page already has a trailing number
-						$n = $matches[2]; 
+						$n = (int) $matches[2]; 
 						$pageName = $matches[1]; 
 					}
-					$page->name = $pageName . '-' . (++$n); 
+					$nStr = '-' . (++$n);
+					if(strlen($pageName) + strlen($nStr) > self::nameMaxLength) $pageName = substr($pageName, 0, self::nameMaxLength - strlen($nStr));
+					$page->name = $pageName . $nStr;
 					$query->bindValue(":$nameField", $page->name); 
 					
 				} else {
@@ -1164,7 +1177,7 @@ class Pages extends Wire {
 				}
 			}
 
-		} while($errorCode == 23000); 
+		} while($errorCode == 23000 && (++$tries < $maxTries)); 
 
 		if($result && ($isNew || !$page->id)) $page->id = $database->lastInsertId();
 		if($options['forceID']) $page->id = (int) $options['forceID'];
@@ -1644,7 +1657,10 @@ class Pages extends Wire {
 		// make sure that we have a unique name
 		
 		while(count($parent->children("name=$name, include=all"))) {
-			$name = $page->name . '-' . (++$n); 
+			$name = $page->name; 
+			$nStr = "-" . (++$n);
+			if(strlen($name) + strlen($nStr) > self::nameMaxLength) $name = substr($name, 0, self::nameMaxLength - strlen($nStr));
+			$name .= $nStr;
 		}
 		
 		// Ensure all data is loaded for the page

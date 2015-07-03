@@ -23,7 +23,7 @@ class InputfieldName extends InputfieldText {
 	public function init() {
 		parent::init();
 		$this->attr('type', 'text'); 
-		$this->attr('maxlength', 128); 
+		$this->attr('maxlength', Pages::nameMaxLength); 
 		$this->attr('size', 0); 
 		$this->attr('name', 'name'); 
 		$this->set('required', true); 

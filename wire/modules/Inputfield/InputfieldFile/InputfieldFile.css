@@ -13,7 +13,8 @@
 
 	ul.InputfieldFileList li .InputfieldFileInfo, 
 	.AjaxUpload .InputfieldFileInfo {
-		padding: 3px 0; 
+		padding: 0.5em;
+		line-height: 1em;
 		margin-bottom: 0; 
 		margin-top: 0;
 	}
@@ -29,6 +30,13 @@
 			text-decoration: underline; 
 			background: none; 
 		}
+	
+	.InputfieldFileDrag {
+		opacity: 0.7;
+	}
+	.InputfieldFileInfo:hover .InputfieldFileDrag {
+		opacity: 1.0;
+	}
 
 	ul.InputfieldFileList li .InputfieldFileInfo .InputfieldFileStats, 
 	.AjaxUpload .InputfieldFileStats {

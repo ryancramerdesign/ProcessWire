@@ -1082,10 +1082,10 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 				if($subname && is_object($v)) $v = $v->$subname; 
 				if($v instanceof Pageimage) {
 					if($this->imageWidth || $this->imageHeight) $v = $v->size($this->imageWidth, $this->imageHeight); 
-					$v = "<img alt='' src='$v->url' />";
+					$v = "<img alt='$v->basename' src='$v->URL' />";
 					
 				} else if($v instanceof Pagefile) {
-					$v = "<a href='$v->url'>$v->basename</a>";
+					$v = "<a target='_blank' href='$v->url'>$v->basename</a>";
 				} else {
 					$v = $this->wire('sanitizer')->entities($v); 
 				}

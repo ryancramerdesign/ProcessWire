@@ -72,6 +72,7 @@ class LanguagesPageFieldValue extends Wire implements LanguagesValueInterface {
 	 *
 	 * @param int|Language|string $languageID Language object, id, or name
 	 * @param mixed $value
+	 * @return $this
 	 *
 	 */
 	public function setLanguageValue($languageID, $value) {
@@ -87,6 +88,7 @@ class LanguagesPageFieldValue extends Wire implements LanguagesValueInterface {
 			$this->trackChange('data' . $languageID, $existingValue, $value); 
 		}
 		$this->data[(int)$languageID] = $value;
+		return $this;
 	}
 
 	/**

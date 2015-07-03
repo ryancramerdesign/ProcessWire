@@ -127,7 +127,7 @@ var ProcessLister = {
 			var $form = ProcessLister.results.find('.InputfieldFormConfirm');
 			if($form.length) {
 				var msg = InputfieldFormBeforeUnloadEvent(true);
-				if(msg.length) {
+				if(typeof msg != "undefined" && msg.length) {
 					if(!confirm(msg)) return false;
 				}
 			}
@@ -214,8 +214,8 @@ var ProcessLister = {
 				var js = data.substring(pos+21);
 				if(js != '</div>') {
 					js = js.substring(0, js.length-6);
-					console.log(js);
-					$("body").append(js);
+					// if(config.debug) console.log(js);
+					$("body").append('<script>' + js + '</script>');
 				}
 			}
 

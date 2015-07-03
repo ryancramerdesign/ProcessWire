@@ -26,7 +26,7 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 		return array(
 			'title' => __('Files', __FILE__), // Module Title
 			'summary' => __('One or more file uploads (sortable)', __FILE__), // Module Summary
-			'version' => 119,
+			'version' => 120,
 			'permanent' => true, 
 			);
 	}
@@ -220,13 +220,44 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 		return $out;
 	}
 
+	/**
+	 * Get a basename for the file, possibly shortened, suitable for display in InputfieldFileList
+	 * 
+	 * @param Pagefile $pagefile
+	 * @param int $maxLength
+	 * @return string
+	 * 
+	 */
+	protected function getDisplayBasename(Pagefile $pagefile, $maxLength = 25) {
+		$displayName = $pagefile->basename;
+		if(strlen($displayName) > $maxLength) {
+			$ext = ".$pagefile->ext";
+			$maxLength -= (strlen($ext) + 1);
+			$displayName = basename($displayName, $ext);
+			$displayName = substr($displayName, 0, $maxLength);
+			$displayName .= "&hellip;" . ltrim($ext, '.');
+		}
+		return $displayName; 	
+	}
+
+	/**
+	 * Render markup for a file item
+	 * 
+	 * @param Pagefile $pagefile
+	 * @param string $id
+	 * @param int $n
+	 * @return string
+	 * 
+	 */
 	protected function ___renderItem($pagefile, $id, $n) {
+	
+		$displayName = $this->getDisplayBasename($pagefile);
 	
 		$out = 
 			"\n\t\t<p class='InputfieldFileInfo InputfieldItemHeader ui-state-default ui-widget-header'>" . 
 			"\n\t\t\t" . wireIconMarkupFile($pagefile->basename, "fa-fw HideIfEmpty") . 
 			//"\n\t\t\t<i class='fa fa-fw fa-caret-right HideIfMultiple'></i>" . 
-			"\n\t\t\t<a class='InputfieldFileName' target='_blank' href='{$pagefile->url}'>{$pagefile->basename}</a> " . 
+			"\n\t\t\t<a class='InputfieldFileName' title='$pagefile->basename' target='_blank' href='{$pagefile->url}'>$displayName</a> " . 
 			"\n\t\t\t<span class='InputfieldFileStats'>" . str_replace(' ', '&nbsp;', $pagefile->filesizeStr) . "</span> " . 
 			"\n\t\t\t<label class='InputfieldFileDelete'>" . 
 				"<input type='checkbox' name='delete_$id' value='1' title='" . $this->_('Delete') . "' />" . 
@@ -307,6 +338,14 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 
 	public function ___render() {
 		if(!$this->extensions) $this->error($this->_('No file extensions are defined for this field.')); 
+		$numItems = count($this->value);
+		if($numItems == 0) {
+			$this->addClass('InputfieldFileEmpty', 'wrapClass');
+		} else if($numItems == 1) {
+			$this->addClass('InputfieldFileSingle', 'wrapClass');
+		} else {
+			$this->addClass('InputfieldFileMultiple', 'wrapClass');
+		}
 		return $this->renderList($this->value) . $this->renderUpload($this->value);
 	}
 

@@ -164,6 +164,8 @@ class Sanitizer extends Wire {
 				// replace double dots
 				if(strpos($value, '..') !== false) $value = preg_replace('/\.\.+/', '.', $value);
 			}
+			
+			if(strlen($value) > $maxLength) $value = substr($value, 0, $maxLength); 
 		}
 		
 		return $value; 

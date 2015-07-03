@@ -211,7 +211,6 @@
 				border: none;
 				background: $item-header-bg; 
 				color: $item-header-color; 
-				padding: 0.25em 0.25em 0.25em 1.7em;
 
 				a {
 					color: $item-header-color; 
@@ -228,19 +227,12 @@
 					color: $item-header-color; 
 				}
 
-				.ui-icon {
-					margin-top: 3px; 
-				}
-
 				&.ui-state-error {
 					text-decoration: line-through; 
 					background: $error-bg; 
 					border: none; 
 				}
 
-				.InputfieldRepeaterTrash {
-					right: 2em; 
-				}
 			}
 
 			> .InputfieldContent {
@@ -279,8 +271,7 @@
 			border: none;
 			background: $item-header-bg; 
 			color: $item-header-color; 
-			padding-left: 0.25em; 
-			padding-right: 0.5em; 
+			padding: 0.5em;
 			cursor: move; 
 			font-weight: $normal-weight;
 

@@ -325,7 +325,6 @@ table {
 			border: none;
 			background: $item-header-bg; 
 			color: $item-header-color;
-			padding: 0.25em 0.25em 0.25em 1.7em;
 
 			a {
 				color: $item-header-color; 
@@ -365,9 +364,6 @@ table {
 			color: $item-header-color;
 		}
 
-		.InputfieldRepeaterItem > .InputfieldHeader .InputfieldRepeaterTrash {
-			right: 1.8em; 
-		}
 	}
 
 	/**
@@ -399,8 +395,6 @@ table {
 		border: none;
 		background: $item-header-bg; 
 		color: $item-header-color; 
-		padding-left: 0.25em; 
-		padding-right: 0.5em; 
 		cursor: move; 
 		font-weight: $normal-weight;
 
@@ -447,12 +441,6 @@ table {
 		background: $nested-fields-bg;
 	
 	}
-	.InputfieldItemList:not(.InputfieldStateCollapsed) > .InputfieldHeader,
-	.InputfieldFieldset:not(.InputfieldStateCollapsed):not(.InputfieldRepeaterItem) > .InputfieldHeader,
-	.InputfieldFieldsetOpen:not(.InputfieldStateCollapsed) > .InputfieldHeader {
-		
-	}
-
 	.InputfieldItemList .InputfieldItemList:not(.InputfieldStateCollapsed) > .InputfieldHeader,
 	.InputfieldItemList .InputfieldItemList > .InputfieldHeader + .InputfieldContent {
 		/* unless the item is already a nested item list, then we are a little mroe subtle with it */ 

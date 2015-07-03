@@ -177,8 +177,11 @@ function ProcessWireBootConfig() {
 	ini_set('session.use_cookies', true); 
 	ini_set('session.use_only_cookies', 1);
 	ini_set('session.cookie_httponly', 1); 
-	ini_set('session.gc_maxlifetime', $config->sessionExpireSeconds); 
-	
+	ini_set('session.gc_maxlifetime', $config->sessionExpireSeconds);
+
+	$config->https = (!empty($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) == 'on') || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443);
+	if($config->https) ini_set('session.cookie_secure', 1); // #1264
+
 	if(ini_get('session.save_handler') == 'files') {
 		if(ini_get('session.gc_probability') == 0) {
 			// Some debian distros replace PHP's gc without fully implementing it,

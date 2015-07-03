@@ -24,7 +24,7 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 		return array(
 			'title' => __('Repeater', __FILE__), // Module Title
 			'summary' => __('Repeats fields from another template. Provides the input for FieldtypeRepeater.', __FILE__), // Module Summary
-			'version' => 101,
+			'version' => 102,
 			'requires' => 'FieldtypeRepeater',
 			);
 	}

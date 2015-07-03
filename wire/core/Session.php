@@ -450,7 +450,7 @@ class Session extends Wire implements IteratorAggregate {
 				$challenge = $pass->randomBase64String(32);
 				$this->set('_user', 'challenge', $challenge); 
 				// set challenge cookie to last 30 days (should be longer than any session would feasibly last)
-				setcookie(session_name() . '_challenge', $challenge, time()+60*60*24*30, '/', null, false, true); 
+				setcookie(session_name() . '_challenge', $challenge, time()+60*60*24*30, '/', null, (bool) $this->config->https, true); // PR #1264
 			}
 
 			if($this->config->sessionFingerprint) { 
@@ -526,8 +526,8 @@ class Session extends Wire implements IteratorAggregate {
 	public function ___logout() {
 		$sessionName = session_name();
 		$_SESSION = array();
-		if(isset($_COOKIE[$sessionName])) setcookie($sessionName, '', time()-42000, '/'); 
-		if(isset($_COOKIE[$sessionName . "_challenge"])) setcookie($sessionName . "_challenge", '', time()-42000, '/'); 
+		if(isset($_COOKIE[$sessionName])) setcookie($sessionName, '', time()-42000, '/', null, (bool) $this->config->https, true);
+		if(isset($_COOKIE[$sessionName . "_challenge"])) setcookie($sessionName . "_challenge", '', time()-42000, '/', null, (bool) $this->config->https, true);
 		session_destroy();
 		session_name($sessionName); 
 		$this->init();

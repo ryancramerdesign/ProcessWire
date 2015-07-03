@@ -42,12 +42,12 @@ $(document).ready(function() {
 		e.stopPropagation();
 	}; 	
 
-	var $delete = $("<span class='ui-icon ui-icon-trash InputfieldRepeaterTrash'>Delete</span>").css('display', 'block').click(deleteClick); 
+	var $delete = $("<i class='fa fa-trash InputfieldRepeaterTrash'></i>").css('display', 'block').click(deleteClick); 
 
 	$("input.InputfieldRepeaterDelete").parents('.InputfieldCheckbox').hide();
 
 	$(".InputfieldRepeater .InputfieldFieldset > .ui-widget-header, .InputfieldRepeater .InputfieldFieldset > .InputfieldHeader").addClass('ui-state-default')
-		.prepend("<span class='ui-icon ui-icon-arrowthick-2-n-s InputfieldRepeaterDrag'></span>")
+		.prepend("<i class='fa fa-sort InputfieldRepeaterDrag'></i>&nbsp;")
 		.prepend($delete.clone(true));
 
 	$(".InputfieldRepeaterDrag").hover(function() {

@@ -26,10 +26,16 @@ class InputfieldPageListSelect extends Inputfield implements InputfieldPageListS
 		$this->set('showPath', true); 
 		parent::init();
 	}
+	
+	public function renderReady(Inputfield $parent = null, $renderValueMode = false) {
+		static $process = null;
+		if(is_null($process)) {
+			$process = $this->wire('modules')->get('ProcessPageList'); // prerequisite module
+		}
+		return parent::renderReady($parent, $renderValueMode);
+	}
 
 	public function ___render() {
-		static $process = null;
-		if(is_null($process)) $process = $this->wire('modules')->get('ProcessPageList'); // prerequisite module
 
 		if(!strlen($this->parent_id)) {
 			return "<p class='error'>" . $this->_('Unable to render this field due to missing parent page in field settings.') . "</p>";

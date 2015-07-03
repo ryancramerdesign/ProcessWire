@@ -10,7 +10,7 @@
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
- *
+ * 
  */
 
 define("PROCESSWIRE_CORE_PATH", dirname(__FILE__) . '/');
@@ -33,7 +33,7 @@ class ProcessWire extends Wire {
 
 	const versionMajor = 2; 
 	const versionMinor = 6; 
-	const versionRevision = 6; 
+	const versionRevision = 7; 
 	const versionSuffix = 'dev';
 	
 	const indexVersion = 250; // required version for index.php file (represented by PROCESSWIRE define)
@@ -65,6 +65,14 @@ class ProcessWire extends Wire {
 	protected $_fuel = null;
 
 	/**
+	 * Saved path, for includeFile() method
+	 * 
+	 * @var string
+	 * 
+	 */
+	protected $pathSave = '';
+
+	/**
 	 * Given a Config object, instantiates ProcessWire and it's API
 	 * 
 	 * @param Config $config
@@ -90,13 +98,15 @@ class ProcessWire extends Wire {
 
 		$this->wire('config', $config, true); 
 
-		ini_set("date.timezone", $config->timezone);
+		ini_set('date.timezone', $config->timezone);
 		ini_set('default_charset','utf-8');
 
 		if(!$config->templateExtension) $config->templateExtension = 'php';
 		if(!$config->httpHost) $config->httpHost = $this->getHttpHost($config); 
 
-		$config->https = (!empty($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) == 'on') || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443);
+		if($config->https === null) {
+			$config->https = (!empty($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) == 'on') || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443);
+		}
 		$config->ajax = (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] == 'XMLHttpRequest');
 		$config->cli = (!isset($_SERVER['SERVER_SOFTWARE']) && (php_sapi_name() == 'cli' || ($_SERVER['argc'] > 0 && is_numeric($_SERVER['argc']))));
 		
@@ -283,15 +293,19 @@ class ProcessWire extends Wire {
 		// don't re-trigger if this state has already been triggered
 		if($config->status >= $status) return;
 		$config->status = $status;
+		$sitePath = $this->wire('config')->paths->site;
 		
 		if($status == self::statusInit) {
 			$this->init();
+			$this->includeFile($sitePath . 'init.php');
 			
 		} else if($status == self::statusReady) {
 			$this->ready();
-			if($this->debug) Debug::saveTimer('boot', 'includes all boot timers'); 
+			if($this->debug) Debug::saveTimer('boot', 'includes all boot timers');
+			$this->includeFile($sitePath . 'ready.php');
 			
 		} else if($status == self::statusFinished) {
+			$this->includeFile($sitePath . 'finished.php');
 			$this->finished();
 		}
 	}
@@ -303,7 +317,7 @@ class ProcessWire extends Wire {
 	protected function ___init() {
 		if($this->debug) Debug::timer('boot.modules.autoload.init'); 
 		$this->wire('modules')->triggerInit();
-		if($this->debug) Debug::saveTimer('boot.modules.autoload.init'); 
+		if($this->debug) Debug::saveTimer('boot.modules.autoload.init');
 	}
 
 	/**
@@ -341,6 +355,26 @@ class ProcessWire extends Wire {
 	public function set($key, $value, $lock = false) {
 		$this->wire($key, $value, $lock);
 		return $this;
+	}
+
+	/**
+	 * Include a PHP file, giving it all PW API varibles in scope
+	 * 
+	 * File is executed in the directory where it exists.
+	 * 
+	 * @param $file Full path and filename
+	 * @return bool True if file existed and was included, false if not.
+	 * 
+	 */
+	protected function includeFile($file) {
+		if(!file_exists($file)) return false;
+		$this->pathSave = getcwd();
+		chdir(dirname($file));
+		$fuel = $this->fuel->getArray();
+		extract($fuel);
+		include($file);
+		chdir($this->pathSave);
+		return true; 
 	}
 	
 	public function __call($method, $arguments) {

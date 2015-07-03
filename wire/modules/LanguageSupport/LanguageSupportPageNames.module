@@ -655,7 +655,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 			$name = "name" . (int) $language->id; 
 			$status = "status" . (int) $language->id; 
 			$database = $this->wire('database');
-			$database->exec("ALTER TABLE pages ADD $name VARCHAR(128) CHARACTER SET ascii"); 
+			$database->exec("ALTER TABLE pages ADD $name VARCHAR(" . Pages::nameMaxLength . ") CHARACTER SET ascii"); 
 			$database->exec("ALTER TABLE pages ADD UNIQUE {$name}_parent_id ($name, parent_id)"); 
 			$database->exec("ALTER TABLE pages ADD $status INT UNSIGNED NOT NULL DEFAULT " . Page::statusOn); 
 			

@@ -34,7 +34,7 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		return array(
 			'title' => __('Images', __FILE__), // Module Title
 			'summary' => __('One or more image uploads (sortable)', __FILE__), // Module Summary
-			'version' => 114,
+			'version' => 115,
 			'permanent' => true, 
 			);
 	}
@@ -75,13 +75,17 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		$this->set('useImageEditor', 1); 
 	}
 
-	public function ___render() {
-		$this->modules->getInstall("JqueryMagnific"); 
-		$this->wire('modules')->loadModuleFileAssets('InputfieldFile'); 
+	public function renderReady(Inputfield $parent = null, $renderValueMode = false) {
+		$this->wire('modules')->loadModuleFileAssets('InputfieldFile');
+		$this->modules->getInstall("JqueryMagnific");
 		if($this->value && count($this->value)) {
 			$this->variations = $this->value->getAllVariations();
 			if(count($this->variations)) $this->wire('modules')->get('JqueryUI')->use('modal');
 		}
+		return parent::renderReady($parent, $renderValueMode);
+	}
+
+	public function ___render() {
 		if($this->wire('config')->ajax) clearstatcache();
 		$out = parent::___render();
 		if($this->defaultGrid) $out .= "<span class='InputfieldImageDefaultGrid'></span>";
@@ -271,9 +275,10 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		$fileStats = str_replace(' ', '&nbsp;', $pagefile->filesizeStr) . ", {$pagefile->width}x{$pagefile->height} ";
 
 		$out = 	
-			"\n\t\t<p class='InputfieldFileInfo InputfieldItemHeader ui-widget ui-widget-header'>" . 
-			"\n\t\t\t<i class='fa fa-fw fa-sort HideIfSingle'></i>" .
-			"\n\t\t\t<i class='fa fa-fw fa-caret-right HideIfMultiple'></i> ";
+			"\n\t\t<p class='InputfieldFileInfo InputfieldItemHeader ui-widget ui-widget-header ui-helper-clearfix'>" . 
+			"\n\t\t\t<span class='HideIfSingle InputfieldFileDrag'><i class='fa fa-sort HideIfSingle'></i>&nbsp;</span>";
+			//"\n\t\t\t<i class='fa fa-caret-right HideIfMultiple'></i> ";
+
 		
 		if($this->uploadOnlyMode) {
 			$out .= 
@@ -281,26 +286,29 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 				"\n\t\t\t<span class='InputfieldFileStats'>$fileStats</span> ";
 			
 		} else {
+			$out .=
+				"\n\t\t\t<label class='InputfieldFileDelete'>" .
+				"<input type='checkbox' name='delete_$id' value='1' title='" . $this->_('Delete') . "' />" .
+				"<i class='fa fa-fw fa-trash'></i></label>" .
+				"\n\t\t\t<a class='InputfieldFileMove InputfieldFileMoveBottom' href='#' title='" . $this->_('Move to bottom') . "'>" .
+				"<i class='fa fa-fw fa-angle-double-down'></i></a> " .
+				"\n\t\t\t<a class='InputfieldFileMove InputfieldFileMoveTop' href='#' title='" . $this->_('Move to top') . "'>" .
+				"<i class='fa fa-fw fa-angle-double-up'></i></a> ";
+			$displayName = $this->getDisplayBasename($pagefile);
 			if($editURL) {
 				$out .=
-					"\n\t\t\t<a class='InputfieldFileName pw-modal $this->modalClass' title='$editTitle' href='$editURL' " .
+					"\n\t\t\t<a class='InputfieldFileName pw-modal $this->modalClass' title='$pagefile->basename: $editTitle' href='$editURL' " .
 					"data-buttons='#non_rte_dialog_buttons button' " .
-					"data-autoclose='1' data-close='#non_rte_cancel'>{$pagefile->basename} " . 
+					"data-autoclose='1' data-close='#non_rte_cancel'>$displayName " . 
 					"<i class='fa fa-pencil ui-priority-secondary'></i></a> ";
 			} else {
 				$out .= 
 					"\n\t\t\t<a class='InputfieldFileName InputfieldFileLink' " . 
-					"target='_blank' href='$pagefile->URL'>$pagefile->basename</a> ";
+					"target='_blank' title='$pagefile->basename' href='$pagefile->URL'>$displayName</a> ";
 			}
 			$out .= 
-				"\n\t\t\t<span class='InputfieldFileStats'>$fileStats $variationInfo</span> " .
-				"\n\t\t\t<label class='InputfieldFileDelete'>" .
-					"<input type='checkbox' name='delete_$id' value='1' title='" . $this->_('Delete') . "' />" .
-					"<i class='fa fa-fw fa-trash'></i></label>" .
-				"\n\t\t\t<a class='InputfieldFileMove InputfieldFileMoveBottom' href='#' title='" . $this->_('Move to bottom') . "'>" .
-					"<i class='fa fa-fw fa-angle-double-down'></i></a> " .
-				"\n\t\t\t<a class='InputfieldFileMove InputfieldFileMoveTop' href='#' title='" . $this->_('Move to top') . "'>" .
-					"<i class='fa fa-fw fa-angle-double-up'></i></a> ";
+				"\n\t\t\t<span class='InputfieldFileStats'>$fileStats $variationInfo</span> ";
+			
 		}
 		
 		$out .= "\n\t\t</p>" . // .InputfieldFileInfo.InputfieldItemHeader

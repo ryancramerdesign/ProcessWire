@@ -40,7 +40,7 @@ $(document).ready(function() {
 		$fileLists.each(function() {
 			
 			var $this = $(this);
-			var qty = $this.children("li").size();
+			var qty = $this.children("li").length;
 			
 			var $inputfield = $this.closest('.Inputfield')
 		
@@ -121,7 +121,9 @@ $(document).ready(function() {
 			var $target = $(".InputfieldFileUpload"); // all 
 		}
 		$target.closest('.ui-widget-content, .InputfieldContent').each(function (i) {
+			if($(this).hasClass('InputfieldFileInit')) return;
 			initHTML5Item($(this), i);
+			$(this).addClass('InputfieldFileInit');
 		});
 			
 		function initHTML5Item($this, i) {
@@ -395,6 +397,7 @@ $(document).ready(function() {
 	$(document).on('reloaded', '.InputfieldHasFileList', function(event) {
 		initSortable($(this).find(".InputfieldFileList"));
 		InitHTML5($(this)); 
+		windowResize();
 	}); 
 	
 }); 

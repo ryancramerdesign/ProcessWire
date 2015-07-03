@@ -394,6 +394,7 @@ class ImageSizer extends Wire {
 			
 			// this is the case if the original size is requested or a greater size but upscaling is set to false
 
+			/*
 			// since we have added support for crop-before-resize, we have to check for this
 			if(!is_array($this->cropExtra)) {
 				// the sourceimage is allready the targetimage, we can leave here
@@ -402,6 +403,12 @@ class ImageSizer extends Wire {
 			}
 			// we have a cropped_before_resized image and need to save this version,
 			// so we let pass it through without further manipulation, we just need to copy it into the final memimage called "$thumb"
+			*/
+			
+			// the current version is allready the desired result, we only may have to apply compression where possible
+			$this->sharpening = 'none'; // we set sharpening to none
+			
+			
 			if(self::checkMemoryForImage(array(imagesx($image), imagesy($image), 3)) === false) {
 				throw new WireException(basename($source) . " - not enough memory to copy the final cropExtra");
 			}
@@ -489,25 +496,36 @@ class ImageSizer extends Wire {
 		rename($dest, $source); // $dest is the intermediate filename ({basename}_tmp{.ext})
 
 		// @horst: if we've retrieved IPTC-Metadata from sourcefile, we write it back now
-		if($this->iptcRaw) {
-			$content = iptcembed($this->iptcPrepareData(), $this->filename);
-			if($content !== false) {
-				$dest = preg_replace('/\.' . $this->extension . '$/', '_tmp.' . $this->extension, $this->filename); 
-				if(strlen($content) == @file_put_contents($dest, $content, LOCK_EX)) {
-					// on success we replace the file
-					unlink($this->filename);
-					rename($dest, $this->filename);
-				} else {
-					// it was created a temp diskfile but not with all data in it
-					if(file_exists($dest)) @unlink($dest);
-				}
-			}
-		}
+		$this->writeBackIptc();
 
-		$this->loadImageInfo($this->filename, true); 
-		$this->modified = true; 
-		
+		$this->loadImageInfo($this->filename, true);
+		$this->modified = true;
+
 		return true;
+	}
+
+	/**
+	 * Default IPTC Handling: if we've retrieved IPTC-Metadata from sourcefile, we write it into the variation here but we omit custom tags for internal use (@horst)
+	 *
+	 * @param bool $includeCustomTags, default is FALSE
+	 * @return bool
+	 *
+	 */
+	public function writeBackIptc($includeCustomTags = false) {
+		if(!$this->iptcRaw) return;
+		$content = iptcembed($this->iptcPrepareData($includeCustomTags), $this->filename);
+		if($content === false) return;
+		$dest = preg_replace('/\.' . $this->extension . '$/', '_tmp.' . $this->extension, $this->filename);
+		if(strlen($content) == @file_put_contents($dest, $content, LOCK_EX)) {
+			// on success we replace the file
+			unlink($this->filename);
+			rename($dest, $this->filename);
+			return true;
+		} else {
+			// it was created a temp diskfile but not with all data in it
+			if(file_exists($dest)) @unlink($dest);
+			return false;
+		}
 	}
 
 	/**
@@ -1128,13 +1146,16 @@ class ImageSizer extends Wire {
 	/**
 	 * Prepare IPTC data (@horst)
 	 *
+	 * @param bool $includeCustomTags (default=false)
 	 * @return string $iptcNew
 	 *
 	 */
-	protected function iptcPrepareData() {
+	protected function iptcPrepareData($includeCustomTags = false) {
+		$customTags = array('213','214','215','216','217');
 		$iptcNew = '';
 		foreach(array_keys($this->iptcRaw) as $s) {
 			$tag = substr($s, 2);
+			if(!$includeCustomTags && in_array($tag, $customTags)) continue;
 			if(substr($s, 0, 1) == '2' && in_array($tag, $this->validIptcTags) && is_array($this->iptcRaw[$s])) {
 				foreach($this->iptcRaw[$s] as $row) {
 					$iptcNew .= $this->iptcMakeTag(2, $tag, $row);
@@ -1334,6 +1355,94 @@ class ImageSizer extends Wire {
 		if(!is_array($exif) || !isset($exif['Orientation']) || !in_array(strval($exif['Orientation']), array_keys($corrections))) return false;
 		$correctionArray = $corrections[strval($exif['Orientation'])];
 		return true;
+	}
+
+	/**
+	 * Check orientation (@horst)
+	 *
+	 * @param mixed $image, pageimage or filename
+	 * @param mixed $correctionArray, null or array by reference
+	 * @return bool
+	 *
+	 */
+	static public function imageIsRotated($image, &$correctionArray = null) {
+		if($image instanceof Pageimage) {
+			$fn = $image->filename;
+		} elseif(is_readable($image)) {
+			$fn = $image;
+		} else {
+			return null;
+		}
+		// first value is rotation-degree and second value is flip-mode: 0=NONE | 1=HORIZONTAL | 2=VERTICAL
+		$corrections = array(
+			'1' => array(  0, 0),
+			'2' => array(  0, 1),
+			'3' => array(180, 0),
+			'4' => array(  0, 2),
+			'5' => array(270, 1),
+			'6' => array(270, 0),
+			'7' => array( 90, 1),
+			'8' => array( 90, 0)
+		);
+		if(!function_exists('exif_read_data')) return null;
+		$exif = @exif_read_data($fn, 'IFD0');
+		if(!is_array($exif) || !isset($exif['Orientation']) || !in_array(strval($exif['Orientation']), array_keys($corrections))) return null;
+		$correctionArray = $corrections[strval($exif['Orientation'])];
+		return $correctionArray[0] > 0;
+	}
+
+	/**
+	 * Check if GIF-image is animated or not (@horst)
+	 *
+	 * @param mixed $image, pageimage or filename
+	 * @return bool
+	 *
+	 */
+	static public function imageIsAnimatedGif($image) {
+		if($image instanceof Pageimage) {
+			$fn = $image->filename;
+		} elseif(is_readable($image)) {
+			$fn = $image;
+		} else {
+			return null;
+		}
+		$info = getimagesize($fn);
+		if(IMAGETYPE_GIF != $info[2]) return false;
+		if(self::checkMemoryForImage(array($info[0], $info[1]))) {
+			return (bool) preg_match('/\x00\x21\xF9\x04.{4}\x00(\x2C|\x21)/s', file_get_contents($fn));
+		}
+		// we have not enough free memory to load the complete image at once, so we do it in chunks
+		if(!($fh = @fopen($fn, 'rb'))) {
+			return null;
+		}
+		$count = 0;
+		while(!feof($fh) && $count < 2) {
+			$chunk = fread($fh, 1024 * 100); //read 100kb at a time
+			$count += preg_match_all('#\x00\x21\xF9\x04.{4}\x00[\x2C\x21]#s', $chunk, $matches);
+		}
+		fclose($fh);
+		return $count > 1;
+	}
+
+	/**
+	 * Possibility to clean IPTC data, also for original images (@horst)
+	 *
+	 * @param mixed $image, pageimage or filename
+	 * @return mixed, null or bool
+	 *
+	 */
+	static public function imageResetIPTC($image) {
+		if($image instanceof Pageimage) {
+			$fn = $image->filename;
+		} elseif(is_readable($image)) {
+			$fn = $image;
+		} else {
+			return null;
+		}
+		$is = new ImageSizer($fn);
+		$result = false !== $is->writeBackIptc() ? true : false;
+		unset($is);
+		return $result;
 	}
 
 	/**
