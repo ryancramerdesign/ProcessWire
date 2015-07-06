@@ -139,7 +139,7 @@ class AdminThemeReno extends AdminTheme implements Module, ConfigurableModule {
 		$field->label = __("Top Navigation: Notices");
 		$field->columnWidth = 50;
 		$field->attr('value', array_key_exists('notices', self::$defaultIcons) ? self::$defaultIcons['notices'] : "fa-bell");
-		if (isset($data['home'])) $field->attr('value', $data['notices']);
+		if (isset($data['notices'])) $field->attr('value', $data['notices']);
 		$fieldset->add($field);
 
 		// view homepage icon
