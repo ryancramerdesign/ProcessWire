@@ -10,6 +10,8 @@
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
+ * 
+ * @property bool $halt
  *
  */
 
@@ -44,6 +46,14 @@ class TemplateFile extends WireData {
 	 * 
 	 */
 	protected $throwExceptions = true;
+
+	/**
+	 * Whether or not the template file called $this->halt()
+	 * 
+	 * @var bool
+	 * 
+	 */
+	protected $halt = false;
 
 	/**
 	 * Variables that will be applied globally to this and all other TemplateFile instances
@@ -165,9 +175,15 @@ class TemplateFile extends WireData {
 
 		extract($fuel); 
 		ob_start();
-		foreach($this->prependFilename as $_filename) require($_filename);
-		require($this->filename); 
-		foreach($this->appendFilename as $_filename) require($_filename);
+		foreach($this->prependFilename as $_filename) {
+			if($this->halt) break;
+			require($_filename);
+		}
+		if(!$this->halt) require($this->filename); 
+		foreach($this->appendFilename as $_filename) {
+			if($this->halt) break;
+			require($_filename);
+		}
 		$out = "\n" . ob_get_contents() . "\n";
 		ob_end_clean();
 
@@ -197,9 +213,18 @@ class TemplateFile extends WireData {
 		if($property == 'filename') return $this->filename; 
 		if($property == 'appendFilename') return $this->appendFilename; 
 		if($property == 'prependFilename') return $this->prependFilename; 
+		if($property == 'halt') return $this->halt;
 		if($value = parent::get($property)) return $value; 
 		if(isset(self::$globals[$property])) return self::$globals[$property];
 		return null;
+	}
+	
+	public function set($property, $value) {
+		if($property == 'halt') {
+			$this->halt($value);
+			return $this;
+		}
+		return parent::set($property, $value);
 	}
 
 	/**
@@ -219,6 +244,24 @@ class TemplateFile extends WireData {
 	public function __toString() {
 		if(!$this->filename) return $this->className();
 		return $this->filename; 
+	}
+
+	/**
+	 * This method can be called by any template file to stop further render inclusions
+	 * 
+	 * This is preferable to doing an exit; or die() from your template file(s), as it only halts the rendering
+	 * of output and doesn't halt the rest of ProcessWire.  
+	 * 
+	 * Can be called from prepend/append files as well. 
+	 * 
+	 * USAGE from template file is: return $this->halt();
+	 * 
+	 * @param bool $halt
+	 * 
+	 */
+	protected function halt($halt = true) {
+		$this->halt = $halt ? true : false;
+		return $this;
 	}
 
 
