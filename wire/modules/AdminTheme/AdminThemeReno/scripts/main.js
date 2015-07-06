@@ -1,7 +1,7 @@
 /**
- * ProcessWire Admin Theme jQuery/Javascript
+ * ProcessWire Admin Theme jQuery/Javascript for AdminThemeReno
  *
- * Copyright 2012 by Ryan Cramer
+ * By Tom Reno and Ryan Cramer
  * 
  */
 
@@ -15,11 +15,13 @@ var ProcessWireAdminTheme = {
 	init: function() {
 		this.setupCloneButton();
 		this.setupButtonStates();
+		// this.setupFieldFocus();
 		this.setupTooltips();
 		this.setupSearch();
 		this.setupDropdowns();
 		this.setupSidebarNav();
-		this.setupSpinner();
+		this.setupSideBarState();
+		this.setupSideBarToggle();
 		var $body = $("body"); 
 		var $html = $("html"); 
 		if($body.hasClass('hasWireTabs') && $("ul.WireTabs").length == 0) $body.removeClass('hasWireTabs'); 
@@ -27,16 +29,9 @@ var ProcessWireAdminTheme = {
 		$body.removeClass('pw-init').addClass('pw-ready'); 
 		$html.removeClass('pw-init').addClass('pw-ready'); 
 		// this.browserCheck();
-	},
-
-
-	/**
-	 * pagelist loader
-	 *
-	 */
-	
-	setupSpinner: function() {
-		$('.PageListLoading').append("<i class='fa fa-spinner fa-spin'></i>");
+		$("#notices a.notice-remove").click(function() {
+			$("#notices").slideUp('fast', function() { $(this).remove(); }); 
+		});
 	},
 
 	/**
@@ -54,6 +49,26 @@ var ProcessWireAdminTheme = {
 		        $('.quicklink-open').removeClass('active');
 		        $('#main-nav .current').removeClass('no-arrow');
 		    }
+		});
+
+		$(document).keydown(function(e) {
+			var type = e.target.tagName.toLowerCase();
+			if (type == 'input' || type == 'textarea') return;
+		    
+		    switch(e.which) {
+		        case 37:
+		        state = 'open';
+		        break;
+
+		        case 39:
+		        state = 'closed';
+		        break;
+
+		        default: return;
+		    }
+		    ProcessWireAdminTheme.setupSideBarState(true, state);
+
+		    e.preventDefault(); 
 		});
 		
 		///////////////////////////////////////////////////////////////////
@@ -87,7 +102,7 @@ var ProcessWireAdminTheme = {
 				clickTimer = setTimeout(function() { 
 					// single click occurred
 					closeOpenQuicklinks();
-					$a.toggleClass('open').next('ul').slideToggle('fast', function() {
+					$a.toggleClass('open').next('ul').slideToggle(200, function() {
 						$a.removeClass('just-clicked'); 
 					});
 					numClicks = 0; 
@@ -251,7 +266,7 @@ var ProcessWireAdminTheme = {
 	},
 
 	/**
-	 * Clone a button at the bottom to the top
+	 * Clone a button at the bottom to the top 
 	 *
 	 */
 	setupCloneButton: function() {
@@ -262,20 +277,19 @@ var ProcessWireAdminTheme = {
 		// or buttons in the format button.head_button_clone with an ID attribute.
 		// var $buttons = $("#content a[id=''] button[id=''], #content button.head_button_clone[id!='']");
 		var $buttons = $("button.head_button_clone, button.head_button, button.head-button");
-		//var $buttons = $("#content a:not([id]) button:not([id]), #content button.head_button_clone[id!=]"); 
 
 		// don't continue if no buttons here or if we're in IE
-		if($buttons.length == 0) return; // || $.browser.msie) return;
+		if($buttons.length == 0 || $.browser.msie) return;
 
-		var $head = $("#head_button");
-		if($head.length == 0) $head = $("<div id='head_button'></div>").prependTo("#headline").show();
-
+		var $head = $("<div id='head_button'></div>").prependTo("#headline").show();
 		$buttons.each(function() {
 			var $t = $(this);
-			var $a = $t.parent('a');
-			if($a.length > 0) {
+			var $a = $t.parent('a'); 
+			if($a.length) { 
 				$button = $t.parent('a').clone();
-				$head.prepend($button);
+				//$head.prepend($button);
+				$head.append($button);
+			// } else if($t.is('.head_button_clone')) {
 			} else if($t.hasClass('head_button_clone') || $t.hasClass('head-button')) {
 				$button = $t.clone();
 				$button.attr('data-from_id', $t.attr('id')).attr('id', $t.attr('id') + '_copy');
@@ -284,10 +298,10 @@ var ProcessWireAdminTheme = {
 					$("#" + $(this).attr('data-from_id')).click(); // .parents('form').submit();
 					return false;
 				});
+				// $head.append($a.append($button));	
 				$head.prepend($a.append($button));
 			}
-		});
-		$head.show();
+		}); 
 	},
 
 	/**
@@ -309,7 +323,20 @@ var ProcessWireAdminTheme = {
 			window.location = $(this).parent("a").attr('href'); 
 		}); 
 	},
-	
+
+	/**
+	 * Make the first field in any forum have focus, if it is a text field
+	 *
+	setupFieldFocus: function() {
+		// add focus to the first text input, where applicable
+		jQuery('#content input[type=text]:visible:enabled:first:not(.hasDatepicker)').each(function() {
+			var $t = $(this); 
+			if(!$t.val() && !$t.is(".no_focus")) window.setTimeout(function() { $t.focus(); }, 1);
+		});
+	},
+	 */
+
+
 	/**
 	 * Make the site search use autocomplete
 	 * 
@@ -342,7 +369,7 @@ var ProcessWireAdminTheme = {
 			minLength: 2,
 			position: { my : "right top", at: "right bottom" },
 			search: function(event, ui) {
-				$status.html("<img src='" + config.urls.modules + "Process/ProcessPageList/images/loading.gif'>");
+				$status.html("<i class='fa fa-spinner fa-spin'></i>");
 			},
 			source: function(request, response) {
 				var url = $input.parents('form').attr('action') + 'for?get=template_label,title&include=all&admin_search=' + request.term;
@@ -367,9 +394,64 @@ var ProcessWireAdminTheme = {
 			$status.text('');	
 		});
 
+		// Search toggle
+		var $search = $("#search");
+
+		$input.bind('keypress keydown keyup', function(event){
+       		if(event.keyCode == 13) {
+       			event.preventDefault(); // Don't submit to the search page on Enter Key
+       		}
+
+       		if(event.keyCode == 38) {
+       			$search.removeClass("open");
+	    		$(this).val(); // close search on arrow up
+	    		$input.blur();
+	    		$('#ProcessPageSearchAutocomplete').hide().html('');
+       		}
+
+       		if(event.keyCode == 8) {
+       			if ($.trim($(this).val()) == ''){
+       				$status.text(''); // remove status if nothing in the input.
+       			}
+       		}
+       		
+    	});
+
+		$(".search-toggle").on("click", function() {
+			if (!$search.hasClass('open')){
+				$('#masthead').find('ul.open').removeClass('open');
+				$input.focus();
+			} else {
+				$input.blur();
+			}
+	    	$search.toggleClass("open");
+	    	$input.val("");
+			return false;
+		});
+
+		$(".search-close").on("click", function() {
+	    	$search.removeClass("open");
+	    	$input.val("");
+	    	$input.blur();
+			return false;
+		});
 	},
 
 	setupDropdowns: function() {
+
+		$('#masthead li.dropdown > a').on('click', function(e){
+			$(this).next("ul").toggleClass('open');
+			$(this).parent().siblings().find('ul.open').removeClass('open');
+			return false;
+		});
+
+		$('#masthead li.dropdown > ul li a').on('click', function(e){
+			e.stopPropagation();
+		});
+
+		$(document).on('click', function(){
+			$('#masthead li.dropdown ul').removeClass('open');
+		});
 
 		$("ul.dropdown-menu").each(function() {
 			var $ul = $(this).hide();
@@ -386,6 +468,11 @@ var ProcessWireAdminTheme = {
 				$ul.hide();
 				return true; 
 			});
+
+			$ul.find(".has-items").each(function() {
+				var $icon = $("<i class='has-items-icon fa fa-angle-right ui-priority-secondary'></i>");
+				$(this).prepend($icon);
+			}); 
 
 			var lastOffset = null; 
 
@@ -405,7 +492,7 @@ var ProcessWireAdminTheme = {
 					var at = $ul.attr('data-at'); 
 					if(my) position.my = my; 
 					if(at) position.at = at; 
-					$ul.position(position).css('z-index', 9999);
+					$ul.position(position).css('z-index', 200);
 				}
 				$a.addClass('hover'); 
 				$ul.show();
@@ -414,9 +501,10 @@ var ProcessWireAdminTheme = {
 			}).mouseleave(function() {
 				setTimeout(function() {
 					if($ul.is(":hover")) return;
+					$ul.find('ul').hide();
 					$ul.hide();
 					$a.removeClass('hover');
-				}, 0); 
+				}, 50); 
 			}); 
 
 			$ul.mouseleave(function() {
@@ -424,31 +512,79 @@ var ProcessWireAdminTheme = {
 				$ul.hide();
 				$a.removeClass('hover'); 
 			}); 
-		});
 
-	}
+		});
+	}, 
+
+	setupSideBarToggle: function() {
+		$(".main-nav-toggle").on("click", function(){
+	    	ProcessWireAdminTheme.setupSideBarState(true);
+			return false;
+		});
+	},
+
+	/**
+	 * @todo: Refactor this and the corresponding CSS. (Renobird)
+	 * 
+	 */
+
+	setupSideBarState: function(click, state) {
+		if ($("body").hasClass("id-23") || $("body").hasClass("modal")) return false;
+   		var name = 'pw_sidebar_state';
+   		var state = state || localStorage.getItem(name);
+   		var toggle = $(".main-nav-toggle");
+   		var sidebar = $("#sidebar");
+   		var main = $("#main");
+   		var masthead = $("#masthead");
+   		var branding = $("#branding");
+   		var bug = $("#NotificationBug");
+   		var elems = toggle.add(sidebar).add(main).add(masthead).add(branding).add(bug);
+
+   		if (state === null && $(window).width() >= 690) localStorage.setItem(name,"open");
+   		
+   		if (!click && $(window).width() < 690){
+   			localStorage.setItem(name,"closed");
+   			state = 'closed';
+   		}
+
+   		if (click == true){
+			if (state == 'open'){
+    			localStorage.setItem(name,"closed");
+    			elems.addClass('closed');
+    		} else if (state =='closed'){
+    			localStorage.setItem(name,"open");
+    			elems.removeClass('closed');
+    		}
+
+			sidebar.removeClass('hide');
+			branding.removeClass('hide');
+			main.removeClass('full');
+			masthead.removeClass('full');
+			toggle.removeClass('full');
+
+		} else{
+			
+			if (state == 'closed'){
+   				elems.addClass('closed');
+				sidebar.addClass('hide');
+				branding.addClass('hide');
+				main.addClass('full');
+				masthead.addClass('full');
+				toggle.addClass('full');
+        	}	
+		}
+	},
 
 	/**
 	 * Give a notice to IE versions we don't support
 	 *
+	 */
 	browserCheck: function() {
 		if($.browser.msie && $.browser.version < 8) 
 			$("#content .container").html("<h2>ProcessWire does not support IE7 and below at this time. Please try again with a newer browser.</h2>").show();
 	}
-	 */
 };
 
 $(document).ready(function() {
 	ProcessWireAdminTheme.init();
-
-	$("#notices a.notice-remove").click(function() {
-		$("#notices").slideUp('fast', function() { $(this).remove(); }); 
-	});
-
-	$(".main-nav-toggle").click(function() {
-		$(this).add("#sidebar, #main").toggleClass("toggle");
-		return false;
-	});
-
-	
-}); 
+});

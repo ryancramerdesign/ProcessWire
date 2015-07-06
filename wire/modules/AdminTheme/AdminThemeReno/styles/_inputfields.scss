@@ -74,9 +74,9 @@
 }
 
 /**
- * FieldsetTab Descriptions
- *
- */
+* FieldsetTab Descriptions
+*
+*/
 
 .InputfieldFieldsetTabOpen > .Inputfields > h2 {
 
@@ -112,8 +112,14 @@ textarea {
 	border-style: solid;
 	border-width: 1px;
 	border-color: darken($border-color, 12%) darken($border-color, 4%) darken($border-color, 4%) darken($border-color, 4%);
-	padding: 0.4em;
+	padding: 0.45em 0.5em;
 	background: $subtle-bg;
+	-webkit-appearance:none;  /* Remove default shadow */
+}
+
+textarea {
+	line-height: 1.4em; 
+	padding: 0.6em;
 }
 
 textarea,
@@ -337,9 +343,6 @@ table {
 				border: none; 
 			}
 
-			.ui-icon {
-				margin-top: 3px; 
-			}
 		}
 
 		.InputfieldRepeaterItem > .InputfieldContent {
@@ -363,7 +366,6 @@ table {
 		.InputfieldRepeaterItem > .InputfieldHeader .toggle-icon {
 			color: $item-header-color;
 		}
-
 	}
 
 	/**
@@ -395,6 +397,7 @@ table {
 		border: none;
 		background: $item-header-bg; 
 		color: $item-header-color; 
+		padding: 0.5em;
 		cursor: move; 
 		font-weight: $normal-weight;
 
@@ -411,10 +414,6 @@ table {
 			a {
 				color: $item-header-hover-color; 
 			}
-		}
-
-		.ui-icon {
-			margin-top: 3px; 
 		}
 	}
 
@@ -492,7 +491,6 @@ table {
 	padding: 0.75em 0.25em 0.25em 1em;
 	font-weight: $bold-weight; 
 }
-
 
 .InputfieldStateRequired > .InputfieldHeader:first-child:after {
 	/* Add asterisk to indicate field is required */

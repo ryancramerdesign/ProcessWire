@@ -14,6 +14,7 @@
  * http://processwire.com
  * 
  * @todo support changes to a "title|body%=about" selector, so that a change to "title" row also updates the value for the "body" row. 
+ * @todo update to support "sort=sort" as "sort" is not currently a selectable option
  * 
  * SETTINGS
  * ========
@@ -1267,7 +1268,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 				
 			$label = $this->wire('sanitizer')->entities($label); 
 			// render primary subfield selection (unless selector info says not to)
-			if($info['input'] != 'none') {
+			if(isset($info['input']) && $info['input'] != 'none') {
 				$selected = $selectedValue == $name && (!$valueHasSelectorString || empty($info['subfields'])) ? ' selected' : '';
 				$out .= "<option$selected " .
 					"value='$field->name.$name' " . 

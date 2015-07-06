@@ -166,7 +166,6 @@ p span.ui-state-error {
 	  padding: 5px 10px;
 	  font-weight: normal;
 	  color: $white;
-	  letter-spacing: 1px;
 	  font-size: 1.2em !important;
 	}
 
@@ -485,6 +484,7 @@ button.ui-state-disabled{
 	text-transform: uppercase;
 	font-size: 0.8em;
 	letter-spacing: 1px;
+	max-width: 400px;
 }
 	.ui-tooltip, .arrow:after {
 		background: $med-blue; 

@@ -95,19 +95,6 @@
 
 
 
-/**
- * An animated GIF loading image that appears during ajax calls
- *
- */
-.PageListLoading {
-	display: inline; 
-	padding: 0 9px 9px 0; 
-	background: url(images/loading.gif) top left no-repeat; 
-	position: relative;
-	top: 3px; 
-}
-
-
 .PageList .PageListID7 a.PageListPage,
 .PageList .PageListID7 a.PageListPage:hover,
 .PageList .PageListID7 + .PageList a.PageListPage,

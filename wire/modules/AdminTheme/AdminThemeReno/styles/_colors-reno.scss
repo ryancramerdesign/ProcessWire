@@ -12,11 +12,12 @@ $white: #FFF;
 $link: #e83561;
 $dark-link: darken($link, 15%); 
 $red: #bc283d;
-$orange: #C5591F;
 $blue: #48678c;
+$orange: #DF533C;
 $dark-blue: #1C2836;
 $med-blue: #2d4158;
 $green: #3eb998;
+$yellow: #FFD15E;
 
 // body
 $body-bg: $white;
@@ -26,16 +27,18 @@ $main-bg: $body-bg;
 
 // Text
 $text-bg: $white;
-$text-color: $black;
+$text-color: lighten($black,5);
 $medium-text-color: #8d939e;
 $light-text-color: lighten($medium-text-color, 10%); 
 $reverse-text-color: $white;
 
 // Masthead
 $masthead-bg: $dark-blue;
-$masthead-secondary-bg: #D2E4EA; 
+$masthead-bg-dark: darken($masthead-bg, 4%);
+$masthead-secondary-bg: lighten($masthead-bg, 8%); 
 $masthead-secondary-border: none;
-$masthead-height: 48px; 
+$masthead-border: 1px solid lighten($masthead-bg, 5%);
+$masthead-height: 52px; 
 
 // Links
 $link-color: $link;
@@ -52,7 +55,7 @@ $alt-link-color: $link-color;
 $headline-bg: $white; 
 $headline-color: $masthead-bg;
 $headline-border: 1px solid $headline-bg;
-$headline-padding: 1.6em 1.5em 0 1.5em;
+$headline-padding: 1.5em 1.5em 0 1.5em;
 
 // Breadcrumbs
 $breadcrumbs-bg: $white;
@@ -63,6 +66,15 @@ $breadcrumbs-border-bottom: 1px solid $border-color;
 $breadcrumbs-color: $breadcrumbs-link-color;
 $breadcrumbs-title-color: $dark-blue;
 $breadcrumbs-padding: 0.75em 1.5em 0.75em 1.5em;
+
+$topnav-link-color: $medium-text-color;
+$topnav-link-hover-color: $white;
+$topnav-link-bg: none;
+$topnav-link-bg-hover: none;
+$topnav-sub-link-color: $light-text-color;
+$topnav-sub-link-hover-color: $link-color;
+$topnav-border: 1px solid lighten($masthead-bg, 7%);
+$topnav-item-border: none;
 
 // Sidebar navigation
 $mainnav-bg-color: $subtle-bg;
@@ -78,11 +90,12 @@ $mainnav-link-hover-bg: darken($mainnav-bg-color, 9%);
 $mainnav-link-current-color: $white;
 $mainnav-link-current-bg: $link; 
 $mainnav-icon-color: #97aab4;
-$mainnav-toggle-bg: darken($masthead-bg, 4%);
-$mainnav-toggle-color: $medium-text-color;
+$mainnav-toggle-bg: $masthead-bg;
+$mainnav-toggle-color: $topnav-link-color;
+$mainnav-toggle-closed-color: $topnav-link-color;
 $mainnav-toggle-border: 1px solid lighten($masthead-bg, 5%);
 $mainnav-toggle-hover-color: $white;
-$mainnav-toggle-hover-bg: darken($masthead-bg, 5%);
+$mainnav-toggle-hover-bg: '';
 
 //quicklinks
 $quicklinks-border: 1px solid $border-color;
@@ -97,36 +110,32 @@ $quicklinks-icon-active: $link;
 $quicklinks-icon-current-color: darken($link, 20%);
 $quicklinks-icon-current-active: $white;
 
-// Top nav items and dropdowns
+$dropdown-bg: $white;
+$dropdown-link-color: $mainnav-link-color;
+$dropdown-icon-color: $mainnav-icon-color;
+$dropdown-link-hover-color: $text-color;
+$dropdown-link-hover-bg: darken($subtle-bg, 4%);
+$dropdown-current-color: $white;
+$dropdown-current-bg: $link;
+$dropdown-border: 1px solid $border-color;
+$dropdown-shadow: 0 4px 7px rgba(0,0,0,.175);
+
+// Search
 $search-color: $medium-text-color;
-$search-bg: $masthead-bg;
-$search-focus-bg: lighten($masthead-bg, 4%);
-$search-dropdown-bg: $subtle-bg;
+$search-bg: lighten($masthead-bg, 5%);
+$search-focus-bg: lighten($masthead-bg, 7%);
+$search-border: $masthead-bg;
+$search-dropdown-bg: $dropdown-bg;
 $search-dropdown-link-color: $link;
-$search-dropdown-shadow: none;
-$search-dropdown-link-hover-color: $link;
-$search-dropdown-link-hover-bg: darken($subtle-bg, 4%);
+$search-dropdown-shadow: $dropdown-shadow;
+$search-dropdown-link-hover-color: $search-dropdown-link-color;
+$search-dropdown-link-hover-bg: $dropdown-link-hover-bg;
 $search-dropdown-header-color: $text-color;
 $search-dropdown-border-width: 0 0 1px 1px;
 $search-dropdown-border-color: $border-color;
 $search-dropdown-border-style: solid;
 $search-label: $medium-text-color;
-$search-placeholder-color: darken($medium-text-color, 20%);
-
-$dropdown-bg: $masthead-bg;
-$dropdown-link-color: $light-text-color;
-$dropdown-link-hover-color: $white;
-$dropdown-link-hover-bg: 'none';
-$dropdown-shadow: 0 1px 5px rgba(0,0,0,0.4);
-
-$topnav-link-color: $medium-text-color;
-$topnav-link-hover-color: $white;
-$topnav-link-bg: none;
-$topnav-link-bg-hover: none;
-$topnav-sub-link-color: $light-text-color;
-$topnav-sub-link-hover-color: $link-color;
-$topnav-border: none;
-$topnav-item-border: none;
+$search-placeholder-color: $medium-text-color;
 
 $item-header-bg: $green;
 $item-header-hover-color: $white;
@@ -158,8 +167,8 @@ $button-active-bg: $button-hover-bg;
 $button-active-border: $button-hover-bg;
 $button-radius: 3px;
 
-$button-secondary-bg: $medium-text-color; 
-$button-secondary-border: $medium-text-color;
+$button-secondary-bg: lighten($masthead-bg,15); 
+$button-secondary-border: lighten($masthead-bg,15);
 $button-secondary-color: $white;
 $button-secondary-hover-color: $button-hover-color;
 
@@ -167,6 +176,10 @@ $ui-state-default-bg: $green;
 $ui-state-default-color: $reverse-text-color; 
 $ui-state-hover-bg: darken($ui-state-default-bg, 8%);
 $ui-state-hover-color: $reverse-text-color; 
+
+//action-group
+$action-group-link-color: $medium-text-color;
+$action-group-icon-color: $medium-text-color;
 
 // .ui-priority-secondary
 $ui-priority-secondary-color: $secondary-link-color;
@@ -189,18 +202,18 @@ $pagelist-link-hover-color: $pagelist-link-color;
 $pagelist-link-open-color: $dark-link;
 $pagelist-link-open-bg: #ffffdd; 
 $pagelist-link-active-color: $black; 
-$pagelist-link-icon-color: $mainnav-icon-color;
+$pagelist-link-icon-color: $light-text-color;
 
 $pagination-font-size: 0.8em; 
 $pagination-link-color: $text-color;
-$pagination-link-bg: darken($subtle-bg, 10%); 
+$pagination-link-bg: $subtle-bg; 
 $pagination-link-current-color: $white; 
 $pagination-link-current-bg: $link;
-$pagination-link-hover-color: $white;
-$pagination-link-hover-bg: $link;
-$pagination-link-active-color: $white; 
-$pagination-link-active-bg: $dark-link; 
-$pagination-link-border-radius: 2px; 
+$pagination-link-hover-color: $text-color;
+$pagination-link-hover-bg: darken($subtle-bg, 4);
+$pagination-link-active-color: $text-color; 
+$pagination-link-active-bg: darken($subtle-bg, 6); 
+$pagination-link-border-radius: 3px; 
 
 // Tabs
 $wiretab-link-bg: none; 
@@ -243,6 +256,7 @@ $notices-border-bottom: 1px solid $border-color;
 
 $table-th-color: $secondary-link-color;
 $table-tr-hover: $highlight-bg;
+$table-th-hover: '';
 $table-th-active-color: $green;
 
 // Datepicker
@@ -263,18 +277,18 @@ $datepicker-td-border: 1px solid $datepicker-bg;
 $datepicker-td-current-border: 1px solid lighten($datepicker-bg, 8%);
 
 // Notifications
-$no-border-color: rgba(0,0,0,0.1);
+$no-border-color: transparent;
 
-$no-message-color: $highlight-color;
-$no-message-bg: $highlight-bg;
+$no-message-color: $black;
+$no-message-bg: lighten(#a0d468, 18%);
 $no-message-open-color: $no-message-color;
 $no-message-open-bg: darken($no-message-bg, 5%);
 $no-message-icon-color: $no-message-color;
 $no-message-link-color: $link-color;
 $no-message-link-hover-color: $link-hover-color;
 
-$no-warning-color: $white;
-$no-warning-bg: lighten($orange, 5%);
+$no-warning-bg: $yellow;
+$no-warning-color: $black;
 $no-warning-open-color: $no-warning-color;
 $no-warning-open-bg: darken($no-warning-bg, 5%);
 $no-warning-icon-color: $no-warning-color;
@@ -290,16 +304,16 @@ $no-error-link-color: transparentize($no-error-color, 0.2);
 $no-error-link-hover-color: $no-error-color;
 
 $no-bug-color: #fff;
-$no-bug-bg: rgba(255, 255, 255, 0.3);
-$no-bug-open-color: #fff;
-$no-bug-open-bg: rgba(255, 255, 255, 0.5);
-$no-bug-hover-color: #fff;
-$no-bug-hover-bg: rgba(255, 255, 255, 0.5);
-$no-bug-open-hover-color: #fff;
-$no-bug-open-hover-bg: rgba(255, 255, 255, 0.3);
+$no-bug-bg: $green;
+$no-bug-open-color: '';
+$no-bug-open-bg: '';
+$no-bug-hover-color: '';
+$no-bug-hover-bg: '';
+$no-bug-open-hover-color: '';
+$no-bug-open-hover-bg: '';
 
-$no-ghost-message-color: #fff;
-$no-ghost-message-bg: #000;
+$no-ghost-message-color: $no-message-color;
+$no-ghost-message-bg: $no-message-bg;
 $no-ghost-message-icon-color: $no-ghost-message-color;
 
 $no-ghost-warning-color: $no-warning-color;

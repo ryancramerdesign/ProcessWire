@@ -9,8 +9,8 @@ class AdminThemeReno extends AdminTheme implements Module, ConfigurableModule {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Reno',
-			'version' => 13,
-			'summary' => __('Admin theme for ProcessWire 2.5 by Tom Reno (Renobird)', __FILE__),
+			'version' => 14,
+			'summary' => __('Admin theme for ProcessWire 2.5+ by Tom Reno (Renobird)', __FILE__),
 			'autoload' => "template=admin",
 			'author' => "Tom Reno (Renobird)",
 			'requires' => 'AdminThemeDefault', 
@@ -20,11 +20,13 @@ class AdminThemeReno extends AdminTheme implements Module, ConfigurableModule {
 	static $defaultIcons = array(
 		"home" => "fa-home",
 		"signout" => "fa-power-off",
+		"profile" => "fa-user",
 		"page" => "fa-file-text",
 		"setup" => "fa-wrench",
 		"module" => "fa-briefcase",
 		"access" => "fa-unlock",
-		"form-builder" => "fa-list-alt"
+		"form-builder" => "fa-list-alt",
+		"notices" => "fa-bell",
 	);
 
 	public function __construct() {
@@ -33,17 +35,19 @@ class AdminThemeReno extends AdminTheme implements Module, ConfigurableModule {
 		}
 	}
 
-
+	// no longer used, but left here for reference.
+	/*
 	public function getSearchPlaceholder() {
 		// if placeholder text is not translated for user's language, make it blank
-		$placeholder = $this->_('Type here to search');
+		$placeholder = $this->_('Search');
 		if(!$this->wire('languages')) return $placeholder;
 		$user = $this->wire('user'); 
-		if($placeholder === 'Type here to search' && $user->language && !$user->language->isDefault()) {
+		if($placeholder === 'Search' && $user->language && !$user->language->isDefault()) {
 			$placeholder = '';
 		}
 		return $placeholder;
 	}
+	*/
 
 	public static function getModuleConfigInputfields(array $data) {
 		
@@ -53,9 +57,28 @@ class AdminThemeReno extends AdminTheme implements Module, ConfigurableModule {
 		$field = wire('modules')->get('InputfieldRadios');
 		$field->attr('name', 'colors');
 		$field->label = __('Color Set'); 
+		
 		$field->addOption('', __('Reno'));
 		$field->addOption('classic', __('Classic'));
 		$field->addOption('blue', __('Blue'));
+		
+		// Scan for custom colour schemes in /site/modules/AdminTheme/AdminTheme{Name}/styles/
+		// Thanks Pete @notanotherdev
+		$dirs = array(
+			dirname(__FILE__) . '/styles/', 
+			wire('config')->paths->siteModules . 'AdminTheme/' . __CLASS__ . '/styles/',
+		);	
+		foreach($dirs as $customDir) {
+			if(is_dir($customDir)) {
+				foreach(glob($customDir . '*.css') as $file) {
+					$name = str_replace('main-', '', basename($file, '.css')); // Remove "main-" from default theme names
+					if($name == 'main' || $name == 'classic' || $name == 'blue') continue;
+					$formatName = ucwords(str_replace('-', ' ', $name));
+					$field->addOption($name, $formatName);
+				}
+			}
+		}
+
 		$field->attr('value', isset($data['colors']) ? $data['colors'] : ''); 
 		$field->optionColumns = 1; 
 		$inputfields->add($field);
@@ -93,6 +116,16 @@ class AdminThemeReno extends AdminTheme implements Module, ConfigurableModule {
 		}
 		$inputfields->add($field);
 
+		// Display Name
+		$field = wire('modules')->get("InputfieldText");
+        $field->attr("name+id", "userFields");
+        $field->label = __('User Display Name');
+        $field->description = __('Comma separated list of fields from the user template to use as the display name in the admin. (example: first_name, last_name)');
+        isset($data['userFields']) ? $user_info = $data['userFields'] : $user_info = "name";
+        $field->value = $user_info;
+        $field->notes = __('These can only be text fields. Other field types will be ignored.');
+        $inputfields->add($field);
+
 		// Icons
 		$fieldset = wire('modules')->get("InputfieldFieldset");
 		$fieldset->label = __('Icons');
@@ -100,10 +133,20 @@ class AdminThemeReno extends AdminTheme implements Module, ConfigurableModule {
 		$fieldset->icon = "fa-cog";
 		$fieldset->collapsed = true;
 
+		// notices
+		$field = wire('modules')->get("InputfieldIcon");
+		$field->attr('name', "notices");
+		$field->label = __("Top Navigation: Notices");
+		$field->columnWidth = 50;
+		$field->attr('value', array_key_exists('notices', self::$defaultIcons) ? self::$defaultIcons['notices'] : "fa-bell");
+		if (isset($data['home'])) $field->attr('value', $data['notices']);
+		$fieldset->add($field);
+
 		// view homepage icon
 		$field = wire('modules')->get("InputfieldIcon");
 		$field->attr('name', "home");
 		$field->label = __("Top Navigation: View Home Page");
+		$field->columnWidth = 50;
 		$field->attr('value', array_key_exists('home', self::$defaultIcons) ? self::$defaultIcons['home'] : "fa-home");
 		if (isset($data['home'])) $field->attr('value', $data['home']);
 		$fieldset->add($field);
@@ -111,7 +154,8 @@ class AdminThemeReno extends AdminTheme implements Module, ConfigurableModule {
 		// signout
 		$field = wire('modules')->get("InputfieldIcon");
 		$field->attr('name', "signout");
-		$field->label = __("Top Navigation: Sign out");
+		$field->label = __("Sign out");
+		$field->columnWidth = 50;
 		$field->attr('value', array_key_exists('signout', self::$defaultIcons) ? self::$defaultIcons['signout'] : "fa-power-off");
 		if (isset($data['signout'])) $field->attr('value', $data['signout']);
 		$fieldset->add($field);
@@ -121,6 +165,7 @@ class AdminThemeReno extends AdminTheme implements Module, ConfigurableModule {
 			$field = wire('modules')->get("InputfieldIcon");
 			$field->attr('name', $p->name);
 			$field->label = __($p->title, '/wire/templates-admin/default.php');
+			$field->columnWidth = 50;
 			$field->attr('value', array_key_exists($p->name, self::$defaultIcons) ? self::$defaultIcons[$p->name] : "fa-file-text-o");
 			if (isset($data[$p->name])) $field->attr('value', $data[$p->name]);
 			$fieldset->add($field);
@@ -130,5 +175,4 @@ class AdminThemeReno extends AdminTheme implements Module, ConfigurableModule {
 
 		return $inputfields;
 	}
-
 }

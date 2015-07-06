@@ -4,11 +4,10 @@
  * Provides the Javascript/jQuery implementation of the PageList process when used with the JSON renderer
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * https://processwire.com
  *
  */
 
@@ -17,8 +16,8 @@ $(document).ready(function() {
 }); 
 
 (function($) {
-
-        $.fn.ProcessPageList = function(customOptions) {
+	
+	$.fn.ProcessPageList = function(customOptions) {
 
 		/**
 	 	 * List of options that may be passed to the plugin
@@ -108,8 +107,12 @@ $(document).ready(function() {
 			hoverActionDelay: 250,
 			
 			// milliseconds in fade time to reveal or hide hover actions
-			hoverActionFade: 150
-		}; 
+			hoverActionFade: 150,
+		
+			// markup for the spinner used when ajax calls are made
+			spinnerMarkup: "<i class='ui-priority-secondary fa fa-fw fa-spin fa-spinner'></i>"
+		};
+			
 
 		$.extend(options, customOptions);
 
@@ -117,7 +120,7 @@ $(document).ready(function() {
 
 			var $container = $(this); 
 			var $root; 
-			var $loading = $("<span class='PageListLoading'></span>");
+			var $loading = $(options.spinnerMarkup).addClass('PageListLoading');
 			var firstPagination = 0; // used internally by the getPaginationList() function
 			var curPagination = 0; // current page number used by getPaginationList() function
 			var ignoreClicks = false; // true when operations are occurring where we want to ignore clicks
@@ -328,13 +331,17 @@ $(document).ready(function() {
 					var info = $curList.data('paginationInfo'); 
 					if(!info) return false;
 					var $newList = getPaginationList(id, parseInt($(this).attr('href')) * info.limit, info.limit, info.total);
-					var $loading = $("<li><span class='PageListLoading'></span></li>"); 
+					var $spinner = $(options.spinnerMarkup);
+					var $loading = $("<li>&nbsp;</li>").append($spinner.hide());
 					$curList.siblings(".PageList").remove(); // remove any open lists below current
 					$curList.replaceWith($newList); 
 					$newList.append($loading); 
+					$spinner.fadeIn('fast');
 					var $siblings = $newList.siblings().css('opacity', 0.5);
 					loadChildren(id, $newList.parent(), $(this).attr('href') * info.limit, false, false, true, function() {
-						$loading.remove();
+						$spinner.fadeOut('fast', function() {
+							$loading.remove();
+						});
 					}); 
 					return false;	
 				}
@@ -458,7 +465,11 @@ $(document).ready(function() {
 						$target.after($children); 
 					}
 
-					$loading.hide();
+					if($loading.parent().is('.PageListRoot')) {
+						$loading.hide();
+					} else {
+						$loading.fadeOut('fast');
+					}
 
 					if(replace) {
 						$children.show();
@@ -486,7 +497,7 @@ $(document).ready(function() {
 
 				}; 
 
-				if(!replace) $target.append($loading.show()); 
+				if(!replace) $target.append($loading.fadeIn('fast')); 
 				
 				// $.getJSON(options.ajaxURL + "?id=" + id + "&render=JSON&start=" + start + "&lang=" + options.langID + "&open=" + options.openPageIDs[0] + "&mode=" + options.mode, processChildren);
 				// @teppokoivula PR #1052
@@ -662,7 +673,7 @@ $(document).ready(function() {
 						$extraLink.click(function () {
 							
 							$li.find('.PageListActions').hide();
-							var $spinner = $("<i class='fa fa-spin fa-fw fa-spinner ui-priority-secondary'></i>");
+							var $spinner = $(options.spinnerMarkup);
 							$li.append($spinner);
 							
 							$.post($(this).attr('href') + '&render=json', { action: extraKey }, function (data) {
@@ -972,7 +983,7 @@ $(document).ready(function() {
 				cancelMove($li); 
 
 				// setup to save the change
-				$li.append($loading.show()); 
+				$li.append($loading.fadeIn('fast')); 
 				var sortCSV = '';
 			
 				// create a CSV string containing the order of Page IDs	
@@ -993,7 +1004,7 @@ $(document).ready(function() {
 				// save the change	
 				$.post(options.ajaxMoveURL, postData, function(data) {
 
-					$loading.hide();
+					$loading.fadeOut('fast');
 
 					$a.fadeOut('fast', function() {
 						$(this).fadeIn("fast")

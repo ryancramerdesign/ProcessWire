@@ -1,36 +1,17 @@
 
-// Specific to #NotificationList
-#NotificationList {
-	.NoticeMessage,
-	.NoticeError,
-	.NoticeWarning {
-		padding: 0.25em 0;
-		border: none;
-		border-bottom: 1px solid $no-border-color;
-	}
-	.container {
-		margin-left: 0.5em;
-		margin-right: 1em;
-		max-width: 100%; 
-	}
-	a {
-		text-decoration: underline;
-	}
-}
-
-
 // General Notice/Notification styles
+
 .NoticeMessage {
-	color: $no-message-color;
-	background: $no-message-bg;
+	color: $highlight-color;
+	background: $highlight-bg;
 
 	i.fa {
-		color: $no-message-icon-color;
+		color: $highlight-color;
 	}
 
 	&.open, &:hover {
-		color: $no-message-open-color;
-		background: $no-message-open-bg;
+		color: $highlight-color;
+		background: darken($highlight-bg, 3%);
 	}
 
 	a {
@@ -83,6 +64,49 @@
 	}
 }
 
+// Specific to #NotificationList
+#NotificationList {
+	.NoticeMessage,
+	.NoticeError,
+	.NoticeWarning {
+		padding: 0.25em 0;
+		border: none;
+		border-bottom: 1px solid $no-border-color;
+	}
+	.container {
+		margin-left: 0.5em;
+		margin-right: 1em;
+		max-width: 100%; 
+	}
+	a {
+		text-decoration: underline;
+	}
+
+	.NoticeMessage {
+		color: $no-message-color;
+		background: $no-message-bg;
+
+		i.fa {
+			color: $no-message-color;
+		}
+
+		&.open, &:hover {
+			color: $no-message-open-color;
+			background: $no-message-open-bg;
+		}
+
+		a {
+			color: $no-message-link-color;
+			&:hover {
+				color: $no-message-link-hover-color;
+			}
+		}
+	}
+}
+
+
+
+
 
 #NotificationList .NotificationHasProgress {
 	background: $link;
@@ -101,8 +125,33 @@
 
 // Specific to #NotificationBug
 #NotificationBug {
-	color: $no-bug-color;
+	top: 1.7em;
+	font-size: 11px;
+	font-weight: normal;
 	background: $no-bug-bg;
+	color: $no-bug-color;
+	border-radius: 3px;
+	padding: 0;
+	height: auto !important;
+	min-width: 0 !important;
+	border-top: none;
+	transition: left $speed ease-in-out;
+
+	&:before{
+		content: "\f0a2";
+		font-family: fontAwesome;
+		left: -20px;
+		position: absolute;
+		color: $topnav-link-color;
+		font-size: 14px;
+	}
+	
+	& .qty{
+		font-size: 12px !important;
+		font-weight: bold !important;
+		width: auto !important;
+		padding: 2px 6px 2px 5px;
+	}
 
 	&:hover {
 		color: $no-bug-hover-color;
@@ -132,9 +181,12 @@
 
 // Specific to #NotificationGhosts
 #NotificationGhosts {
-	top: 54px;
+	top: 55px !important;
 
 	li {
+		.NotificationGhost{
+			box-shadow: 0 3px 6px rgba(0,0,0,0.2) !important;
+		}
 		.NoticeMessage {
 			color: $no-ghost-message-color;
 			background: $no-ghost-message-bg;
@@ -162,6 +214,9 @@
 	}
 }
 
+.NotificationRemove{
+	right: 2em !important;
+}
 
 
 /**

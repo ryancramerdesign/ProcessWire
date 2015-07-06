@@ -276,8 +276,8 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 
 		$out = 	
 			"\n\t\t<p class='InputfieldFileInfo InputfieldItemHeader ui-widget ui-widget-header ui-helper-clearfix'>" . 
-			"\n\t\t\t<span class='HideIfSingle InputfieldFileDrag'><i class='fa fa-sort HideIfSingle'></i>&nbsp;</span>";
-			//"\n\t\t\t<i class='fa fa-caret-right HideIfMultiple'></i> ";
+			"\n\t\t\t<span class='HideIfSingle InputfieldFileDrag'><i class='fa fa-sort'></i>&nbsp;</span>" . 
+			"\n\t\t\t<i class='fa fa-caret-right InputfieldFileDrag HideIfMultiple'></i> ";
 
 		
 		if($this->uploadOnlyMode) {
