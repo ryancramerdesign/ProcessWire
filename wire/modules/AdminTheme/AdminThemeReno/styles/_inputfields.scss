@@ -602,3 +602,36 @@ ul.Inputfields #wrap_login_name,
 ul.Inputfields #wrap_login_pass {
 	width: auto !important;
 }
+
+
+/****************************************************************************
+ * The following is only for AdminThemeReno support of PW 2.5.x
+ * 
+ * This can eventually be dropped
+ * 
+ */
+body:not(.AdminThemeReno) .Inputfields {
+	
+	.InputfieldRepeater > .InputfieldContent .InputfieldRepeaterItem > .InputfieldHeader {
+		padding: 0.25em 0.25em 0.25em 1.7em;
+
+		.InputfieldRepeaterTrash {
+			right: 1.8em;
+		}
+
+		.ui-icon {
+			margin-top: 3px;
+		}
+	}
+
+	.InputfieldItemList .InputfieldItemHeader {
+		/* file or repeater item header */
+		padding-left: 0.25em;
+		padding-right: 0.5em;
+
+		.ui-icon {
+			margin-top: 3px;
+		}
+	}
+}
+

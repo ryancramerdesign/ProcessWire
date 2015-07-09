@@ -80,16 +80,25 @@ class AdminThemeRenoHelpers extends AdminThemeDefaultHelpers {
 		$adminTheme = $this->wire('adminTheme');
 		$adminTheme->avatar_field != '' ?  $imgField = $user->get($adminTheme->avatar_field) : $imgField = '';
 		$avatar = "<i class='fa $adminTheme->profile'></i>";
-		
-		// view site
-		$items[] = "<li><a href='{$config->urls->root}'><i class='fa {$adminTheme->home}'></i></a></li>";
 
-		// search icon
-		$items[] = "<li><a href='#' class='search-toggle'><i class='fa fa-search'></i></a></li>";
+		// View site
+		$items[] = array(
+			"class" => "",
+			"label" => "<i class='fa {$adminTheme->home}'></i>",
+			"link" => $config->urls->root,
+		);
 
+		// Search toggle
+		$items[] = array(
+			"class" => "search-toggle",
+			"label" => "<i class='fa fa-search'></i>",
+			"link" => "#",
+		);
+
+		// Superuser quick links
 		if ($this->user->isSuperuser()){
 
-			// superuser quick links
+			// Links in dropdown
 			$superuserPages = array(
 				"<i class='fa fa-life-ring'></i> " . $this->_('Support Forums')  => "http://processwire.com/talk/",
 				"<i class='fa fa-book'></i> " . $this->_('Documentation') => "https://processwire.com/docs/",
@@ -98,6 +107,7 @@ class AdminThemeRenoHelpers extends AdminThemeDefaultHelpers {
 				"<i class='fa fa-anchor'></i> " . $this->_('Captain Hook')  => "http://processwire.com/api/hooks/captain-hook/",
 			);
 
+			// add to items array
 			$items[] = array(
 				"class" => "superuser",
 				"label" => "<i class='fa fa-bolt'></i>",
@@ -105,6 +115,7 @@ class AdminThemeRenoHelpers extends AdminThemeDefaultHelpers {
 			);
 		}
 
+		// Avatar field for user information
 		if ($imgField != '') {
 			$class = 'avatar';
 			count($imgField) ? $img = $imgField->first() : $img = $imgField;
@@ -112,12 +123,13 @@ class AdminThemeRenoHelpers extends AdminThemeDefaultHelpers {
 			$avatar = "<img src='$userImg->url' alt='$user->name' />";
 		}
 		
-		// pages for the user dropdown.
+		// Pages for the user dropdown.
 		$userPages = array(
 			"<i class='fa fa-user'></i> " . $this->_('Profile') => $config->urls->admin . "profile/",
 			"<i class='fa $adminTheme->signout'></i> " . $this->_('Logout') => $config->urls->admin . "login/logout/"
 		);
 
+		// User information, profile, logout
 		$items[] = array(
 			"class" => "avatar",
 			"label" => "$avatar <span>" . $this->getDisplayName($user) . "</span>",
@@ -138,19 +150,23 @@ class AdminThemeRenoHelpers extends AdminThemeDefaultHelpers {
 		
 		$out = '';
 		foreach ($items as $item){
-			if (is_array($item)){
-				$out .= "<li class='" . $item['class'] . " dropdown'><a href='#'>" . $item['label'] . "</a>";
+			array_key_exists('class', $item) ? $class = $item['class'] : $class = '';
+			array_key_exists('label', $item) ? $label = $item['label'] : $label = "<i class='fa fa-question-circle'></i>";
+			array_key_exists('link', $item) ? $link = $item['link'] : $link = '#';
+			array_key_exists('children', $item) && is_array($item['children']) ? $children = $item['children'] : $children = false;
+			
+			if(!empty($item['children'])) $class .= " dropdown";
+
+			$out .= "<li class='$class'><a href='$link'>$label</a>";
+				if ($children){
 					$out .= "<ul>";
-						foreach($item['children'] as $label => $link){
-							$current = ($this->wire('page')->path == $link) ? 'current' : ''; // current class
-							$out .= "<li><a href='$link' class='$current'>$label</a></li>";
+						foreach($children as $child_label => $child_link){
+							$current = ($this->wire('page')->path == $child_link) ? 'current' : ''; // current class
+							$out .= "<li><a href='$child_link' class='$current'>$child_label</a></li>";
 						}
 					$out .= "</ul>";
-				$out .= "</li>";
-			
-			} else {
-				$out .= $item;
-			}
+				}
+			$out .= "</li>";
 		}
 
 		return $out;
@@ -210,7 +226,7 @@ class AdminThemeRenoHelpers extends AdminThemeDefaultHelpers {
 		$class = strpos($this->wire('page')->path, $p->path) === 0 ? 'current' : ''; // current class
 		$class .= count($children) > 0 ? " parent" : ''; // parent class
 		$title = $sanitizer->entities1((string) $this->_($p->get('title|name')));
-		$currentPagePath = $this->wire('page')->path;
+		$currentPagePath = $this->wire('page')->url; // use URL to support sub directory installs
 
 		$out .= "<li>";
 	
@@ -238,8 +254,12 @@ class AdminThemeRenoHelpers extends AdminThemeDefaultHelpers {
 					
 				} else {
 					// $c is a Page object
-					$c->path == wire('config')->urls->admin . "page/list/" ? $currentPagePath = $currentPagePath . "list/" : '';
-					$class = strpos($currentPagePath, $c->path) === 0 ? 'current' : ''; // child current class
+					$list = array(
+						wire('config')->urls->admin . "page/",
+						wire('config')->urls->admin . "page/edit/"
+					);
+					in_array($currentPagePath, $list) ? $currentPagePath = wire('config')->urls->admin . "page/list/" : '';
+					$class = strpos($currentPagePath, $c->url) === 0 ? 'current' : ''; // child current class
 					$name = $c->name;
 
 					if(!$c->viewable()) continue;
@@ -292,9 +312,12 @@ class AdminThemeRenoHelpers extends AdminThemeDefaultHelpers {
 	
 	public function getDisplayName(User $user) {
         
-        $out = "";
+        $out = '';
+        
         $adminTheme = $this->wire('adminTheme');
-        $userFields = explode(',', $adminTheme->userFields);
+        $field_name = "userFields_". wire('user')->template->name;
+        trim($adminTheme->$field_name) == '' ? $adminTheme->$field_name = 'name' : ''; // force to name field if empty
+        $userFields = explode(',', $adminTheme->$field_name);
         
         foreach($userFields as $f){
             $f = trim($f);

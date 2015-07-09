@@ -12,7 +12,7 @@
 	background: $mainnav-toggle-bg !important;
 	left: $mainnav-width;
 	color: $mainnav-toggle-color;
-	border-left: $topnav-border;
+	border-left: $mainnav-toggle-border;
 	font-size: 14px !important; // font awesome renders clearer at 14px;
 	transition: all $speed ease-in-out;
 	@media only screen and (min-width: $wide-screen-width) {

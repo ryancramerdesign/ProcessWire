@@ -34,11 +34,8 @@ $reverse-text-color: $white;
 
 // Masthead
 $masthead-bg: $dark-blue;
-$masthead-bg-dark:darken($masthead-bg, 4%);
 $masthead-secondary-bg: #D2E4EA; 
 $masthead-secondary-border: none;
-$masthead-border: 1px solid lighten($masthead-bg, 5%);
-$masthead-height: 52px; 
 
 // Links
 $link-color: $link;
@@ -126,6 +123,7 @@ $search-dropdown-border-color: $border-color;
 $search-dropdown-border-style: solid;
 $search-label: $medium-text-color;
 $search-placeholder-color: darken($medium-text-color, 20%);
+$search-close-color: $link;
 
 $dropdown-bg: $white;
 $dropdown-link-color: $mainnav-link-color;
@@ -303,8 +301,8 @@ $no-error-icon-color: $no-error-color;
 $no-error-link-color: transparentize($no-error-color, 0.2);
 $no-error-link-hover-color: $no-error-color;
 
-$no-bug-color: #fff;
-$no-bug-bg: $green;
+$no-bug-color: $masthead-bg;
+$no-bug-bg: $topnav-link-color;
 $no-bug-open-color: '';
 $no-bug-open-bg: '';
 $no-bug-hover-color: '';

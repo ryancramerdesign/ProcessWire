@@ -435,6 +435,28 @@ var ProcessWireAdminTheme = {
 	    	$input.blur();
 			return false;
 		});
+
+	
+		$('body').click(function(event){
+
+			if (!$search.hasClass('open')) return; // not open, so do nothing
+			
+			var hide = true;
+			var exclude = ['ProcessPageSearchAutocomplete', 'ProcessPageSearchForm', 'search'];
+   			if ($.inArray(event.target.id, exclude) != -1) return; // stay open for these targets
+   			
+   			// check if the event.target was a child element of any of any items in the exclude array.
+   			$.each(exclude, function(key, val){
+				if ($(event.target).closest('#' + val).length) hide = false; 
+			});
+
+   			if (hide){
+   				$search.removeClass("open");
+    			$input.val("");
+    			$input.blur();
+   			}
+		});
+	
 	},
 
 	setupDropdowns: function() {

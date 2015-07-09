@@ -20,6 +20,7 @@ $speed: 250ms;
 $wide-screen-width: 1200px; 
 $mainnav-width: 210px; 
 $mainnav-width-wide: 230px; // bigger sidebar for wide screen?
+$masthead-height: 52px;
 
 @import 'reset';
 @import 'jquery-ui';
@@ -509,6 +510,11 @@ ul.action-group{
 	 * PageList
 	 *
 	 */
+
+	.PageListLoading{
+		// PW 2.5.x only, can be removed when support is no longer needed
+		background: none !important;
+	}
 
 	.PageList {
 
