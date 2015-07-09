@@ -419,25 +419,35 @@ class Session extends Wire implements IteratorAggregate {
 	 *
 	 * Also sets them to the current user
 	 *
-	 * @param string $name
+	 * @param string|User $name May be user name or User object
 	 * @param string $pass Raw, non-hashed password
+	 * @param bool $force Specify boolean true to login user without requiring a password ($pass argument can be blank, or anything)
+	 * 	You can also use the $session->forceLogin($user) method to force a login without a password. 
 	 * @return User Return the $user if the login was successful or null if not. 
 	 *
 	 */
-	public function ___login($name, $pass) {
-		
-		$name = $this->wire('sanitizer')->pageName($name); 
+	public function ___login($name, $pass, $force = false) {
+	
+		$user = null;		
+		if(is_object($name) && $name instanceof User) {
+			$user = $name;
+			$name = $user->name;
+		} else {
+			$name = $this->wire('sanitizer')->pageName($name);
+		}
 
 		if(!$this->allowLogin($name)) {
 			$this->loginFailure($name, "User is not allowed to login");
 			return null;
 		}
 
-		$user = strlen($name) ? $this->wire('users')->get("name=$name") : null; 
+		if(is_null($user)) {
+			$user = strlen($name) ? $this->wire('users')->get("name=$name") : null;
+		}
 
 		if(	$user && $user->id 
 			&& $user->id != $this->wire('config')->guestUserPageID 
-			&& $this->authenticate($user, $pass)) { 
+			&& ($force === true || $this->authenticate($user, $pass))) { 
 
 			$this->trackChange('login', $this->wire('user'), $user); 
 			session_regenerate_id(true);
@@ -476,6 +486,17 @@ class Session extends Wire implements IteratorAggregate {
 		}
 
 		return null; 
+	}
+
+	/**
+	 * Login a user without requiring a password
+	 * 
+	 * @param string|User $user Username or User object
+	 * @return User|null Returns User object on success, or null on failure
+	 * 
+	 */
+	public function forceLogin($user) {
+		return $this->login($user, '', true);
 	}
 
 	/**

@@ -301,7 +301,7 @@ class PagePermissions extends WireData implements Module {
 			if(!$user->hasPermission('user-admin')) return false; 
 		}
 		
-		if($user->id === $page->id) {
+		if($user->id === $page->id && !$user->isSuperuser() && !$user->hasPermission('user-admin')) {
 			return $this->userFieldEditable($name, $user);
 		}
 		

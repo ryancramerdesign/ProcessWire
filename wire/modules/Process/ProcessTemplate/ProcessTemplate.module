@@ -1044,10 +1044,11 @@ class ProcessTemplate extends Process {
 		$field->attr('name', 'pageLabelField');
 		$field->label = $this->_('List of fields to display in the admin Page List');
 		$field->description = $this->_("Enter one or more field names assigned to this template to display in the admin Page List when listing pages using this template. If left blank, the fields specified on the ProcessPageList module configuration will be used instead. Field names should be separated by a space and/or comma. Blank fields will be ignored."); // Page list fields, description
+		$field->description .= ' ' . $this->_('You may also use your own format (and any additional punctuation/characters) by specifying field names in brackets, i.e. {name}, {categories.title}, etc.'); // Page list fields, description 2
 		$notes = 'name, ';
 		foreach($template->fields as $f) if(!$f->type instanceof FieldtypeFieldsetOpen) $notes .= $f->name . ", ";
-		$field->notes = $this->_('You may enter one or more of these fields:') . ' ' . rtrim($notes, ", ");
-		//$field->notes .= "\n" . $this->_('You may also enter an [icon name](http://fontawesome.io/cheatsheet/), for example: icon-file or fa-file (either format works).'); 
+		$field->notes = $this->_('You may enter one or more of these fields:') . ' ' . rtrim($notes, ", ") . ". ";
+		$field->notes .= $this->_('To specify a property of a field, surround the field in brackets and enter {field_name.property}, for example: {categories.title}.');
 		$field->attr('value', $pageLabelField); 
 		$field->collapsed = Inputfield::collapsedBlank;
 		$form->append($field);

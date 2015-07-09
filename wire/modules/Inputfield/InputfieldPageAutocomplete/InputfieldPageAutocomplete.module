@@ -281,6 +281,7 @@ _OUT;
 		$fieldset->label = $this->_('Autocomplete Advanced Options');
 		$fieldset->collapsed = Inputfield::collapsedYes; 
 
+		$recommended = $this->_('Recommended');
 		$field = $this->modules->get('InputfieldRadios');
 		$field->setAttribute('name', 'operator');
 		$field->label = $this->_('Autocomplete search operator');
@@ -288,7 +289,7 @@ _OUT;
 		$field->notes = $this->_("If you aren't sure what you want here, leave it set at the default: *="); 
 		$field->required = false;
 		$field->addOption('*=', '*= ' . $this->_("Contains phrase or partial word (using fulltext index) - Recommended")); 
-		$field->addOption('%=', '%= ' . $this->_("Contains phrase or partial word (using LIKE)")); 
+		$field->addOption('%=', '%= ' . $this->_("Contains phrase or partial word (using LIKE)") . " - $recommended");
 		$field->addOption('~=', '~= ' . $this->_("Contains all the [full] words, in any order")); 
 		$field->addOption('^=', '^= ' . $this->_("Starts with word/phrase")); 
 		$field->addOption('$=', '$= ' . $this->_("Ends with word/phrase")); 

@@ -427,13 +427,21 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 			foreach($this->wire('fields') as $field) {
 				if($field->flags & Field::flagGlobal && ($field->type instanceof FieldtypePageTitle || $field->type instanceof FieldtypePageTitleLanguage)) {
 					if($this->template) $field = $this->template->fieldgroup->getField($field->id, true); // get in context of fieldgroup
-					$form->append($field->getInputfield($page)); 
+					if(in_array($field->collapsed, array(Inputfield::collapsedNoLocked, Inputfield::collapsedYesLocked))) continue;
+					$inputfield = $field->getInputfield($page);
+					$form->append($inputfield);
 					break;
 				}
 			}
 		} else if($this->template) {
-			$field = $this->template->fieldgroup->getField('title', true); 
-			if($field) $form->append($field->getInputfield($page)); 
+			$field = $this->template->fieldgroup->getField('title', true);
+			if($field) {
+				if(in_array($field->collapsed, array(Inputfield::collapsedNoLocked, Inputfield::collapsedYesLocked))) {
+					// skip it
+				} else {
+					$form->append($field->getInputfield($page));
+				}
+			}
 		}
 
 		$field = $this->modules->get('InputfieldPageName');

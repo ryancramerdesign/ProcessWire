@@ -548,6 +548,23 @@ class Pageimage extends Pagefile {
 	}
 
 	/**
+	 * Return an image no larger than the given width and height
+	 * 
+	 * @param int $width Max allowed width
+	 * @param int $height Max allowed height
+	 * @param array $options Optional options array
+	 * @return Pageimage
+	 * 
+	 */
+	public function maxSize($width, $height, $options = array()) {
+		if($this->width() >= $this->height()) {
+			return $this->maxWidth($width);
+		} else {
+			return $this->maxHeight($height);
+		}
+	}
+
+	/**
 	 * Get all size variations of this Pageimage 
 	 *
 	 * This is useful after a delete of an image (for example). This method can be used to track down all the child files that also need to be deleted. 

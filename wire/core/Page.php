@@ -746,6 +746,12 @@ class Page extends WireData implements Countable {
 			case 'statusStr':
 				$value = implode(' ', $this->status(true)); 
 				break;
+			case 'modifiedStr':
+				$value = wireDate($this->wire('config')->dateFormat, $this->settings['modified']);
+				break;
+			case 'createdStr':
+				$value = wireDate($this->wire('config')->dateFormat, $this->settings['created']);
+				break;
 			default:
 				if($key && isset($this->settings[(string)$key])) return $this->settings[$key];
 				
@@ -944,42 +950,64 @@ class Page extends WireData implements Countable {
 	 *
 	 */
 	public function ___getMarkup($key) {
+		
 		$value = '';
+		
 		if(strpos($key, '{') !== false && strpos($key, '}')) {
 			// populate a string with {tags}
 			// note that the wirePopulateStringTags() function calls back on this method
 			// to retrieve the markup values for each of the found field names
-			$value = wirePopulateStringTags($key, $this);
-
-		} else {
-			if(strpos($key, '|') !== false) {
-				$key = $this->getFieldFirstValue($key, true);
-				if(!$key) return '';
-			}
-			if($this->wire('sanitizer')->name($key) != $key) {
-				// not a possible field name
-				return '';
-			}
-			$name = $key;
-			$subname = '';
-			if(strpos($name, '.')) list($name, $subname) = explode('.', $key);
-			$field = $this->fieldgroup->getField($name);
-			if($field) {
-				// corresponds to a known field in this page's fieldgroup
-				$value = $this->getFormatted($name);
-				$value = $field->type->markupValue($this, $field, $value, $subname);
-			} else if($this->wire($name) || ($subname && $this->wire($subname))) {
-				// we don't allow API variables in markup values
-			} else {
-				// native or unknown field
-				$value = $this->getFormatted($key);
-			}
-			if(is_object($value)) {
-				if($value instanceof Page) $value = $value->getFormatted('title|name');
-				if($value instanceof PageArray) $value = $value->getMarkup();
-			}
+			return wirePopulateStringTags($key, $this);
 		}
+
+		if(strpos($key, '|') !== false) {
+			$key = $this->getFieldFirstValue($key, true);
+			if(!$key) return '';
+		}
+		
+		if($this->wire('sanitizer')->name($key) != $key) {
+			// not a possible field name
+			return '';
+		}
+
+		$parts = strpos($key, '.') ? explode('.', $key) : array($key);
+		$value = $this;
+		
+		do {
+			
+			$name = array_shift($parts);
+			
+			if($this->wire($name)) {
+				// disallow API vars
+				$value = '';
+				break;
+			}
+			
+			$field = $this->template->fieldgroup->getField($name);
+			
+			if($value instanceof Page) {
+				$value = $value->getFormatted($name);
+			} else if($value instanceof Wire) {
+				$value = $value->get($name);
+			} else {
+				$value = $value->$name;
+			}
+			
+			if($field && count($parts) < 2) {
+				// this is a field that will provide its own formatted value
+				$subname = count($parts) == 1 ? array_shift($parts) : '';
+				if(!$this->wire($subname)) $value = $field->type->markupValue($this, $field, $value, $subname);
+			}
+			
+		} while(is_object($value) && count($parts));
+		
+		if(is_object($value)) {
+			if($value instanceof Page) $value = $value->getFormatted('title|name');
+			if($value instanceof PageArray) $value = $value->getMarkup();
+		}
+		
 		if(!is_string($value)) $value = (string) $value;
+		
 		return $value;
 	}
 
@@ -1428,10 +1456,44 @@ class Page extends WireData implements Countable {
 			$options = $field;
 			$field = null;
 		}
-		if(!is_null($field)) {
+		if(!is_null($field) && $this->template->fieldgroup->hasField($field)) {
 			return $this->wire('pages')->saveField($this, $field, $options);
 		}
 		return $this->wire('pages')->save($this, $options);
+	}
+	
+	/**
+	 * Set a field value (or array of fields and values) and save the page
+	 *
+	 * This method does not need output formatting to be turned off first, so make sure that whatever
+	 * value(s) you set are not formatted values!
+	 *
+	 * @param array|string $key Field or property name to set, or array of (key => value)
+	 * @param string|int|bool|object $value Value to set, or omit if you provided an array in first argument.
+	 * @param array $options Additional options, as specified with Pages::save()
+	 * @return bool
+	 *
+	 */
+	public function setAndSave($key, $value = null, array $options = array()) {
+		if(is_array($key)) {
+			$values = $key;
+			$property = count($values) == 1 ? key($values) : '';
+		} else {
+			$property = $key;
+			$values = array($key => $value);
+		}
+		$of = $this->of();
+		if($of) $this->of(false);
+		foreach($values as $k => $v) {
+			$this->set($k, $v);
+		}
+		if($property) {
+			$result = $this->save($property, $options);
+		} else {
+			$result = $this->save($options);
+		}
+		if($of) $this->of(true);
+		return $result;
 	}
 
 	/**
@@ -1672,7 +1734,10 @@ class Page extends WireData implements Countable {
 		$statusFlag = (int) $statusFlag; 
 		$override = $this->settings['status'] & Page::statusSystemOverride; 
 		if($statusFlag == Page::statusSystem || $statusFlag == Page::statusSystemID) {
-			if(!$override) throw new WireException("You may not remove the 'system' status from a page unless it also has system override status (Page::statusSystemOverride)"); 
+			if(!$override) throw new WireException(
+				"You may not remove the 'system' status from a page unless it also has system override " . 
+				"status (Page::statusSystemOverride)"
+			); 
 		}
 		$this->status = $this->status & ~$statusFlag; 
 		return $this;

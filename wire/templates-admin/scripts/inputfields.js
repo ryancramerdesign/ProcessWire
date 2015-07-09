@@ -1024,8 +1024,16 @@ function InputfieldIntentions() {
 
 var InputfieldWindowResizeQueued = false;
 
-function InputfieldWindowResizeActions() {
-	consoleLog('InputfieldWindowResizeActions()');
+function InputfieldWindowResizeActions1() {
+	consoleLog('InputfieldWindowResizeActions1()');
+	// notify all Inputfields that they have been resized
+	// note: event is not triggered at ready() so Inputfield should trigger its own
+	// resize event if it needs this as part of setup
+	$(".Inputfield").trigger('resized');
+}
+
+function InputfieldWindowResizeActions2() {
+	consoleLog('InputfieldWindowResizeActions2()');
 	InputfieldColumnWidths();
 	InputfieldWindowResizeQueued = false;
 }
@@ -1042,14 +1050,16 @@ jQuery(document).ready(function($) {
 	
 	var windowResized = function() {
 		if(InputfieldWindowResizeQueued) return;
-		InputfieldWindowResizeQueued = true; 
-		setTimeout('InputfieldWindowResizeActions()', 2000); 	
+		InputfieldWindowResizeQueued = true;
+		setTimeout('InputfieldWindowResizeActions1()', 1000);
+		setTimeout('InputfieldWindowResizeActions2()', 2000); 	
 	};
 	
 	var tabClicked = function() {
 		if(InputfieldWindowResizeQueued) return;
-		InputfieldWindowResizeQueued = true; 
-		setTimeout('InputfieldWindowResizeActions()', 500); 	
+		InputfieldWindowResizeQueued = true;
+		setTimeout('InputfieldWindowResizeActions1()', 250);
+		setTimeout('InputfieldWindowResizeActions2()', 500); 	
 		return true; 
 	}; 
 
