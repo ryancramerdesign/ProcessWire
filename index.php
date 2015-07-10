@@ -248,6 +248,7 @@ try {
 	 *
 	 */
 	if($process) $process->failed($e);
+	$wire ? $wire->trackException($e) : $config->trackException($e);
 	$errorMessage = "Exception: " . $e->getMessage() . " (in " . $e->getFile() . " line " . $e->getLine() . ")";
 	if($config->debug || ($wire && $wire->user && $wire->user->isSuperuser())) $errorMessage .= "\n\n" . $e->getTraceAsString();
 	trigger_error($errorMessage, E_USER_ERROR); 

@@ -845,7 +845,7 @@ class Modules extends WireArray {
 		try {
 			$dir = new DirectoryIterator($path); 
 		} catch(Exception $e) {
-			$this->error($e->getMessage()); 
+			$this->trackException($e, false, true);
 			$dir = null;
 		}
 		
@@ -1304,7 +1304,7 @@ class Modules extends WireArray {
 			if($query->execute()) $moduleID = (int) $database->lastInsertId();
 		} catch(Exception $e) {
 			if($languages) $languages->unsetDefault();
-			$this->error($e->getMessage()); 
+			$this->trackException($e, false, true); 
 			return null;
 		}
 		
@@ -1320,12 +1320,18 @@ class Modules extends WireArray {
 
 			} catch(Exception $e) {
 				// remove the module from the modules table if the install failed
-				$moduleID = (int) $moduleID; 
-				$query = $database->prepare('DELETE FROM modules WHERE id=:id LIMIT 1'); // QA
-				$query->bindValue(":id", $moduleID, PDO::PARAM_INT); 
-				$query->execute();
-				if($languages) $languages->unsetDefault(); 
-				$this->error("Unable to install module '$class': " . $e->getMessage()); 
+				$moduleID = (int) $moduleID;
+				$error = "Unable to install module '$class': " . $e->getMessage();
+				$ee = null;
+				try {
+					$query = $database->prepare('DELETE FROM modules WHERE id=:id LIMIT 1'); // QA
+					$query->bindValue(":id", $moduleID, PDO::PARAM_INT);
+					$query->execute();
+				} catch(Exception $ee) {
+					$this->trackException($e, false, $error)->trackException($ee, true);
+				}
+				if($languages) $languages->unsetDefault();
+				if(is_null($ee)) $this->trackException($e, false, $error);
 				return null;
 			}
 		}
@@ -1346,7 +1352,8 @@ class Modules extends WireArray {
 				$this->message(sprintf($this->_('Added Permission: %s'), $permission->name)); 
 			} catch(Exception $e) {
 				if($languages) $languages->unsetDefault(); 
-				$this->error(sprintf($this->_('Error adding permission: %s'), $name)); 
+				$error = sprintf($this->_('Error adding permission: %s'), $name);
+				$this->trackException($e, false, $error); 
 			}
 		}
 
@@ -1359,7 +1366,8 @@ class Modules extends WireArray {
 					$this->install($name, $dependencyOptions); 
 					$this->message("$label: $name"); 
 				} catch(Exception $e) {
-					$this->error("$label: $name - " . $e->getMessage()); 	
+					$error = "$label: $name - " . $e->getMessage();
+					$this->trackException($e, false, $error); 
 				}
 			}
 		}
@@ -1633,7 +1641,8 @@ class Modules extends WireArray {
 				$this->message("$label: $name"); 
 
 			} catch(Exception $e) {
-				$this->error("$label: $name - " . $e->getMessage()); 
+				$error = "$label: $name - " . $e->getMessage(); 
+				$this->trackException($e, false, $error);
 			}
 		}
 	
@@ -1657,7 +1666,8 @@ class Modules extends WireArray {
 					$this->wire('permissions')->delete($permission); 
 					$this->message(sprintf($this->_('Deleted Permission: %s'), $name)); 
 				} catch(Exception $e) {
-					$this->error(sprintf($this->_('Error deleting permission: %s'), $name)); 
+					$error = sprintf($this->_('Error deleting permission: %s'), $name);
+					$this->trackException($e, false, $error);
 				}
 			}
 		}
@@ -3179,7 +3189,7 @@ class Modules extends WireArray {
 			try { 
 				if($language && $language->id && !$language->isDefault()) $user->language = $languages->getDefault(); // save
 			} catch(Exception $e) {
-				$this->error($e->getMessage());
+				$this->trackException($e, false, true); 
 			}
 		}
 	

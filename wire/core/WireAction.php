@@ -97,6 +97,7 @@ abstract class WireAction extends WireData implements Module {
 			$result = $this->action($item); 
 
 		} catch(Exception $e) {
+			$this->trackException($e, true);
 			$result = false; 
 			$this->error($e->getMessage()); 
 		}

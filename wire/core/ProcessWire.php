@@ -33,7 +33,7 @@ class ProcessWire extends Wire {
 
 	const versionMajor = 2; 
 	const versionMinor = 6; 
-	const versionRevision = 7; 
+	const versionRevision = 8; 
 	const versionSuffix = 'dev';
 	
 	const indexVersion = 250; // required version for index.php file (represented by PROCESSWIRE define)
@@ -192,6 +192,7 @@ class ProcessWire extends Wire {
 			$this->wire('db', $db);
 		} catch(Exception $e) {
 			// catch and re-throw to prevent DB connect info from ever appearing in debug backtrace
+			$this->trackException($e, true, 'Unable to load WireDatabasePDO');
 			throw new WireDatabaseException($e->getMessage()); 
 		}
 		
@@ -208,6 +209,7 @@ class ProcessWire extends Wire {
 			$modules->init();
 			if($this->debug) Debug::saveTimer('boot.load.modules');
 		} catch(Exception $e) {
+			$this->trackException($e, true, 'Unable to load Modules');
 			if(!$modules) throw new WireException($e->getMessage()); 	
 			$this->error($e->getMessage()); 
 		}

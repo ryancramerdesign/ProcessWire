@@ -839,7 +839,11 @@ class WireHttp extends Wire {
 		try {
 			$url = $this->wire('sanitizer')->url($url, $options); 
 		} catch(WireException $e) {
-			if($throw) throw $e; 
+			if($throw) {
+				throw $e;
+			} else {
+				$this->trackException($e, false);
+			}
 			$url = '';
 		}
 		return $url;

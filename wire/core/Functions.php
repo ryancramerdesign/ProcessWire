@@ -849,6 +849,7 @@ function wireMail($to = '', $from = '', $subject = '', $body = '', $options = ar
 
 	} catch(Exception $e) {
 		if(wire('config')->debug) $mail->error($e->getMessage());
+		$mail->trackException($e, false);
 		$numSent = 0;
 	}
 

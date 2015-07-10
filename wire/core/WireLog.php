@@ -99,7 +99,7 @@ class WireLog extends Wire {
 						$url .= "?";
 						foreach($input->get as $k => $v) {
 							$k = $this->wire('sanitizer')->name($k);
-							$v = $this->wire('sanitizer')->name($k);
+							$v = $this->wire('sanitizer')->name($v);
 							$url .= "$k=$v&";
 						}
 						$url = rtrim($url, "&");

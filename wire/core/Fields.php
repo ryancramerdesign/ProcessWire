@@ -198,7 +198,7 @@ class Fields extends WireSaveableItems {
 				if($field->type->createField($field)) $this->message("Created table '$table'"); 
 			}
 		} catch(Exception $e) {
-			$this->error($e->getMessage() . " (checkFieldTable)"); 
+			$this->trackException($e, false, $e->getMessage() . " (checkFieldTable)"); 
 		}
 	}
 
@@ -431,6 +431,7 @@ class Fields extends WireSaveableItems {
 				"SELECT `" . implode('`,`', $schema1) . "` FROM `$table1` ";
 		
 		$error = '';
+		$exception = null;
 
 		try {
 			$result = $database->exec($sql);
@@ -439,13 +440,15 @@ class Fields extends WireSaveableItems {
 				$error = !empty($errorInfo[2]) ? $errorInfo[2] : 'Unknown Error'; 
 			}
 		} catch(Exception $e) {
+			$exception = $e;
 			$result = false;
 			$error = $e->getMessage();
 		}
 
-		if($error) {
+		if($exception) {
 			$this->error("Field type change failed. Database reports: $error"); 
 			$database->exec("DROP TABLE `$table2`"); // QA
+			if($exception) $this->trackException($exception, true); 
 			return false; 
 		}
 
@@ -526,7 +529,7 @@ class Fields extends WireSaveableItems {
 					// $this->message("Deleted '{$field->name}' from '{$page->path}'", Notice::debug);
 
 				} catch(Exception $e) {
-					$this->error($e->getMessage());
+					$this->trackException($e, false, true);
 					$success = false;
 				}
 			}
@@ -547,6 +550,7 @@ class Fields extends WireSaveableItems {
 				$query->execute();
 			} catch(Exception $e) {
 				$this->error($e->getMessage(), Notice::log);
+				$this->trackException($e);
 				$success = false;
 			}
 		}
@@ -698,6 +702,7 @@ class Fields extends WireSaveableItems {
 			}
 		} catch(Exception $e) {
 			$this->error($e->getMessage() . " (getNumRows)");
+			$this->trackException($e, false);
 		}
 
 		return $return;

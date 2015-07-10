@@ -1086,7 +1086,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 			);
 			if($rotate) $options['rotate'] = $rotate; 
 			if($flip) $options['flip'] = $flip;
-			$this->log(print_r($options, true)); 
+			//$this->log(print_r($options, true)); 
 			$resized = $image->width($width, $options); 
 			$height = $resized->height();
 		} else {
@@ -1141,7 +1141,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 				"/>" . 
 				"</p>";
 		}
-		$this->log($out); 
+		//$this->log($out); 
 
 		return $out; 
 	}

@@ -114,7 +114,8 @@ abstract class DatabaseQuery extends WireData {
 		} catch(Exception $e) {
 			$msg = $e->getMessage();
 			if(stripos($msg, 'MySQL server has gone away') !== false) $database->closeConnection();
-			throw new WireException($msg); 
+			if($this->wire('config')->allowExceptions) throw $e; // throw original
+			throw new WireException($msg); // throw WireException
 		}
 		return $query;
 	}

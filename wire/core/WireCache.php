@@ -193,6 +193,7 @@ class WireCache extends Wire {
 			$query->closeCursor();
 				
 		} catch(Exception $e) {
+			$this->trackException($e, false);
 			$value = null;
 		}
 		
@@ -331,6 +332,7 @@ class WireCache extends Wire {
 			$result = $query->execute();
 			$this->log($this->_('Saved cache ') . ' - ' . $name);
 		} catch(Exception $e) {
+			$this->trackException($e, false);
 			$result = false; 
 		}
 
@@ -445,6 +447,7 @@ class WireCache extends Wire {
 			$success = true; 
 			$this->log($this->_('Cleared cache') . ' - ' . $name);
 		} catch(Exception $e) {
+			$this->trackException($e, true);
 			$this->error($e->getMessage()); 
 			$success = false;
 		}
@@ -540,6 +543,7 @@ class WireCache extends Wire {
 			if($qty) $this->log(sprintf($this->_('General maintenance expired %d cache(s)'), $qty));
 
 		} catch(Exception $e) {
+			$this->trackException($e, false);
 			$this->error($e->getMessage(), Notice::debug | Notice::log);
 			$result = false;
 		}
@@ -565,6 +569,7 @@ class WireCache extends Wire {
 				$query->execute();
 				$this->cacheNameSelectors = array();
 			} catch(Exception $e) {
+				$this->trackException($e, false);
 				$this->error($e->getMessage(), Notice::log);
 				return false;
 			}

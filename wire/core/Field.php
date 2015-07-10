@@ -779,7 +779,7 @@ class Field extends WireData implements Saveable, Exportable {
 					$inputfields->append($inputfield);
 				}
 			} catch(Exception $e) {
-				$this->error($e->getMessage()); 
+				$this->trackException($e, false, true); 
 			}
 
 			if(count($inputfields)) $wrapper->append($inputfields); 

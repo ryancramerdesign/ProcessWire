@@ -667,7 +667,7 @@ abstract class Fieldtype extends WireData implements Module {
 			$result = $this->wire('pages')->executeQuery($stmt);
 		} catch(Exception $e) {
 			$result = false;
-			$this->error($e->getMessage());	
+			$this->trackException($e, false, true);
 		}
 		$fieldName = $database->escapeCol($field->name); 
 		$schema = $this->trimDatabaseSchema($this->getDatabaseSchema($field));
@@ -823,7 +823,7 @@ abstract class Fieldtype extends WireData implements Module {
 			$result = $query->execute();
 		} catch(Exception $e) {
 			$result = false; 
-			$this->error($e->getMessage()); 
+			$this->trackException($e, true, true);
 		}
 		return $result;
 	}

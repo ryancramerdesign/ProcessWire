@@ -256,9 +256,10 @@ abstract class FieldtypeMulti extends Fieldtype {
 			try {
 				$result = $query->execute();
 			} catch(Exception $e) {
+				if($this->wire('config')->allowExceptions) throw $e; // throw original
 				$msg = $e->getMessage();
 				if($this->wire('config')->debug && $this->wire('config')->advanced) $msg .= "\n$sql";
-				throw new WireException($msg); 
+				throw new WireException($msg); // throw WireException
 			}
 			
 			return $result; 

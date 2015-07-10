@@ -369,6 +369,7 @@ class Pageimage extends Pagefile {
 						$this->error = "ImageSizer::resize($width, $height) failed for $filenameUnvalidated";
 					}
 				} catch(Exception $e) {
+					$this->trackException($e, false); 
 					$this->error = $e->getMessage(); 
 				}
 			} else {

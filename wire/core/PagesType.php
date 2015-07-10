@@ -342,6 +342,7 @@ class PagesType extends Wire implements IteratorAggregate, Countable {
 			$this->save($page); 
 
 		} catch(Exception $e) {
+			$this->trackException($e, false);
 			$page = new NullPage();
 		}
 

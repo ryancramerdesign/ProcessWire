@@ -289,6 +289,7 @@ class PageFinder extends Wire {
 				$this->wire('pages')->executeQuery($stmt);
 				$error = '';
 			} catch(Exception $e) {
+				$this->trackException($e, true);
 				$error = $e->getMessage();
 			}
 		

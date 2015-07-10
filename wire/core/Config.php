@@ -98,6 +98,7 @@
  * @property string $fatalErrorHTML HTML used for fatal error messages in HTTP mode.
  * @property array $modals Settings for modal windows
  * @property array $preloadCacheNames Cache names to preload at beginning of request
+ * @property bool $allowExceptions Allow Exceptions to propagate? (default=false, specify true only if you implement your own exception handler)
  * 
  * @property string $userAuthSalt Salt generated at install time to be used as a secondary/non-database salt for the password system.
  * @property string $userAuthHashType Default is 'sha1' - used only if Blowfish is not supported by the system.

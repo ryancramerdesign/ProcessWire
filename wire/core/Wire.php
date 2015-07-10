@@ -975,7 +975,7 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	/**
 	 * Record a Notice, internal use (contains the code for message, warning and error methods)
 	 * 
-	 * @param string $text Title of noticd
+	 * @param string $text|array|Wire Title of notice
 	 * @param int $flags Flags bitmask
 	 * @param string $name Name of container
 	 * @param string $class Name of Notice class
@@ -997,7 +997,7 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 *
 	 * This method automatically identifies the message as coming from this class. 
 	 *
-	 * @param string $text
+	 * @param string|array|Wire $text
 	 * @param int|bool $flags See Notices::flags or specify TRUE to have the message also logged to messages.txt
 	 * @return $this
 	 *
@@ -1011,7 +1011,7 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 *
 	 * This method automatically identifies the warning as coming from this class.
 	 *
-	 * @param string $text
+	 * @param string|array|Wire $text
 	 * @param int|bool $flags See Notices::flags or specify TRUE to have the error also logged to errors.txt
 	 * @return $this
 	 *
@@ -1026,13 +1026,48 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 * This method automatically identifies the error as coming from this class. 
 	 * Fatal errors should still throw a WireException (or class derived from it)
 	 *
-	 * @param string $text
+	 * @param string|array|Wire $text
 	 * @param int|bool $flags See Notices::flags or specify TRUE to have the error also logged to errors.txt
 	 * @return $this
 	 *
 	 */
 	public function error($text, $flags = 0) {
 		return $this->_notice($text, $flags, 'errors', 'NoticeError'); 
+	}
+
+	/**
+	 * Hookable method called when an Exception occurs
+	 * 
+	 * It will log Exception to exceptions.txt log if 'exceptions' is in $config->logs. 
+	 * It will re-throw Exception if $config->allowExceptions == true. 
+	 * If additioanl $text is provided, it will be sent to $this->error when $fatal or $this->warning otherwise. 
+	 * 
+	 * @param Exception $e Exception object that was thrown
+	 * @param bool|int $severe Whether or not it should be considered severe (default=true)
+	 * @param string|array|object|true $text Additional details (optional). 
+	 * 	When provided, it will be sent to $this->error($text) if $severe==true, or $this->warning($text) if $severe==false.
+	 * 	Specify boolean true to just sent the $e->getMessage() to $this->error() or $this->warning(). 
+	 * @return $this
+	 * @throws Exception If $severe==true and $config->allowExceptions==true
+	 * 
+	 */
+	public function ___trackException(Exception $e, $severe = true, $text = null) {
+		$config = $this->wire('config');
+		$log = $this->wire('log');
+		$msg = $e->getMessage();
+		if($text !== null) {
+			if($text === true) $text = $msg;
+			$severe ? $this->error($text) : $this->warning($text);
+			if(strpos($text, $msg) === false) $msg = "$text - $msg";
+		}
+		if(in_array('exceptions', $config->logs) && $log) {
+			$msg .= " (in " . str_replace($config->paths->root, '/', $e->getFile()) . " line " . $e->getLine() . ")";
+			$log->save('exceptions', $msg);
+		}
+		if($severe && $this->wire('config')->allowExceptions) {
+			throw $e; // re-throw, if requested
+		}
+		return $this;
 	}
 
 	/**

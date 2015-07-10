@@ -565,6 +565,7 @@ class Pages extends Wire {
 				$error = $e->getMessage() . " [pageClass=$class, template=$template]";
 				if($this->wire('user')->isSuperuser()) $this->error($error);
 				$this->wire('log')->error($error);
+				$this->trackException($e, false);
 			}
 			
 			$stmt->closeCursor();
@@ -874,7 +875,7 @@ class Pages extends Wire {
 					$page->set($field->name, $defaultValue);
 				}
 			} catch(Exception $e) {
-				$this->warning($e->getMessage());
+				$this->trackException($e, false, true); 
 			}
 		}
 	}
@@ -1234,7 +1235,8 @@ class Pages extends Wire {
 			try {
 				$field->type->savePageField($page, $field);
 			} catch(Exception $e) {
-				$this->error(sprintf($this->_('Error saving field "%s"'), $field->name) . ' - ' . $e->getMessage()); 
+				$error = sprintf($this->_('Error saving field "%s"'), $field->name) . ' - ' . $e->getMessage();
+				$this->trackException($e, true, $error); 
 			}
 		}
 

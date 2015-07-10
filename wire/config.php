@@ -13,10 +13,10 @@
  * in /site/config.php 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2014 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://processwire.com
+ * https://processwire.com
  *
  * 
  * TABLE OF CONTENTS
@@ -765,13 +765,14 @@ $config->pageEdit = array(
  * Additional core logs
  * 
  * All activities from the API functions corresponding with the given log names will be logged. 
- * Options that can be specified are: pages, fields, templates, modules
+ * Options that can be specified are: pages, fields, templates, modules, exceptions
  * 
  * @var array
  * 
  */
 $config->logs = array(
 	'modules',
+	'exceptions',
 );
 
 /**
@@ -810,7 +811,7 @@ $config->adminEmail = '';
  * @var string
  * 
  */
-$config->fatalErrorHTML = "<p style='background:crimson;color:white;padding:0.5em;font-family:sans-serif;'><b>{message}</b><br /><small>{why}</small></p>";
+$config->fatalErrorHTML = "<p style='background:crimson;color:white;padding:0.5em;font-family:sans-serif;'><b>{message}</b><br /><br /><small>{why}</small></p>";
 
 /**
  * Settings for modal windows
@@ -867,6 +868,18 @@ $config->preloadCacheNames = array(
 	'Modules.wire/modules/',
 	'Modules.site/modules/',
 );
+
+/**
+ * Allow Exceptions to propagate?
+ * 
+ * When true, ProcessWire will not capture Exceptions and will instead let them fall
+ * through in their original state. Use only if you are running ProcessWire with your
+ * own Exception handler. Most installations should leave this at false.
+ * 
+ * @var bool
+ * 
+ */
+$config->allowExceptions = false;
 
 /**
  * Settings specific to InputfieldWrapper class

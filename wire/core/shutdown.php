@@ -64,11 +64,13 @@ function ProcessWireShutdown() {
 	$log = null;
 	$why = '';
 	$who = '';
+	$sendOutput = true;
 
 	if($config) {
 		$debug = $config->debug;
+		$sendOutput = $config->allowExceptions !== true; 
 		if($config->ajax) $http = false;
-		if($config->adminEmail) {
+		if($config->adminEmail && $sendOutput) {
 			$logMessage = "Page: $path\nUser: $userName\n\n" . str_replace("\t", "\n", $message);
 			wireMail($config->adminEmail, $config->adminEmail, 'ProcessWire Error Notification', $logMessage);
 		}
@@ -79,7 +81,9 @@ function ProcessWireShutdown() {
 			$log->save($logMessage);
 		}
 	}
-
+	
+	if(!$sendOutput) return true; 
+	
 	// we populate $who to give an ambiguous indication where the full error message has been sent
 	if($log) $who .= "Error has been logged. ";
 	if($config && $config->adminEmail) $who .= "Administrator has been notified. ";
@@ -110,6 +114,8 @@ function ProcessWireShutdown() {
 			$html = str_replace(array('{message}', '{why}'), array(
 				nl2br(htmlspecialchars($message, ENT_QUOTES, "UTF-8", false)),
 				htmlspecialchars($why, ENT_QUOTES, "UTF-8", false)), $html); 
+			// make a prettier looking debug backtrace, when applicable
+			$html = preg_replace('!(<br[^>]*>\s*)(#\d+\s+[^<]+)!is', '$1<code>$2</code>', $html);
 			echo "\n\n$html\n\n";
 		} else {
 			echo "\n\n$message\n\n$why\n\n";
@@ -119,8 +125,13 @@ function ProcessWireShutdown() {
 		if($http) header("HTTP/1.1 500 Internal Server Error");
 		// file that error message will be output in, when available
 		$file = $config && $http ? $config->paths->templates . 'errors/500.html' : '';
-		if($file && is_file($file)) echo str_replace('{message}', $who, file_get_contents($file));
-		else echo "\n\nUnable to complete this request due to an error. $who\n\n";
+		if($file && is_file($file)) {
+			// use defined /site/templates/errors/500.html file
+			echo str_replace('{message}', $who, file_get_contents($file));
+		} else {
+			// use generic error message, since no 500.html available
+			echo "\n\nUnable to complete this request due to an error. $who\n\n";
+		}
 	}
 
 	return true;

@@ -79,7 +79,7 @@ if($page->process && $page->process != 'ProcessPageView') {
 	try {
 
 		if($config->demo && !in_array($page->process, array('ProcessLogin'))) {
-			if(count($_POST)) $this->error("Features that use POST variables are disabled in this demo"); 
+			if(count($_POST)) $wire->error("Features that use POST variables are disabled in this demo"); 
 			foreach($_POST as $k => $v) unset($_POST[$k]); 
 			foreach($_FILES as $k => $v) unset($_FILES[$k]); 
 			$input->post->removeAll();
@@ -93,7 +93,7 @@ if($page->process && $page->process != 'ProcessPageView') {
 		$content = $controller->execute();
 
 	} catch(Wire404Exception $e) {
-		$this->error($e->getMessage()); 
+		$wire->error($e->getMessage()); 
 
 	} catch(WirePermissionException $e) {
 
@@ -104,18 +104,32 @@ if($page->process && $page->process != 'ProcessPageView') {
 			$process = $modules->get("ProcessLogin"); 
 			$content = $process->execute();
 		} else {
-			$this->error($e->getMessage()); 	
+			$wire->error($e->getMessage()); 	
 		}
 
 	} catch(Exception $e) {
 		$msg = $e->getMessage(); 
-		if($config->debug) $msg .= "<pre>" . $e->getTraceAsString() . "</pre>";
-		$this->error($msg); 
-		if($controller && $controller->isAjax()) $content = $controller->jsonMessage($e->getMessage(), true); 
+		if($config->debug) {
+			$msg = $sanitizer->entities($msg);
+			$msg .= "<pre>\n" . 
+				__('DEBUG MODE BACKTRACE') . " " . 
+				"(\$config->debug == true):\n" . 
+				$sanitizer->entities($e->getTraceAsString()) . 
+				"</pre>";
+			$wire->error("$page->process: $msg", Notice::allowMarkup);
+		} else {
+			$wire->error($msg);
+		}
+		if($controller && $controller->isAjax()) {
+			$content = $controller->jsonMessage($e->getMessage(), true);
+			$wire->trackException($e, false);
+		} else {
+			$wire->trackException($e, true);
+		}
 	}
 
 } else {
-	$content = "<p>This page has no Process assigned.</p>";
+	$content = '<p>' . __('This page has no process assigned.') . '</p>';
 }
 
 if($config->ajax) {
@@ -130,6 +144,7 @@ if($controller && $controller->isAjax()) {
 	if(empty($content) && count($notices)) $content = $controller->jsonMessage($notices->last()->text); 
 	echo $content; 
 } else {
+	if(!strlen($content)) $content = '<p>' . __('The process returned no content.') . '</p>';
 	require($config->paths->adminTemplates . 'default.php'); 
 }
 

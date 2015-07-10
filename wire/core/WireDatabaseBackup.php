@@ -893,6 +893,7 @@ class WireDatabaseBackup {
 				$numQueries++;
 				
 			} catch(Exception $e) {
+				$this->trackException($e); 
 				$this->error($e->getMessage());
 				if($options['haltOnError']) break;
 			}
@@ -1094,6 +1095,7 @@ class WireDatabaseBackup {
 			}
 		} catch(Exception $e) {
 			if(empty($options['haltOnError'])) {
+				$this->trackException($e);
 				$this->error($e->getMessage());
 			} else {
 				throw $e;

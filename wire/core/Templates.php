@@ -211,6 +211,8 @@ class Templates extends WireSaveableItems {
 	 * Create and return a cloned copy of this template
 	 *
 	 * Note that this also clones the Fieldgroup if the template being cloned has it's own named fieldgroup.
+	 * 
+	 * @todo: clone the fieldgroup context settings too. 
 	 *
 	 * @param Template|Saveable $item Item to clone
 	 * @param string $name
@@ -385,6 +387,7 @@ class Templates extends WireSaveableItems {
 				try {
 					$template->setFieldgroup($fieldgroup);
 				} catch(Exception $e) {
+					$this->trackException($e, false);
 					$error = $e->getMessage();
 				}
 				if($oldValue != $fieldgroup->name) {
@@ -415,6 +418,7 @@ class Templates extends WireSaveableItems {
 					if($key == 'roles') $template->getRoles(); // forces reload of roles (and resulting error messages)
 					$error = $template->errors("clear");
 				} catch(Exception $e) {
+					$this->trackException($e, false);
 					$error = array($e->getMessage());
 				}
 				$changes[$key] = array(
