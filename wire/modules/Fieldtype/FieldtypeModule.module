@@ -108,7 +108,11 @@ class FieldtypeModule extends Fieldtype {
 		$f->attr('name', 'moduleTypes'); 
 
 		foreach($this->modules as $module) {
-			if(!preg_match('/^([A-Za-z][a-z0-9_]+)/', $module->className(), $matches)) continue; 
+			if(strpos($module->className(), 'AdminTheme') === 0) {
+				$matches = array('', 'AdminTheme');
+			} else {
+				if(!preg_match('/^([A-Za-z][a-z0-9_]+)/', $module->className(), $matches)) continue;
+			}
 			$moduleType = $matches[1];
 			if($moduleType == $lastType) continue; 	
 			$f->addOption($moduleType); 
@@ -141,7 +145,8 @@ class FieldtypeModule extends Fieldtype {
 		$f->attr('name', 'inputfieldClass'); 
 		$f->addOption('', $this->_('Select')); 
 		$f->addOption('InputfieldRadios', $this->_('Radios')); 
-		$f->columnWidth = 50; 
+		$f->columnWidth = 50;
+		$f->attr('value', $field->inputfieldClass);
 		$inputfields->add($f); 
 
 		return $inputfields; 			

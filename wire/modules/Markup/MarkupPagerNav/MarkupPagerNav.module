@@ -32,9 +32,8 @@
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
- *
+ * 
  */
-
 
 require_once(dirname(__FILE__) . '/PagerNav.php'); 
 
@@ -204,6 +203,7 @@ class MarkupPagerNav extends Wire implements Module {
 		// if allowPageNum is true, then we can use urlSegment style page numbers rather than GET var page numbers	
 		$allowPageNum = $this->options['page']->template->allowPageNum; 
 		$slashUrls = $this->options['page']->template->slashUrls;
+		$slashPageNum = $this->options['page']->template->slashPageNum;
 		$pageNumUrlPrefix = wire('config')->pageNumUrlPrefix; 
 		if(!$pageNumUrlPrefix) $pageNumUrlPrefix = 'page';
 
@@ -235,7 +235,9 @@ class MarkupPagerNav extends Wire implements Module {
 			if($item->pageNum > 1) {
 				if($allowPageNum) {
 					if($slashUrls === 0) $url .= '/'; // enforce a trailing slash, regardless of slashUrls template setting
-					$url .= "$pageNumUrlPrefix{$item->pageNum}" . $this->queryString; 
+					$url .= "$pageNumUrlPrefix{$item->pageNum}";
+					if($slashPageNum) $url .= '/';
+					$url .= $this->queryString; 
 				} else {
 					$url .= $this->queryString . ($this->queryString ? "&" : "?") . "$pageNumUrlPrefix=" . $item->pageNum;
 				}

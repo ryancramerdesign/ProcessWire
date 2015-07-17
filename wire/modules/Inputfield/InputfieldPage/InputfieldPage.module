@@ -472,7 +472,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 				if(!$id) continue; 
 				if($id > 0) {	
 					// existing page
-					$page = wire('pages')->get($id); 
+					$page = $this->wire('pages')->get($id); 
 					if($page->is(Page::statusUnpublished) && !$this->allowUnpub) continue; // disallow unpublished
 				} else {
 					// placeholder for new page, to be sorted later
@@ -482,7 +482,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 			}
 
 		} else if($value) {
-			$newValue = wire('pages')->get((int) $value); 
+			$newValue = $this->wire('pages')->get((int) $value); 
 			if($newValue->is(Page::statusUnpublished) && !$this->allowUnpub) $newValue = null; // disallow unpublished
 		}
 

@@ -26,7 +26,7 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 		return array(
 			'title' => __('Files', __FILE__), // Module Title
 			'summary' => __('One or more file uploads (sortable)', __FILE__), // Module Summary
-			'version' => 120,
+			'version' => 121,
 			'permanent' => true, 
 			);
 	}
@@ -334,6 +334,14 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 		$out .= "\n</p>";
 
 		return $out; 
+	}
+
+	public function renderReady(Inputfield $parent = null, $renderValueMode = false) {
+		if($this->descriptionRows == 0 && !$this->useTags) {
+			// indicates that items should only have a header
+			$this->addClass('InputfieldItemListCollapse', 'wrapClass');
+		}
+		return parent::renderReady($parent, $renderValueMode); 
 	}
 
 	public function ___render() {

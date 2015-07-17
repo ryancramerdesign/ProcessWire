@@ -329,7 +329,7 @@ class Templates extends WireSaveableItems {
 		}
 
 		// convert pages to guids
-		if($template->cache_time) {
+		if(((int) $template->cache_time) != 0) {
 			if(!empty($data['cacheExpirePages'])) {
 				$values = array();
 				foreach($data['cacheExpirePages'] as $id) {

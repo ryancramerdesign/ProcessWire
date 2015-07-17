@@ -19,7 +19,8 @@
  * @property string $label Optional short text label to describe Template.
  * @property int $fieldgroups_id ID of Fieldgroup assigned to this template. 
  * @property int $flags Flags assigned to this template: see the flag* constants in Template class.
- * @property int $cache_time Number of seconds pages using this template should cache for, or 0 for no cache. 
+ * @property int $cache_time Number of seconds pages using this template should cache for, or 0 for no cache. Negative values indicates setting used for external caching engine like ProCache.
+ * @property int $cacheTime Alias for $cache_time for case consistency, can be used interchangeably with cache_time.
  * @property Fieldgroup $fieldgroup Get or set a template's Fieldgroup. Can also be used to iterate a template's fields.
  * @property Fieldgroup $fields Syntactical alias for $template->fieldgroup. Use whatever makes more sense for your code readability.
  * @property Fieldgroup|null $fieldgroupPrevious Previous fieldgroup, if it was changed. Null if not. 
@@ -40,6 +41,8 @@
  * @property int|string $urlSegments Allow URL segments on pages? (0=no, 1=yes (all), string=space separted list of segments to allow)
  * @property int $https Use https? 0 = http or https, 1 = https only, -1 = http only
  * @property int $slashUrls Page URLs should have a trailing slash? 1 = yes, 0 = no	
+ * @property string|int $slashPageNum Should PageNum segments have a trailing slash? (blank=either, 1=yes, 0=no) applies only if allowPageNum!=0
+ * @property string|int $slashUrlSegments Should last URL segment have a trailing slash? (blank=either, 1=yes, 0=no) applies only if urlSegments!=0
  * @property string $altFilename Alternate filename for template file, if not based on template name.
  * @property int $guestSearchable Pages appear in search results even when user doesnt have access? (0=no, 1=yes)
  * @property string $pageClass Class for instantiated page objects. Page assumed if blank, or specify class name. 
@@ -178,6 +181,8 @@ class Template extends WireData implements Saveable, Exportable {
 		'urlSegments' => 0,		// allow URL segments on pages? (0=no, 1=yes any, string=only these segments)
 		'https' => 0, 			// use https? 0 = http or https, 1 = https only, -1 = http only
 		'slashUrls' => 1, 		// page URLs should have a trailing slash? 1 = yes, 0 = no	
+		'slashPageNum' => 0,	// should page number segments end with a slash? 0=either, 1=yes, -1=no (applies only if allowPageNum=1)
+		'slashUrlSegments' => 0,	// should URL segments end with a slash? 0=either, 1=yes, -1=no (applies only if urlSegments!=0)
 		'altFilename' => '',		// alternate filename for template file, if not based on template name
 		'guestSearchable' => 0, 	// pages appear in search results even when user doesn't have access?
 		'pageClass' => '', 		// class for instantiated page objects. 'Page' assumed if blank, or specify class name. 

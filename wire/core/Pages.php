@@ -341,6 +341,7 @@ class Pages extends Wire {
 	 * in the given $options array. These options may be specified: 
 	 * 
 	 * LOAD OPTIONS (argument 2 array): 
+	 * - cache: boolean, default=true. place loaded pages in memory cache?
 	 * - template: instance of Template (see $template argument)
 	 * - parent_id: integer (see $parent_id argument)
 	 * - getNumChildren: boolean, default=true. Specify false to disable retrieval and population of 'numChildren' Page property. 
@@ -374,6 +375,7 @@ class Pages extends Wire {
 		static $instanceID = 0;
 		
 		$options = array(
+			'cache' => true, 
 			'template' => null,
 			'parent_id' => null, 
 			'getNumChildren' => true,
@@ -559,7 +561,7 @@ class Pages extends Wire {
 					$page->setTrackChanges(true);
 					$page->setOutputFormatting($this->outputFormatting);
 					$loaded[$page->id] = $page;
-					$this->cache($page);
+					if($options['cache']) $this->cache($page);
 				}
 			} catch(Exception $e) {
 				$error = $e->getMessage() . " [pageClass=$class, template=$template]";

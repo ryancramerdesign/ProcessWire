@@ -50,6 +50,7 @@ class ProcessTemplate extends Process {
 		$this->labels = array(
 			'Yes' => $this->_('Yes'), 
 			'No' => $this->_('No'), 
+			'Either' => $this->_('Either / does not matter'), 
 			'Are you sure?' => $this->_('Are you sure?'),
 			'Export' => $this->_('Export'),
 			'Import' => $this->_('Import'),
@@ -327,6 +328,10 @@ class ProcessTemplate extends Process {
 				'label' => $this->_x('cache', 'list-note'),
 				'icon' => 'clock-o'
 				),
+			'procache' => array(
+				'label' => $this->_x('ProCache', 'list-note'),
+				'icon' => 'fighter-jet'
+			),
 			'url-segments' => array(
 				'label' => $this->_x('URL segments', 'list-note'),
 				'icon' => 'sitemap'
@@ -349,6 +354,7 @@ class ProcessTemplate extends Process {
 		if($template->useRoles) $flags[] = 'access';
 		if(!$template->filenameExists()) $flags[] = 'no-file';
 		if($template->cache_time > 0) $flags[] = 'cache';
+			else if($template->cache_time < 0) $flags[] = 'procache';
 		if($template->urlSegments) $flags[] = 'url-segments';
 		if($template->allowPageNum) $flags[] = 'page-numbers';
 
@@ -610,6 +616,7 @@ class ProcessTemplate extends Process {
 		$t->attr('title', $this->_x('Cache', 'tab'));
 		// $t->head = $this->_("Output caching");
 		$t->attr('class', 'WireTab'); 
+		$t->attr('id', 'tab_cache');
 		$t->add($this->buildEditFormCache($template)); 
 		$form->add($t); 
 
@@ -848,7 +855,29 @@ class ProcessTemplate extends Process {
 	protected function buildEditFormCache(Template $template) {
 
 		$form = new InputfieldWrapper();
-
+		
+		$field = $this->modules->get('InputfieldRadios');
+		$field->attr('name', '_cache_status');
+		$field->label = $this->_('Cache Status');
+		$field->icon = 'toggle-on';
+		$field->addOption(0, $this->_('Disabled'));
+		$field->addOption(1, $this->_('Enabled (template cache)'));
+		if($this->modules->isInstalled('ProCache')) {
+			$field->addOption(2, $this->_('Enabled (ProCache, configured here)'));
+			$procache = $this->modules->get('ProCache');
+			if(in_array($template->id, $procache->cacheTemplates) && $template->cache_time > -1) {
+				$field->notes = $this->_('Pages using this template are currently cached in ProCache, but configured directly in ProCache. To configure the ProCache settings for this template here, choose the ProCache option above.'); // notes for ProCache option
+			}
+		}
+		if($template->cache_time == 0) {
+			$field->attr('value', 0);
+		} else if($template->cache_time < 0) {
+			$field->attr('value', 2);
+		} else {
+			$field->attr('value', 1);
+		}
+		$form->append($field);
+		
 		// --------------------
 
 		$field = $this->modules->get('InputfieldInteger'); 
@@ -857,8 +886,10 @@ class ProcessTemplate extends Process {
 		$field->icon = 'clock-o';
 		$field->description = $this->_('To cache the output of this template, enter the time (in seconds) that the output should be cached. Caching can help significantly with page render time on resource-heavy pages. But caching should not be used on templates that need to process constantly changing data, like from forms or sessions. Also note that URL segments are cachable, but GET and POST vars are not.'); // Cach time description
 		$field->notes = $this->_('For example: 60 = 1 minute, 600 = 10 minutes, 3600 = 1 hour, 86400 = 1 day, 604800 = 1 week, 2419200 = 1 month.'); // Cache time notes/examples
-		$field->notes .= "\n" . sprintf($this->_('If using [ProCache](%s) there is no need to use the cache setting here.'), 'http://processwire.com/api/modules/procache/'); 
-		$field->attr('value', $template->cache_time); 
+		//$field->notes .= "\n" . sprintf($this->_('If using [ProCache](%s) there is no need to use the cache setting here.'), 'http://processwire.com/api/modules/procache/'); 
+		$field->attr('value', abs($template->cache_time)); 
+		$field->showIf = '_cache_status!=0';
+		$field->requiredIf = '_cache_status!=0';
 		$form->append($field); 
 
 		// --------------------
@@ -875,7 +906,7 @@ class ProcessTemplate extends Process {
 		$field->addOption(Template::cacheExpireNone, $this->_('Do nothing'));
 		$field->attr('value', (int) $template->cacheExpire); 
 		$field->notes = $this->_('*To maximize performance, cache files are all expired as a group rather than cleared individually.'); // Cache expiration notes // This explains the 'Clear cache for entire site*' option
-		$field->showIf = "cache_time!=0";
+		$field->showIf = "_cache_status!=0";
 		$form->append($field); 
 
 		// --------------------
@@ -886,7 +917,7 @@ class ProcessTemplate extends Process {
 		$field->description = $this->_('When pages using this template are saved, their cache files will be cleared. Select the other pages that should also have their cache files cleared below.'); // Specified cache clear pages, description
 		$value = is_array($template->cacheExpirePages) ? $template->cacheExpirePages : array();
 		$field->attr('value', $value);
-		$field->showIf = 'cache_time>0, cacheExpire=' . Template::cacheExpireSpecific;
+		$field->showIf = '_cache_status!=0, cacheExpire=' . Template::cacheExpireSpecific;
 		$form->append($field); 
 
 		// --------------------
@@ -902,7 +933,7 @@ class ProcessTemplate extends Process {
 			$field->value = $this->_('Save this template and then come back here to configure your selector.');
 		}
 		$field->label = $this->_('Cache expiration selector');
-		$field->showIf = 'cache_time>0, cacheExpire=' . Template::cacheExpireSelector;
+		$field->showIf = '_cache_status!=0, cacheExpire=' . Template::cacheExpireSelector;
 		$form->append($field);
 		
 		// --------------------
@@ -914,7 +945,7 @@ class ProcessTemplate extends Process {
 		$field->addOption(1, $this->_('Guests and logged-in users'));
 		$field->attr('value', (int) $template->useCacheForUsers); 
 		$field->notes = $this->_('Note that the cache is always disabled for pages where the user has edit access, regardless of what you select here.'); // Cache for guest/loggin-in user notes
-		$field->showIf = 'cache_time>0';
+		$field->showIf = '_cache_status=1';
 		$form->append($field); 
 
 		// --------------------
@@ -932,7 +963,7 @@ class ProcessTemplate extends Process {
 		$field->notes = $notes; 
 		$field->attr('value', (string) $template->noCacheGetVars); 
 		$field->collapsed = Inputfield::collapsedBlank;
-		$field->showIf = 'cache_time>0';
+		$field->showIf = '_cache_status=1';
 		$form->append($field); 
 
 		// --------------------
@@ -944,7 +975,7 @@ class ProcessTemplate extends Process {
 		$field->notes = $notes; 
 		$field->attr('value', (string) $template->noCachePostVars); 
 		$field->collapsed = Inputfield::collapsedBlank;
-		$field->showIf = 'cache_time>0';
+		$field->showIf = '_cache_status=1';
 		$form->append($field); 
 
 		return $form; 
@@ -1377,9 +1408,22 @@ class ProcessTemplate extends Process {
 			else $field->collapsed = Inputfield::collapsedYes;
 		$field->description = $this->_('If checked, pages using this template will support pagination.'); 
 		$field->description .= " [$moreLabel](https://processwire.com/docs/admin/setup/templates/#allow-page-numbers)";
+		$field->columnWidth = 50;
 		//$field->notes = $this->_('Access the current page number from your template files with $input->pageNum.'); // Allow page numbers, API notes
 		$form->append($field); 
 		if($template->allowPageNum) $form->collapsed = Inputfield::collapsedNo;
+		
+		$field = $this->modules->get('InputfieldRadios');
+		$field->attr('id+name', 'slashPageNum');
+		$field->label = $this->_('Should page number URLs have a trailing slash?');
+		$field->icon = 'list-ol';
+		$field->addOption(1, $this->labels['Yes']);
+		$field->addOption(-1, $this->labels['No']);
+		$field->addOption(0, $this->labels['Either']);
+		$field->attr('value', (int) $template->slashPageNum);
+		$field->showIf = 'allowPageNum=1';
+		$field->columnWidth = 50;
+		$form->append($field);
 
 		// --------------------
 
@@ -1401,7 +1445,19 @@ class ProcessTemplate extends Process {
 		} else { 
 			$field->collapsed = Inputfield::collapsedYes;
 		}
-		$form->append($field); 
+		$form->append($field);
+		
+		$field = $this->modules->get('InputfieldRadios');
+		$field->attr('id+name', 'slashUrlSegments');
+		$field->label = $this->_('Should URL segments end with a trailing slash?');
+		$field->icon = 'sitemap';
+		$field->addOption(1, $this->labels['Yes']);
+		$field->addOption(-1, $this->labels['No']);
+		$field->addOption(0, $this->labels['Either']);
+		$field->attr('value', (int) $template->slashUrlSegments);
+		$field->showIf = 'urlSegments=1';
+		$field->columnWidth = 50;
+		$form->append($field);
 		
 		$field = $this->modules->get('InputfieldTextarea'); 
 		$field->attr('name', 'urlSegmentsList');
@@ -1409,9 +1465,9 @@ class ProcessTemplate extends Process {
 		$field->description = $this->_('Enter one allowed segment, segment path or regular expression per line, or leave blank to allow any.'); // Description for allow URL segments
 		$field->description .= " [$moreLabel](https://processwire.com/docs/admin/setup/templates/#which-url-segments-do-you-want-to-allow)";
 		$field->icon = 'sitemap';
-		$field->columnWidth = 50; 
 		if(is_array($urlSegments)) $field->attr('value', implode("\n", $urlSegments));
 		$field->showIf = 'urlSegments=1';
+		$field->collapsed = Inputfield::collapsedBlank;
 		$form->append($field); 
 		
 		// --------------------
@@ -1689,6 +1745,8 @@ class ProcessTemplate extends Process {
 		if($this->template->redirectLogin < 0) $this->template->redirectLogin = $form->get('redirectLoginURL')->attr('value'); 
 		$this->template->https = (int) $form->get('https')->attr('value'); 
 		$this->template->slashUrls = (int) $form->get('slashUrls')->attr('value');
+		$this->template->slashUrlSegments = (int) $form->get('slashUrlSegments')->attr('value');
+		$this->template->slashPageNum = (int) $form->get('slashPageNum')->attr('value');
 		$this->template->altFilename = basename($form->get('altFilename')->attr('value'), "." . $this->config->templateExtension);
 		$this->template->guestSearchable = (int) $form->get('guestSearchable')->attr('value'); 
 		
@@ -1701,9 +1759,25 @@ class ProcessTemplate extends Process {
 		}
 		$this->template->pageLabelField = $pageLabelField;
 		
+		$cacheStatus = (int) $form->get('_cache_status')->attr('value');
+		$cacheTime = (int) $form->get('cache_time')->attr('value'); 
+		if($cacheStatus == 2) { // ProCache
+			$pwpc = $this->wire('modules')->getModuleConfigData('ProCache');
+			if(is_array($pwpc)) {
+				if(!$cacheTime) $cacheTime = isset($pwpc['cacheTime']) ? -1 * $pwpc['cacheTime'] : -1;
+				$cacheTemplates = isset($pwpc['cacheTemplates']) ? $pwpc['cacheTemplates'] : array();
+				if(!in_array($this->template->id, $cacheTemplates)) {
+					$cacheTemplates[] = $this->template->id;
+					$pwpc['cacheTemplates'] = $cacheTemplates;
+					$this->wire('modules')->saveModuleConfigData('ProCache', $pwpc);
+				}
+			}
+			if($cacheTime) $cacheTime = $cacheTime * -1; // negative value indicates use of ProCache over template cache
+		}
+		$this->template->cache_time = $cacheTime;
 		$this->template->setIcon($form->get('pageLabelIcon')->attr('value'));
 		$this->template->childNameFormat = $this->fuel('sanitizer')->text($form->get('childNameFormat')->attr('value')); 
-		$this->template->cache_time = $form->get('cache_time')->attr('value'); 
+		
 		$this->template->useCacheForUsers = (int) $form->get('useCacheForUsers')->attr('value');
 		$this->template->noCacheGetVars = $this->fuel('sanitizer')->names($form->get('noCacheGetVars')->attr('value'), ' ', array('-', '_', '.', '*')); 
 		$this->template->noCachePostVars = $this->fuel('sanitizer')->names($form->get('noCachePostVars')->attr('value'), ' ', array('-', '_', '.', '*')); 

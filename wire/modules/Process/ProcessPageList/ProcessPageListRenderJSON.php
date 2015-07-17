@@ -95,6 +95,7 @@ class ProcessPageListRenderJSON extends ProcessPageListRender {
 		$extraPages = array(); // pages forced to bottom of list
 
 		foreach($this->children as $page) {
+			if(!$this->superuser && !$page->listable()) continue;
 
 			if(in_array($page->id, $this->systemIDs)) {
 				$extraPages[] = $page;

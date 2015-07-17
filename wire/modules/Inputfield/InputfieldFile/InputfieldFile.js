@@ -20,14 +20,17 @@ $(document).ready(function() {
 	}); 
 
 	function setInputfieldFileStatus($t) {
+		var $info = $t.parents('.InputfieldFileInfo');	
+		// collapsed=items that have no description or tags, so need no visible InputfieldFileData container
+		var collapsed = $t.closest('.InputfieldFile').hasClass('InputfieldItemListCollapse');
 		if($t.is(":checked")) {
 			// not an error, but we want to highlight it in the same manner
-			$t.parents(".InputfieldFileInfo").addClass("ui-state-error")
-				.siblings(".InputfieldFileData").slideUp("fast");
+			$info.addClass("ui-state-error");
+			if(!collapsed) $info.siblings(".InputfieldFileData").slideUp("fast");
 
 		} else {
-			$t.parents(".InputfieldFileInfo").removeClass("ui-state-error")
-				.siblings(".InputfieldFileData").slideDown("fast");
+			$info.removeClass("ui-state-error");
+			if(!collapsed) $info.siblings(".InputfieldFileData").slideDown("fast");
 		}	
 	}
 

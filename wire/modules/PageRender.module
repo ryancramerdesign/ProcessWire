@@ -83,7 +83,7 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 	 */
 	public function isCacheAllowed($page) {
 
-		if(!$page->template || !$page->template->cache_time) return false; 
+		if(!$page->template || ((int) $page->template->cache_time) < 1) return false; 
 
 		if(!$this->user->isGuest()) {
 			if(!$page->template->useCacheForUsers) return false; 
@@ -141,7 +141,7 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 		$path = $config->paths->cache . self::cacheDirName . "/";
 		if(is_object($page)) {
 			$id = $page->id;
-			$cacheTime = $page->template->cache_time; 
+			$cacheTime = (int) $page->template->cache_time; 
 		} else {
 			$id = (int) $page;
 			$cacheTime = 3600;
@@ -186,13 +186,48 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 	}
 
 	/**
+	 * Clear all cached pages
+	 * 
+	 * @param Page $page
+	 * @throws WireException
+	 * 
+	 */
+	public function ___clearCacheFileAll(Page $page) {
+		if($page->template->cache_time > 0) {
+			$cacheFile = $this->getCacheFile($page);
+			$cacheFile->expireAll();
+		}
+		
+		if($this->config->debug && $page->template->cache_time != 0) {
+			$this->message($this->_('Expired page cache for entire site'));
+		}
+	}
+
+	/**
+	 * Clear cache for multiple pages by ID
+	 * 
+	 * @param PageArray $items
+	 * @param Page $page Page that initiated the clear
+	 * @throws WireException
+	 * 
+	 */
+	public function ___clearCacheFilePages(PageArray $items, Page $page) {
+		foreach($items as $p) {
+			if(((int) $p->template->cache_time) < 1) continue;
+			$cf = $this->getCacheFile($p);
+			if($cf->exists()) $cf->remove();
+			// if($this->config->debug) $this->message(sprintf($this->_('Cleared cache file: %s'), $cf));
+		}
+	}
+
+	/**
 	 * Hook to clear the cache file after a Pages::save or Pages::delete call
 	 *
 	 */
 	public function clearCacheFile($event) {
 		
 		$page = $event->arguments[0]; 
-		if(!$page->template->cache_time) return;
+		if(((int) $page->template->cache_time) == 0) return;
 		$cacheExpire = $page->template->cacheExpire; 
 
 		if($cacheExpire == Template::cacheExpireNone) {
@@ -200,58 +235,50 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 				else return;
 		}
 
-		$cacheFile = $this->getCacheFile($page); 
-
 		if($cacheExpire == Template::cacheExpireSite) {
 			// expire entire cache
-
-			$cacheFile->expireAll();
-			if($this->config->debug) $this->message("Expired page cache for entire site");
+			$this->clearCacheFileAll($page);
 
 		} else {
-			
-			if($cacheFile->exists()) {
-				$cacheFile->remove();
-				$this->message($this->_('Cleared cache file:') . " $cacheFile", Notice::debug);
+	
+			// clear the page that was saved
+			if($page->cache_time > 0) {
+				$cacheFile = $this->getCacheFile($page);
+				if($cacheFile->exists()) {
+					$cacheFile->remove();
+					$this->message($this->_('Cleared cache file:') . " $cacheFile", Notice::debug);
+				}
 			}
+			
+			$pageIDs = array();
 
 			if($cacheExpire == Template::cacheExpireParents || $cacheExpire == Template::cacheExpireSpecific) {
 				// expire specific pages or parents
-				$selected = array();
-
 				if($cacheExpire == Template::cacheExpireParents) {
-					$selected = $page->parents;
+					foreach($page->parents as $parent) $pageIDs[] = $parent->id;
 
 				} else if(is_array($page->template->cacheExpirePages) && count($page->template->cacheExpirePages)) {
-					$selected = $this->fuel('pages')->getById($page->template->cacheExpirePages);
+					$pageIDs = $page->template->cacheExpirePages;
 				}
-
-				foreach($selected as $p) {
-					if(!$p->template->cache_time) continue;
-					$cf = $this->getCacheFile($p);
-					if($cf->exists()) $cf->remove();
-					if($this->config->debug) $this->message("Cleared cache file: $cf");
-				}
-
 			} else if($cacheExpire == Template::cacheExpireSelector && $page->template->cacheExpireSelector) {
 				// expire pages matching a selector
 				$finder = new PageFinder();
-
-				$ids = $finder->findIDs(new Selectors($page->template->cacheExpireSelector), array(
+				$pageIDs = $finder->findIDs(new Selectors($page->template->cacheExpireSelector), array(
 					'getTotal'   => false,
 					'findHidden' => true
 				));
-
-				if(count($ids)) {
-					foreach($ids as $id) {
-						$cf = $this->getCacheFile($id);
-						if($cf->exists()) $cf->remove();
-					}
-
-					$this->message(
-						sprintf($this->_('Cleared cache file for %d page(s) matching selector:'), count($ids)) . " " .
-						$page->template->cacheExpireSelector, Notice::debug);
-				}
+			}
+		
+			if(count($pageIDs)) {
+				$items = $this->wire('pages')->getById($pageIDs, array(
+					'cache'          => false,
+					'getNumChildren' => false,
+					'autojoin'       => false,
+					'findTemplates'  => false,
+					'joinSortfield'  => false
+				));
+				$this->clearCacheFilePages($items, $page);
+				$this->message(sprintf($this->_('Cleared cache file for %d page(s)'), count($pageIDs)), Notice::debug);
 			}
 		}
 	}

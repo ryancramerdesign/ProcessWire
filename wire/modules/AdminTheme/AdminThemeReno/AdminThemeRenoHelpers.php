@@ -78,7 +78,9 @@ class AdminThemeRenoHelpers extends AdminThemeDefaultHelpers {
 		$user = $this->wire('user');
 		$config = wire("config");
 		$adminTheme = $this->wire('adminTheme');
-		$adminTheme->avatar_field != '' ?  $imgField = $user->get($adminTheme->avatar_field) : $imgField = '';
+		$fieldName = "avatar_field_" . $user->template->name;
+		$adminTheme->$fieldName != '' ?  $avatarField = $adminTheme->$fieldName : $avatarField = '';
+		$avatarField != '' ?  $imgField = $user->get($avatarField) : $imgField = '';
 		$avatar = "<i class='fa $adminTheme->profile'></i>";
 
 		// View site
@@ -155,6 +157,7 @@ class AdminThemeRenoHelpers extends AdminThemeDefaultHelpers {
 			array_key_exists('link', $item) ? $link = $item['link'] : $link = '#';
 			array_key_exists('children', $item) && is_array($item['children']) ? $children = $item['children'] : $children = false;
 			
+			// $item['children'] ? $class .= " dropdown" : '';
 			if(!empty($item['children'])) $class .= " dropdown";
 
 			$out .= "<li class='$class'><a href='$link'>$label</a>";
@@ -315,7 +318,7 @@ class AdminThemeRenoHelpers extends AdminThemeDefaultHelpers {
         $out = '';
         
         $adminTheme = $this->wire('adminTheme');
-        $field_name = "userFields_". wire('user')->template->name;
+        $field_name = "userFields_". $user->template->name;
         trim($adminTheme->$field_name) == '' ? $adminTheme->$field_name = 'name' : ''; // force to name field if empty
         $userFields = explode(',', $adminTheme->$field_name);
         

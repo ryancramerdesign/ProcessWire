@@ -253,7 +253,7 @@ class ProcessPageView extends Process {
 	 */
 	protected function getPage() {
 
-		$it = isset($_GET['it']) ? $_GET['it'] : "/";
+		$it = isset($_GET['it']) ? trim($_GET['it']) : "/";
 		unset($_GET['it']); 
 		$it = preg_replace('{[^-_./a-zA-Z0-9]}', '', $it);
 		if(!isset($it[0]) || $it[0] != '/') $it = "/$it";
@@ -286,6 +286,7 @@ class ProcessPageView extends Process {
 		if($page && $page->id) {
 			// trailing slash vs. non trailing slash, enforced if not homepage 
 			// redirect to proper trailed slash version if incorrect version is present.
+			// note: this section only executed if no URL segments or page numbers were present
 			$s = $page->template->slashUrls;
 			if($page->id > 1 && ((!$hasTrailingSlash && $s !== 0) || ($hasTrailingSlash && $s === 0))) {
 				$this->redirectURL = $page->url;
@@ -379,6 +380,7 @@ class ProcessPageView extends Process {
 
 		$lastSegment = reset($urlSegments);
 		$urlSegments = array_reverse($urlSegments); 
+		$pageNum = 1; 
 
 		// check if the last urlSegment is setting a page number and that page numbers are allowed
 		if(!is_null($this->pageNum) && $lastSegment === "$this->pageNumPrefix$this->pageNum" && $page->template->allowPageNum) {
@@ -406,6 +408,30 @@ class ProcessPageView extends Process {
 			if($cnt == 1) $page->urlSegment = $urlSegment; // backwards compatibility
 			$this->input->setUrlSegment($cnt, $urlSegment);
 			$cnt++;
+		}
+	
+		if($pageNum > 1 || count($urlSegments)) {
+			$hasTrailingSlash = substr($this->requestURL, -1) == '/';
+			// $url=URL with urlSegments and no trailing slash
+			$url = rtrim(rtrim($page->url, '/') . '/' . $this->input->urlSegmentStr, '/');
+			if($pageNum > 1 && $page->template->slashPageNum) {
+				if($page->template->slashPageNum == 1 && !$hasTrailingSlash) {
+					// enforce trailing slash on page numbers
+					$this->redirectURL = "$url/$this->pageNumPrefix$pageNum/";
+				} else if($page->template->slashPageNum == -1 && $hasTrailingSlash) {
+					// enforce NO trailing slash on page numbers
+					$this->redirectURL =  "$url/$this->pageNumPrefix$pageNum";
+				}
+				
+			} else if(count($urlSegments) && $page->template->slashUrlSegments) {
+				if($page->template->slashUrlSegments == 1 && !$hasTrailingSlash) {
+					// enforce trailing slash with URL segments
+					$this->redirectURL = "$url/";
+				} else if($page->template->slashUrlSegments == -1 && $hasTrailingSlash) {
+					// enforce no trailing slash with URL segments
+					$this->redirectURL = $url;
+				}
+			}
 		}
 
 		return true; 
@@ -522,25 +548,51 @@ class ProcessPageView extends Process {
 		
 		if(!$scheme) return;
 		
-		$url = "$scheme://$config->httpHost$page->url";
-		$input = $this->wire('input'); 
-		
-		$urlSegmentStr = $input->urlSegmentStr;
-		if(strlen($urlSegmentStr) && $page->template->urlSegments) {
-			$url = rtrim($url, '/') . '/' . $urlSegmentStr;
-			if($page->template->slashUrls) $url .= '/';
+		if($this->redirectURL) {
+			if(strpos($this->redirectURL, '://') !== false) {
+				$url = str_replace(array('http://', 'https://'), "$scheme://", $this->redirectURL);
+			} else {
+				$url = "$scheme://$config->httpHost$this->redirectURL";
+			}
+		} else {
+			$url = "$scheme://$config->httpHost$page->url";
 		}
+		$input = $this->wire('input'); 
+	
+		if($this->redirectURL) {
+			// existing redirectURL will already have segments/page numbers as needed
+			
+		} else {
+			$urlSegmentStr = $input->urlSegmentStr;
+			if(strlen($urlSegmentStr) && $page->template->urlSegments) {
+				$url = rtrim($url, '/') . '/' . $urlSegmentStr;
+				if($page->template->slashUrlSegments) {
+					// use defined setting for trailing slash
+					if($page->template->slashUrlSegments == 1) $url .= '/';
+				} else {
+					// use whatever the request came with	
+					if(substr($this->requestURL, -1) == '/') $url .= '/';
+				}
+			}
 
-		$pageNum = $input->pageNum;
-		if($pageNum > 1 && $page->template->allowPageNum) {
-			$prefix = $config->pageNumUrlPrefix;
-			if(!$prefix) $prefix = 'page';
-			$url .= "$prefix$pageNum";
+			$pageNum = $input->pageNum;
+			if($pageNum > 1 && $page->template->allowPageNum) {
+				$prefix = $this->pageNumPrefix ? $this->pageNumPrefix : $this->wire('config')->pageNumUrlPrefix;
+				if(!$prefix) $prefix = 'page';
+				$url .= "$prefix$pageNum";
+				if($page->template->slashPageNum) {
+					// defined setting for trailing slash	
+					if($page->template->slashPageNum == 1) $url .= '/';
+				} else {
+					// use whatever setting the URL came with
+					if(substr($this->requestURL, '-1') == '/') $url .= '/';
+				}
+			}
 		}
 		
 		$this->redirectURL = $url;
 	}
-
+	
 	/**
 	 * Passthru a file for a non-public page
 	 *

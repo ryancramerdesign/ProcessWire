@@ -5,6 +5,11 @@
 	cursor: move; 
 }
 
+	.Inputfields > li.InputfieldFile.InputfieldItemListCollapse > .InputfieldContent > ul.InputfieldFileList > li {
+		/* items that have no text inputs */
+		margin-bottom: 0.25em;
+	}
+
 	.InputfieldItemList .InputfieldContent.ui-state-hover {
 		/* ajax upload drag over */
 		background: none;
@@ -78,6 +83,10 @@
 		margin-top: 0; 
 		margin-bottom: 0;
 		padding: 1em; 
+	}
+	
+	.InputfieldFile.InputfieldItemListCollapse ul.InputfieldFileList li .InputfieldFileData {
+		display: none;
 	}
 
 	ul.InputfieldFileList li .InputfieldFileLink {
