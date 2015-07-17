@@ -354,11 +354,12 @@ class WireInput {
 	public function url() {
 
 		$url = '';
+		/** @var Page $page */
 		$page = wire('page'); 
 		
 		if($page && $page->id) {
 			// pull URL from page
-			$url = $page && $page->id ? wire('page')->url : '';
+			$url = wire('page')->url;
 			$segmentStr = $this->urlSegmentStr();
 			$pageNum = $this->pageNum();
 			if(strlen($segmentStr) || $pageNum > 1) {
@@ -367,6 +368,19 @@ class WireInput {
 				if(isset($_SERVER['REQUEST_URI'])) {
 					$info = parse_url($_SERVER['REQUEST_URI']);
 					if(!empty($info['path']) && substr($info['path'], -1) == '/') $url .= '/'; // trailing slash
+				}
+				if($pageNum > 1) {
+					if($page->template->slashPageNum == 1) {
+						if(substr($url, -1) != '/') $url .= '/';
+					} else if($page->template->slashPageNum == -1) {
+						if(substr($url, -1) == '/') $url = rtrim($url, '/');
+					}
+				} else if(strlen($segmentStr)) {
+					if($page->template->slashUrlSegments == 1) {
+						if(substr($url, -1) != '/') $url .= '/';
+					} else if($page->template->slashUrlSegments == -1) {
+						if(substr($url, -1) == '/') $url = rtrim($url, '/');
+					}
 				}
 			}
 			
