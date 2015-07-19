@@ -1,3 +1,7 @@
 .InputfieldCheckbox input {
 	margin-right: 0.5em; 
 }
+
+.InputfieldCheckbox .InputfieldContent label {
+	display: inline-block;
+}

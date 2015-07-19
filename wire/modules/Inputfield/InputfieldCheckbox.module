@@ -17,7 +17,7 @@ class InputfieldCheckbox extends Inputfield {
 		return array(
 			'title' => __('Checkbox', __FILE__), // Module Title
 			'summary' => __('Single checkbox toggle', __FILE__), // Module Summary
-			'version' => 103,
+			'version' => 104,
 			'permanent' => true, 
 			);
 	}

@@ -11,6 +11,10 @@
 	margin: 0 !important;
 }
 
+.InputfieldRadios ul li label {
+	display: inline-block;
+}
+
 .InputfieldRadios input {
 	margin-right: 0.5em;
 }
