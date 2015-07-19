@@ -87,6 +87,8 @@ class ProcessLanguage extends ProcessPageType {
 	public function renderInputfieldFile(HookEvent $event) {
 		$event->object->descriptionRows = 0;
 		$event->object->overwrite = true;
+		$event->object->noCollapseItem = true;
+		$event->object->noShortName = true; 
 	}
 
 	/**

@@ -18,6 +18,8 @@
  * @property bool|int $noLang Set to true or 1 to disable multi-language descriptions
  * @property bool|int $noAjax Set to true or 1 to disable ajax uploading
  * @property bool|int $uploadOnlyMode Set to true or 1 to disable existing file list display
+ * @property bool|int $noCollapseItem Set to true to disable collapsed items (like for LanguageTranslator tool or other things that add tools to files)
+ * @property bool|int $noShortName Set to true to disable shortened filenames in output
  *
  */
 class InputfieldFile extends Inputfield implements InputfieldItemList {
@@ -90,6 +92,8 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 		$this->set('noUpload', 0); // set to 1 to disable uploading to this field
 		$this->set('noLang', 0); 
 		$this->set('noAjax', 0); // disable ajax uploading
+		$this->set('noCollapseItem', 0);
+		$this->set('noShortName', 0);
 		$this->attr('type', 'file'); 
 
 		// get the max filesize
@@ -230,6 +234,7 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 	 */
 	protected function getDisplayBasename(Pagefile $pagefile, $maxLength = 25) {
 		$displayName = $pagefile->basename;
+		if($this->noShortName) return $displayName;
 		if(strlen($displayName) > $maxLength) {
 			$ext = ".$pagefile->ext";
 			$maxLength -= (strlen($ext) + 1);
@@ -336,17 +341,16 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 		return $out; 
 	}
 
+
+
 	public function renderReady(Inputfield $parent = null, $renderValueMode = false) {
-		if($this->descriptionRows == 0 && !$this->useTags) {
-			// indicates that items should only have a header
-			$this->addClass('InputfieldItemListCollapse', 'wrapClass');
-		}
 		return parent::renderReady($parent, $renderValueMode); 
 	}
 
 	public function ___render() {
 		if(!$this->extensions) $this->error($this->_('No file extensions are defined for this field.')); 
 		$numItems = count($this->value);
+		if($this->allowCollapsedItems()) $this->addClass('InputfieldItemListCollapse', 'wrapClass');
 		if($numItems == 0) {
 			$this->addClass('InputfieldFileEmpty', 'wrapClass');
 		} else if($numItems == 1) {
@@ -627,7 +631,22 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 		return $this->wireUpload; 
 	}
 
+	/**
+	 * Template method: allow items to be collapsed?
+	 *
+	 * @return bool
+	 *
+	 */
+	protected function allowCollapsedItems() {
+		return $this->descriptionRows == 0 && !$this->useTags && !$this->noCollapseItem;
+	}
 
+	/**
+	 * Configuration settings for InputfieldFile
+	 * 
+	 * @return InputfieldWrapper
+	 * 
+	 */
 	public function ___getConfigInputfields() {
 		$inputfields = parent::___getConfigInputfields();
 		

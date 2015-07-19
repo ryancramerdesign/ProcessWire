@@ -335,6 +335,16 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 	}
 
 	/**
+	 * Template method: allow items to be collapsed? Override default from InputfieldFile
+	 *
+	 * @return bool
+	 *
+	 */
+	protected function allowCollapsedItems() {
+		return false;
+	}
+
+	/**
 	 * Configure field
 	 * 
 	 * @return InputfieldWrapper
