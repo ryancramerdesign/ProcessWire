@@ -73,7 +73,7 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 		$this->page->setOutputFormatting(false);
 		$this->parent = $this->pages->get($this->page->parent_id);
 		$this->isTrash = $this->page->isTrash;
-
+		
 		// check if editing specific field or fieldset only
 		if($this->page) {
 			$field = $this->wire('input')->get('field');
@@ -137,8 +137,9 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 		$page = $this->wire('pages')->get((int) $id); 
 		
 		if($page instanceof NullPage) throw new WireException($this->noticeUnknown); // Init error: page doesn't exist
+	
 		if(!$page->editable()) {
-			if($page instanceof User && $this->wire('user')->hasPermission('user-admin')) {
+			if($page instanceof User && $this->wire('user')->hasPermission('user-admin') && $this->wire('process') != 'ProcessUser') {
 				// only allow user pages to be edited from the access section (at least for non-superusers)
 				$this->wire('session')->redirect($this->wire('config')->urls->admin . 'access/users/edit/?id=' . $page->id);
 			}
@@ -484,6 +485,8 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 			// name
 			/** @var InputfieldPageName $field */
 			$field = $this->modules->get('InputfieldPageName');
+			$label = $this->page->template->getNameLabel();
+			if($label) $field->label = $label;
 			$field->attr('name', '_pw_page_name');
 			$field->attr('value', $this->page->name);
 			$field->required = $this->page->id != 1;
@@ -636,6 +639,8 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 		if(($this->page->id > 1 || $this->wire('modules')->isInstalled('LanguageSupportPageNames')) && !$this->page->template->nameContentTab) {
 			/** @var InputfieldPageName $field */
 			$field = $this->modules->get('InputfieldPageName');
+			$label = $this->page->template->getNameLabel();
+			if($label) $field->label = $label;
 			$field->attr('value', $this->page->name); 
 			$field->attr('name', '_pw_page_name');
 			$field->slashUrls = $this->page->template->slashUrls;

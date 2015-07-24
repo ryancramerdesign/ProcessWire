@@ -11,7 +11,7 @@
  * Provides an alternative listing view for pages using specific templates. 
  *
  * ProcessWire 2.x 
- * Copyright (C) 2014 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
@@ -57,6 +57,7 @@
  * @property array $systemLabels Array of system page labels of field_name => label
  * @property array $limitFields Limit selectable filters/columns to only those present in this array [empty]
  * @property string $nativeDateFormat wireDate() format for created and modified dates
+ * @property bool $showIncludeWarnings Whether or not to show warnings about what pages were excluded to to max "include=" mode [true]
  * 
  *
  */
@@ -220,6 +221,9 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 	
 		// date format for native properties: created and modified
 		$this->set('nativeDateFormat', $this->_('rel')); // Native date format: use wireDate(), PHP date() or strftime() date format
+	
+		// whether or not to show warnings about max include mode
+		$this->set('showIncludeWarnings', true); 
 		
 		$nameLabel = $this->_('Name'); 
 		$createdLabel = $this->_('Created'); 
@@ -526,7 +530,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		$f->icon = 'table';
 	
 		$useLabels = $this->useColumnLabels; 
-		$systemLabels = $this->systemLabels;
+		$systemLabels = $this->getSystemLabels();
 		
 		foreach($fields as $field) {
 			if(!$this->allowColumnField($field)) continue;
@@ -573,6 +577,21 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		$systemColumns = array_keys($this->systemLabels); 
 		$systemColumns = array_merge($systemColumns, array('id', 'name', 'path')); 
 		return $systemColumns; 
+	}
+
+	/**
+	 * Get array of system labels, indexed by property name
+	 * 
+	 * @return array
+	 * 
+	 */
+	protected function getSystemLabels() {
+		$labels = $this->systemLabels;
+		if($this->template) {
+			$label = $this->template->getNameLabel();	
+			if($label) $labels['name'] = $label;
+		}
+		return $labels;
 	}
 
 	/**
@@ -778,7 +797,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 	protected function validateSelector($selector) {
 		
 		$user = $this->wire('user');
-		$showIncludeWarnings = true; // whether to show warning message about removed include modes
+		$showIncludeWarnings = $this->showIncludeWarnings; // whether to show warning message about removed include modes
 		
 		if($user->isSuperuser()) {
 			if(!preg_match('/(^|\s|,)include=/', $selector)) {
@@ -951,13 +970,14 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		if(!$columns) $columns = $this->columns; 
 		$fields = array();
 		$header = array();
+		$systemLabels = $this->getSystemLabels();
 
 		foreach($columns as $key => $name) {
 			$subname = '';
 			if(strpos($name, '.')) list($name, $subname) = explode('.', $name);
 			$field = $this->template ? $this->template->fieldgroup->getField($name, true) : $this->fields->get($name);
 			$label = $field ? $field->getLabel() : '';
-			if(!$label) $label = isset($this->systemLabels[$name]) ? $this->systemLabels[$name] : $name;
+			if(!$label) $label = isset($systemLabels[$name]) ? $systemLabels[$name] : $name;
 			$icon = $field ? $field->getIcon(true) : '';
 			if($subname) {
 				$subfield = $this->fields->get($subname);

@@ -495,5 +495,18 @@ class Pagefiles extends WireArray {
 		return count($removed); 
 	}
 
+	/**
+	 * Is the given Pagefiles identical to this one?
+	 *
+	 * @param WireArray $items
+	 * @param bool|int $strict
+	 * @return bool
+	 *
+	 */
+	public function isIdentical(WireArray $items, $strict = true) {
+		if($strict) return $this === $items;
+		return parent::isIdentical($items, $strict);
+	}
+
 
 }

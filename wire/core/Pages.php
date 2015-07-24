@@ -1789,11 +1789,14 @@ class Pages extends Wire {
 	 *
 	 * Note: does not remove pages from selectorCache. Call uncacheAll to do that. 
 	 *
-	 * @param Page $page
+	 * @param Page $page Page to uncache
+	 * @param array $options Additional options to modify behavior: 
+	 * 	- shallow (bool): By default, this method also calls $page->uncache(). 
+	 * 	  To prevent call to $page->uncache(), set 'shallow' => true. 
 	 *
 	 */
-	public function uncache(Page $page) {
-		$page->uncache();
+	public function uncache(Page $page, array $options = array()) {
+		if(empty($options['shallow'])) $page->uncache();
 		unset($this->pageIdCache[$page->id]); 
 	}
 

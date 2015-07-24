@@ -222,6 +222,17 @@ abstract class Process extends WireData implements Module {
 		if(!empty($info['page'])) $this->uninstallPage();
 	}
 
+	/**
+	 * Called when module version changes
+	 * 
+	 * @param $fromVersion
+	 * @param $toVersion
+	 * @throws WireException if upgrade fails
+	 * 
+	 */
+	public function ___upgrade($fromVersion, $toVersion) {
+		// any code needed to upgrade between versions
+	}
 
 	/**
 	 * Install a dedicated page for this Process module and assign it this Process

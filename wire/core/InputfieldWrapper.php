@@ -205,8 +205,12 @@ class InputfieldWrapper extends Inputfield implements Countable, IteratorAggrega
 	 *
 	 */
 	public function insertBefore(Inputfield $item, Inputfield $existingItem) {
-		$item->setParent($this); 
-		$this->children->insertBefore($item, $existingItem); 
+		if($this->children->has($existingItem)) {
+			$item->setParent($this);
+			$this->children->insertBefore($item, $existingItem);
+		} else if($this->getChildByName($existingItem->attr('name')) && $existingItem->parent) {
+			$existingItem->parent->insertBefore($item, $existingItem);
+		}
 		return $this; 
 	}
 
@@ -219,8 +223,12 @@ class InputfieldWrapper extends Inputfield implements Countable, IteratorAggrega
 	 *
 	 */
 	public function insertAfter(Inputfield $item, Inputfield $existingItem) {
-		$item->setParent($this); 
-		$this->children->insertAfter($item, $existingItem); 
+		if($this->children->has($existingItem)) {
+			$item->setParent($this);
+			$this->children->insertAfter($item, $existingItem);
+		} else if($this->getChildByName($existingItem->attr('name')) && $existingItem->parent) {
+			$existingItem->parent->insertAfter($item, $existingItem);
+		}
 		return $this; 
 	}
 
@@ -232,7 +240,11 @@ class InputfieldWrapper extends Inputfield implements Countable, IteratorAggrega
 	 *
 	 */
 	public function remove($item) {
-		$this->children->remove($item); 
+		if($this->children->has($item)) {
+			$this->children->remove($item);
+		} if($this->getChildByName($item->attr('name')) && $item->parent) {
+			$item->parent->remove($item);
+		}
 		return $this; 
 	}
 

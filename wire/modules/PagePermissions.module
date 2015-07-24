@@ -10,7 +10,7 @@
  * ...and so on...
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2014 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
@@ -40,6 +40,22 @@
  * 6. page-edit-lang-none: when installed on a multi-language site, user must have this 
  *    permission to edit non-multi-language fields. They must also have it to create or delete
  *    pages (if user already has other permissions that enable that). 
+ * 
+ * 7. user-admin-all: when installed, a user must have this permission in order to edit other
+ *    users of all roles (except superuser of course). When installed, the regular user-admin
+ *    permission only acts as a pre-requisite for editing users, and enables only listing users, 
+ *    and editing users that have only the 'guest' role. The user-admin-all essentially grants 
+ *    the same thing as user-admin permission does on a system that has no user-admin-all 
+ *    permission installed. That's what it does, but why is it here? The entire purpose is to 
+ *    support user-admin-[role] permissions, as described in the next item below: 
+ * 
+ * 8. user-admin-[role_name]: when installed on a site that also has user-admin-all permission
+ *    installed, a user must have this permission (along with user-admin permission) in order
+ *    to edit users in role [role_name], or to grant that role to other guest users, or to 
+ *    revoke it from them. Think of this permission as granting a user administrative privileges
+ *    to just a specific group of users. Note that there would be no reason to combine this
+ *    permission with the user-admin-all permission, as user-admin-all permission grants admin
+ *    privileges to all roles. 
  * 
  */
 
@@ -155,26 +171,17 @@ class PagePermissions extends WireData implements Module {
 			
 		// special conditions apply if the page is a User
 		if($page instanceof User || in_array($page->template->id, $this->wire('config')->userTemplateIDs)) {
-		
-			// if user is editing themselves in ProcessProfile, and they have permission to do so
-			if($user->id === $page->id && $this->wire('page')->process == 'ProcessProfile' && $user->hasPermission('profile-edit')) return true;
-
-			// if the current process is something other than ProcessUser, they don't have permission
-			if($this->wire('process') != 'ProcessUser') return false;
-
-			// if the user page being edited has a superuser role, and the current user doesn't, never let them edit regardless of any other permissions
-			$suRole = $this->wire('roles')->get($this->wire('config')->superUserRolePageID); 
-			if($page->roles->has($suRole) && !$user->roles->has($suRole)) return false;
-
-			// if we reach this point and user has user-admin permission, then they are good
-			if($user->hasPermission('user-admin'))  return true;
+			return $this->userEditable($page);
 		}
 
 		// if the user doesn't have page-edit permission, don't let them go further
 		if(!$user->hasPermission("page-edit", $page)) return false;
 
 		// check if the system has a page-edit-created permission installed
-		if(is_null($this->hasPageEditCreated)) $this->hasPageEditCreated = $this->wire('permissions')->get('page-edit-created')->id > 0;
+		if(is_null($this->hasPageEditCreated)) {
+			$this->hasPageEditCreated = $this->wire('permissions')->get('page-edit-created')->id > 0;
+		}
+		
 		if($this->hasPageEditCreated) {
 			// page-edit-created permission is installed, so we have to account for it 
 			// if user is not the one that created this page, don't allow them to edit it
@@ -182,7 +189,10 @@ class PagePermissions extends WireData implements Module {
 		}
 
 		// now check if there is a page-publish permission in the system, and use it if so
-		if(is_null($this->hasPagePublish)) $this->hasPagePublish = $this->wire('permissions')->get('page-publish')->id > 0;
+		if(is_null($this->hasPagePublish)) {
+			$this->hasPagePublish = $this->wire('permissions')->get('page-publish')->id > 0;
+		}
+		
 		if($this->hasPagePublish) {
 
 			// if user has the page-publish permission here, then we're good
@@ -196,6 +206,110 @@ class PagePermissions extends WireData implements Module {
 		}
 
 		return true; 
+	}
+
+	/**
+	 * Returns whether the given user ($page) is editable by the current user 
+	 * 
+	 * @param User|Page $page
+	 * @return bool
+	 * 
+	 */
+	public function userEditable(Page $page) {
+		
+		if($page->className() != 'User') $page = $this->wire('users')->get($page->id);
+		if($page instanceof NullPage) return false;
+		
+		$user = $this->wire('user');
+
+		// if user is editing themselves in ProcessProfile, and they have permission to do so
+		if($user->id === $page->id && $this->wire('page')->process == 'ProcessProfile' && $user->hasPermission('profile-edit')) return true;
+
+		// if the current process is something other than ProcessUser, they don't have permission
+		if($this->wire('process') != 'ProcessUser') {
+			return false;
+		}
+	
+		// if user doesn't have user-admin permission, they have no edit access
+		if(!$user->hasPermission('user-admin')) return false;
+
+		// if the user page being edited has a superuser role, and the current user doesn't, never let them edit regardless of any other permissions
+		$superuserRole = $this->wire('roles')->get($this->wire('config')->superUserRolePageID);
+		if($page->roles->has($superuserRole) && !$user->roles->has($superuserRole)) return false;
+
+		// if we reach this point then check if there are more granular user-admin permissions available
+		// special permissions: user-admin-all, and user-admin-[role]
+		$userAdminAll = $this->wire('permissions')->get('user-admin-all');
+		
+		// if there are no special permissions, then let them through
+		if(!$userAdminAll->id) return true;
+		
+		// if user has user-admin-all permission, they are good to edit
+		if($user->hasPermission($userAdminAll)) return true;
+
+		// there are role-specific permissions in the system, and user must have appropriate one to edit
+		$userEditable = false;
+		$guestRoleID = $this->wire('config')->guestUserRolePageID;
+		$n = 0;
+		foreach($page->roles as $role) {
+			$n++;
+			if($role->id == $guestRoleID) continue;
+			if($user->hasPermission("user-admin-$role->name")) {
+				// found a matching permission for role, so it is editable
+				$userEditable = true;
+				break;
+			}
+		}
+		if($userEditable) return true;
+		// if there is only role (guest), then no specific permission needed for that
+		if($n == 0 || ($n == 1 && $page->roles->first()->id == $guestRoleID)) return true;
+		
+		return false;
+	}
+
+	/**
+	 * Can the current user add/remove the given role from other users?
+	 * 
+	 * @param User $user
+	 * @param string|Role|int $role
+	 * @return bool
+	 * 
+	 */
+	public function userCanAssignRole($role) {
+		
+		$user = $this->wire('user');
+	
+		// superuser can assign any role
+		if($user->isSuperuser()) return true; 
+		
+		// user-admin permission is a pre-requisite for any kind of role assignment
+		if(!$user->hasPermission('user-admin')) return false;
+		
+		// make sure we have a Role object
+		if(!$role instanceof Role) $role = $this->wire('roles')->get($role);
+		if(!$role->id) return false;
+		
+		// cannot assign superuser role
+		if($role->id == $this->wire('config')->superUserRolePageID) return false;
+	
+		// user with user-admin can always assign guest role
+		if($role->id == $this->wire('config')->guestUserRolePageID) return true;
+
+		// check for user-admin-all permission
+		$userAdminAll = $this->wire('permissions')->get('user-admin-all');
+		if(!$userAdminAll->id) {
+			// if there is no user-admin-all permission, then user-admin permission is
+			// all that is necessary to edit other users of any roles except superuser
+			return true;
+		}
+		
+		if($user->hasPermission($userAdminAll)) {
+			// if user has user-admin-all permission, then they can assign any roles except superuser
+			return true; 
+		}
+		
+		// return whether user has permission specific to role
+		return $user->hasPermission("user-admin-$role->name");
 	}
 
 	/**

@@ -12,6 +12,8 @@
  * Update 1: Applied database changes to fieldgroups
  * Update 2: Force modules refresh since files moved
  * Update 3: Force modules refresh since files moved
+ * 
+ * @todo auto-refresh modules when PW version changes
  *
  */
 
@@ -108,6 +110,7 @@ class SystemUpdater extends WireData implements Module, ConfigurableModule {
 		$moduleVersion = $info['version'];
 		
 		foreach($this->configData as $key => $value) {
+			if($key == 'coreVersion') continue;
 			$config->$key = $value; 
 		}
 		
@@ -141,6 +144,44 @@ class SystemUpdater extends WireData implements Module, ConfigurableModule {
 	}
 
 	/**
+	 * Called after ProcessWire API ready
+	 * 
+	 */
+	public function ready() {
+		static $called = false;
+		if($called) return; // just in case we add auto-ready support to non-autoload modules 
+		
+		if($this->wire('page')->template != 'admin') return;
+		if($this->wire('config')->ajax) return;
+		
+		$versionChanged = false;
+		$coreVersion = isset($this->configData['coreVersion']) ? $this->configData['coreVersion'] : '';
+		$configVersion = $this->wire('config')->version;
+		if($coreVersion != $configVersion) $this->coreVersionChange($coreVersion, $configVersion);
+		$called = true;
+	}
+
+	/**
+	 * Hook called when the core version changes, in case any listeners want it
+	 * 
+	 * Note that version change is only detected when a page from the admin is viewed. 
+	 * To hook this, hook to "SystemUpdater::coreVersionChange"
+	 * 
+	 * @param $fromVersion
+	 * @param $toVersion
+	 * 
+	 */
+	protected function ___coreVersionChange($fromVersion, $toVersion) {
+		$this->message(sprintf($this->_('Detected core version change %1$s => %2$s'), $fromVersion, $toVersion));
+		if(!$this->numUpdatesApplied) {
+			// reset modules cache, only if it hasn't been reset already by a system update
+			$this->modules->resetCache();
+		}
+		$this->configData['coreVersion'] = $toVersion;
+		$this->wire('modules')->saveModuleConfigData($this, $this->configData);
+	}
+
+	/**
 	 * Save the system version as the given version number
 	 *
 	 * @param int $version
@@ -150,6 +191,7 @@ class SystemUpdater extends WireData implements Module, ConfigurableModule {
 		$version = (int) $version;
 		$this->wire('config')->systemVersion = $version; 
 		$this->configData['systemVersion'] = $version;
+		$this->configData['coreVersion'] = $this->wire('config')->version;
 		$this->wire('modules')->saveModuleConfigData($this, $this->configData);
 		$this->message("Update #$version: Completed!"); 
 	}
@@ -229,7 +271,12 @@ class SystemUpdater extends WireData implements Module, ConfigurableModule {
 		$f->description = __('This lets you re-apply a system version update by reducing the version number.');
 		$f->attr('value', $data['systemVersion']); 
 		$inputfields->add($f);
-		
+	
+		$f = wire('modules')->get('InputfieldHidden');
+		$f->attr('name', 'coreVersion');
+		$f->attr('value', wire('config')->version);
+		$inputfields->add($f);
+
 		return $inputfields;
 	}
 

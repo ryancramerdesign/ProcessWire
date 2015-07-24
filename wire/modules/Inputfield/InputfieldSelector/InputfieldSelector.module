@@ -60,7 +60,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Selector',
-			'version' => 25,
+			'version' => 26,
 			'summary' => 'Build a page finding selector visually.',
 			'author' => 'Avoine + ProcessWire',
 			'autoload' => "template=admin", 
@@ -567,8 +567,12 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 	 */
 	public function getSelectorInfo($field) {
 		if(is_string($field)) {
-			if(isset($this->systemFields[$field])) return $this->systemFields[$field];
-			if(isset($this->modifierFields[$field])) return $this->modifierFields[$field];
+			if(isset($this->systemFields[$field])) {
+				return $this->systemFields[$field]; 
+			}
+			if(isset($this->modifierFields[$field])) {
+				return $this->modifierFields[$field];
+			}
 			$field = $this->wire('fields')->get($field);
 		}
 		if(!$field || !$field instanceof Field || !$field->type) return array();
@@ -715,8 +719,16 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			);
 
 		$optgroups = array(); 
-		if($settings['showSystem']) $optgroups['system'] = $this->systemFields;
-		if($settings['showModifiers']) $optgroups['modifier'] = $this->modifierFields;
+		if($settings['showSystem']) {
+			$optgroups['system'] = $this->systemFields;
+			if($this->initTemplate) {
+				$nameLabel = $this->initTemplate->getNameLabel();
+				if($nameLabel) $optgroups['system']['name']['label'] = $nameLabel;
+			}
+		}
+		if($settings['showModifiers']) {
+			$optgroups['modifier'] = $this->modifierFields;
+		}
 
 		// build system fields optgroup
 		foreach($optgroups as $optgroupName => $fields) {	

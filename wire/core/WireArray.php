@@ -75,6 +75,34 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	}
 
 	/**
+	 * Is the given WireArray identical to this one?
+	 * 
+	 * @param WireArray $items
+	 * @param bool|int $strict
+	 * 	When true (default), compares items, item object instances, order, and any other data contained in WireArray.
+	 * 	When false, compares only items in the WireArray resolve to the same order and values (though not object instances).
+	 * @return bool
+	 * 
+	 */
+	public function isIdentical(WireArray $items, $strict = true) {
+		if($items === $this) return true; 
+		if($items->className() != $this->className()) return false;
+		if(!$strict) return ((string) $this) === ((string) $items); 
+		$a1 = $this->getArray();
+		$a2 = $items->getArray();
+		if($a1 === $a2) {
+			// all items match
+			$d1 = $this->data();
+			$d2 = $items->data();
+			if($d1 === $d2) {
+				// all data matches
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	/**
 	 * Template method that descendant classes may use to find a key from the item itself, or null if disabled. 
 	 *
 	 * Used by add() and prepend()

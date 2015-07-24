@@ -13,6 +13,8 @@
  * 
  * https://processwire.com
  * 
+ * @todo add multi-language option for redirectLogin setting
+ * 
  * @property int $id Get or set the template's numbered database ID.
  * @property string $name Get or set the template's name.
  * @property string $filename Get or set a template's filename, including path (this is auto-generated from the name, though you may modify it at runtime if it suits your need).
@@ -63,7 +65,8 @@
  * @property string $cacheExpireSelector Selector string matching pages that should be expired, when cacheExpire == Template::cacheExpireSelector
  * @property string $tags Optional tags that can group this template with others in the admin templates list 
  * @property string $tabContent Optional replacement for default "Content" label
- * @property string $tabChildren Optional replacmenet for default "Children" label
+ * @property string $tabChildren Optional replacement for default "Children" label
+ * @property string $nameLabel Optional replacement for the default "Name" label on pages using this template
  * @property string $contentType Content-type header or index (extension) of content type header from $config->contentTypes
  *
  */
@@ -212,6 +215,7 @@ class Template extends WireData implements Saveable, Exportable {
 		'appendFile' => '', // file to append (relative to /site/templates/)
 		'tabContent' => '', 	// label for the Content tab (if different from 'Content')
 		'tabChildren' => '', 	// label for the Children tab (if different from 'Children')
+		'nameLabel' => '', // label for the "name" property of the page (if something other than "Name")
 		'contentType' => '', // Content-type header or index of header from $config->contentTypes
 		); 
 
@@ -770,6 +774,19 @@ class Template extends WireData implements Saveable, Exportable {
 		if(!$language || $language->isDefault()) $language = '';
 		$label = $this->get("tab$tab$language");
 		return $label;
+	}
+
+	/**
+	 * Return the overriden "page name" label, or blank if not overridden
+	 * 
+	 * @param Language|null $language
+	 * @return string
+	 * 
+	 */
+	public function getNameLabel($language = null) {
+		if(is_null($language)) $language = $this->wire('languages') ? $this->wire('user')->language : null;
+		if(!$language || $language->isDefault()) $language = '';
+		return $this->get("nameLabel$language");
 	}
 
 	/**

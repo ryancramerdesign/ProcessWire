@@ -865,6 +865,7 @@ $config->modals = array(
 $config->preloadCacheNames = array(
 	'Modules.info',
 	'ModulesVerbose.info',
+	'ModulesVersions.info',
 	'Modules.wire/modules/',
 	'Modules.site/modules/',
 );

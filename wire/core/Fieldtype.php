@@ -984,6 +984,17 @@ abstract class Fieldtype extends WireData implements Module {
 		return true; 
 	}
 
+	/**
+	 * Called when module version changes
+	 *
+	 * @param $fromVersion
+	 * @param $toVersion
+	 * @throws WireException if upgrade fails
+	 *
+	 */
+	public function ___upgrade($fromVersion, $toVersion) {
+		// any code needed to upgrade between versions
+	}
 
 	/**
 	 * The string value of Fieldtype is always the Fieldtype's name. 

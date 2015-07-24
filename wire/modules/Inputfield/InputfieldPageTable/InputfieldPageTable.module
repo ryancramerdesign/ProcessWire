@@ -377,7 +377,11 @@ class InputfieldPageTable extends Inputfield {
 
 		if($object instanceof WireArray) {
 			if(!$property) $property = 'title|name';
-			$value = $object->implode("\n", $property); 
+			if($property == 'count') {
+				$value = $object->count();
+			} else {
+				$value = $object->implode("\n", $property);
+			}
 
 		} else if($property) {
 			$value = $object->$property; 

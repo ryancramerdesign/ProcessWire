@@ -352,7 +352,7 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 	 * @return string
 	 *
 	 */
-	protected function wrapInputfieldOutput($out, $id, Language $language) {
+	public function wrapInputfieldOutput($out, $id, Language $language) {
 		
 		$label = (string) $language->title;
 		if(!strlen($label)) $label = $language->name; 
@@ -810,6 +810,7 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 			}
 		}
 	}
+	
 
 	/**
 	 * Install or uninstall by loading the LanguageSupportInstall script
@@ -820,6 +821,16 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 		$installer = new LanguageSupportInstall();
 		if($install) $installer->install();
 			else $installer->uninstall();
+	}
+
+	/**
+	 * Get the LanguageTabs module instance, if it is installed, or null if not
+	 * 
+	 * @return LanguageTabs|null
+	 * 
+	 */
+	public function getLanguageTabs() {
+		return $this->languageTabs;
 	}
 
 	/**

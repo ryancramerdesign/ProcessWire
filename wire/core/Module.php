@@ -42,6 +42,7 @@
  *    Note that ready() applies to 'autoload' modules only. 
  * 4. ___install() - called when module is installed. 
  * 5. ___uninstall() - called when module is uninstalled. 
+ * 6. ___upgrade($fromVersion, $toVersion) - called on version change.
  * 
  * For more details on these methods, see comments within the 
  * interface below.

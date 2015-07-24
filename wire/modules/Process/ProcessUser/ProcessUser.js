@@ -1,4 +1,5 @@
 $(document).ready(function() {
+	
 	if($("#Inputfield_id").val() == 40) {
 		// guest user
 		// hide fields that aren't necessary ehre
@@ -12,4 +13,24 @@ $(document).ready(function() {
 	if($guestRole.size() > 0 && !$guestRole.is(":checked")) {
 		$guestRole.attr('checked', 'checked'); 
 	}
+	
+	$("#wrap_Inputfield_roles").find("input[type=checkbox]").each(function() {
+		if($.inArray(parseInt($(this).val()), config.ProcessUser.editableRoles) == -1) {
+			$(this).closest('label').addClass('ui-priority-secondary').click(function() {
+				var $alert = $(this).find(".ui-state-error-text");
+				if($alert.length == 0) {
+					$alert = $("<span class='ui-state-error-text'>&nbsp;(" + config.ProcessUser.notEditableAlert + ")</span>");
+					$(this).append($alert);
+					setTimeout(function() {
+						$alert.fadeOut('normal', function() {
+							$alert.remove();
+						});
+					}, 2000);
+				} else {
+					$alert.remove();
+				}
+				return false;
+			});
+		}
+	});
 }); 

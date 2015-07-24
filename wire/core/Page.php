@@ -2125,11 +2125,21 @@ class Page extends WireData implements Countable {
 	 *
 	 */
 	protected function isEqual($key, $value1, $value2) {
-		if($value1 === $value2) {
-			if(is_object($value1) && $value1 instanceof Wire && $value1->isChanged()) $this->trackChange($key, $value1, $value2);
-			return true; 
-		} 
-		return false;
+		
+		$isEqual = $value1 === $value2;
+		
+		if(!$isEqual && $value1 instanceof WireArray && $value2 instanceof WireArray) {
+			// ask WireArray to compare itself to another
+			$isEqual = $value1->isIdentical($value2, true);
+		}
+		
+		if($isEqual) {
+			if(is_object($value1) && $value1 instanceof Wire && ($value1->isChanged() || $value2->isChanged())) {
+				$this->trackChange($key, $value1, $value2);
+			}
+		}
+		
+		return $isEqual;
 	}
 
 	/**

@@ -405,11 +405,21 @@ var ProcessLister = {
 		var pageID = parseInt($toggle.attr('id').replace('page', ''));
 		var $actions = $a.closest('.actions');
 		var href = $a.attr('href');
+		var actionName = href.match(/\?action=([-_a-zA-Z0-9]+)/)[1]; 
+		var $postToken = $("input._post_token"); 
+		var tokenName = $postToken.attr('name');
+		var tokenValue = $postToken.attr('value');
+		var postData = {
+			action: actionName,
+			id: pageID, 
+			ProcessPageLister: 1, // not required for anything in particular
+		};
+		postData[tokenName] = tokenValue;
 
 		$actions.after("<i class='fa fa-spin fa-spinner ui-priority-secondary'></i>");
 		$actions.hide();
 		
-		$.post(href, { ProcessPageLister: 1 }, function(data) {
+		$.post(href, postData, function(data) {
 			if(typeof data.page != "undefined" || data.action == 'trash') {
 				// highlight page mentioned in json return value
 				// data.page is returned by ProcessPageClone

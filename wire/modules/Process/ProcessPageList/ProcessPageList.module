@@ -50,7 +50,7 @@ class ProcessPageList extends Process implements ConfigurableModule {
 		return array(
 			'title' => 'Page List',          
 			'summary' => 'List pages in a hierarchal tree structure', 
-			'version' => 116, 
+			'version' => 117, 
 			'permanent' => true, 
 			'permission' => 'page-edit',
 			'icon' => 'sitemap',
@@ -108,8 +108,8 @@ class ProcessPageList extends Process implements ConfigurableModule {
 		if(!$this->page->listable()) throw new WirePermissionException("You don't have access to list page {$this->page->url}"); 
 		$this->page->setOutputFormatting(false); 
 	
-		if($this->wire('config')->ajax && $_SERVER['REQUEST_METHOD'] == 'POST') {
-			$action = $this->wire('input')->get('action');
+		if($this->wire('config')->ajax && !empty($_POST['action'])) {
+			$action = $this->wire('input')->post('action');
 			if($action) return $this->ajaxAction($this->wire('sanitizer')->name($action));
 		}
 
@@ -218,6 +218,12 @@ class ProcessPageList extends Process implements ConfigurableModule {
 	
 	public function ___ajaxAction($action) {
 		if(!$this->page->editable()) throw new WireException("Page not editable");
+		if($this->page->id != $this->wire('input')->post('id')) throw new WireException("GET id does not match POST id");
+		
+		$tokenName = $this->session->CSRF->getTokenName();
+		$tokenValue = $this->session->CSRF->getTokenValue();
+		$postTokenValue = $this->wire('input')->post($tokenName);
+		if($postTokenValue === null || $postTokenValue !== $tokenValue) throw new WireException("CSRF token does not match");
 		$renderer = $this->getPageListRender(0);	
 		$result = $renderer->actions()->processAction($this->page, $action);
 		if(!empty($result['updateItem'])) {

@@ -33,7 +33,7 @@ class ProcessWire extends Wire {
 
 	const versionMajor = 2; 
 	const versionMinor = 6; 
-	const versionRevision = 9; 
+	const versionRevision = 10; 
 	const versionSuffix = 'dev';
 	
 	const indexVersion = 250; // required version for index.php file (represented by PROCESSWIRE define)
@@ -71,6 +71,12 @@ class ProcessWire extends Wire {
 	 * 
 	 */
 	protected $pathSave = '';
+
+	/**
+	 * @var SystemUpdater|null
+	 * 
+	 */
+	protected $updater = null;
 
 	/**
 	 * Given a Config object, instantiates ProcessWire and it's API
@@ -213,10 +219,10 @@ class ProcessWire extends Wire {
 			if(!$modules) throw new WireException($e->getMessage()); 	
 			$this->error($e->getMessage()); 
 		}
-		$updater = $modules->get('SystemUpdater'); 
-		if(!$updater) {
+		$this->updater = $modules->get('SystemUpdater'); 
+		if(!$this->updater) {
 			$modules->resetCache();
-			$updater = $modules->get('SystemUpdater');
+			$this->updater = $modules->get('SystemUpdater');
 		}
 
 		$fieldtypes = new Fieldtypes();
@@ -328,6 +334,8 @@ class ProcessWire extends Wire {
 	protected function ___ready() {
 		if($this->debug) Debug::timer('boot.modules.autoload.ready'); 
 		$this->wire('modules')->triggerReady();
+		$this->updater->ready();
+		unset($this->updater);
 		if($this->debug) Debug::saveTimer('boot.modules.autoload.ready'); 
 	}
 

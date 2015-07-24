@@ -181,6 +181,18 @@ class ProcessPageListActions extends Wire {
 
 	public function ___processAction(Page $page, $action) {
 
+		if($this->wire('config')->demo) {
+			$result = array(
+				'action'          => $action,
+				'success'         => false, 
+				'message'         => $this->_('Actions disabled in demo mode'),
+				'updateItem'      => 0, // id of page to update in output
+				'remove'          => false,
+				'refreshChildren' => false,
+				// also available: 'appendItem' => $page->id, which adds a new item below the existing
+			);
+		}
+
 		$actions = $this->getExtraActions($page);
 
 		if(isset($actions[$action]) && $page->editable()) {

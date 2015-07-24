@@ -182,4 +182,22 @@ class SelectableOptionArray extends WireArray {
 		return new SelectableOption();
 	}
 
+	/**
+	 * Is the given WireArray identical to this one?
+	 *
+	 * @param WireArray $items
+	 * @param bool|int $strict
+	 * @return bool
+	 *
+	 */
+	public function isIdentical(WireArray $items, $strict = true) {
+		$isIdentical = parent::isIdentical($items, false); // force non-strict
+		if($isIdentical && $strict) {
+			if($this->of() != $items->of()) $isIdentical = false;
+			if($isIdentical && ((string) $this->getPage()) !== ((string) $items->getPage())) $isIdentical = false;
+			if($isIdentical && ((string) $this->getField()) !== ((string) $items->getField())) $isIdentical = false;
+		}
+		return $isIdentical;
+	}
+
 }

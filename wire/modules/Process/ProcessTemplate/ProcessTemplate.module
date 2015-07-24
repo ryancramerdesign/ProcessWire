@@ -1007,7 +1007,7 @@ class ProcessTemplate extends Process {
 		$f->attr('value', $template->tabContent);
 		$f->label = $this->_x('Label for Content tab', 'field-label');
 		$f->description = $this->_('Optionally override the default "Content" tab label.');
-		$f->columnWidth = 50;
+		$f->columnWidth = 33;
 		if($languages) {
 			$f->useLanguages = true;
 			foreach($languages as $language) $f->set('value' . $language->id, $template->getTabLabel('content', $language));
@@ -1019,10 +1019,22 @@ class ProcessTemplate extends Process {
 		$f->attr('value', $template->tabChildren);
 		$f->label = $this->_x('Label for Children tab', 'field-label');
 		$f->description = $this->_('Optionally override the default "Children" tab label.');
-		$f->columnWidth = 50;
+		$f->columnWidth = 33;
 		if($languages) {
 			$f->useLanguages = true;
 			foreach($languages as $language) $f->set('value' . $language->id, $template->getTabLabel('children', $language));
+		}
+		$form->add($f);
+		
+		$f = $this->modules->get('InputfieldText');
+		$f->attr('name', 'nameLabel');
+		$f->attr('value', $template->nameLabel);
+		$f->label = $this->_x('Label for Page Name property', 'field-label');
+		$f->description = $this->_('Optionally override the default "Name" property label.');
+		$f->columnWidth = 34;
+		if($languages) {
+			$f->useLanguages = true;
+			foreach($languages as $language) $f->set('value' . $language->id, $template->getNameLabel($language));
 		}
 		$form->add($f);
 
@@ -1628,7 +1640,7 @@ class ProcessTemplate extends Process {
 
 		$field = $this->modules->get('InputfieldText'); 
 		$field->attr('id+name', 'redirectLoginURL'); 
-		$field->label = $this->_("Enter the URL you want to redirect to when a user doesn't have access"); 
+		$field->label = $this->_("Enter the URL or page ID you want to redirect to when a user doesn't have access"); 
 		$field->description = $this->_('This field is applicable only if you selected "redirect to another URL" in the field above.');
 		if($template->redirectLogin && !ctype_digit("{$template->redirectLogin}")) $field->attr('value', $template->redirectLogin); 
 		$field->collapsed = Inputfield::collapsedNo;
@@ -1761,7 +1773,9 @@ class ProcessTemplate extends Process {
 		
 		$cacheStatus = (int) $form->get('_cache_status')->attr('value');
 		$cacheTime = (int) $form->get('cache_time')->attr('value'); 
-		if($cacheStatus == 2) { // ProCache
+		if($cacheStatus == 0) {
+			$cacheTime = 0;
+		} else if($cacheStatus == 2) { // ProCache
 			$pwpc = $this->wire('modules')->getModuleConfigData('ProCache');
 			if(is_array($pwpc)) {
 				if(!$cacheTime) $cacheTime = isset($pwpc['cacheTime']) ? -1 * $pwpc['cacheTime'] : -1;
@@ -1809,7 +1823,7 @@ class ProcessTemplate extends Process {
 
 		// template label and tab labels, including multi language versions if applicable
 		
-		foreach(array('label', 'tabContent', 'tabChildren') as $name) { 
+		foreach(array('label', 'tabContent', 'tabChildren', 'nameLabel') as $name) { 
 			$f = $name == 'label' ? $form->get('templateLabel') : $form->get($name); 
 			$this->template->$name = $this->sanitizer->text($f->attr('value')); 
 			if($languages) foreach($languages as $language) {

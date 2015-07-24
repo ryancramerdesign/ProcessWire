@@ -674,9 +674,19 @@ $(document).ready(function() {
 							
 							$li.find('.PageListActions').hide();
 							var $spinner = $(options.spinnerMarkup);
+							var href = $(this).attr('href');
+							var actionName = href.match(/[\?&]action=([-_a-zA-Z0-9]+)/)[1];
+							var pageID = parseInt(href.match(/[\?&]id=([0-9]+)/)[1]);
+							var tokenName = $("#PageListContainer").attr('data-token-name');
+							var tokenValue = $("#PageListContainer").attr('data-token-value');
+							var postData = {
+								action: actionName,
+								id: pageID, 
+							};
+							postData[tokenName] = tokenValue;
 							$li.append($spinner);
 							
-							$.post($(this).attr('href') + '&render=json', { action: extraKey }, function (data) {
+							$.post(href + '&render=json', postData, function (data) {
 								
 								if (data.success) {
 									
@@ -755,6 +765,7 @@ $(document).ready(function() {
 									
 								} else {
 									// data.success === false, so display error
+									$spinner.remove();
 									alert(data.message);
 								}
 							});

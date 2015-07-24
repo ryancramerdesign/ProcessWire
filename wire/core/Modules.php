@@ -75,6 +75,12 @@ class Modules extends WireArray {
 	const moduleInfoCacheUninstalledName = 'ModulesUninstalled.info';
 
 	/**
+	 * Cache name for module version change cache
+	 * 
+	 */
+	const moduleLastVersionsCacheName = 'ModulesVersions.info';
+
+	/**
 	 * Array of modules that are not currently installed, indexed by className => filename
 	 *
 	 */
@@ -156,6 +162,14 @@ class Modules extends WireArray {
 	 *
 	 */
 	protected $modulesTableCache = array();
+	
+	/**
+	 * Last known versions of modules, for version change tracking
+	 *
+	 * @var array of ModuleName (string) => last known version (integer|string)
+	 *
+	 */
+	protected $modulesLastVersions = array();
 
 	/**
 	 * Array of module ID => flags (int)
@@ -431,6 +445,12 @@ class Modules extends WireArray {
 		// and set values for each before initializing themodule
 		$this->setModuleConfigData($module);
 		
+		$className = get_class($module);
+		$moduleID = isset($this->moduleIDs[$className]) ? $this->moduleIDs[$className] : 0;
+		if($moduleID && isset($this->modulesLastVersions[$moduleID])) {
+			$this->checkModuleVersion($module);
+		}
+		
 		if(method_exists($module, 'init')) {
 			
 			if($this->debug) {
@@ -444,14 +464,14 @@ class Modules extends WireArray {
 				$this->debugTimerStop($debugKey);
 			}
 		}
-
+		
 		// if module is autoload (assumed here) and singular, then
 		// we no longer need the module's config data, so remove it
 		if($clearSettings && $this->isSingular($module)) {
-			$id = $this->getModuleID($module);
-			if(isset($this->configData[$id])) $this->configData[$id] = 1;
+			if(!$moduleID) $moduleID = $this->getModuleID($module);
+			if(isset($this->configData[$moduleID])) $this->configData[$moduleID] = 1;
 		}
-		
+	
 	}
 
 	/**
@@ -952,7 +972,7 @@ class Modules extends WireArray {
 	 *  - noSubstitute: Specify true to prevent inclusion of a substitute module. 
 	 * @return Module|null
 	 * @throws WirePermissionException If module requires a particular permission the user does not have
-	 * 
+	 *
 	 */
 	public function getModule($key, array $options = array()) {
 	
@@ -1011,7 +1031,7 @@ class Modules extends WireArray {
 			// if(method_exists($module, 'init')) $module->init(); 
 			if(empty($options['noInit'])) $this->initModule($module, false);
 		}
-		
+	
 		return $module; 
 	}
 
@@ -3080,6 +3100,8 @@ class Modules extends WireArray {
 			// if module class name keys in use (i.e. ProcessModule) it's an older version of 
 			// module info cache, so we skip over it to force its re-creation
 			if(is_array($data) && !isset($data['ProcessModule'])) $this->moduleInfoCache = $data; 
+			$data = $this->wire('cache')->get(self::moduleLastVersionsCacheName);
+			if(is_array($data)) $this->modulesLastVersions = $data;
 			return true;
 		}
 		return false;
@@ -3110,13 +3132,123 @@ class Modules extends WireArray {
 	 * 
 	 */
 	protected function clearModuleInfoCache() {
+	
+		// record current module versions currently in moduleInfo
+		$moduleVersions = array();
+		foreach($this->moduleInfoCache as $id => $moduleInfo) {
+			if(isset($this->modulesLastVersions[$id])) {
+				$moduleVersions[$id] = $this->modulesLastVersions[$id];
+			} else {
+				$moduleVersions[$id] = $moduleInfo['version'];
+			}
+			$moduleVersions[$id] = $moduleInfo['version'];
+		}
+	
+		// delete the caches
 		$this->wire('cache')->delete(self::moduleInfoCacheName);
 		$this->wire('cache')->delete(self::moduleInfoCacheVerboseName);
 		$this->wire('cache')->delete(self::moduleInfoCacheUninstalledName);
+		
 		$this->moduleInfoCache = array();
 		$this->moduleInfoCacheVerbose = array();
 		$this->moduleInfoCacheUninstalled = array();
+	
+		// save new moduleInfo cache
 		$this->saveModuleInfoCache();
+
+		$versionChanges = array();
+		$newModules = array();
+		// compare new moduleInfo versions with the previous ones, looking for changes
+		foreach($this->moduleInfoCache as $id => $moduleInfo) {
+			if(!isset($moduleVersions[$id])) {
+				$newModules[] = $moduleInfo['name']; 
+				continue;
+			}
+			if($moduleVersions[$id] != $moduleInfo['version']) {
+				$fromVersion = $this->formatVersion($moduleVersions[$id]);
+				$toVersion = $this->formatVersion($moduleInfo['version']);
+				$versionChanges[] = "$moduleInfo[name]: $fromVersion => $toVersion";
+				$this->modulesLastVersions[$id] = $moduleVersions[$id];
+			}
+		}
+	
+		// report on any changes
+		if(count($newModules)) {
+			$this->message(
+				sprintf($this->_n('Detected %d new module: %s', 'Detected %d new modules: %s', count($newModules)), 
+					count($newModules), implode(', ', $newModules)));
+		}
+		if(count($versionChanges)) {
+			$this->message(
+				sprintf($this->_n('Detected %d module version change:', 'Detected %d module version changes:', 
+					count($versionChanges)), count($versionChanges)) . ' ' . implode(", ", $versionChanges));
+		}
+		
+		$this->updateModuleVersionsCache();
+	}
+
+	/**
+	 * Update the cache of queued module version changes
+	 * 
+	 */
+	protected function updateModuleVersionsCache() {
+		foreach($this->modulesLastVersions as $id => $version) {
+			// clear out stale data, if present
+			if(!in_array($id, $this->moduleIDs)) unset($this->modulesLastVersions[$id]);
+		}
+		if(count($this->modulesLastVersions)) {
+			$this->wire('cache')->save(self::moduleLastVersionsCacheName, $this->modulesLastVersions, WireCache::expireNever);
+		} else {
+			$this->wire('cache')->delete(self::moduleLastVersionsCacheName);
+		}
+	}
+
+	/**
+	 * Check the module version to make sure it is consistent with our moduleInfo
+	 * 
+	 * When not consistent, this triggers the moduleVersionChanged hook, which in turn
+	 * triggeres the $module->___upgrade($fromVersion, $toVersion) method. 
+	 * 
+	 * @param Module $module
+	 * 
+	 */
+	protected function checkModuleVersion(Module $module) {
+		$id = $this->getModuleID($module);
+		$moduleInfo = $this->getModuleInfo($module);
+		$lastVersion = isset($this->modulesLastVersions[$id]) ? $this->modulesLastVersions[$id] : null;
+		if(!is_null($lastVersion)) { 
+			if($lastVersion != $moduleInfo['version']) {
+				$this->moduleVersionChanged($module, $lastVersion, $moduleInfo['version']);	
+				unset($this->modulesLastVersions[$id]);
+			}
+			$this->updateModuleVersionsCache();
+		}
+	}
+
+	/**
+	 * Hook called when a module's version changes
+	 * 
+	 * This calls the module's ___upgrade($fromVersion, $toVersion) method. 
+	 * 
+	 * @param Module $module
+	 * @param int|string $fromVersion
+	 * @param int|string $toVersion
+	 * 
+	 */
+	protected function ___moduleVersionChanged(Module $module, $fromVersion, $toVersion) {
+		$moduleName = get_class($module);
+		$moduleID = $this->getModuleID($module);
+		$fromVersionStr = $this->formatVersion($fromVersion);
+		$toVersionStr = $this->formatVersion($toVersion);
+		$this->message($this->_('Upgrading module') . " ($moduleName: $fromVersionStr => $toVersionStr)");
+		try {
+			if(method_exists($module, '___upgrade')) {
+				$module->upgrade($fromVersion, $toVersion);
+			}
+			unset($this->modulesLastVersions[$moduleID]);
+		} catch(Exception $e) {
+			$this->error("Error upgrading module ($moduleName): " . $e->getMessage());
+		}
 	}
 
 	/**

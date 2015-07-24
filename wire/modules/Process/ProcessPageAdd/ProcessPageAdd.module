@@ -448,7 +448,11 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 		$field->parentPage = $this->parent; 
 		$field->attr('name', '_pw_page_name'); 
 		$field->required = true; 
-		if($this->template) $field->slashUrls = $this->template->slashUrls;
+		if($this->template) {
+			$field->slashUrls = $this->template->slashUrls;
+			$label = $this->template->getNameLabel(); 
+			if($label) $field->label = $label;
+		}
 		$form->append($field); 
 
 		$defaultTemplateId = (int) $this->wire('input')->get('template_id'); 

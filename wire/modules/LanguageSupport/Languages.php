@@ -11,6 +11,10 @@
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
+ * 
+ * @property LanguageTabs|null $tabs Current LanguageTabs module instance, if installed
+ * @property Language $default Get default language 
+ * @property LanguageSupport $support Instance of LanguageSupport module
  *
  */
 
@@ -351,6 +355,13 @@ class Languages extends PagesType {
 		}
 		
 		return $has; 
+	}
+	
+	public function __get($key) {
+		if($key == 'tabs') return $this->wire('modules')->get('LanguageSupport')->getLanguageTabs();
+		if($key == 'default') return $this->getDefault();
+		if($key == 'support') return $this->wire('modules')->get('LanguageSupport');
+		return parent::__get($key);
 	}
 
 	/**
