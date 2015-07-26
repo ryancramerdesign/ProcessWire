@@ -269,6 +269,7 @@ class ProcessLanguageTranslator extends Process {
 					return $this->session->redirect("../edit/?language_id={$this->language->id}&textdomain=" . reset($newTextdomains)); 
 				} else if(count($newTextdomains) > 1) {
 					// render form again
+					return $this->session->redirect("../add/?language_id={$this->language->id}");
 				}
 			}
 				
