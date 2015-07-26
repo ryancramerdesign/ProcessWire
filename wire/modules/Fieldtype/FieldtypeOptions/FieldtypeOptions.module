@@ -220,7 +220,19 @@ class FieldtypeOptions extends FieldtypeMulti implements Module {
 	 */
 	public function ___sleepValue(Page $page, Field $field, $value) {
 		$sleepValue = array();
-		if(empty($value) || !count($value)) return $sleepValue; 
+		if(empty($value) || !count($value)) {
+			// value is empty
+			if($field->required && $field->initValue) {
+				// value is required, and an initial value is supplied
+				// so populate the initial value
+				$initValue = $field->initValue;	
+				if(!is_array($initValue)) $initValue = array($initValue);
+				foreach($initValue as $v) {
+					$sleepValue[] = (int) $v;
+				}
+			}
+			return $sleepValue;
+		}
 		if(!$value instanceof SelectableOptionArray) throw new WireException("sleepValue requires SelectableOptionArray"); 
 		
 		foreach($value as $option) {
