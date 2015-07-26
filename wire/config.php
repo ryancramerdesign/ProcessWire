@@ -161,6 +161,17 @@ $config->dateFormat = 'Y-m-d H:i:s';
 $config->sessionName = 'wire';
 
 /**
+ * Session name when on HTTPS
+ * 
+ * Same as session name but when on HTTPS. This is only used when the sessionCookieSecure
+ * option is enabled (default). When blank (default), it will be sessionName + 's'.
+ * 
+ * @var string
+ * 
+ */
+$config->sessionNameSecure = '';
+
+/**
  * Session expiration seconds
  * 
  * How many seconds of inactivity before session expires
@@ -200,6 +211,22 @@ $config->sessionChallenge = true;
  *
  */
 $config->sessionFingerprint = 1;
+
+/**
+ * Use secure cookies when on HTTPS?
+ * 
+ * When enabled, separate sessions will be maintained for
+ * HTTP vs. HTTPS. This ensures the session is secure on HTTPS.
+ * The tradeoff is that switching between HTTP and HTTPS means
+ * that you may be logged in on one and not the other. 
+ * 
+ * 0 or false: secure cookies off
+ * 1 or true: secure cookies on (default)
+ * 
+ * @var int
+ * 
+ */
+$config->sessionCookieSecure = 1; 
 
 /**
  * Number of session history entries to record.

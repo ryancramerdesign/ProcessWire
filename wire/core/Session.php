@@ -11,10 +11,10 @@
  * over the $_SESSION superglobal just in case we ever need to replace PHP's session handling in the future.
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://processwire.com
+ * https://processwire.com
  *
  *
  * @see http://processwire.com/api/cheatsheet/#session Cheatsheet
@@ -26,9 +26,12 @@
  *
  * Expected $config variables include: 
  * ===================================
+ * string $config->sessionName Name of session on http
+ * string $config->sessionNameSecure Name of session on https
  * int $config->sessionExpireSeconds Number of seconds of inactivity before session expires
  * bool $config->sessionChallenge True if a separate challenge cookie should be used for validating sessions
  * bool $config->sessionFingerprint True if a fingerprint should be kept of the user's IP & user agent to validate sessions
+ * bool $config->sessionCookieSecure Use secure cookies or session? (default=true)
  *
  */
 
@@ -459,8 +462,9 @@ class Session extends Wire implements IteratorAggregate {
 				$pass = new Password();
 				$challenge = $pass->randomBase64String(32);
 				$this->set('_user', 'challenge', $challenge); 
+				$secure = $this->config->sessionCookieSecure ? (bool) $this->config->https : false;
 				// set challenge cookie to last 30 days (should be longer than any session would feasibly last)
-				setcookie(session_name() . '_challenge', $challenge, time()+60*60*24*30, '/', null, (bool) $this->config->https, true); // PR #1264
+				setcookie(session_name() . '_challenge', $challenge, time()+60*60*24*30, '/', null, $secure, true); // PR #1264
 			}
 
 			if($this->config->sessionFingerprint) { 
@@ -547,8 +551,10 @@ class Session extends Wire implements IteratorAggregate {
 	public function ___logout() {
 		$sessionName = session_name();
 		$_SESSION = array();
-		if(isset($_COOKIE[$sessionName])) setcookie($sessionName, '', time()-42000, '/', null, (bool) $this->config->https, true);
-		if(isset($_COOKIE[$sessionName . "_challenge"])) setcookie($sessionName . "_challenge", '', time()-42000, '/', null, (bool) $this->config->https, true);
+		$time = time() - 42000;
+		$secure = $this->config->sessionCookieSecure ? (bool) $this->config->https : false;
+		if(isset($_COOKIE[$sessionName])) setcookie($sessionName, '', $time, '/', null, $secure, true);
+		if(isset($_COOKIE[$sessionName . "_challenge"])) setcookie($sessionName . "_challenge", '', $time, '/', null, $secure, true);
 		session_destroy();
 		session_name($sessionName); 
 		$this->init();
