@@ -24,7 +24,7 @@ function InputfieldPageTableDialog() {
 			}
 		}
 	}
-	var $iframe = pwModalWindow(url, modalSettings, 'medium');
+	var $iframe = pwModalWindow(url, modalSettings, 'large');
 	var closeOnSaveReady = false;
 	
 	if($a.is('.InputfieldPageTableAdd')) closeOnSave = false; 

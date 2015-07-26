@@ -124,6 +124,9 @@ class FieldtypeTextarea extends FieldtypeText {
 	 * 
 	 * This one handles a string value or array of string values (like for multi-language support)
 	 * 
+	 * Note: this is called by both loadPageField and wakeupValue, so will be called with the same
+	 * arguments twice during load of a value
+	 * 
 	 * @param Page $page
 	 * @param Field $field
  	 * @param string|array $value Value to look for attributes (or array of values)
@@ -139,21 +142,39 @@ class FieldtypeTextarea extends FieldtypeText {
 		}
 		if(is_array($value)) {
 			foreach($value as $k => $v) {
-				if($sleep) {
-					$this->markupQA->sleepUrls($v); 
-				} else {
-					$this->markupQA->wakeupUrls($v); 
-					if($field->contentType >= self::contentTypeImageHTML) $this->markupQA->checkImgTags($v);
-				}
+				$this->_htmlReplacement($v, $sleep, $field);
 				$value[$k] = $v;
 			}
-		} else if(is_string($value)) {
-			if($sleep) {
-				$this->markupQA->sleepUrls($value); 
-			} else {
-				$this->markupQA->wakeupUrls($value);
-				if($field->contentType >= self::contentTypeImageHTML) $this->markupQA->checkImgTags($value);
+		} else if(is_object($value) && $value instanceof LanguagesValueInterface && $this->wire('languages')) {
+			$trackChanges = $value->trackChanges();
+			$value->setTrackChanges(false);
+			foreach($this->wire('languages') as $language) {
+				/** @var LanguagesValueInterface $value */
+				$v = $value->getLanguageValue($language->id);
+				$this->_htmlReplacement($v, $sleep, $field);
+				$value->setLanguageValue($language, $v, $field);
 			}
+			if($trackChanges) $value->setTrackChanges($trackChanges);
+			
+		} else if(is_string($value)) {
+			$this->_htmlReplacement($value, $sleep, $field);
+		}
+	}
+
+	/**
+	 * Helper for htmlReplacements, to process single value
+	 * 
+	 * @param string|array|LanguagesValueInterface $value
+	 * @param bool $sleep
+	 * @param int $contentType
+	 * 
+	 */
+	protected function _htmlReplacement(&$value, $sleep, Field $field) {
+		if($sleep) {
+			$this->markupQA->sleepUrls($value);
+		} else {
+			$this->markupQA->wakeupUrls($value);
+			if($field->contentType >= self::contentTypeImageHTML) $this->markupQA->checkImgTags($value);
 		}
 	}
 

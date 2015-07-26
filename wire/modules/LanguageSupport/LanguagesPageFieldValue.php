@@ -11,7 +11,7 @@
  *
  */
 
-class LanguagesPageFieldValue extends Wire implements LanguagesValueInterface {
+class LanguagesPageFieldValue extends Wire implements LanguagesValueInterface, IteratorAggregate {
 
 	/**
 	 * Inherit default language value when blank
@@ -166,6 +166,18 @@ class LanguagesPageFieldValue extends Wire implements LanguagesValueInterface {
 			$info[$language->name] = isset($this->data[$language->id]) ? $this->data[$language->id] : '';
 		}
 		return $info;	
+	}
+
+	/**
+	 * Allows iteration of the languages values
+	 *
+	 * Fulfills IteratorAggregate interface.
+	 *
+	 * @return ArrayObject
+	 *
+	 */
+	public function getIterator() {
+		return new ArrayObject($this->data);
 	}
 }
 
