@@ -13,7 +13,6 @@
  */
 
 $(document).ready(function() {
-
 	var deleteClick = function(e) {
 
 		var $parent = $(this).parent('label').parent('li');

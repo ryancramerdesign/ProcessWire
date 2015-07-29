@@ -1,4 +1,3 @@
-
 $(document).ready(function() {
 	
 	var fieldFilterFormChange = function() {
@@ -100,5 +99,10 @@ $(document).ready(function() {
 			$fieldset.removeClass('ui-priority-secondary');
 		}
 	}).change();
+
+	// allow processInput to ignore this field when applicable
+	$("#wrap_Inputfield_send_templates").find(":input").change(function() {
+		$("#_send_templates_changed").val('changed'); 
+	}); 
 
 });

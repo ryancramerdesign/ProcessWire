@@ -24,7 +24,7 @@ class FieldtypeDatetime extends FieldtypeText {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Datetime',
-			'version' => 103,
+			'version' => 104,
 			'summary' => 'Field that stores a date and optionally time',
 			);
 	}
@@ -34,9 +34,9 @@ class FieldtypeDatetime extends FieldtypeText {
 	 *
 	 */
 	static protected $dateFormats = array(
-
+		
 		// Gregorian little-endian, starting with day (used by most of world)
-		'l, j F Y', 	// Monday, 1 April 2012
+		'l, j F Y', // Monday, 1 April 2012
 		'j F Y',	// 1 April 2012
 		'd-M-Y',	// 01-Apr-2012
 		'dMy',		// 01Apr12
@@ -71,7 +71,7 @@ class FieldtypeDatetime extends FieldtypeText {
 		'n.j.Y',	// 4.1.2012 
 		'n/j/y',	// 4/1/12 
 		'n.j.y',	// 4.1.12 
-
+		
 		// Other
 		//'%x', 	// 04/01/12 (locale based date)
 		//'%c', 	// Tue Feb 5 00:45:10 2012 (locale based date/time)
@@ -86,6 +86,15 @@ class FieldtypeDatetime extends FieldtypeText {
 		'h:i A',	// 05:01 PM
 		'H:i',		// 17:01 (with leading zeros)
 		'H:i:s',	// 17:01:01 (with leading zeros)
+		
+		// Relative (see wireDate in /wire/core/Functions.php)
+		'!relative',	
+		'!relative-',
+		'!rel', 	
+		'!rel-', 
+		'!r', 	
+		'!r-',
+
 		);
 
 	/**
@@ -168,6 +177,11 @@ class FieldtypeDatetime extends FieldtypeText {
 		if(function_exists('date_parse_from_format')) {
 			// PHP 5.3+
 			$a = date_parse_from_format($format, $str); 	
+			if(isset($a['warnings']) && count($a['warnings'])) {
+				foreach($a['warnings'] as $warning) {
+					wire()->warning($warning . " (value='$str', format='$format')");
+				}
+			}
 			if($a['year'] && $a['month'] && $a['day']) {
 				return mktime($a['hour'], $a['minute'], $a['second'], $a['month'], $a['day'], $a['year']); 
 			}
@@ -240,6 +254,14 @@ class FieldtypeDatetime extends FieldtypeText {
 
 		if(!$value) return '';
 		if(!strlen($format) || $format == 'U' || $format == '%s') return (int) $value; // unix timestamp
+		$relativeStr = '';
+		
+		if(strpos($format, '!') !== false) {
+			if(preg_match('/([!][relativ]+-?)/', $format, $matches)) {
+				$relativeStr = wireDate(ltrim($matches[1], '!'), $value); 
+				$format = str_replace($matches[1], '///', $format);  
+			}
+		}
 
 		if(strpos($format, '%') !== false) {
 			// use strftime() if format string contains a %
@@ -254,8 +276,10 @@ class FieldtypeDatetime extends FieldtypeText {
 
 		} else {
 			// use PHP date()
-			$value = date($format, $value); 
+			$value = wireDate($format, $value); 
 		}
+		
+		if(strlen($relativeStr)) $value = str_replace('///', $relativeStr, $value); 
 
 		return $value; 	
 	}
@@ -364,7 +388,7 @@ class FieldtypeDatetime extends FieldtypeText {
 
 	public function ___exportValue(Page $page, Field $field, $value, array $options = array()) {
 		if(!$value) return '';
-		return date('Y-m-d H:i:s'); 
+		return date('Y-m-d H:i:s', $value); 
 	}
 
 	/**
@@ -429,14 +453,19 @@ class FieldtypeDatetime extends FieldtypeText {
 		$f = $this->modules->get('InputfieldSelect'); 
 		$f->attr('name', '_dateOutputFormat'); 
 		$f->label = $this->_('Date Output Format'); 
-		$f->description = $this->_('Select the format to be used when outputting dates with this field.'); 
+		$f->description = $this->_('Select the format to be used when outputting dates with this field.') . ' ';
+		$f->description .= $this->_('For relative date/time formats, see the Time Output Format.'); 
 		$f->addOption('', $this->_('None')); 
 		$date = strtotime('2012-04-08 5:10:02 PM');
+		$found = false;
 		foreach(self::$dateFormats as $format) {
 			$dateFormatted = self::formatDate($date, $format); 	
-			if($format == 'U') $dateFormatted .= " (unix timestamp)";
+			if($format == 'U') $dateFormatted .= " " . $this->_('(unix timestamp)');
 			$f->addOption($format, $dateFormatted); 
-			if(strpos($field->dateOutputFormat, $format) !== false) $f->attr('value', $format); 
+			if(!$found && strpos($field->dateOutputFormat, $format) !== false) {
+				$f->attr('value', $format); 
+				$found = true; 
+			}
 		}
 		$f->attr('onchange', "$('#Inputfield_dateOutputFormat').val($(this).val() + ' ' + $('#Inputfield__timeOutputFormat').val());"); 
 		$inputfields->add($f); 
@@ -445,11 +474,16 @@ class FieldtypeDatetime extends FieldtypeText {
 		$f->attr('name', '_timeOutputFormat'); 
 		$f->label = $this->_('Time Output Format'); 
 		$f->description = $this->_('If you want to output time in addition to the date, select the format to be used when outputting time with this field. This will be combined with the date format.'); 
-		$f->addOption('', $this->_('None')); 
+		$f->addOption('', $this->_('None'));
+		$date = strtotime('5:10:02 PM');
+		$found = false;
 		foreach(self::$timeFormats as $format) {
 			$timeFormatted = self::formatDate($date, $format); 	
 			$f->addOption($format, $timeFormatted); 
-			if(strpos($field->dateOutputFormat, $format) !== false) $f->attr('value', $format); 
+			if(!$found && strpos($field->dateOutputFormat, $format) !== false) {
+				$f->attr('value', $format); 
+				$found = true; 
+			}
 		}
 		$f->attr('onchange', "$('#Inputfield_dateOutputFormat').val($('#Inputfield__dateOutputFormat').val() + ' ' + $(this).val());"); 
 		$f->collapsed = Inputfield::collapsedBlank;
@@ -460,8 +494,8 @@ class FieldtypeDatetime extends FieldtypeText {
 		$f->attr('value', $field->dateOutputFormat); 
 		$f->attr('size', 20); 
 		$f->label = $this->_('Date/Time Output Format Code');
-		$f->description = $this->_('The date/time will be output according to the format below. This is automatically built from the date/time selections above, but you may change it as needed to suit your needs.');
-		$f->notes = $this->_('See the [PHP date](http://www.php.net/manual/en/function.date.php) function reference for more information on how to customize this format. Alternatively, you may use a [PHP strftime](http://www.php.net/manual/en/function.strftime.php) format if desired for localization.'); 
+		$f->description = $this->_('The date/time will be output according to the format below. This is automatically built from the date/time selections above, but you may change it as needed to suit your needs.') . ' ';
+		$f->description .= $this->_('See the [PHP date](http://www.php.net/manual/en/function.date.php) function reference for more information on how to customize this format. Alternatively, you may use a [PHP strftime](http://www.php.net/manual/en/function.strftime.php) format if desired for localization.'); 
 		$f->collapsed = Inputfield::collapsedYes; 
 		if($this->languages) {
 			$f->useLanguages = true; 

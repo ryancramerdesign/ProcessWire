@@ -1,0 +1,1813 @@
+/**
+ * common.scss contains the bulk of styles common to all Reno color themes
+ *
+ */
+
+@import 'reset';
+@import 'jquery-ui';
+@import 'ui';
+@import 'notifications';
+@import 'inputfields';
+@import 'lang';
+
+$wide-screen-width: 1200px; 
+$mainnav-width: 210px; 
+$mainnav-width-wide: 230px; // bigger sidebar for wide screen?
+
+/***********************************************************************************************
+ * GENERAL
+ *
+ */
+
+*, *:before, *:after {
+	-moz-box-sizing: border-box;
+	-webkit-box-sizing: border-box;
+	box-sizing: border-box;
+}
+
+html, body {
+	height: 100%; // required for sidebar nav
+	-webkit-font-smoothing: subpixel-antialiased;
+}
+
+body {
+	background: $body-bg;
+	font-size: 100%;
+	text-rendering: optimizeLegibility;
+	position: relative;
+}
+
+#wrap {
+	position: relative; // required for sidebar nav
+	min-height: 100%; // required for sidebar nav
+}
+
+body,
+.ui-dialog,
+.ui-button,
+button,
+input,
+th, td,
+textarea {
+	font-weight: $normal-weight;
+	font-family: $regular-font;
+
+}
+body {
+	color: $text-color;
+}
+body.modal {
+	background-color: $text-bg;
+	margin-top: 1em;
+}
+
+body,
+.ui-dialog {
+	line-height: $base-line-height;
+	font-size: $base-font-size;
+}
+
+.container {
+	position: relative;
+	width: 95%;
+	max-width: $container-max-width;
+	margin: 0 auto;
+}
+
+a {
+	/* standard link color */
+	color: $link-color;
+}
+a:hover {
+	/* hovered link color */
+	color: $link-hover-color;
+	background: $link-hover-bg;
+}
+
+a.on {
+	/* on/active link color */
+	background: $link-current-bg;
+	color: $link-current-color;
+}
+a:active {
+	color: $link-active-color;
+	background: $link-active-bg;
+}
+
+.WireFatalError {
+	background: $error-bg;
+	color: $reverse-text-color;
+	padding: 1em;
+	position: relative;
+	z-index: 999;
+}
+
+.pw-no-select {
+	-webkit-user-select: none;
+	-khtml-user-select: none;
+	-moz-user-select: none;
+	-o-user-select: none;
+	user-select: none; /* prevent selection of this element */
+}
+
+/***********************************************************************************************
+ * Font Awesome
+ *
+ */
+
+.fa { font-size: 14px !important; } // font awesome renders best at 14px.
+.fa-lg { font-size: 22px !important; }
+.fa-2x { font-size: 28px !important; }
+.fa-3x { font-size: 42px !important; }
+.fa-4x { font-size: 56px !important; }
+.fa-5x { font-size: 70px !important; }
+
+/***********************************************************************************************
+ * Login Screen
+ *
+ */
+
+body.id-23 {
+	#sidebar,
+	#breadcrumbs,
+	#topnav,
+	.main-nav-toggle {
+		display: none
+	}
+	#main {
+		margin-left: 0
+	}
+
+	#logo {
+		margin-left: 1.5em;
+	}
+}
+
+/***********************************************************************************************
+ * MASTHEAD
+ *
+ */
+
+.main-nav-toggle {
+	height: $masthead-height;
+	padding: 0.9em 1.5em 0 1.5em;
+	margin: 0;
+	background: $mainnav-toggle-bg;
+	float: left;
+	color: $mainnav-toggle-color;
+	border-right: $mainnav-toggle-border;
+	font-size: 14px !important; // font awesome renders clearer at 14px;
+
+	&:hover{
+		color: $mainnav-toggle-hover-color;
+		background: $mainnav-toggle-hover-bg;
+	}
+
+	&.toggle {
+		// add styles here if you want the collapsed state to look different
+	}
+}
+
+#logo {
+	float: left;
+	margin: 0.95em 0 0 1em;
+	width: 140px;
+
+	img.sm {
+		display: none;
+	}
+
+	img {
+		max-width: 100%;
+	}
+}
+
+#masthead {
+	height: $masthead-height;
+	background: $masthead-bg;
+	padding: 0;
+	position: relative;
+	z-index: 10; // keep masthead above all other elements except modals
+	font-size: 0.9em;
+
+	.container {
+		line-height: 1;
+	}
+
+	#topnav {
+		float: right;
+		border-right: $topnav-border;
+		position: relative;
+
+		> li {
+			padding: 0;
+			margin: 0;
+			list-style: none;
+			float: left;
+		}
+
+		> li > a {
+			background: $topnav-link-bg;
+			color: $topnav-link-color;
+			display: block;
+			margin: 0 ;
+			padding: 0.9em 0.8em;
+			height: $masthead-height;
+			font-weight: $tabs-font-weight;
+			vertical-align: middle;
+			border-left: $topnav-item-border;
+
+			&:hover,
+			&.hover{
+				color: $topnav-link-hover-color;
+				background: $topnav-link-bg-hover;
+			}
+
+			& i {
+				font-size: 16px;
+			}
+
+		}
+
+		li.avatar {
+			a { padding-top: 0.85em;}
+			img{
+				border-radius: 50%;
+				margin: -5px 2px 0 0;
+				width: 26px;
+				height: 26px;
+				vertical-align: middle;
+			}
+
+		}
+
+
+		// see .dropdown-menu styles below
+		.quicklinks{
+			padding: 1em;
+			i.fa {
+				font-size: 14px !important;
+			}
+		}
+
+		a.on:hover,
+		a.on {
+			color: $mainnav-link-current-color;
+			background: $mainnav-link-current-bg;
+			text-decoration: none;
+		}
+	}
+	
+	#NotificationBug {
+		left: 35%;
+	}
+
+
+} /* #masthead */
+
+/***********************************************************************************************
+ * Masthead dropdown <ul> Menu
+ *
+ */
+
+.dropdown-menu {
+	display: none;
+	border-radius: 0 0 3px 3px !important;
+	border-color: $dropdown-bg;
+	position: relative;
+	z-index: 100;
+	box-shadow: $dropdown-shadow;
+
+	// add-new dropdown
+	&.shortcuts{
+		min-width: 200px;
+		padding: 0.3em 0 0.3em 0;
+		background: $subtle-bg;
+		border-color: $subtle-bg;
+		font-size: 14px;
+
+		a {
+			border-radius: 0 !important;
+			padding: 0.2em 0 0.2em 0.6em;
+
+			&:hover {
+				color: $text-color;
+				background: darken($subtle-bg, 4%) !important;
+			}
+			
+			i.fa {
+				color: $mainnav-icon-color;
+			}
+
+		}
+
+	}
+
+	&.topnav {
+
+		background: $dropdown-bg;
+		padding: 0.2em 0 0.4em 0;
+
+		.ui-menu-item {
+			min-width: 8em;
+			border: 0 !important;
+
+			> a {
+				background: none;
+				border-radius: 0 !important;
+				color: $dropdown-link-color;
+				padding: 0.3em 0 0.3em 1em;
+				font-size: 0.9em;
+				line-height: 1;
+				&:hover {
+					background: $dropdown-link-hover-bg !important;
+					color: $dropdown-link-hover-color;
+				}
+			}
+
+			&.add a {
+				color: $link;
+				&:hover {
+					color: $dark-link;
+				}
+			}
+
+			.ui-state-active {
+				border-color: $dropdown-bg !important;
+				background: $dropdown-bg;
+				color: $link;
+			}
+		}
+
+		ul {
+			background: $dropdown-bg;
+			border-color: $dropdown-bg;
+			width: 15em;
+			border-radius: 3px !important;
+			box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+			> li > a {
+				padding: 0.2em 1em 0.2em 1em !important;
+				word-wrap: break-word
+			}
+		}
+
+		li { min-width: 10em;}
+	}
+}
+
+/***********************************************************************************************
+ * Sidebar Navigation
+ *
+ */
+
+#sidebar, #main {
+	transition: all 120ms ease-in;
+}
+
+#sidebar {
+	position: absolute;
+	z-index: 9;
+	left: 0;
+	top: 0;
+	bottom: 0;
+	width: $mainnav-width;
+	background: $mainnav-bg-color;
+	height: 100%;
+	border-right: $mainnav-border;
+	border-top: $masthead-height solid $masthead-bg;
+
+	@media only screen and (min-width: $wide-screen-width) {
+		width: $mainnav-width-wide;
+	}
+
+	&.toggle {
+		left: -999px;
+	}
+
+	#main-nav, #main-nav ul {
+		list-style-type: none;
+		margin: 0;
+		padding: 0;
+	}
+
+	#main-nav a{
+		display: block;
+		padding: 0.75em 0.5em 0.75em 1.3em;
+		color: $mainnav-link-color;
+		font-weight: normal;
+		position: relative;
+		overflow: hidden;
+		
+		small {
+			opacity: 0.6;
+		}
+	}
+	
+	#main-nav a span {
+		white-space: nowrap;
+	}
+
+	#main-nav > li > a:hover{
+		color: $mainnav-link-hover-color;
+		background: $mainnav-link-hover-bg;
+	}
+
+	#main-nav li{
+		margin: 0;
+	}
+
+	#main-nav > li{
+		margin: 0 0 1px 0;
+	}
+
+	#main-nav > li > a > i{
+		color: $mainnav-icon-color;
+		padding: 0;
+		margin: 0 8px 0 0;
+		width: 16px;
+		display: inline-block;
+		text-align: center;
+		font-size: 14px; // font awesome renders clearer at 14px;
+	}
+	
+	#main-nav a.current i.current-icon {
+		// added by ryan
+		float: right;
+		margin-right: 11px;
+		margin-top: 4px; 
+	}
+	
+	#main-nav a.has-quicklinks.current {
+		// added by ryan
+		&.no-arrow i.current-icon,
+		&:hover i.current-icon {
+			display: none;
+		}
+	}
+
+	#main-nav > li > a.current:not(.parent) > i{
+		color: $mainnav-link-current-color;
+	}
+
+	#main-nav a.current:not(.parent){
+		background: $mainnav-link-current-bg;
+		color: $mainnav-link-current-color;
+	}
+
+	#main-nav li ul,
+	a.open, .current.parent,
+	#main-nav > li:not(.current) > a:not(.current):hover{
+		background: $mainnav-open-bg-color;
+	}
+
+	#main-nav a.current:not(.parent):after{
+		content: ' ';
+		height: 0;
+		position: absolute;
+		width: 0;
+		right: -2px;
+		top: 15px;
+		z-index: 9;
+		border: 8px solid transparent;
+		border-right-color: $white;
+	}
+
+	.no-arrow:after{
+		display: none;
+	}
+
+	#main-nav a.parent + ul li a.current:after{
+		top: 7px;
+	}
+
+	#main-nav li ul{
+		padding: 0 0 15px 0;
+		line-height: 22px;
+		display: none;
+	}
+
+	#main-nav ul li a{
+		padding: 4px 0 4px 20px;
+		font-weight: normal;
+		position: relative;
+		color: $mainnav-sub-link-color;
+		margin-bottom: 1px;
+		
+		&.quicklinks-open {
+			background: $mainnav-sub-link-hover-bg;
+			color: $mainnav-sub-link-color;
+		}
+
+		&:hover {
+			background: $mainnav-sub-link-hover-bg;
+			color: $mainnav-sub-link-hover-color;
+
+			& .quicklink-open{
+				visibility: visible;
+			}
+		}
+	
+		span {
+			@media only screen and (min-width: $wide-screen-width) {
+				// icon indentation
+				/*
+				padding-left: 28px;
+				*/
+			}
+		}
+	}
+
+	#main-nav li ul li ul li a{
+		padding: 0 10px 0 20px;
+		word-wrap:break-word;
+	}
+
+	#main-nav li ul li ul {
+		position: absolute;
+		left: $mainnav-width;
+		z-index: 10;
+		top: 0;
+		bottom: 0;
+		padding: 0 0 20px 0;
+		font-size: 14px;
+		width: 250px;
+		height: 100%;
+		display: none;
+		border-right: $quicklinks-border;
+		background: $quicklinks-bg;
+		overflow-y: auto;
+		overflow-x: hidden;
+		//box-shadow: 0 3px 3px rgba(0,0,0,0.3);
+
+		@media only screen and (min-width: $wide-screen-width) {
+			left: $mainnav-width-wide;
+			width: $mainnav-width-wide+20px; 
+		}
+
+		& li a {
+			color: $quicklinks-link-color;
+			
+			i.fa {
+				float: right;
+				color: $mainnav-icon-color;
+				margin-top: 4px;
+				margin-right: 7px; 
+			}
+		}
+		
+		& li a:hover {
+			color: $quicklinks-hover-color;
+			background: $quicklinks-hover-bg;
+		}
+
+		& li.add a {
+			color: $quicklinks-addnew-color;
+			i.fa {
+				float: none; 
+				color: $quicklinks-addnew-color;
+				margin-top: 0;
+				margin-right: 0;
+			}
+		}
+	}
+
+
+	#main-nav ul li a:not(.current) .quicklink-open{
+		color: $mainnav-icon-color;
+	}
+
+	#main-nav li.parent ul li:not(.current) a:hover{
+		text-decoration: underline;
+	}
+
+	#main-nav li.parent ul li.current a{
+		color: #fff;
+	}
+
+	#main-nav .icon{
+		color: $mainnav-icon-color;
+		margin: 0 5px 0 0;
+	}
+
+	.open .icon,
+	#main-nav > li:hover .icon{
+	}
+
+	#main-nav .current .icon{
+		color: #fff;
+	}
+
+	a.parent:after{
+		font-family: "fontAwesome";
+		content: "\f078";
+		position: absolute;
+		width: 0;
+		height: 0;
+		right: 25px;
+		top: 12px;
+		z-index: 9;
+		font-size: 11px;
+		color: $mainnav-icon-color;
+		font-weight: normal;
+	}
+
+	.quicklink-open{
+		position: absolute;
+		right: 0;
+		padding: 5px 17px;
+		visibility: hidden;
+		&.active {
+			visibility: visible;
+			color: $quicklinks-icon-active !important;
+		}
+	}
+
+	.quicklink-close{
+		color: $quicklinks-header-color;
+		font-size: 16px;
+		padding: 0.75em 20px 0.75em 20px;
+		position: relative !important;
+
+		& i {
+			color: $mainnav-icon-color;
+			margin-right: 5px;
+		}
+
+		& .close{
+			position: absolute;
+			right: 15px;
+			top: 15px;
+			line-height: 1;
+			color: $mainnav-icon-color;
+
+			& i:hover {
+				cursor: pointer;
+				color: $link;
+			}
+		}
+
+	}
+
+	#main-nav .current .quicklink-open{
+		color: $quicklinks-icon-current-color !important;
+	}
+
+	#main-nav .current .quicklink-open.active{
+		color: $quicklinks-icon-current-active !important;
+	}
+
+}
+
+/***********************************************************************************************
+ * Main container
+ *
+ */
+
+#main {
+	margin-left: $mainnav-width;
+	background: $main-bg;
+
+	@media only screen and (min-width: $wide-screen-width) {
+		margin-left: $mainnav-width-wide;
+	}
+
+	&.toggle {
+		margin-left: 0;
+	}
+}
+
+/***********************************************************************************************
+ * Breadcrumb Navigation
+ *
+ */
+#breadcrumbs {
+	padding: $breadcrumbs-padding;
+	color: $breadcrumbs-color;
+	background: $breadcrumbs-bg;
+	border-top: $breadcrumbs-border-top;
+	border-bottom: $breadcrumbs-border-bottom;
+
+	ul {
+
+		li {
+			color: $breadcrumbs-color;
+			display: inline-block;
+			padding: 0;
+			line-height: 1em;
+			white-space: nowrap;
+			padding-right: 0.5em;
+			font-size: 1em;
+		}
+
+		li.title {
+			color: $breadcrumbs-title-color;
+			font-weight: $bold-weight;
+		}
+
+		a {
+			color: $breadcrumbs-link-color;
+			margin-right: 0.5em;
+		}
+
+		a:hover {
+			color: $breadcrumbs-link-hover-color;
+			background: none;
+			text-decoration: underline;
+		}
+
+		a.sitelink {
+			float: left;
+
+			.ui-icon {
+				float: left;
+				position: relative;
+				top: -2px;
+			}
+		}
+
+		i.fa{
+			font-size: 14px;
+		}
+	}
+
+}
+
+body.hasWireTabs #breadcrumbs {
+	// border-bottom: $tabs-height solid $breadcrumbs-bg; 
+}
+
+#ProcessPageSearchForm {
+	float: right;
+	margin: 0 0 0 0.5em;
+	padding: 0 0 0 0;
+
+	height: $masthead-height;
+	border-left: $mainnav-toggle-border;
+
+	label {
+		opacity: 1 !important;
+		top: 0.85em !important;
+		left: 1em !important;
+		color: $search-label !important;
+	}
+
+	#ProcessPageSearchQuery {
+		margin: 0;
+		height: auto;
+		width: 300px;
+		height: 100%;
+		background: $search-bg;
+		border: none;
+		color: $search-color;
+		border-radius: none;
+		outline: none;
+		padding: 0.4em 1.5em 0.4em 2.6em;
+
+		&::-webkit-input-placeholder {color: $search-placeholder-color;}
+		&:-moz-placeholder { /* Firefox 18- */ color: $search-placeholder-color; }
+		&::-moz-placeholder {  /* Firefox 19+ */ color: $search-placeholder-color; }
+		&:-ms-input-placeholder {color: $search-placeholder-color; }
+	}
+
+	#ProcessPageSearchQuery:focus {
+		background: $search-focus-bg;
+		text-transform: none;
+		font-weight: $normal-weight;
+
+		&::-webkit-input-placeholder {color: transparent;}
+		&:-moz-placeholder { /* Firefox 18- */ color: transparent; }
+		&::-moz-placeholder {  /* Firefox 19+ */ color: transparent; }
+		&:-ms-input-placeholder {color: transparent; }
+
+	}
+
+	#ProcessPageSearchStatus {
+		position: absolute;
+		z-index: 9;
+		top: 1em;
+		right: 2em;
+		font-size: 0.875em;
+		color: $link;
+		border: none;
+	}
+}
+
+#ProcessPageSearchAutocomplete.ui-autocomplete{
+	position: absolute;
+	background: $search-dropdown-bg;
+	border-width: $search-dropdown-border-width !important;
+	border-color: $search-dropdown-border-color !important;
+	border-style: $search-dropdown-border-style !important;
+	padding: 0 0 0.5em 0 !important;
+	box-shadow: $search-dropdown-shadow !important;
+	border-radius: 0 !important;
+	max-height: 100%;
+	overflow-y: auto;
+	width: 300px;
+	top: 0 !important;
+	z-index: 7 !important;
+	border-top: $masthead-height solid $masthead-bg !important;
+
+	& .ui-menu-item {
+		a {
+			padding: 0.3em 1em !important;
+			color: $search-dropdown-link-color;
+			font-size: 0.95em;
+			&:before {
+				content: ""; // clear anything set by the .ui-autocomplete
+				margin: 0;
+				width: 0 !important;
+			}
+
+			&:hover {
+				background: $search-dropdown-link-hover-bg !important;
+				color: $search-dropdown-link-hover-color !important;
+
+				&:before {
+					content: "";
+				}
+
+			}
+		}
+
+	}
+
+	.ui-widget-header {
+		padding: 0.5em 0 0 0;
+		background: $search-dropdown-bg !important;
+
+		&:hover {
+			background: $search-dropdown-bg !important;
+		}
+
+		a {
+			background: $search-dropdown-bg;
+			font-weight: normal !important;
+			text-transform: uppercase;
+			letter-spacing: 1px;
+			color: $search-dropdown-header-color;
+
+			&:hover {
+				background: $search-dropdown-bg !important;
+				color: $search-dropdown-header-color !important;
+			}
+		}
+	}
+
+}
+
+#headline {
+	background: $headline-bg;
+	padding: $headline-padding;
+
+	#title {
+		font-size: 2.3em;
+		line-height: 1em;
+		margin: 0;
+		padding: 0;
+		color: $headline-color;
+		padding-right: 3em;
+		font-family: $serif-font;
+	}
+
+
+}
+
+/***********************************************************************************************
+ * CONTENT
+ *
+ */
+
+#content {
+	position: relative;
+	padding: 1.5em 1.5em 3.5em 1.5em;
+	width: 100%;
+}
+#content .container {
+	min-height: 50px;
+}
+#content .container > form,
+#content .container > .ui-helper-clearfix > form {
+	position: relative;
+	top: -1px;
+}
+
+#head_button {
+	/* The main/primary button for a listing screen, appears in the masthead */
+	float: right;
+	margin: 0;
+	position: relative;
+	top: -0.35em;
+
+	button {
+		font-size: 1.3em;
+		margin-right: 0;
+		margin-left: 10px;
+		margin-top: 0;
+		float: right;
+		border: none;
+	}
+}
+
+
+.content {
+
+	img {
+		display: block;
+	}
+
+	.nav a.label {
+		font-size: 1em;
+	}
+
+	p,
+	ul
+	ol,
+	table {
+		margin: 1em 0;
+	}
+
+	table th,
+	table th.header,
+	table.AdminDataList th,
+	h4 {
+		color: $table-th-color;
+	}
+
+	table.AdminDataList th {
+		font-size: 0.8em;
+	}
+
+	table.AdminDataList th.headerSortUp,
+	table.AdminDataList th.headerSortDown,
+	table th.headerSortUp,
+	table th.headerSortDown,
+	table th:hover {
+		color: $table-th-active-color;
+	}
+
+	table.AdminDataList {
+		margin-top: 0;
+	}
+	.container > table.AdminDataList {
+		margin-top: 1em;
+	}
+
+	h2 {
+		margin: 0 0 0.5em 0;
+		font-size: 1.2em;
+		line-height: 1.2em;
+
+	}
+	h2 a {
+		text-decoration: underline;
+	}
+	h2 a:hover {
+		color: $reverse-text-color;
+		background: $link-hover-color;
+		text-decoration: none;
+	}
+
+	h3 {
+		margin: 1em 0;
+		font-size: 1.2em;
+	}
+
+	h4 {
+		margin: 1em 0 0.25em 0;
+		font-weight: $bold-weight;
+		font-size: 0.916666666666667em;
+	}
+
+	li {
+		margin: 1em 0;
+		display: block;
+		list-style: disc;
+	}
+
+	ol li {
+		display: list-item;
+		list-style-type: decimal;
+		margin-left: 1em;
+	}
+
+	/**
+	 * Actions: like the "|edit|view|new" in the PageList
+	 *
+	 */
+
+	.PageList a {
+		padding: 0 4px 0 4px;
+		border-radius: 3px;
+	}
+
+	.PageListActions {
+		margin-left: -2px;
+	}
+
+	.PageListStatusIcon {
+		color: lighten($text-color, 40%);
+	}
+
+	ul.actions {
+	}
+	ul.actions li,
+	.PageListActions li,
+	li.action {
+		border: none;
+		padding: 0 1px;
+		margin: 0;
+		margin-right: 3px;
+
+	}
+	ul.actions li:first-child:before,
+	.PageListActions li:first-child:before,
+	li.action:first-child:before {
+		content: "\203A";
+		margin-right: 3px;
+		color: lighten($text-color,50%);
+	}
+
+
+	li.action a, .actions a,
+	.PageList .actions a,
+	.PageListMoveNote a {
+		/* action links */
+		// color: $action-link-color; 
+		// background: $action-link-bg;
+		padding: 0 4px 0 4px;
+		display: inline-block;
+		font-size: $action-link-font-size;
+		border-radius: 3px;
+		border: $action-link-border !important;
+		font-weight: normal;
+		color: $action-link-color;
+		background: $action-link-bg;
+	}
+	.actions a:hover,
+	li.action a:hover,
+	.PageListMoveNote a:hover {
+		/* action links hovered */
+		color: $action-link-hover-color !important;
+		background: $action-link-hover-bg ;
+		border: $action-link-hover-border;
+	}
+
+	.PageListMoveNote {
+		text-transform: lowercase;
+		cursor: move;
+	}
+
+	.PageListItem > a span + span:before {
+		content: " / ";
+		color: lighten($text-color,50%);
+	}
+
+
+	.PageListActionMore a {
+		margin-top: 0.5em;
+	}
+
+	.PageListSelectName {
+		margin-right: 0.5em;
+		i {
+			margin-right: 0.25em;
+		}
+	}
+
+	.PageList .PageListItem:hover .PageListActions {
+		display: inline;
+		-webkit-transition-delay: .25s;
+		transition-delay: .25s;
+	}
+
+
+	/**
+	 * Content navigation like when on the root page of "templates" or "access"
+	 *
+	 */
+	dl {
+		margin: 1em 0;
+	}
+	.container > dl:first-child {
+		margin-top: 0;
+	}
+	dt,
+	dt {
+		display: block;
+		font-weight: $bold-weight;
+		padding-top: 0.75em;
+	}
+	dt a {
+		text-transform: none;
+		color: $alt-link-color;
+	}
+	dt a:hover {
+		color: $link-hover-color;
+	}
+	dl dd {
+		padding-bottom: 0.75em;
+		border-bottom: 1px solid $border-color;
+	}
+
+	/**
+	 * PageList
+	 *
+	 */
+
+	.PageListLoading{
+		background: none !important;
+	}
+
+	.PageList {
+
+		.PageListItem {
+			border-bottom: 1px solid lighten($border-color, 4%);
+			padding-top: 0.5em;
+			padding-bottom: 0.5em;
+			line-height: 1.3em;
+		}
+		.PageListPlaceholderItem {
+			border: none;
+			padding: 0;
+		}
+
+		a.PageListPage {
+			color: $pagelist-link-color;
+			opacity: 1.0;
+		}
+		.PageListItem > a.PageListPage:hover {
+			text-decoration: underline;
+			color: $pagelist-link-hover-color;
+		}
+		.PageListItem > a.PageListPage:active {
+			text-decoration: underline;
+			color: $pagelist-link-active-color;
+		}
+		.PageListItem > a.PageListPage i {
+			padding: 0 0.25em 0 0;
+			color: $pagelist-link-icon-color;
+		}
+
+		.PageListItem > a.PageListPage:hover i {
+			text-decoration: none;
+		}
+
+		.PageListItemOpen > a.PageListPage  {
+			color: $pagelist-link-open-color;
+			background-color: $pagelist-link-open-bg;
+		}
+
+		.PageListStatusHidden:not(.PageListItemOpen) > a.PageListPage {
+			opacity: 0.6;
+		}
+
+		.PageListNumChildren {
+			font-size: 0.833333em;
+		}
+
+		.PageListItemOpen .PageListNumChildren {
+		}
+
+
+	}
+
+	/* MarkupAdminDataTable */
+
+	.AdminDataList thead th,
+	.AdminDataList thead th.header,
+	.AdminDataList tbody td,
+	.AdminDataList tfoot td {
+		border-left: 1px dotted darken($border-color, 5%);
+		border-color: darken($border-color, 5%);
+		padding: 0.5em;
+	}
+	.AdminDataList thead th:first-child,
+	.AdminDataList thead th.header:first-child,
+	.AdminDataList tbody td:first-child,
+	.AdminDataList tfoot td:first-child {
+		border-left: none;
+		//padding-left: 0;
+
+	}
+
+	.AdminDataList tbody td:nth-child(2),
+	.AdminDataList tbody th:nth-child(2) {
+		min-width: 80px;
+	}
+
+	.AdminDataList tr:hover td,
+	.AdminDataList tr:hover th,
+	.AdminDataList tr.open td {
+		background: $table-tr-hover;
+	}
+
+	.AdminDataList td a {
+		color: $alt-link-color;
+	}
+	.AdminDataList td a:hover {
+		color: $link-hover-color;
+	}
+
+	.AdminDataList th.header:hover {
+		text-decoration: none;
+	}
+
+	.AdminDataList small.buttons button {
+		font-size: 1em !important;
+	}
+
+	/* AdminDataTableSortable */
+
+	.AdminDataTableSortable th.header {
+		&:after {
+			content: "\f0dc";
+			font-family: fontAwesome;
+			margin: 0 0 0 5px;
+		}
+
+		&.headerSortDown:after{
+			content: "\f0dd";
+		}
+
+		&.headerSortUp:after{
+			content: "\f0de";
+		}
+	}
+
+	/* MarkupPagerNav */
+	.MarkupPagerNav {
+
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		margin: 1em 0;
+
+		li {
+			padding: 0;
+			margin: 0;
+			list-style: none;
+			display: inline;
+			padding: 6px 0;
+			background: none;
+
+			a {
+				padding: 3px 9px;
+				margin: 0;
+				text-decoration: none;
+			}
+		}
+
+		li.MarkupPagerNavSeparator {
+			border: none;
+		}
+	}
+
+	/* Pagination */
+	.PageListPagination {
+		padding-top: 0.5em;
+	}
+	.PageListPagination,
+	.MarkupPagerNav {
+		color: text-color;
+		font-size: $pagination-font-size;
+	}
+	.PageListPagination a,
+	.MarkupPagerNav a {
+		background: $pagination-link-bg;
+		color: $pagination-link-color;
+		font-weight: normal;
+		-moz-border-radius: $pagination-link-border-radius;
+		-webkit-border-radius: $pagination-link-border-radius;
+		border-radius: $pagination-link-border-radius;
+		border: none;
+		display: inline-block;
+		padding: 0 6px;
+	}
+
+	.PageListPaginationCurrent a,
+	.MarkupPagerNavOn a {
+		color: $pagination-link-current-color;
+		background: $pagination-link-current-bg;
+	}
+
+	.PageListPagination a:hover,
+	.MarkupPagerNav a:hover {
+		/* action links hovered */
+		color: $pagination-link-hover-color;
+		background: $pagination-link-hover-bg;
+	}
+
+	.PageListPagination a:active,
+	.MarkupPagerNav a:active {
+		color: $pagination-link-active-color;
+		background: $pagination-link-active-bg;
+	}
+
+
+
+}
+
+#content {
+
+	/**
+	 * WireTabs
+	 *
+	 */
+
+	#PageEditTabs { margin-bottom: 0;}
+
+	.WireTabs {
+		left:0;
+		top: 1px;
+		width: 100%;
+		// z-index: 100; 
+
+		li {
+			background: none;
+			margin: 0;
+			padding: 0;
+			// padding: 0 2.0em 0 0;
+		}
+
+		a {
+			font-weight: $tabs-font-weight;
+			padding: .75em 1em;
+			display: inline-block;
+			border-top-color: transparent;
+			border-right-color: transparent;
+			border-bottom-color: transparent;
+			border-left-color: transparent;
+			border-width: 1px 1px 2px 1px;
+			border-style: solid;
+			border-radius: 3px 3px 0 0;
+			color: $link;
+			// height: $tabs-height;
+			//background: $wiretab-link-bg; 
+			// position: relative;
+			// top: 1px; 
+
+			em {
+				border-bottom: none;
+			}
+		}
+		a.on {
+			color: $dark-blue;
+			border-top-color: $border-color;
+			border-right-color: $border-color;
+			border-bottom-color: $white;
+			border-left-color: $border-color;
+			background: $white;
+			// border-bottom: 1px solid $wiretab-link-current-bg;
+			// border-bottom: 2px solid $dark-link; 
+			// position: relative;
+
+			em {
+				border-color: transparent;
+			}
+		}
+
+		a:hover {
+			// border: $wiretab-link-hover-border; 
+			// border-bottom: none; 
+			color: $wiretab-link-hover-color;
+			// background: $wiretab-link-hover-bg; 
+
+			em {
+				border: none;
+			}
+		}
+
+		a em {
+			font-weight: $tabs-font-weight;
+			font-style: normal;
+		}
+
+		#_ProcessPageEditView {
+			color: $link-color;
+			font-weight: normal;
+		}
+		#_ProcessPageEditView:hover {
+			background: none;
+			text-decoration: underline;
+			border-color: transparent;
+		}
+
+		i.ui-priority-secondary{
+			background: none !important;
+			color: $link !important;
+		}
+
+	}
+}
+
+
+p.description {
+	color: $description-color;
+	margin-bottom: 0.5em;
+}
+.detail {
+	color: $description-color;
+}
+
+.notes,
+.detail {
+	font-size: 0.875em;
+	line-height: 1.5em;
+}
+.notes {
+	background: $notes-bg;
+}
+
+.description strong,
+.notes strong {
+	color: $description-color;
+	font-weight: $bold-weight;
+}
+
+.error {
+	background: $error-bg;
+	color: $error-color;
+	font-weight: $bold-weight;
+	font-size: 0.9166666em;
+}
+
+/****************************************************************************
+ * ProcessLister
+ *
+ *
+ */
+
+#ProcessListerResultsTab{
+	padding-top: 0 !important;
+}
+
+#ProcessListerResults{
+	padding: 20px;
+	border: 1px solid #d9e1ea;
+	margin-bottom: 20px;
+
+	&:after {
+		content: "";
+		display: table;
+		clear: both;
+	}
+}
+
+#ProcessListerResults .MarkupPagerNav{
+	margin-top: 0;
+}
+
+#ProcessListerResults p.notes{
+	float: left;
+	clear:both;
+}
+
+/***********************************************************************************************
+ * FOOTER
+ *
+ */
+
+#footer {
+	margin: 0;
+	font-size: $footer-font-size;
+	color: $footer-color;
+	background: $footer-bg;
+	padding: 1em 1.5em 2em 1.5em;
+	border-top: 1px solid $border-color;
+
+	a {
+		color: $footer-link-color;
+	}
+	a:hover {
+		text-decoration: underline;
+	}
+
+	p {
+		margin-top: 0;
+	}
+
+	#userinfo {
+		display: block;
+		float: right;
+		a {margin: 0 0 0 1em}
+	}
+
+}
+
+
+#debug {
+	margin-top: 2em;
+
+	.container {
+		width: 100%;
+	}
+
+	p {
+		margin: 1em 0;
+	}
+
+	ol {
+		margin: 1em 0;
+	}
+
+	h4 {
+		font-weight: $bold-weight;
+	}
+
+	table {
+		width: 100%;
+
+		th {
+			font-weight: $bold-weight;
+		}
+
+		td, th {
+			vertical-align: top;
+			padding: 3px 5px;
+			border-bottom: 1px dotted $light-text-color;
+			border-left: 1px dotted $light-text-color;
+			font-size: 12px;
+		}
+
+	}
+
+}
+
+/***********************************************************************************************
+ * MODAL
+ *
+ */
+
+html.modal, body.modal {
+	height: auto !important;
+}
+
+body.modal {
+
+	.container {
+		margin: 0;
+		width: 100%;
+		min-width: 300px;
+		padding-left: 1.5em;
+		padding-right: 1.5em;
+	}
+
+	#notices {
+		margin: 0.5em 0 0.25em 0;
+		padding: 0 20px 10px 20px;
+	}
+
+	#content {
+		padding: 0 20px 20px 20px;
+	}
+
+	.content h2 {
+		margin: 1em 0;
+		font-size: 1.3em;
+		color: $medium-text-color;
+	}
+
+	#main {
+		margin: 0;
+	}
+
+	#wrap {
+		min-height: 0;
+	}
+
+	#footer,
+	#masthead,
+	#breadcrumbs,
+	#headline,
+	#sidebar{
+		display: none;
+	}
+
+	.hasWireTabs .content #fieldgroupContext {
+		/* context selection in field editor */
+		top: 0;
+	}
+
+}
+
+
+/***********************************************************************************************
+ * MISC
+ *
+ */
+
+body.id-3 #breadcrumbs ul li:not(:first-child):not(:last-child),
+body.id-23 #breadcrumbs ul li:not(:first-child):not(:last-child),
+body.id-8 #breadcrumbs ul li:not(:first-child):not(:last-child) {
+	/* hide extraneous breadcrumbs when in admin root */
+	display: none;
+}
+
+body.id-23 #content form {
+	margin-top: 1em;
+}
+
+#content .container > form,
+#content .container > .ui-helper-clearfix > form {
+	/* for wiretabs and/or forms to line up with headline area */
+	top: $form-top-margin-adjustment;
+}
+
+body:not(.hasWireTabs) #headline .container {
+	min-height: 40px;
+}
+
+.content > .container > #PageListContainer {
+	margin-top: 0;
+}
+
+.hasWireTabs .content #fieldgroupContext {
+	/* context selection in field editor */
+	top: 0;
+	right: 1.5em;
+	z-index: 9;
+}
+
+#ModuleEditForm .AdminDataTable tr td:first-child {
+	color: $medium-text-color;
+}
+
+#addLinksMenu {
+	min-width: 150px;
+}
+
+.align_left,
+.align-left {
+	float: left;
+	margin: 0 1em 0.5em 0;
+}
+
+.align_right,
+.align-right {
+	float: right;
+	margin: 0 0 0.5em 1em;
+}
+
+.align_center,
+.align-center {
+	display: block;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+body.pw-init .toggle-icon {
+	display: none; 
+}
+
+
+/***********************************************************************************************
+ * MEDIA QUERIES
+ *
+ */
+
+@media only screen and (max-width: 959px) {}
+
+@media only screen and (min-width: 768px) and (max-width: 959px) {}
+
+@media only screen and (max-width: 767px) {
+
+	#masthead {
+		padding-top: 0;
+	}
+
+	#masthead #topnav {
+		// float: left; 
+	}
+
+	body #masthead #topnav a,
+	body #content .WireTabs li a {
+		padding-left: 0.75em;
+		padding-right: 0.75em;
+	}
+
+	#fieldgroupContext {
+		display: none;
+	}
+
+	.AjaxUploadDropHere {
+		display: none !important;
+	}
+
+// convert tabs to pills at smaller widths where there might be multiple lines.
+	body #content .WireTabs {
+		margin: 0 0 0.5em 0;
+		li {
+			a {
+				border: none;
+				padding: 0.3em 1em;
+				border-radius: 3px;
+				margin: 0 0 0.5em 0;
+				&.on {
+					background: $link-color;
+					color: $reverse-text-color;
+				}
+			}
+		}
+	}
+}
+
+@media only screen and (max-width: 720px) {
+
+	#sidebar{
+		width: 95%;
+		display: none;
+	}
+
+	#sidebar.toggle{
+		display: block;
+		left: 0;
+	}
+
+	#main {
+		margin-left: 0;
+	}
+
+	#logo {
+
+		width: 34px;
+
+		/* complete hack, need picturefill or some other responsive image technique */
+
+		img {display: none}
+		img.sm { display: block;}
+	}
+
+	#ProcessPageSearchQuery {
+		width: 200px !important;
+		transform: all 50ms ease-in;
+		margin: 0;
+	}
+
+	.avatar > a > span {
+		display: none;
+	}
+
+/**
+ * Disregard column width when at mobile size
+ *
+ */
+	.Inputfield {
+		clear: both !important;
+		width: 100% !important;
+		margin-left: 0 !important;
+	}
+
+	.InputfieldHeader,
+	.InputfieldContent {
+		margin-left: 0 !important;
+	}
+
+	.container {
+		width: 100%;
+	}
+	#footer #userinfo {
+		float: none;
+	}
+}
+
+@media only screen and (max-width: 500px) {
+
+	#topnav {
+		position: relative !important;
+	}
+	#topnav > li:not(:last-child) > a {
+		padding-right: 0.3em !important;
+		padding-left: 0.3em !important;
+	}
+
+	#ProcessPageSearchQuery {
+		padding-right: 0 !important;
+		width: 160px !important;
+	}
+
+}
+
+@media only screen and (max-width: 380px) {
+
+	#logo {
+		display: none;
+	}
+
+	#ProcessPageSearchQuery {
+		padding-right: 0 !important;
+		width: 130px !important;
+	}
+
+
+}
+
+@media only screen and (max-width: 320px) {
+
+	#content, #headline, #breadcrumbs {
+		padding: 0.875em;
+	}
+
+}
+
+

@@ -21,7 +21,7 @@ class InputfieldPageTable extends Inputfield {
 		return array(
 			'title' => __('ProFields: Page Table', __FILE__), // Module Title
 			'summary' => __('Inputfield to accompany FieldtypePageTable', __FILE__), // Module Summary
-			'version' => 6,
+			'version' => 10,
 			'requires' => 'FieldtypePageTable'
 			);
 	}
@@ -43,6 +43,14 @@ class InputfieldPageTable extends Inputfield {
 	protected $rowTemplates = array();
 
 	/**
+	 * Possible orphan pages that may be added (set by the Fieldtype)
+	 * 
+	 * @var PageArray|null
+	 * 
+	 */
+	protected $orphans = null;
+
+	/**
 	 * Initialize and establish default values
 	 * 
 	 */
@@ -53,6 +61,7 @@ class InputfieldPageTable extends Inputfield {
 		$this->set('template_id', 0); // placeholder only 
 		$this->set('columns', ''); 
 		$this->set('nameFormat', '');
+		$this->set('noclose', 0); 
 
 		// local settings
 		$this->nativeLabels = array(
@@ -80,6 +89,7 @@ class InputfieldPageTable extends Inputfield {
 	 * 
 	 */
 	public function ___render() {
+		$this->wire('modules')->get('JqueryUI')->use('modal'); 
 
 		// make sure we've got enough info to generate a table
 		$errors = array();
@@ -119,16 +129,27 @@ class InputfieldPageTable extends Inputfield {
 
 		if(!$this->wire('config')->ajax) {
 			$url = "./?id=$editID&InputfieldPageTableField=$this->name"; 
-			$out = "<div class='InputfieldPageTableContainer' data-url='$url'>$out</div>";
+			$out = "<div class='InputfieldPageTableContainer' data-url='$url' data-noclose='$this->noclose'>$out</div>";
 			// input for sorting purposes
 			$value = $this->wire('sanitizer')->entities($this->attr('value')); 
 			$name = $this->wire('sanitizer')->entities($this->attr('name')); 
 			$out .= "<input type='hidden' name='$name' class='InputfieldPageTableSort' value='$value' />";
 			$out .= "<input type='hidden' name='{$name}__delete' class='InputfieldPageTableDelete' value='' />";
+			
+			if($this->orphans && count($this->orphans)) {
+				$out .= "<p class='InputfieldPageTableOrphans'>";
+				$out .= "<span>" . $this->_('Children were found that may be added to this table. Check the box next to any you would like to add.') . "</span> ";
+				if(count($this->orphans) > 1) $out .= "<br /><a class='InputfieldPageTableOrphansAll' href='#'>" . $this->_('Select all') . "</a> ";
+				foreach($this->orphans as $item) {
+					$label = $item->title;
+					if(!strlen($label)) $label = $item->name; 
+					$out .= "<label><input type='checkbox' name='{$this->name}__add_orphan[]' value='$item->id' /> <span class='detail'>$label</span></label>";
+				}
+				$out .= "</p>";
+			}
 		}
 
 		return $out; 
-
 	}
 
 	/**
@@ -324,7 +345,7 @@ class InputfieldPageTable extends Inputfield {
 				$in->attr('value', $v); 
 				$value = $in->renderValue();
 			}
-
+			
 		} else {
 			// native
 			$value = $item->get($fieldName); 
@@ -333,7 +354,7 @@ class InputfieldPageTable extends Inputfield {
 				$fieldName = $subfieldName; 
 			}
 			if($fieldName == 'modified' || $fieldName == 'created') {
-				$value = date($this->_('Y-m-d H:i'), (int) $value); // Date format for created/modified
+				$value = wireDate($this->_('Y-m-d H:i'), (int) $value); // Date format for created/modified
 			}
 		}
 		
@@ -408,12 +429,39 @@ class InputfieldPageTable extends Inputfield {
 		foreach($value as $item) { 
 			if(!in_array($item->id, $ids)) $sorted->add($item); 
 		}
-
+		
+		// check for orphans that may have been added
+		$orphanInputName = $name . '__add_orphan';
+		$orphanIDs = $input->$orphanInputName;
+		if($orphanIDs && count($orphanIDs) && $this->orphans) {
+			$numOrphansAdded = 0;
+			foreach($orphanIDs as $orphanID) {
+				foreach($this->orphans as $orphan) {
+					if($orphan->id == $orphanID) {
+						$sorted->add($orphan); 
+						$numOrphansAdded++;
+					}
+				}
+			}
+			if($numOrphansAdded) {
+				$this->message(sprintf($this->_('Added %d existing page(s) to table'), $numOrphansAdded) . " ($this->name)"); 
+			}
+		}
+		
 		if("$value" != "$sorted") $changed = true; 
 		
 		if($changed) {
 			$this->setAttribute('value', $sorted); 
 			$this->trackChange('value'); 
+		}
+
+		// check if we need to setup a name format for any pages
+		foreach($value as $n => $item) {
+			$name = $this->wire('pages')->setupPageName($item, array('format' => $this->nameFormat)); 
+			if($name) {
+				$this->message("Auto assigned name '$name' to item #" . ($n+1), Notice::debug); 
+				$item->save();
+			}
 		}
 
 		return $this; 
@@ -455,6 +503,10 @@ class InputfieldPageTable extends Inputfield {
 		}
 		return parent::setAttribute($key, $value); 
 	}
+	
+	public function setOrphans(PageArray $orphans) {
+		$this->orphans = $orphans;
+	}
 
 	/**
 	 * Determine a default set of columns for the PageTable based on the fields defined in the defined template
@@ -484,7 +536,7 @@ class InputfieldPageTable extends Inputfield {
 		}
 		return trim($out); 
 	}
-
+	
 	/**
 	 * Get field configuration for input tab
 	 * 
@@ -524,6 +576,15 @@ class InputfieldPageTable extends Inputfield {
 		$f->notes .= ' ' . $this->_('Example: **Ymd:His** is a good name format for date/time based page names.'); 
 		$f->collapsed = Inputfield::collapsedBlank;
 		$inputfields->add($f);
+		
+		$f = $this->wire('modules')->get('InputfieldRadios'); 
+		$f->attr('name', 'noclose'); 
+		$f->label = $this->_('Modal edit window behavior'); 
+		$f->addOption(0, $this->_('Automatically close on save (default)')); 
+		$f->addOption(1, $this->_('Keep window open, close manually'));
+		$f->attr('value', (int) $this->noclose); 
+		if(!$this->noclose) $f->collapsed = Inputfield::collapsedYes; 
+		$inputfields->add($f); 
 
 		return $inputfields; 
 	}

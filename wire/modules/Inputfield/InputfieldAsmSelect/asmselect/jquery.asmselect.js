@@ -9,7 +9,6 @@
  *
  *
  */
-
 (function($) {
 
 	$.fn.asmSelect = function(customOptions) {
@@ -29,6 +28,7 @@
 			deletedOpacity: 0.5,					// opacity of deleted item, set to 1.0 to disable opacity adjustment (applicable only if hideDeleted=true)
 			deletedPrepend: '-', 					// Deleted item values are prepended with this character in the form submission (applicable only if hideDeleted=true)
 
+			sortLabel: '<span class="ui-icon ui-icon-arrowthick-2-n-s"></span>', // sortable handle/icon
 			removeLabel: '<span class="ui-icon ui-icon-trash">remove</span>', // Text used in the "remove" link
 			highlightAddedLabel: 'Added: ',				// Text that precedes highlight of added item
 			highlightRemovedLabel: 'Removed: ',			// Text that precedes highlight of removed item
@@ -42,7 +42,7 @@
 			listItemLabelClass: 'asmListItemLabel',			// Class for the label text that appears in list items
 			listItemDescClass: 'asmListItemDesc',			// Class for optional description text, set a data-desc attribute on the <option> to use it. May contain HTML.
 			listItemStatusClass: 'asmListItemStatus',		// Class for optional status text, set a data-status attribute on the <option> to use it. May contain HTML.
-			listItemHandleClass: 'ui-icon ui-icon-arrowthick-2-n-s asmListItemHandle',	// Class for sort handle
+			listItemHandleClass: 'asmListItemHandle',	// Class for sort handle
 			removeClass: 'asmListItemRemove',			// Class given to the "remove" link
 			editClass: 'asmListItemEdit',
 			highlightClass: 'asmHighlight',				// Class given to the highlight <span>
@@ -77,6 +77,7 @@
 
 				$select = $("<select></select>")
 					.addClass(options.selectClass)
+					.addClass($original.attr('class'))
 					.attr('name', options.selectClass + index)
 					.attr('id', options.selectClass + index); 
 
@@ -187,7 +188,9 @@
 
 				// opera has an issue where it needs a force redraw, otherwise
 				// the items won't appear until something else forces a redraw
-				if($.browser.opera) $ol.hide().fadeIn("fast");
+				if(typeof $.browser != "undefined") {
+					if ($.browser.opera) $ol.hide().fadeIn("fast");
+				}
 			}
 
 			function buildSelect() {
@@ -323,12 +326,9 @@
 					if($O.attr('data-desc')) {
 						var $editLink2 = $("<a></a>")
 							.html($O.attr('data-desc'))
-							.attr('href', '#')
+							.attr('href', $editLink.attr('href'))
 							.append(options.editLabel)
-							.click(function() {
-								$editLink.click();
-								return false; 
-							});
+							.click(clickEditLink);
 						$itemDesc.addClass(options.editClass).append($editLink2);
 					}
 
@@ -354,7 +354,14 @@
 					}, function() {
 						$(this).addClass('ui-state-default').removeClass('ui-state-hover'); 
 					}); 
-					if(options.sortable) $item.prepend("<span class='" + options.listItemHandleClass + "'></span>"); 
+					if(options.sortable) {
+						// $item.prepend("<span class='" + options.listItemHandleClass + "'></span>");
+						if($O.attr('data-handle')) {
+							$item.prepend($($O.attr('data-handle')).addClass(options.listItemHandleClass));
+						} else {
+							$item.prepend($(options.sortLabel).addClass(options.listItemHandleClass));
+						}
+					}
 				}
 
 				if(!buildingSelect) {
@@ -520,25 +527,11 @@
 
 				var $asmItem = $(this).parents('.' + options.listItemClass); 
 				var href = $(this).attr('href'); 
-				var $iframe = $('<iframe id="asmSelectDialog" frameborder="0" src="' + href + '"></iframe>');
-				var windowWidth = $(window).width()-300;
-				var windowHeight = $(window).height()-300;
-				if(windowHeight > 800) windowHeight = 800;
+				var $iframe = pwModalWindow(href, {}, 'medium'); 
 
-				var $dialog = $iframe.dialog({
-					modal: true,
-					height: windowHeight,
-					width: windowWidth,
-					position: [150,80]
-				}).width(windowWidth).height(windowHeight);
-
-				var iframeLoad = function() {
+				$iframe.load(function() {
 
 					var $icontents = $iframe.contents();	
-
-					var browserTitle = $icontents.find('head title').text();
-					$dialog.dialog('option', 'title', browserTitle); 	
-		
 					var buttons = [];
 					var buttonCnt = 0;
 
@@ -549,7 +542,7 @@
 						var valid = true; 
 						var secondary = $button.is('.ui-priority-secondary'); 
 
-						for(i = 0; i < buttonCnt; i++) {
+						for(var i = 0; i < buttonCnt; i++) {
 							if(label == buttons[i].text) valid = false;
 						}
 
@@ -576,22 +569,17 @@
 												else $desc.html($asmSetDesc.val());
 										}
 									}
-									$dialog.dialog('close'); 
+									$iframe.dialog('close'); 
 								}
 							}; 
 							buttonCnt++;
 						}
 						$button.hide();
 					}); 
-					if(buttons.length > 0) $dialog.dialog('option', 'buttons', buttons)
-					$dialog.width(windowWidth).height(windowHeight); 
-				};
-
-				$iframe.load(iframeLoad);
-
+					$iframe.setButtons(buttons); 
+				}); 
 				return false; 
 			}
-
 
 			init();
 		});

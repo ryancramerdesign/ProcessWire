@@ -6,7 +6,7 @@
  * Common API functions useful outside of class scope
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
@@ -137,6 +137,23 @@ function wireEncodeJSON(array $data, $allowEmpty = false, $beautify = false) {
 	return json_encode($data, $flags);
 }
 
+
+/**
+ * Decode JSON to array
+ *
+ * Uses json_decode and works the same way except that arrays are forced.
+ * This is the counterpart to the wireEncodeJSON() function.
+ *
+ * @param string $json A JSON encoded string
+ * @return array
+ *
+ */
+function wireDecodeJSON($json) {
+	if(empty($json) || $json == '[]') return array();
+	return json_decode($json, true);
+}
+
+
 /**
  * Minimize an array to remove empty values
  *
@@ -187,41 +204,27 @@ function wireMinArray(array $data, $allowEmpty = false, $convert = false) {
 	return $data; 
 }
 
-/**
- * Decode JSON to array
- *
- * Uses json_decode and works the same way except that arrays are forced.
- * This is the counterpart to the wireEncodeJSON() function.
- * 
- * @param string $json A JSON encoded string
- * @return array
- *
- */
-function wireDecodeJSON($json) {
-	if(empty($json) || $json == '[]') return array();
-	return json_decode($json, true); 
-}
-
 
 /**
  * Create a directory that is writable to ProcessWire and uses the $config chmod settings
  * 
  * @param string $path
  * @param bool $recursive If set to true, all directories will be created as needed to reach the end. 
+ * @param string $chmod Optional mode to set directory to (default: $config->chmodDir), format must be a string i.e. "0755"
+ * 	If omitted, then ProcessWire's $config->chmodDir setting is used instead. 
  * @return bool
  *
  */ 
-function wireMkdir($path, $recursive = false) {
+function wireMkdir($path, $recursive = false, $chmod = null) {
 	if(!strlen($path)) return false; 
 	if(!is_dir($path)) {
 		if($recursive) {
 			$parentPath = substr($path, 0, strrpos(rtrim($path, '/'), '/')); 
-			if(!is_dir($parentPath) && !wireMkdir($parentPath, true)) return false;
+			if(!is_dir($parentPath) && !wireMkdir($parentPath, true, $chmod)) return false;
 		}
 		if(!@mkdir($path)) return false;
 	}
-	$chmodDir = wire('config')->chmodDir;
-	if($chmodDir) @chmod($path, octdec($chmodDir));
+	wireChmod($path, false, $chmod); 
 	return true; 
 }
 
@@ -244,11 +247,11 @@ function wireRmdir($path, $recursive = false) {
 			if(is_dir($pathname)) {
 				wireRmdir($pathname, true); 
 			} else {
-				unlink($pathname); 
+				@unlink($pathname); 
 			}
 		}
 	}
- 	return rmdir($path);
+ 	return @rmdir($path);
 }
 
 /**
@@ -293,7 +296,7 @@ function wireChmod($path, $recursive = false, $chmod = null) {
 	} else {
 		// $path is a file
 		$mod = $chmodFile; 
-		if($mod) if(!chmod($path, octdec($mod))) $numFails++;
+		if($mod) if(!@chmod($path, octdec($mod))) $numFails++;
 	}
 
 	return $numFails == 0; 
@@ -343,8 +346,11 @@ function wireCopy($src, $dst, $options = array()) {
 
 	while(false !== ($file = readdir($dir))) {
 		if($file == '.' || $file == '..') continue;
-		if($options['recursive'] && is_dir($src . $file)) {
+		$isDir = is_dir($src . $file); 
+		if($options['recursive'] && $isDir) {
 			wireCopy($src . $file, $dst . $file, $options);
+		} else if($isDir) {
+			// skip it, because not recursive
 		} else {
 			copy($src . $file, $dst . $file);
 			$chmodFile = wire('config')->chmodFile;
@@ -526,6 +532,7 @@ function wireSendFile($filename, array $options = array(), array $headers = arra
 		"content-length" => "{filesize}",
 		);
 
+	wire('session')->close();
 	$options = array_merge($_options, $options);
 	$headers = array_merge($_headers, $headers);
 	if(!is_file($filename)) throw new WireException("File does not exist");
@@ -564,16 +571,26 @@ function wireSendFile($filename, array $options = array(), array $headers = arra
  * Based upon: http://www.php.net/manual/en/function.time.php#89415
  *
  * @param int|string $ts Unix timestamp or date string
- * @param bool|int $abbreviate Whether to use abbreviations for shorter strings. 
- * 	Specify boolean TRUE for abbreviations.
- * 	Specify integer 1 for extra short abbreviations.
+ * @param bool|int|array $abbreviate Whether to use abbreviations for shorter strings. 
+ * 	Specify boolean TRUE for abbreviations (abbreviated where common, not always different from non-abbreviated)
+ * 	Specify integer 1 for extra short abbreviations (all terms abbreviated into shortest possible string)
  * 	Specify boolean FALSE or omit for no abbreviations.
+ * 	Specify associative array of key=value pairs of terms to use for abbreviations. The possible keys are:
+ * 		just now, ago, from now, never
+ * 		second, minute, hour, day, week, month, year, decade
+ * 		seconds, minutes, hours, days, weeks, months, years, decades
+ * @param bool $useTense Whether to append a tense like "ago" or "from now",
+ * 	May be ok to disable in situations where all times are assumed in future or past.
+ * 	In abbreviate=1 (shortest) mode, this removes the leading "+" or "-" from the string. 
  * @return string
  *
  */
-function wireRelativeTimeStr($ts, $abbreviate = false) {
+function wireRelativeTimeStr($ts, $abbreviate = false, $useTense = true) {
 
-	if(empty($ts)) return __('Never', __FILE__); 
+	if(empty($ts)) {
+		if(is_array($abbreviate) && isset($abbreviate['never'])) return $abbreviate['never'];
+		return __('Never', __FILE__);
+	}
 
 	$justNow = __('just now', __FILE__); 
 	$ago = __('ago', __FILE__); 
@@ -583,6 +600,8 @@ function wireRelativeTimeStr($ts, $abbreviate = false) {
 	$space = ' ';
 
 	if($abbreviate === 1) {
+		// extra short abbreviations
+		
 		$justNow = __('now', __FILE__); 
 		$ago = '';
 		$prependAgo = '-';
@@ -611,7 +630,9 @@ function wireRelativeTimeStr($ts, $abbreviate = false) {
 			__("yrs", __FILE__), 
 			__("decades", __FILE__)
 			); 
+		
 	} else if($abbreviate === true) {
+		// standard abbreviations
 
 		$justNow = __('now', __FILE__); 
 		$fromNow = '';
@@ -640,6 +661,8 @@ function wireRelativeTimeStr($ts, $abbreviate = false) {
 			); 
 
 	} else {
+		// no abbreviations
+		
 		$periodsSingular = array(
 			__("second", __FILE__), 
 			__("minute", __FILE__), 
@@ -650,6 +673,7 @@ function wireRelativeTimeStr($ts, $abbreviate = false) {
 			__("year", __FILE__), 
 			__("decade", __FILE__)
 			);
+		
 		$periodsPlural = array(
 			__("seconds", __FILE__), 
 			__("minutes", __FILE__), 
@@ -659,7 +683,22 @@ function wireRelativeTimeStr($ts, $abbreviate = false) {
 			__("months", __FILE__), 
 			__("years", __FILE__), 
 			__("decades", __FILE__)
-			); 
+			);
+		
+		if(is_array($abbreviate)) {
+			// possible user specified abbreviations for replacements
+			$keys1 = array('second', 'minute', 'hour',  'day', 'week', 'month', 'year', 'decade');
+			$keys2 = array('seconds', 'minutes', 'hours',  'days', 'weeks', 'months', 'years', 'decades');
+			foreach($keys1 as $key => $term) {
+				if(isset($abbreviate[$term])) $periodsSingular[$key] = $abbreviate[$term];
+			}
+			foreach($keys2 as $key => $term) {
+				if(isset($abbreviate[$term])) $periodsPlural[$key] = $abbreviate[$term];
+			}
+			if(isset($abbreviate['just now'])) $justNow = $abbreviate['just now']; 
+			if(isset($abbreviate['from now'])) $fromNow = $abbreviate['from now'];
+			if(isset($abbreviate['ago'])) $ago = $abbreviate['ago'];
+		}
 	}
 
 	
@@ -678,6 +717,11 @@ function wireRelativeTimeStr($ts, $abbreviate = false) {
 		$tense = $fromNow; 
 		$prepend = $prependFromNow; 
 	}
+	
+	if(!$useTense) {
+		$prepend = '';
+		$tense = '';
+	}
 
 	for($j = 0; $difference >= $lengths[$j] && $j < count($lengths)-1; $j++) {
 		$difference /= $lengths[$j];
@@ -694,8 +738,8 @@ function wireRelativeTimeStr($ts, $abbreviate = false) {
 	$format = __('Q P T', __FILE__); // Relative time order: Q=Quantity, P=Period, T=Tense (i.e. 2 Days Ago)
 	$format = str_replace(array('Q', 'P', 'T'), array('{Q}', '{P}', '{T}'), $format); 
 	$out = str_replace(array('{Q}', '{P}', '{T}'), array(" $quantity", " $period", " $tense"), $format); 
-	if($abbreviate === 1) $out = str_replace("$quantity $period", "$quantity$period", $out); 
-	if(strpos($out, '  ') !== false) $out = preg_replace('/\s\s+/', ' ', $out); 
+	if($abbreviate === 1) $out = str_replace(" ", "", $out); // no space when extra-abbreviate is active
+		else if(strpos($out, '  ') !== false) $out = preg_replace('/\s\s+/', ' ', $out); 
 	return trim($out); 
 }
 
@@ -850,7 +894,7 @@ function wirePopulateStringTags($str, $vars, array $options = array()) {
 		'entityEncode' => false, 	
 		// entity decode values pulled from $vars?
 		'entityDecode' => false, 
-		);
+	);
 
 	$options = array_merge($defaults, $options); 
 
@@ -871,10 +915,17 @@ function wirePopulateStringTags($str, $vars, array $options = array()) {
 		$tag = $matches[0][$key];
 		if(isset($replacements[$tag])) continue; // if already found, don't continue
 		$fieldValue = null;
-
+		
 		if(is_object($vars)) {
-			if($vars instanceof WireData) $fieldValue = $vars->get($fieldName); 
-				else $fieldValue = $vars->$fieldName; 
+			if($vars instanceof Page) {
+				$fieldValue = $vars->getMarkup($fieldName);
+				
+			} else if($vars instanceof WireData) {
+				$fieldValue = $vars->get($fieldName);
+				
+			} else {
+				$fieldValue = $vars->$fieldName;
+			}
 		} else if(is_array($vars)) {
 			$fieldValue = isset($vars[$fieldName]) ? $vars[$fieldName] : null;
 		}
@@ -906,14 +957,339 @@ function wirePopulateStringTags($str, $vars, array $options = array()) {
  * Return a new temporary directory/path ready to use for files
  * 
  * @param object|string $name Provide the object that needs the temp dir, or name your own string
- * @param int $maxAge Maximum age of temp dir files in seconds
+ * @param array|int $options Options array: 
+ * 	- maxAge: Maximum age of temp dir files in seconds (default=120)
+ * 	- basePath: Base path where temp dirs should be created. Omit to use default (recommended).
+ * 	Note: if you specify an integer for $options, then $maxAge is assumed. 
  * @return WireTempDir
  * 
  */
-function wireTempDir($name, $maxAge = 120) {
+function wireTempDir($name, $options = array()) {
 	static $tempDirs = array();
 	if(isset($tempDirs[$name])) return $tempDirs[$name]; 
-	$tempDir = new WireTempDir($name, $maxAge); 
+	if(is_int($options)) $options = array('maxAge' => $options); 	
+	$basePath = isset($options['basePath']) ? $options['basePath'] : '';
+	$tempDir = new WireTempDir($name, $basePath); 
+	if(isset($options['maxAge'])) $tempDir->setMaxAge($maxAge); 
 	$tempDirs[$name] = $tempDir; 
 	return $tempDir; 
 }
+
+/**
+ * Given a filename, render it as a ProcessWire template file
+ * 
+ * This is a shortcut to using the TemplateFile class. 
+ * 
+ * File is assumed relative to /site/templates/ (or a directory within there) unless you specify a full path. 
+ * If you specify a full path, it will accept files in or below site/templates/, site/modules/, wire/modules/.
+ * 
+ * Note this function returns the output for you to output wherever you want (delayed output).
+ * For direct output, use the wireInclude() function instead. 
+ * 
+ * @param string $filename Assumed relative to /site/templates/ unless you provide a full path name with the filename.
+ * 	If you provide a path, it must resolve somewhere in site/templates/, site/modules/ or wire/modules/.
+ * @param array $vars Optional associative array of variables to send to template file. 
+ * 	Please note that all template files automatically receive all API variables already (you don't have to provide them)
+ * @param array $options Associative array of options to modify behavior: 
+ * 	- defaultPath: Path where files are assumed to be when only filename or relative filename is specified (default=/site/templates/)
+ *  - autoExtension: Extension to assume when no ext in filename, make blank for no auto assumption (default=php) 
+ * 	- allowedPaths: Array of paths that are allowed (default is templates, core modules and site modules)
+ * 	- allowDotDot: Allow use of ".." in paths? (default=false)
+ * 	- throwExceptions: Throw exceptions when fatal error occurs? (default=true)
+ * @return string|bool Rendered template file or boolean false on fatal error (and throwExceptions disabled)
+ * @throws WireException if template file doesn't exist
+ * 
+ */
+function wireRenderFile($filename, array $vars = array(), array $options = array()) {
+	
+	$paths = wire('config')->paths; 
+	$defaults = array(
+		'defaultPath' => $paths->templates, 
+		'autoExtension' => 'php', 
+		'allowedPaths' => array(
+			$paths->templates,
+			$paths->adminTemplates, 
+			$paths->modules,
+			$paths->siteModules
+			),
+		'allowDotDot' => false, 
+		'throwExceptions' => true, 
+		);
+	
+	$options = array_merge($defaults, $options); 
+	if(DIRECTORY_SEPARATOR != '/') $filename = str_replace(DIRECTORY_SEPARATOR, '/', $filename);
+	
+	// add .php extension if filename doesn't already have an extension
+	if($options['autoExtension'] && !strrpos(basename($filename), '.')) {
+		$filename .= "." . $options['autoExtension'];
+	}
+	
+	if(!$options['allowDotDot'] && strpos($filename, '..')) {
+		// make path relative to /site/templates/ if filename is not an absolute path
+		$error = 'Filename may not have ".."'; 
+		if($options['throwExceptions']) throw new WireException($error); 
+		wire()->error($error);
+		return false;
+	}
+	
+	if($options['defaultPath'] && strpos($filename, './') === 0) {
+		$filename = rtrim($options['defaultPath'], '/') . '/' . substr($filename, 2);
+		
+	} else if($options['defaultPath'] && strpos($filename, '/') !== 0) {
+		// filename is relative to defaultPath (typically /site/templates/)
+		$filename = rtrim($options['defaultPath'], '/') . '/' . $filename;
+		
+	} else if(strpos($filename, '/') !== false) {
+		// filename is absolute, make sure it's in a location we consider safe
+		$allowed = false;
+		foreach($options['allowedPaths'] as $path) {
+			if(strpos($filename, $path) === 0) $allowed = true;
+		}
+		if(!$allowed) {
+			$error = "Filename $filename is not in an allowed path."; 
+			if($options['throwExceptions']) throw new WireException($error); 
+			wire()->error($error); 
+			return false;
+		}
+	}
+	
+	// render file and return output
+	$t = new TemplateFile(); 
+	$t->setThrowExceptions($options['throwExceptions']);
+	$t->setFilename($filename);
+	foreach($vars as $key => $value) $t->set($key, $value);
+	return $t->render();
+}
+
+/**
+ * Include a PHP file passing it all API variables and optionally your own specified variables
+ * 
+ * This is the same as PHP's include() function except for the following: 
+ * - It receives all API variables and optionally your custom variables
+ * - If your filename is not absolute, it doesn't look in PHP's include path, only in the current dir.
+ * - It only allows including files that are part of the PW installation: templates, core modules or site modules
+ * - It will assume a ".php" extension if filename has no extension.
+ * 
+ * Note this function produced direct output. To retrieve output as a return value, use the 
+ * wireTemplateFile function instead. 
+ * 
+ * @param $filename
+ * @param array $vars Optional variables you want to hand to the include (associative array)
+ * @param array $options Array of options to modify behavior: 
+ * 	- func: Function to use: include, include_once, require or require_once (default=include)
+ *  - autoExtension: Extension to assume when no ext in filename, make blank for no auto assumption (default=php) 
+ * 	- allowedPaths: Array of paths include files are allowed from. Note current dir is always allowed.
+ * @return bool Returns true 
+ * @throws WireException if file doesn't exist or is not allowed
+ * 
+ */
+function wireIncludeFile($filename, array $vars = array(), array $options = array()) {
+
+	$paths = wire('config')->paths; 
+	$defaults = array(
+		'func' => 'include',
+		'autoExtension' => 'php', 
+		'allowedPaths' => array(
+			$paths->templates,
+			$paths->adminTemplates, 
+			$paths->modules,
+			$paths->siteModules
+		)
+	);
+	
+	$options = array_merge($defaults, $options); 
+	$filename = trim($filename);
+	if(DIRECTORY_SEPARATOR != '/') $filename = str_replace(DIRECTORY_SEPARATOR, '/', $filename);
+	
+	// add .php extension if filename doesn't already have an extension
+	if($options['autoExtension'] && !strrpos(basename($filename), '.')) {
+		$filename .= "." . $options['autoExtension']; 
+	}
+	
+	if(strpos($filename, '..') !== false) {
+		// if backtrack/relative components, convert to real path
+		$_filename = $filename; 
+		$filename = realpath($filename); 
+		if($filename === false) throw new WireException("File does not exist: $_filename"); 
+	}
+	
+	if(strpos($filename, '//') !== false) {
+		throw new WireException("File is not allowed (double-slash): $filename"); 
+	}
+
+	if(strpos($filename, './') !== 0) {
+		// file does not specify "current directory"
+		$slashPos = strpos($filename, '/');
+		// If no absolute path specified, ensure it only looks in current directory
+		if($slashPos !== 0 && strpos($filename, ':/') === false) $filename = "./$filename";
+	}
+	
+	if(strpos($filename, '/') === 0 || strpos($filename, ':/') !== false) {
+		// absolute path, make sure it's part of PW's installation
+		$allowed = false;
+		foreach($options['allowedPaths'] as $path) {
+			if(strpos($filename, $path) === 0) $allowed = true; 	
+		}
+		if(!$allowed) throw new WireException("File is not in an allowed path: $filename"); 
+	}
+	
+	if(!file_exists($filename)) throw new WireException("File does not exist: $filename"); 
+	
+	// extract all API vars
+	$fuel = array_merge(Wire::getAllFuel()->getArray(), $vars); 
+	extract($fuel);
+
+	// include the file
+	$func = $options['func'];
+	if($func == 'require') require($filename);
+		else if($func == 'require_once') require_once($filename);
+		else if($func == 'include_once') include_once($filename);
+		else include($filename);
+	
+	return true; 
+}
+
+/**
+ * Format a date, using PHP date(), strftime() or other special strings (see arguments).
+ * 
+ * This is designed to work the same wa as PHP's date() but be able to accept any common format
+ * used in ProcessWire. This is helpful in reducing code in places where you might have logic 
+ * determining when to use date(), strftime(), or wireRelativeTimeStr(). 
+ * 
+ * @param string|int $format Use one of the following:
+ *  - PHP date() format
+ * 	- PHP strftime() format (detected by presence of a '%' somewhere in it)
+ * 	- 'relative': for a relative date/time string.
+ *  - 'relative-': for a relative date/time string with no tense. 
+ * 	- 'rel': for an abbreviated relative date/time string.
+ * 	- 'rel-': for an abbreviated relative date/time string with no tense.
+ * 	- 'r': for an extra-abbreviated relative date/time string.
+ * 	- 'r-': for an extra-abbreviated relative date/time string with no tense.
+ * 	- 'ts': makes it return a unix timestamp
+ * 	- '': blank string makes it use the system date format ($config->dateFormat) 
+ * 	- If given an integer and no second argument specified, it is assumed to be the second ($ts) argument. 
+ * @param int|string|null $ts Optionally specify the date/time stamp or strtotime() compatible string. 
+ * 	If not specified, current time is used.
+ * @return string|bool Formatted date/time, or boolean false on failure
+ * 
+ */
+function wireDate($format = '', $ts = null) {
+	if(is_null($ts)) {
+		// ts not specified, or it was specified in $format
+		if(ctype_digit("$format")) {
+			// ts specified in format
+			$ts = (int) $format;
+			$format = '';
+		} else {
+			// use current timestamp
+			$ts = time();
+		}
+	} else if(is_string($ts) && ctype_digit("$ts")) {
+		// ts is a digit string, convert to integer
+		$ts = (int) $ts; 
+	} else if(is_string($ts)) {
+		// ts is a non-integer string, we assume to be a strtotime() compatible formatted date
+		$ts = strtotime($ts);
+	}
+	if($format == '') $format = wire('config')->dateFormat;
+	if($format == 'relative') $value = wireRelativeTimeStr($ts);
+		else if($format == 'relative-') $value = wireRelativeTimeStr($ts, false, false); 
+		else if($format == 'rel') $value = wireRelativeTimeStr($ts, true);
+		else if($format == 'rel-') $value = wireRelativeTimeStr($ts, true, false);
+		else if($format == 'r') $value = wireRelativeTimeStr($ts, 1);
+		else if($format == 'r-') $value = wireRelativeTimeStr($ts, 1, false); 
+		else if($format == 'ts') $value = $ts;
+		else if(strpos($format, '%') !== false) $value = strftime($format, $ts); 
+		else $value = date($format, $ts); 
+	return $value;
+}
+
+
+/**
+ * Render markup for an icon
+ * 
+ * Icon and class can be specified with or without the fa- prefix. 
+ * 
+ * @param string $icon Icon name (currently a font-awesome icon name, but support for more in future)
+ * @param string $class Additional attributes for class (example: "fw" for fixed width)
+ * @return string
+ * 
+ */
+function wireIconMarkup($icon, $class = '') {
+	if(empty($icon)) return '';
+	if(strpos($icon, 'icon-') === 0) $icon = str_replace('icon-', 'fa-', $icon); 
+	if(strpos($icon, 'fa-') !== 0) $icon = "fa-$icon";
+	if($class) {
+		$modifiers = array(
+			'lg', 'fw', '2x', '3x', '4x', '5x', 'spin', 'spinner', 'li', 'border',
+			'rotate-90', 'rotate-180', 'rotate-270', 'flip-horizontal', 'flip-vertical',
+			'stack', 'stack-1x', 'stack-2x', 'inverse',
+		);
+		$classes = explode(' ', $class); 
+		foreach($classes as $key => $modifier) {
+			if(in_array($modifier, $modifiers)) $classes[$key] = "fa-$modifier";	
+		}
+		$class = implode(' ', $classes);
+	}
+	$class = trim("fa $icon $class"); 
+	return "<i class='$class'></i>";
+}
+
+/**
+ * Get the markup or class name for an icon that can represent the given filename
+ * 
+ * @param string $filename Can be any type of filename (with or without path)
+ * @param string|bool $class Additional class attributes (optional). 
+ * 	Or specify boolean TRUE to get just the icon class name (no markup). 
+ * @return string 
+ * 
+ */
+function wireIconMarkupFile($filename, $class = '') {
+	$icon = 'file-o';
+	$icons = array(
+		'pdf' => 'file-pdf-o',
+		'doc' => 'file-word-o',
+		'docx' => 'file-word-o',
+		'xls' => 'file-excel-o',
+		'xlsx' => 'file-excel-o',
+		'xlsb' => 'file-excel-o',
+		'csv' => 'file-excel-o',
+		'zip' => 'file-archive-o',
+		'txt' => 'file-text-o',
+		'rtf' => 'file-text-o',
+		'mp3' => 'file-sound-o',
+		'wav' => 'file-sound-o',
+		'ogg' => 'file-sound-o',
+		'jpg' => 'file-image-o',
+		'jpeg' => 'file-image-o',
+		'png' => 'file-image-o',
+		'gif' => 'file-image-o',
+		'svg' => 'file-image-o',
+		'ppt' => 'file-powerpoint-o',
+		'pptx' => 'file-powerpoint-o',
+		'mov' => 'file-video-o',
+		'mp4' => 'file-video-o',
+		'wmv' => 'file-video-o',
+		'js' => 'file-code-o',
+		'css' => 'file-code-o',
+	);
+	$pos = strrpos($filename, '.'); 
+	$ext = $pos !== false ? substr($filename, $pos+1) : '';
+	if($ext && isset($icons[$ext])) $icon = $icons[$ext];
+	return $class === true ? "fa-$icon" : wireIconMarkup($icon, $class);
+}
+
+/**
+ * Given a quantity of bytes, return a more readable size string
+ * 
+ * @param int $size
+ * @return string
+ * 
+ */
+function wireBytesStr($size) {
+	if($size < 1024) return number_format($size) . ' ' . __('bytes', __FILE__);
+	$kb = round($size / 1024);
+	return number_format($kb) . " " . __('kB', __FILE__); // kilobytes
+}
+
+

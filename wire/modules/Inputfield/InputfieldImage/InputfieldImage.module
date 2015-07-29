@@ -1,34 +1,88 @@
 <?php
 
+/**
+ * Class InputfieldImage
+ * 
+ * Inputfield for FieldtypeImage fields
+ * 
+ * @property string $extensions Space separated list of allowed image extensions (default="JPG JPEG GIF PNG")
+ * @property bool|int $adminThumbs Generate and use thumbnails for output in the admin? (default=false)
+ * @property int|string $maxWidth Max width for uploaded images, larger will be sized down (default='')
+ * @property int|string $maxHeight Max height for uploaded images, larger will be sized down (default='')
+ * @property bool|int $maxReject Reject images that exceed max allowed size? (default=false)
+ * @property int|string $minWidth Min width for uploaded images, smaller will be refused (default='')
+ * @property int|string $minHeight Min height for uploaded images, smaller will be refused (default='')
+ * @property string $itemClass Space separated CSS classes for items rendered by this Inputfield. Generally you should append rather than replace.
+ * @property int|bool $defaultGrid Start in grid mode rather than list mode? (default=0)
+ * @property int $gridSize Max dimension in pixels for width or height for images in grid mode (default=100)
+ * @property int|bool $useImageEditor Whether or not the modal image editor is allowed for this field (default=true)
+ * 
+ * The following properties default values are pulled from $config->adminThumbOptions and can be overridden 
+ * by setting directly to an instance of this Inputfield:
+ * 
+ * @property int $adminThumbWidth Width for admin thumbnails (default=unspecified)
+ * @property int $adminThumbHeight Height for admin thumbnails (default=100)
+ * @property int $adminThumbScale Scale for admin thumbnails (default=1.0 or specify 0.5 for hidpi)
+ * @property array $imageSizerOptions Options to pass along to the ImageSizer class. See /wire/config.php $imageSizerOptions for details.
+ * 
+ * 
+ */
+
 class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 
 	public static function getModuleInfo() {
 		return array(
 			'title' => __('Images', __FILE__), // Module Title
 			'summary' => __('One or more image uploads (sortable)', __FILE__), // Module Summary
-			'version' => 109,
+			'version' => 114,
 			'permanent' => true, 
 			);
 	}
-
+	
+	protected $variations = array();
+	protected $modalClass = 'pw-modal-large';
+	
 	public function init() {
 		parent::init();
 		$this->set('extensions', 'JPG JPEG GIF PNG');
-		$this->set('adminThumbs', false); 
+		$this->set('adminThumbs', false); // generate and use thumbnails for output?
 		$this->set('maxWidth', ''); 
 		$this->set('maxHeight', '');
+		$this->set('maxReject', 0);
 		$this->set('minWidth', '');
-		$this->set('minHeight', ''); 
-		$this->set('adminThumbHeight', 100); 
+		$this->set('minHeight', '');
+		
 		$this->set('itemClass', 'InputfieldFileItem InputfieldImage ui-widget'); 
-		$this->set('defaultGrid', 0); 
-		//$this->modules->get("InputfieldFile"); // force the JS and CSS from InputfieldFile to also be loaded
+		$this->set('defaultGrid', 0);
+		$this->set('gridSize', 100); // max dimension (in pixels, width or height) for images in grid mode 
+		
+		$options = $this->wire('config')->adminThumbOptions;
+		if(!is_array($options)) $options = array();
+		if(empty($options['width']) && empty($options['height'])) $options['height'] = 100; // default
+		$this->set('adminThumbWidth', empty($options['width']) ? 0 : (int) $options['width']);
+		$this->set('adminThumbHeight', empty($options['height']) ? 0 : (int) $options['height']);
+		$this->set('adminThumbScale', empty($options['scale']) ? 1.0 : (float) $options['scale']);
+		
+		if(empty($options['imageSizerOptions'])) {
+			// properties specified in $options rather than $options['imageSizerOptions'], so we copy them
+			$options['imageSizerOptions'] = array();
+			foreach($options as $key => $value) {
+				if($key == 'height' || $key == 'width' || $key == 'scale') continue;
+				$options['imageSizerOptions'][$key] = $value; 
+			}
+		}
+		$this->set('imageSizerOptions', empty($options['imageSizerOptions']) ? array() : $options['imageSizerOptions']);
+		$this->set('useImageEditor', 1); 
 	}
 
 	public function ___render() {
 		$this->modules->getInstall("JqueryMagnific"); 
-		$this->config->scripts->add($this->config->urls->InputfieldFile . "InputfieldFile.js");
-		$this->config->styles->add($this->config->urls->InputfieldFile . "InputfieldFile.css");
+		$this->wire('modules')->loadModuleFileAssets('InputfieldFile'); 
+		if($this->value && count($this->value)) {
+			$this->variations = $this->value->getAllVariations();
+			if(count($this->variations)) $this->wire('modules')->get('JqueryUI')->use('modal');
+		}
+		if($this->wire('config')->ajax) clearstatcache();
 		$out = parent::___render();
 		if($this->defaultGrid) $out .= "<span class='InputfieldImageDefaultGrid'></span>";
 		return $out; 
@@ -39,18 +93,14 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		$value = $this->attr('value'); 
 		if(empty($value)) return '';
 		foreach($value as $pageimage) {
-			$thumb = $pageimage; 
-			if($this->adminThumbs && $thumb->height > $this->adminThumbHeight) {
-				// create a variation for display with this inputfield
-				$thumb = $thumb->height($this->adminThumbHeight); 
-			}
-			$alt = $this->wire('sanitizer')->entities($thumb->description); 
-			$img = "<img src='$thumb->url' alt='$alt' />";
+			$thumbInfo = $this->getAdminThumb($pageimage); 
+			$thumb = $thumbInfo['thumb'];
+			$img = $thumbInfo['markup'];
 			if($thumb !== $pageimage) $img = "<a class='InputfieldFileLink' target='_blank' href='$pageimage->url'>$img</a>";
-			$out .= $img;
+			$out .= "<span>$img</span>";
 		}
 
-		return $out; 
+		return "<div class='InputfieldImageRenderValue'>$out</div>"; 
 	}
 
 	/**
@@ -74,6 +124,11 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		}
 
 		if(($this->maxWidth && $pagefile->width > $this->maxWidth) || ($this->maxHeight && $pagefile->height > $this->maxHeight)) {
+			if($this->maxReject) {
+				$actualDimensions = $pagefile->width . '×' . $pagefile->height;
+				$requiredDimensions = $this->maxWidth . '×' . $this->maxWidth;
+				throw new WireException(sprintf($this->_('Image of %s exceeds maximum allowed size'), $actualDimensions) . " ($requiredDimensions)");
+			}
 			$pagefile2 = $pagefile->size($this->maxWidth, $this->maxHeight, array('cropping' => false));
 			if($pagefile->filename != $pagefile2->filename) {
 				unlink($pagefile->filename);
@@ -89,42 +144,194 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		return parent::___fileAdded($pagefile); 
 	}
 
+	/**
+	 * Get thumbnail image info
+	 * 
+	 * @param Pageimage $img
+	 * @return array of(
+	 * 	'thumb' => Pageimage object,
+	 * 	'attr' => associative array of image attributes 
+	 * 	'markup' => string of markup for <img>, 
+	 * 	'error' => error message if applicable
+	 * 	);
+	 * 
+	 */
+	public function getAdminThumb(Pageimage $img) {
+		
+		$thumb = $img; 
+		$error = '';
+		$gridSize = $this->gridSize;
+		$attr = array();
+		
+		if($this->adminThumbs) {
+			
+			$thumbHeight = $thumb->height;
+			$thumbWidth = $thumb->width;
+			$useScale = $this->adminThumbScale > 0 && ((float) $this->adminThumbScale) != 1.0;
+			$useResize = ($img->ext == 'svg' && $thumbHeight == '100%') 
+				|| ($this->adminThumbHeight && $thumbHeight > ($this->adminThumbHeight * $this->adminThumbScale))
+				|| ($this->adminThumbWidth && $thumbWidth > ($this->adminThumbWidth * $this->adminThumbScale));
+			
+			if($useResize) {
+				// create a variation for display with this inputfield
+				$thumbHeight = $this->adminThumbHeight;
+				$thumbWidth = $this->adminThumbWidth;
+				$imageSizerOptions = $this->imageSizerOptions; 
+				$thumb = $thumb->size($thumbWidth, $thumbHeight, $imageSizerOptions);
+				if($thumb->error) $error = $thumb->error;
+			}
+			
+			if($useScale) {
+				if($thumbHeight) $thumbHeight = floor($thumbHeight * $this->adminThumbScale);
+				if($thumbWidth) $thumbWidth = floor($thumbWidth * $this->adminThumbScale);
+			}
+			
+			if($thumbHeight && $thumbWidth) {
+				$attr['width'] = $thumbWidth;
+				$attr['height'] = $thumbHeight; 
+				$gridSize = $thumbHeight > $thumbWidth ? $thumbWidth : $thumbHeight;
+			} else if($thumbHeight) {
+				$attr['height'] = $thumbHeight;
+				$gridSize = $thumbHeight;
+			} else if($thumbWidth) {
+				$attr['width'] = $thumbWidth; 
+				$gridSize = $thumbWidth;
+			}
+		} else if($this->adminThumbScale < 1) {
+			// no thumb, but hidpi full size
+			$attr['width'] = $thumb->hidpiWidth($this->adminThumbScale);
+			// $attr['height'] = $thumb->hidpiHeight($this->adminThumbScale); 
+		}
+
+		$url = $thumb->URL;
+
+		// ensure cached image doesn't get shown when replacing same filename
+		// if($this->overwrite) $url .= "?m=" . filemtime($img->pathname);
+
+		// if($this->wire('config')->ajax) {
+		// 	$mtime = filemtime($thumb->filename());
+		//	if($mtime > time() - 15) $url .= "?modified=$mtime"; // for nocache
+		// }
+		
+		$attr['src'] = $url;
+		$attr['alt'] = $this->wire('sanitizer')->entities1($img->description);
+		$attr['data-gridsize'] = $gridSize;
+		$markup = "<img ";
+		foreach($attr as $key => $value) $markup .= "$key=\"$value\" ";
+		$markup .= " />";
+		
+		$a = array(
+			'thumb' => $thumb, 
+			'attr' => $attr, 
+			'markup' => $markup, 
+			'error' => $error, 
+		);
+		return $a; 
+	}
+
+	/**
+	 * Render a Pageimage item
+	 * 
+	 * @param $pagefile
+	 * @param $id
+	 * @param $n
+	 * @return string
+	 * 
+	 */
 	protected function ___renderItem($pagefile, $id, $n) {
 
-		$thumb = $pagefile; 
-		$error = '';
-		$imgAttr = '';
+		$thumb = $this->getAdminThumb($pagefile); 
+		$error = $thumb['error'] ? "<span class='ui-state-error-text'>" . $this->wire('sanitizer')->entities($thumb['error']) . "</span>" : "";
+		
+		$editable = (int) $this->useImageEditor;
+		if(strpos($this->name, '_repeater') && preg_match('/_repeater\d+$/', $this->name)) $editable = false;
+		if($pagefile->ext == 'svg') $editable = false;
 
-		if($this->adminThumbs) {
-			$thumbHeight = $thumb->height; 
-			if($thumbHeight > $this->adminThumbHeight) {
-				// create a variation for display with this inputfield
-				$thumb = $thumb->height($this->adminThumbHeight); 
-				if($thumb->error) $error = "<span class='ui-state-error-text'>$thumb->error</span>";
-				$thumbHeight = $this->adminThumbHeight;
-			}
-			$imgAttr = " height='$thumbHeight'";
+		$variations = isset($this->variations[$pagefile->name]) ? $this->variations[$pagefile->name] : array();
+		
+		if(count($variations) && $editable) {
+			$cnt = count($variations); 
+			$variationURL = $this->wire('config')->urls->admin . 
+				"page/image/variations/?id={$pagefile->page->id}&file=$pagefile->name&modal=1&varcnt=varcnt_$id";
+			$variationInfo = "\n\t\t\t&nbsp;" . 
+				"<a class='InputfieldImageVariationCnt pw-modal $this->modalClass' data-buttons='button' " . 
+				"href='$variationURL' title='" . sprintf($this->_('Variations of %s'), $pagefile->name) . "'>" . 
+				"<i class='fa fa-files-o'></i>&nbsp;<span id='varcnt_$id'>$cnt</span></a>"; 
+		} else {
+			$variationInfo = '';
 		}
+		
+		$pageID = $pagefile->pagefiles->page->id; 
+		if($editable) {
+			$editURL = $this->wire('config')->urls->admin . "page/image/edit/?id=$pageID&file=$pageID,$pagefile->name&rte=0&field=$this->name";
+		} else {
+			$editURL = '';
+		}
+		$editTitle = "$pagefile->name ({$pagefile->width}x{$pagefile->height})";
+		$fileStats = str_replace(' ', '&nbsp;', $pagefile->filesizeStr) . ", {$pagefile->width}x{$pagefile->height} ";
 
 		$out = 	
 			"\n\t\t<p class='InputfieldFileInfo InputfieldItemHeader ui-widget ui-widget-header'>" . 
-			"\n\t\t\t<span class='ui-icon ui-icon-arrowthick-2-n-s HideIfSingle'></span>" .
-			"\n\t\t\t<span class='ui-icon ui-icon-arrowthick-1-e HideIfMultiple'></span>" . 
-			"\n\t\t\t<span class='InputfieldFileName'>{$pagefile->basename}</span> " . 
-			"\n\t\t\t<span class='InputfieldFileStats'>&bull; {$pagefile->filesizeStr} &bull; {$pagefile->width}x{$pagefile->height}</span> " . 
-			"\n\t\t\t<label class='InputfieldFileDelete'><input type='checkbox' name='delete_$id' value='1' /><span class='ui-icon ui-icon-trash'>". $this->_('Delete') . "</span></label>" . 
-			"\n\t\t\t<a class='InputfieldFileMove InputfieldFileMoveBottom' href='#' title='" . $this->_('Move to bottom') . "'><span class='ui-icon ui-icon-arrowthickstop-1-s'></span></a> " . 
-			"\n\t\t\t<a class='InputfieldFileMove InputfieldFileMoveTop' href='#' title='" . $this->_('Move to top') . "'><span class='ui-icon ui-icon-arrowthickstop-1-n'></span></a> " . 
-			"\n\t\t</p>" . 
-			"\n\t\t<div class='InputfieldFileData ui-widget ui-widget-content'>" . 
-			"\n\t\t\t<a class='InputfieldFileLink' target='_blank' href='{$pagefile->url}'><img src='{$thumb->url}' alt='{$pagefile->basename}'$imgAttr /></a>" . 
+			"\n\t\t\t<i class='fa fa-fw fa-sort HideIfSingle'></i>" .
+			"\n\t\t\t<i class='fa fa-fw fa-caret-right HideIfMultiple'></i> ";
+		
+		if($this->uploadOnlyMode) {
+			$out .= 
+				"\n\t\t\t<span class='InputfieldFileName'>$pagefile->basename</span> " . 
+				"\n\t\t\t<span class='InputfieldFileStats'>$fileStats</span> ";
+			
+		} else {
+			if($editURL) {
+				$out .=
+					"\n\t\t\t<a class='InputfieldFileName pw-modal $this->modalClass' title='$editTitle' href='$editURL' " .
+					"data-buttons='#non_rte_dialog_buttons button' " .
+					"data-autoclose='1' data-close='#non_rte_cancel'>{$pagefile->basename} " . 
+					"<i class='fa fa-pencil ui-priority-secondary'></i></a> ";
+			} else {
+				$out .= 
+					"\n\t\t\t<a class='InputfieldFileName InputfieldFileLink' " . 
+					"target='_blank' href='$pagefile->URL'>$pagefile->basename</a> ";
+			}
+			$out .= 
+				"\n\t\t\t<span class='InputfieldFileStats'>$fileStats $variationInfo</span> " .
+				"\n\t\t\t<label class='InputfieldFileDelete'>" .
+					"<input type='checkbox' name='delete_$id' value='1' title='" . $this->_('Delete') . "' />" .
+					"<i class='fa fa-fw fa-trash'></i></label>" .
+				"\n\t\t\t<a class='InputfieldFileMove InputfieldFileMoveBottom' href='#' title='" . $this->_('Move to bottom') . "'>" .
+					"<i class='fa fa-fw fa-angle-double-down'></i></a> " .
+				"\n\t\t\t<a class='InputfieldFileMove InputfieldFileMoveTop' href='#' title='" . $this->_('Move to top') . "'>" .
+					"<i class='fa fa-fw fa-angle-double-up'></i></a> ";
+		}
+		
+		$out .= "\n\t\t</p>" . // .InputfieldFileInfo.InputfieldItemHeader
+				"\n\t\t<div class='InputfieldFileData ui-widget ui-widget-content'>" .
+				"\n\t\t\t<div class='InputfieldImagePreview'>" .
+				"\n\t\t\t\t<a class='InputfieldFileLink' target='_blank' href='{$pagefile->URL}'>$thumb[markup]</a>";
+			
+		if(!$this->uploadOnlyMode && $editable) {
+			$out .= 
+				"\n\t\t\t\t<div class='InputfieldImageActions'>" .
+				"\n\t\t\t\t\t<a title='$editTitle' href='$editURL' class='pw-modal $this->modalClass' " .
+				"data-buttons='#non_rte_dialog_buttons button' data-autoclose='1' data-close='#non_rte_cancel'>" .
+				"<i class='fa fa-fw fa-crop'></i></a>" .
+				"\n\t\t\t\t</div>";
+		}
+		
+		$out .= 
+			"\n\t\t\t</div>" . // .InputfieldImagePreview
 			"\n\t\t\t" . $error . $this->renderItemDescriptionField($pagefile, $id, $n) . 
 			"\n\t\t\t<input class='InputfieldFileSort' type='text' name='sort_$id' value='$n' />" . 
-			"\n\t\t</div>";
+			"\n\t\t</div>"; // .InputfieldFileData
 
 		return $out; 
 	}
 
+	/**
+	 * Configure field
+	 * 
+	 * @return InputfieldWrapper
+	 * 
+	 */
 	public function ___getConfigInputfields() {
 
 		$inputfields = parent::___getConfigInputfields();
@@ -135,14 +342,14 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		$field->attr('checked', $this->adminThumbs ? 'checked' : ''); 
 		$field->label = $this->_('Display thumbnails in page editor?'); 
 		$field->description = $this->_('Thumbnails take up less space and make it easier to sort multiple images. If unchecked, the full (original) size image will be shown in the page editor.'); // Display thumbnails description
-		$inputfields->add($field); 
-
+		$inputfields->add($field);
+		
 		$field = $this->modules->get("InputfieldRadios"); 
 		$field->attr('name', 'defaultGrid'); 
 		$field->label = $this->_('Default View'); 
 		$field->addOption(0, $this->_('Rows')); 
 		$field->addOption(1, $this->_('Grid')); 
-		$field->showIf = 'maxFiles!=1';
+		// $field->showIf = 'maxFiles!=1';
 		$field->optionColumns = 1; 
 		$field->description = $this->_('Either view can be toggled by clicking the grid/row icon in the image field. This just defines which one is the default. The rows view is the recommended default.'); 
 		$field->attr('value', (int) $this->defaultGrid); 
@@ -168,7 +375,17 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		$field->label = $this->_("Max height for uploaded images"); 
 		$field->description = $description;
 		$field->columnWidth = 50; 
-		$fieldset->add($field); 
+		$fieldset->add($field);
+
+		// maxReject option comes from @JanRomero PR #1051
+		$field = $this->modules->get("InputfieldCheckbox");
+		$field->attr('name', 'maxReject');
+		$field->attr('value', (int) $this->maxReject);
+		$field->attr('checked', ((int) $this->maxReject) ? 'checked' : '');
+		$field->label = $this->_('Refuse images exceeding max dimensions?');
+		$field->showIf = 'maxWidth|maxHeight>0';
+		$field->description = $this->_('If checked, images that exceed max width/height will be refused rather than resized.');
+		$fieldset->add($field);
 
 		$inputfields->add($fieldset);
 	
@@ -197,5 +414,17 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		$inputfields->add($fieldset); 
 		
 		return $inputfields; 	
+	}
+
+	/**
+	 * Specify which config inputfields can be used with template/field contexts
+	 * 
+	 * @param Field $field
+	 * @return array
+	 * 
+	 */
+	public function ___getConfigAllowContext($field) {
+		$a = array('adminThumbs', 'defaultGrid'); 
+		return array_merge(parent::___getConfigAllowContext($field), $a); 
 	}
 }

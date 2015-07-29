@@ -20,11 +20,12 @@ class ProcessLanguage extends ProcessPageType {
 	static public function getModuleInfo() {
 		return array(
 			'title' => __('Languages', __FILE__),
-			'version' => 101,
+			'version' => 102,
 			'summary' => __('Manage system languages', __FILE__),
 			'author' => 'Ryan Cramer',
 			'requires' => 'LanguageSupport',
 			'icon' => 'language', 
+			'useNavJSON' => true,
 			);
 	}
 
@@ -49,6 +50,7 @@ class ProcessLanguage extends ProcessPageType {
 		
 		$showFields = array('name', 'title', 'language_files', 'language_files_site'); 
 		$this->set('showFields', $showFields); 
+		$this->set('jsonListLabel', 'title|name'); 
 		require_once(dirname(__FILE__) . '/LanguageParser.php'); 
 	}
 
@@ -59,7 +61,8 @@ class ProcessLanguage extends ProcessPageType {
 	public function init() {
 		$this->addHookBefore('InputfieldFile::render', $this, 'renderInputfieldFile'); 
 		$this->addHookAfter('InputfieldFile::renderItem', $this, 'renderInputfieldFileItem'); 
-		$this->addHookAfter('InputfieldFile::renderUpload', $this, 'renderInputfieldFileUpload'); 
+		$this->addHookAfter('InputfieldFile::renderUpload', $this, 'renderInputfieldFileUpload');
+		$this->addHookBefore('InputfieldFile::processInput', $this, 'processInputfieldFileInput'); 
 		parent::init();
 	}
 
@@ -71,6 +74,10 @@ class ProcessLanguage extends ProcessPageType {
 		return $this->translationUrl; 
 	}
 	
+	public function processInputfieldFileInput(HookEvent $event) {
+		$event->object->overwrite = true; 
+	}
+	
 	/**
 	 * Hook for InputfieldFile::renderItem
 	 *
@@ -79,6 +86,7 @@ class ProcessLanguage extends ProcessPageType {
 	 */
 	public function renderInputfieldFile(HookEvent $event) {
 		$event->object->descriptionRows = 0;
+		$event->object->overwrite = true;
 	}
 
 	/**
@@ -224,6 +232,5 @@ class ProcessLanguage extends ProcessPageType {
 			exit(0);
 		}
 	}
-
 }
 

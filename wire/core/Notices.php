@@ -23,6 +23,7 @@
  *
  */
 abstract class Notice extends WireData {
+	
 
 	/**
 	 * Flag indicates the notice is for when debug mode is on only
@@ -32,6 +33,8 @@ abstract class Notice extends WireData {
 
 	/**
 	 * Flag indicates the notice is a warning
+	 * 
+	 * @deprecated use NoticeWarning instead. 
 	 *
 	 */
 	const warning = 4; 
@@ -51,11 +54,11 @@ abstract class Notice extends WireData {
 	/**
 	 * Flag indicates the notice is allowed to contain markup and won't be automatically entity encoded
 	 *
-	 * Note: entity encoding is done by the admin theme at output time. 
+	 * Note: entity encoding is done by the admin theme at output time, which should detect this flag. 
 	 *
 	 */
 	const allowMarkup = 32;
-
+	
 	/**
 	 * Create the Notice
 	 *
@@ -77,7 +80,7 @@ abstract class Notice extends WireData {
 	abstract public function getName();
 	
 	public function __toString() {
-		return $this->text; 
+		return (string) $this->text; 
 	}
 }
 
@@ -102,10 +105,23 @@ class NoticeError extends Notice {
 }
 
 /**
+ * A notice that's indicated to be a warning
+ *
+ */
+class NoticeWarning extends Notice {
+	public function getName() {
+		return 'warnings';
+	}
+}
+
+
+/**
  * A class to contain multiple Notice instances, whether messages or errors
  *
  */
 class Notices extends WireArray {
+	
+	const logAllNotices = false;  // for debugging/dev purposes
 	
 	public function isValidItem($item) {
 		return $item instanceof Notice; 
@@ -120,6 +136,16 @@ class Notices extends WireArray {
 		if($item->flags & Notice::debug) {
 			if(!$this->wire('config')->debug) return $this;
 		}
+		
+		if(is_array($item->text)) {
+			$item->text = "<pre>" . trim(print_r($this->sanitizeArray($item->text), true)) . "</pre>";
+			$item->flags = $item->flags | Notice::allowMarkup;
+		} else if(is_object($item->text) && $item->text instanceof Wire) {
+			$item->text = "<pre>" . $this->wire('sanitizer')->entities(print_r($item->text, true)) . "</pre>";
+			$item->flags = $item->flag | Notice::allowMarkup;
+		} else if(is_object($item->text)) {
+			$item->text = (string) $item->text; 
+		}
 
 		// check for duplicates
 		$dup = false; 
@@ -127,10 +153,20 @@ class Notices extends WireArray {
 			if($notice->text == $item->text && $notice->flags == $item->flags) $dup = true; 
 		}
 
-		if($dup) return $this; 
-	
-		if(($item->flags & Notice::log) || ($item->flags & Notice::logOnly)) {
+		if($dup) return $this;
+		
+		if(($item->flags & Notice::warning) && !$item instanceof NoticeWarning) {
+			// if given a warning of either NoticeMessage or NoticeError, convert it to a NoticeWarning
+			// this is in support of legacy code, as NoticeWarning didn't used to exist
+			$warning = new NoticeWarning($item->text, $item->flags);
+			$warning->class = $item->class;
+			$warning->timestamp = $item->timestamp;
+			$item = $warning;
+		}
+
+		if(self::logAllNotices || ($item->flags & Notice::log) || ($item->flags & Notice::logOnly)) {
 			$this->addLog($item);
+			$item->flags = $item->flags & ~Notice::log; // remove log flag, to prevent it from being logged again
 			if($item->flags & Notice::logOnly) return $this;
 		}
 		
@@ -149,5 +185,36 @@ class Notices extends WireArray {
 			if($notice instanceof NoticeError) $numErrors++;
 		}
 		return $numErrors > 0;
+	}
+	
+	public function hasWarnings() {
+		$numWarnings = 0;
+		foreach($this as $notice) {
+			if($notice instanceof NoticeWarning) $numWarnings++;
+		}
+		return $numWarnings > 0;
+	}
+
+	/**
+	 * Recursively entity encoded values in arrays and convert objects to string
+	 * 
+	 * This enables us to safely print_r the string for debugging purposes 
+	 * 
+	 * @param array $a
+	 * @return array
+	 * 
+	 */
+	public function sanitizeArray(array $a) {
+		$sanitizer = $this->wire('sanitizer'); 
+		foreach($a as $key => $value) {
+			if(is_array($value)) {
+				$value = $this->sanitizeArray($value);
+			} else {
+				if(is_object($value)) $value = (string) $value;
+				$value = $sanitizer->entities($value); 
+			} 
+			$a[$key] = $value;	
+		}
+		return $a; 
 	}
 }

@@ -17,6 +17,7 @@
  * @property string email Get or set email address for this user.
  * @property string pass Set the user's password. Note that when getting, this returns a hashed version of the password, so it is not typically useful to get this property. However, it is useful to set this property if you want to change the password. When you change a password, it is assumed to be the non-hashed/non-encrypted version. ProcessWire will hash it automatically when the user is saved.
  * @property PageArray roles Get roles this user has. Returns PageArray.
+ * @property Language $language User language, applicable only if LanguageSupport installed.
  *
  */
 
@@ -29,11 +30,11 @@ class User extends Page {
 	 *
 	 */
 	public function __construct(Template $tpl = null) {
-		if(is_null($tpl)) $tpl = $this->fuel('templates')->get('user'); 
-		$this->parent = $this->fuel('pages')->get($this->fuel('config')->usersPageID); 
+		if(is_null($tpl)) $tpl = $this->wire('templates')->get('user'); 
+		if(!$this->parent_id) $this->set('parent_id', $this->wire('config')->usersPageID); 
 		parent::__construct($tpl); 
 	}
-
+	
 	/**
 	 * Does this user have the given role? (object, name or id)
 	 *
@@ -335,6 +336,32 @@ class User extends Page {
 			if($languages) $value = $languages->getDefault();
 		}
 		return $value;
+	}
+
+	/**
+	 * Returns the URL where this page can be edited 
+	 * 
+	 * In this case we adjust the default page editor URL to ensure users are edited
+	 * only from the Access section. 
+	 * 
+	 * @return string
+	 * 
+	 */
+	public function editUrl() {
+		return str_replace('/page/edit/', '/access/users/edit/', parent::editUrl());
+	}
+
+	/**
+	 * Set the Process module (WirePageEditor) that is editing this User
+	 * 
+	 * We use this to detect when the User is being edited somewhere outside of /access/users/
+	 * 
+	 * @param WirePageEditor $editor
+	 * 
+	 */
+	public function ___setEditor(WirePageEditor $editor) {
+		parent::___setEditor($editor); 
+		if(!$editor instanceof ProcessUser) $this->wire('session')->redirect($this->editUrl());
 	}
 
 }

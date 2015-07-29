@@ -22,7 +22,7 @@ class PagePaths extends WireData implements Module {
 		return array(
 			'title' => 'Page Paths', 
 			'version' => 1, 
-			'summary' => "Enables page paths/urls to be queryable by selectors. Also offers potential for improved load performance. Builds an index at install (may take time on a large site).",
+			'summary' => "Enables page paths/urls to be queryable by selectors. Also offers potential for improved load performance. Builds an index at install (may take time on a large site). Currently supports only single languages sites.",
 			'singular' => true, 
 			'autoload' => true, 
 			);

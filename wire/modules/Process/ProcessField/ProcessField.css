@@ -99,3 +99,7 @@ body.modal #fieldgroupContext {
 	margin-right: 0.5em;
 	display: inline;
 }
+
+.pw-init #ProcessFieldEdit {
+	display: none;
+}

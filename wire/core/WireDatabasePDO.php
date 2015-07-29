@@ -135,8 +135,8 @@ class WireDatabasePDO extends Wire implements WireDatabase {
 		return $this->pdo()->lastInsertId($name); 
 	}
 	
-	public function query($statement) {
-		if($this->debugMode) self::$queryLog[] = $statement;
+	public function query($statement, $note = '') {
+		if($this->debugMode) $this->queryLog($statement, $note); 
 		return $this->pdo()->query($statement); 
 	}
 	
@@ -167,15 +167,32 @@ class WireDatabasePDO extends Wire implements WireDatabase {
 	static public function getQueryLog() {
 		return self::$queryLog; 
 	}
-	
-	public function prepare($statement, array $driver_options = array()) {
-		if($this->debugMode) self::$queryLog[] = $statement;
+
+	/**
+	 * Prepare an SQL statement for accepting bound parameters
+	 * 
+	 * @param string $statement
+	 * @param array|string $driver_options Driver options array or you may specify $note here
+	 * @param string $note Debug notes to save with query in debug mode
+	 * @return PDOStatement
+	 * 
+	 */
+	public function prepare($statement, $driver_options = array(), $note = '') {
+		if(is_string($driver_options)) {
+			$note = $driver_options; 
+			$driver_options = array();
+		}
+		if($this->debugMode) $this->queryLog($statement, $note); 
 		return $this->pdo()->prepare($statement, $driver_options);
 	}
 	
-	public function exec($statement) {
-		if($this->debugMode) self::$queryLog[] = $statement;
+	public function exec($statement, $note = '') {
+		$this->queryLog($statement, $note); 
 		return $this->pdo()->exec($statement);
+	}
+	
+	protected function queryLog($sql, $note) {
+		self::$queryLog[] = $sql . ($note ? " -- $note" : "");
 	}
 
 	/**
@@ -203,7 +220,7 @@ class WireDatabasePDO extends Wire implements WireDatabase {
 	 *
 	 */
 	public function isOperator($str) {
-		return in_array($str, array('=', '<', '>', '>=', '<=', '<>', '!=', '&', '~', '|', '^', '<<', '>>'), true);
+		return in_array($str, array('=', '<', '>', '>=', '<=', '<>', '!=', '&', '~', '&~', '|', '^', '<<', '>>'), true);
 	}
 
 	/**

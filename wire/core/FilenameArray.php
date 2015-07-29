@@ -1,6 +1,6 @@
 <?php
 
-class FilenameArray implements IteratorAggregate {
+class FilenameArray implements IteratorAggregate, Countable {
 
 	protected $data = array();
 
@@ -58,6 +58,10 @@ class FilenameArray implements IteratorAggregate {
 
 	public function __toString() {
 		return print_r($this->data, true); 
+	}
+
+	public function count() {
+		return count($this->data);
 	}
 
 }

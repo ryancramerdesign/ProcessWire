@@ -87,7 +87,11 @@ abstract class WireAction extends WireData implements Module {
 	 *
 	 */
 	public function execute($item) {
-		if(!$this->isValidItem($item)) return false;
+		
+		if(!$this->isValidItem($item)) {
+			$this->error("Invalid item: $item", Notice::debug); 
+			return false;
+		}
 
 		try {
 			$result = $this->action($item); 

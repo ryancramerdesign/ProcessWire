@@ -93,13 +93,21 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 		$allowed = true;
 
 		if(count($_GET) && $page->template->noCacheGetVars) {
-			$vars = explode(' ', $page->template->noCacheGetVars); 
-			foreach($vars as $name) if($name && isset($_GET[$name])) $allowed = false; 
+			if(strpos($page->template->noCacheGetVars, '*') !== false) {
+				$allowed = false;
+			} else {
+				$vars = explode(' ', $page->template->noCacheGetVars);
+				foreach($vars as $name) if($name && isset($_GET[$name])) $allowed = false;
+			}
 		} 
 
 		if($allowed && count($_POST) && $page->template->noCachePostVars) {
-			$vars = explode(' ', $page->template->noCachePostVars); 
-			foreach($vars as $name) if($name && isset($_POST[$name])) $allowed = false; 
+			if(strpos($page->template->noCachePostVars, '*') !== false) {
+				$allowed = false;
+			} else {
+				$vars = explode(' ', $page->template->noCachePostVars);
+				foreach($vars as $name) if($name && isset($_POST[$name])) $allowed = false;
+			}
 		}
 
 		// NOTE: other modules may set a session var of PageRenderNoCachePage containing a page ID to temporarily
@@ -108,19 +116,19 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 
 		return $allowed; 
 	}
-
+	
 	/**
 	 * Get a CacheFile object corresponding to this Page
 	 *
 	 * Note that this does not check if the page is cachable. This is so that if a cachable setting changes the cache can still be removed. 
 	 *
-	 * @param Page $page
+	 * @param int|Page $page May provide page id (int) only if using for deleting a cache file. Must provide Page object otherwise.
 	 * @param array $options
 	 * @return CacheFile
 	 * @throws WireException
 	 *
 	 */
-	public function getCacheFile(Page $page, array $options = array()) {
+	public function getCacheFile($page, array $options = array()) {
 
 		$defaults = array(
 			'prependFile' => '',
@@ -130,11 +138,16 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 
 		$options = array_merge($defaults, $options); 
 		$path = $this->config->paths->cache . self::cacheDirName . "/";
-		$id = $page->id; 
-		$cacheTime = $page->template->cache_time; 
+		if(is_object($page)) {
+			$id = $page->id;
+			$cacheTime = $page->template->cache_time; 
+		} else {
+			$id = (int) $page;
+			$cacheTime = 3600;
+		}
 		
 		if(!is_dir($path)) {
-			if(!@mkdir($path)) throw new WireException("Cache path does not exist: $path");
+			if(!@wireMkdir($path, true)) throw new WireException("Cache path does not exist: $path");
 			if($this->config->chmodDir) chmod($path, octdec($this->config->chmodDir));
 		}
 
@@ -143,6 +156,7 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 		if($this->config->chmodDir) $cacheFile->setChmodDir($this->config->chmodDir);
 
 		if($this->wire('page') === $page) {
+			// this part is skipped if arguments provided an id (int) rather than a Page object
 			$secondaryID = '';
 			$pageNum = $this->input->pageNum; 
 			$urlSegments = $this->input->urlSegments; 
@@ -174,6 +188,7 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 	 *
 	 */
 	public function clearCacheFile($event) {
+		
 		$page = $event->arguments[0]; 
 		if(!$page->template->cache_time) return;
 		$cacheExpire = $page->template->cacheExpire; 
@@ -189,31 +204,53 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 			// expire entire cache
 
 			$cacheFile->expireAll();
-			if($this->config->debug) $this->message("Expired page cache for entire site"); 
+			if($this->config->debug) $this->message("Expired page cache for entire site");
 
-		} else if($cacheExpire == Template::cacheExpireParents || $cacheExpire == Template::cacheExpireSpecific) { 
-			// expire specific pages or parents
-
-			$selected = array();
-
-			if($cacheExpire == Template::cacheExpireParents) {
-				$selected = $page->parents; 
-
-			} else if(is_array($page->template->cacheExpirePages) && count($page->template->cacheExpirePages)) {
-				$selected = $this->fuel('pages')->getById($page->template->cacheExpirePages); 				
+		} else {
+			
+			if($cacheFile->exists()) {
+				$cacheFile->remove();
+				$this->message($this->_('Cleared cache file:') . " $cacheFile", Notice::debug);
 			}
 
-			foreach($selected as $p) {
-				if(!$p->template->cache_time) continue; 
-				$cf = $this->getCacheFile($p); 
-				if($cf->exists()) $cf->remove();
-				if($this->config->debug) $this->message("Cleared cache file: $cf"); 
-			}
-		}
+			if($cacheExpire == Template::cacheExpireParents || $cacheExpire == Template::cacheExpireSpecific) {
+				// expire specific pages or parents
+				$selected = array();
 
-		if($cacheFile->exists()) {
-			$cacheFile->remove();
-			if($this->config->debug) $this->message("Cleared cache file: $cacheFile"); 
+				if($cacheExpire == Template::cacheExpireParents) {
+					$selected = $page->parents;
+
+				} else if(is_array($page->template->cacheExpirePages) && count($page->template->cacheExpirePages)) {
+					$selected = $this->fuel('pages')->getById($page->template->cacheExpirePages);
+				}
+
+				foreach($selected as $p) {
+					if(!$p->template->cache_time) continue;
+					$cf = $this->getCacheFile($p);
+					if($cf->exists()) $cf->remove();
+					if($this->config->debug) $this->message("Cleared cache file: $cf");
+				}
+
+			} else if($cacheExpire == Template::cacheExpireSelector && $page->template->cacheExpireSelector) {
+				// expire pages matching a selector
+				$finder = new PageFinder();
+
+				$ids = $finder->findIDs(new Selectors($page->template->cacheExpireSelector), array(
+					'getTotal'   => false,
+					'findHidden' => true
+				));
+
+				if(count($ids)) {
+					foreach($ids as $id) {
+						$cf = $this->getCacheFile($id);
+						if($cf->exists()) $cf->remove();
+					}
+
+					$this->message(
+						sprintf($this->_('Cleared cache file for %d page(s) matching selector:'), count($ids)) . " " .
+						$page->template->cacheExpireSelector, Notice::debug);
+				}
+			}
 		}
 	}
 

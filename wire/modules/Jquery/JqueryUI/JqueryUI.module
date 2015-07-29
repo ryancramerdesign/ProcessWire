@@ -5,7 +5,7 @@ class JqueryUI extends ModuleJS {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'jQuery UI',
-			'version' => 193,
+			'version' => 195,
 			'summary' => 'jQuery UI as required by ProcessWire and plugins',
 			'href' => 'http://ui.jquery.com', 
 			'permanent' => true, 
@@ -14,8 +14,14 @@ class JqueryUI extends ModuleJS {
 	
 	public function __construct() {
 		$this->addComponents(array(
-			'modal' => 'modal.js'
+			'modal' => $this->wire('config')->debug ? 'modal.js' : 'modal.min.js',
+			'touch' => 'touch.js' 
 			));
+	}
+	
+	public function init() {
+		parent::init();
+		if($this->wire('session')->touch) $this->use('touch'); 
 	}
 
 

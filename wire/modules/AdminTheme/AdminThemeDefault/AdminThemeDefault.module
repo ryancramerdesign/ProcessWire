@@ -1,14 +1,26 @@
 <?php
 
+/**
+ * Class AdminThemeDefault
+ * 
+ * @property string $colors
+ * 
+ */
+
 class AdminThemeDefault extends AdminTheme implements Module, ConfigurableModule {
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => 'Default Admin Theme',
-			'version' => 1,
+			'title' => 'Default',
+			'version' => 13,
 			'summary' => 'Minimal admin theme that supports all ProcessWire features.',
 			'autoload' => 'template=admin'
 			); 
+	}
+	
+	public function __construct() {
+		parent::__construct();
+		$this->set('colors', 'classic');
 	}
 
 	public function init() {
@@ -21,20 +33,38 @@ class AdminThemeDefault extends AdminTheme implements Module, ConfigurableModule
 	public function ___install() {
 		parent::___install();
 	}
+	
+	public function getModuleConfigArray() {
+		return array(
+			'colors' => array(
+				'type' => 'radios',
+				'label' => __('Color Set'), 
+				'options' => array(
+					'classic' => $this->_('Classic'),
+					'warm' => $this->_('Warm'),
+					'modern' => $this->_('Modern'),
+					'futura' => $this->_('Futura')
+				),
+				'value' => 'classic',
+				'optionColumns' => 1
+			)
+		);
+	}
 
-	public static function getModuleConfigInputfields(array $data) {
-		$inputfields = new InputfieldWrapper();
-		$field = wire('modules')->get('InputfieldRadios');
+	/*
+	public function getModuleConfigInputfields($inputfields) {
+		$field = $this->wire('modules')->get('InputfieldRadios');
 		$field->attr('name', 'colors');
-		$field->label = __('Color Set'); 
-		$field->addOption('classic', __('Classic'));
-		$field->addOption('warm', __('Warm'));
-		$field->addOption('modern', __('Modern'));
-		$field->addOption('futura', __('Futura'));
-		$field->attr('value', isset($data['colors']) ? $data['colors'] : ''); 
+		$field->label = $this->_('Color Set'); 
+		$field->addOption('classic', $this->_('Classic'));
+		$field->addOption('warm', $this->_('Warm'));
+		$field->addOption('modern', $this->_('Modern'));
+		$field->addOption('futura', $this->_('Futura'));
+		$field->attr('value', $this->colors); 
 		$field->optionColumns = 1; 
 		$inputfields->add($field); 		
 		return $inputfields;
 	}
+	*/
 }
 

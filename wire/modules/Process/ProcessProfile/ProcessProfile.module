@@ -9,6 +9,8 @@
  * 
  * http://www.processwire.com
  * http://www.ryancramer.com
+ * 
+ * @property array $profileFields Names of fields user is allowed to edit in their profile
  *
  */
 
@@ -64,7 +66,10 @@ class ProcessProfile extends Process implements ConfigurableModule {
 			if($field->name == 'roles' || !in_array($field->name, $this->profileFields)) continue;
 			$field = $this->user->fields->getFieldContext($field);
 			$inputfield = $field->getInputfield($this->user);
-			$inputfield->value = $this->user->get($field->name); 
+			$inputfield->value = $this->user->get($field->name);
+			if($field->name == 'admin_theme' && !$inputfield->value) $inputfield->value = 'AdminThemeDefault';
+			if($field->type instanceof FieldtypeFile) $inputfield->noAjax = true; 
+			if($field->type instanceof FieldtypeImage) $inputfield->useImageEditor = false;
 			$form->add($inputfield); 
 		}
 
@@ -131,16 +136,26 @@ class ProcessProfile extends Process implements ConfigurableModule {
 	static public function getModuleConfigInputfields(array $data) {
 
 		$profileFields = isset($data['profileFields']) ? $data['profileFields'] : array();
-		$fieldOptions = wire('templates')->get('user')->fieldgroup; 
+		$fieldOptions = array();
+		
+		foreach(wire('users')->getTemplates() as $template) {
+			foreach($template->fieldgroup as $field) {
+				$fieldOptions[$field->name] = $field->name;
+			}
+		}
+		
+		sort($fieldOptions);
 
 		$inputfields = new InputfieldWrapper();
 		$f = wire('modules')->get('InputfieldCheckboxes');
 		$f->label = __("What fields can a user edit in their own profile?");
 		$f->attr('id+name', 'profileFields');
-		foreach($fieldOptions as $field) {
-			if($field->name == 'roles') continue;
-			$f->addOption($field->name); 
+		
+		foreach($fieldOptions as $name) {
+			if($name == 'roles') continue;
+			$f->addOption($name); 
 		}
+		
 		$f->attr('value', $profileFields);
 		$inputfields->add($f);
 

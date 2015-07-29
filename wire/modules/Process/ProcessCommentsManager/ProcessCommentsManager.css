@@ -1,0 +1,142 @@
+.CommentItems {
+	clear: both;
+	border-bottom: 1px solid #000; 
+}
+
+.CommentItems + button {
+	margin-top: 1em;
+}
+
+.CommentItem {
+	clear: both; 
+	border-top: 1px solid #000; 
+	margin: 0 0 2em 0;
+	width: 100%; 
+}
+
+.CommentItem table {
+	width: 45%;
+	float: left; 
+}
+
+.CommentItem table th {
+	font-weight: bold;
+	white-space: nowrap; 
+	text-align: right;
+}
+.CommentItem table th:first-child {
+	width: 60px; 
+}
+
+.CommentItem table th,
+.CommentItem table td {
+	padding: 4px 10px 4px 0;
+	border-bottom: 1px dotted #ccc; 
+	vertical-align: top; 
+}
+
+.CommentReplyInfo {
+}
+
+
+.CommentItem table tr:last-child th,
+.CommentItem table tr:last-child td {
+	border-bottom: none;
+}
+
+.CommentItem .CommentTitle th,
+.CommentItem .CommentTitle td {
+	padding-top: 0;
+}
+
+.CommentItem .CommentVotes input {
+	width: 4em;
+}
+.CommentItem .CommentVotes label {
+	margin-right: 1em;
+}
+
+.CommentItem .CommentUpvotes span {
+	font-weight: bold; 
+	color: green;
+}
+
+.CommentItem .CommentDownvotes span {
+	font-weight: bold; 
+	color: red; 
+}
+.CommentContent {
+	float: left;
+	width: 55%; 
+	padding-left: 1em; 
+	border: none; 
+}
+
+.CommentTextOverflow {
+	overflow-y: scroll;
+	max-height: 15em;
+}
+
+/*
+.CommentFilters {
+	float: left; 
+}
+	.CommentFilters a.on {
+		font-weight: bold; 
+	}
+*/
+
+.content .MarkupPagerNav {
+	padding-top: 0.5em;
+	float: right; 
+}
+
+.MarkupPagerNav + button {
+	margin-top: 1em;
+}
+
+label.CommentStatus {
+	white-space: nowrap;
+}
+
+
+.CommentItemStatus999 {
+	display: none; 
+}
+
+.CommentItemStatus-2 .CommentText {
+	background: #ffffcc; 
+}
+
+.CommentItemStatus0 .CommentText {
+	background: #ffffdd; 
+}
+
+.CommentText textarea {
+	width: 100%; 
+	min-height: 15em;
+	margin-top: 1em;
+	margin-bottom: 1em;
+}
+
+.CommentTextEdit {
+	white-space: nowrap; 
+}
+
+@media only screen and (max-width: 767px) {
+	.CommentItem Table {
+		width: 100%;
+		float: none;
+	}
+
+	.CommentItem .CommentContent {
+		width: 100%;
+		float: none; 
+		padding-left: 0;
+	}
+
+	.MarkupPagerNav {
+		float: none;
+	}
+	
+}

@@ -6,10 +6,37 @@
  * Abstract base class from which all Fieldtype modules are descended from.
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://processwire.com
+ * https://processwire.com
+ * 
+ * 
+ * Hookable methods
+ * ================
+ * @method InputfieldWrapper getConfigInputfields(Field $field)
+ * @method InputfieldWrapper getConfigAdvancedInputfields(Field $field)
+ * @method array getConfigAllowContext(Field $field)
+ * @method array exportConfigData(Field $field, array $data)
+ * @method array importConfigData(Field $field, array $data)
+ * @method Fieldtypes|null getCompatibleFieldtypes(Field $field)
+ * @method mixed formatValue(Page $page, Field $field, $value)
+ * @method string|MarkupFieldtype markupValue(Page $page, Field $field, $value = null, $property = '')
+ * @method mixed wakeupValue(Page $page, Field $field, $value)
+ * @method string|int|array sleepValue(Page $page, Field $field, $value)
+ * @method string|float|int|array exportValue(Page $page, Field $field, $value, array $options = array())
+ * @method bool createField(Field $field)
+ * @method array getSelectorInfo(Field $field, array $data = array())
+ * @method mixed|null loadPageField(Page $page, Field $field)
+ * @method bool savePageField(Page $page, Field $field)
+ * @method bool deleteField(Field $field)
+ * @method bool deletePageField(Page $page, Field $field)
+ * @method bool emptyPageField(Page $page, Field $field)
+ * @method bool replacePageField(Page $src, Page $dst, Field $field)
+ * @method bool deleteTemplateField(Template $template, Field $field)
+ * @method Field cloneField(Field $field)
+ * @method void install()
+ * @method void uninstall()
  * 
  */
 abstract class Fieldtype extends WireData implements Module {
@@ -106,7 +133,34 @@ abstract class Fieldtype extends WireData implements Module {
 		$f->label = 'Well hi there'; 
 		$inputfields->append($f); 
 		*/
+		
+		// names of fields in the form that are allowed in fieldgroup/template context
 		return $inputfields; 
+	}
+
+	/**
+	 * Same as getConfigInputfields but with definition as an array instead
+	 * 
+	 * If both getConfigInputfields and getConfigInputfieldsArray are implemented then 
+	 * definitions from both will be used. 
+	 * 
+	 * @param Field $field
+	 * @return array
+	 * 
+	 */
+	public function ___getConfigArray(Field $field) {
+		return array();
+	}
+
+	/**
+	 * Return a list of Inputfield names from getConfig[Inputfields|Array] that are allowed in fieldgroup/template context
+	 *
+	 * @param Field $field
+	 * @return array of Inputfield names
+	 *
+	 */
+	public function ___getConfigAllowContext(Field $field) {
+		return array(); 
 	}
 
 	/**
@@ -200,10 +254,11 @@ abstract class Fieldtype extends WireData implements Module {
 				$data[$inputfield->name] = $value; 
 			}
 		}
-		$inputfield = $this->getInputfield(new NullPage(), $field); 
+		$inputfield = $field->getInputfield(new NullPage()); 
 		if($inputfield) {
 			$data = $inputfield->exportConfigData($data);
 		}
+		$this->set('_exportMode', false);
 		return $data;
 	}
 
@@ -265,7 +320,7 @@ abstract class Fieldtype extends WireData implements Module {
 	 * @param Page $page
 	 * @param Field $field
 	 * @param string|int|object $value
-	 * @return string
+	 * @return mixed
 	 *
 	 */
 	public function ___formatValue(Page $page, Field $field, $value) {
@@ -273,15 +328,65 @@ abstract class Fieldtype extends WireData implements Module {
 	}
 
 	/**
+	 * Render a markup string of the value
+	 * 
+	 * Non-markup components should also be entity encoded where appropriate. 
+	 * 
+	 * Most Fieldtypes don't need to implement this since the default covers most scenarios. 
+	 * 
+	 * This is different from formatValue() in that it always returns a string (or object that can be 
+	 * typecast to a string) that is output ready with markup. Further, this method may be used to render 
+	 * specific properties in compound fieldtypes. The intention here is primarily for admin output purposes, 
+	 * but can be used front-end where applicable. 
+	 * 
+	 * This is different from Inputfield::renderValue() in that the context may be outside that of an Inputfield,
+	 * as Inputfields can have external CSS or JS dependencies. 
+	 * 
+	 * @param Page $page Page that $value comes from
+	 * @param Field $field Field that $value comes from
+	 * @param mixed $value Optionally specify the $page->getFormatted(value), value must be a formatted value. 
+	 * 	If null or not specified (recommended), it will be retrieved automatically.
+	 * @param string $property Optionally specify the property or index to render. If omitted, entire value is rendered.
+	 * @return string|MarkupFieldtype Returns a string or object that can be output as a string, ready for output.
+	 * 	Return a MarkupFieldtype value when suitable so that the caller has potential specify additional
+	 * 	config options before typecasting it to a string. 
+	 *
+	 */
+	public function ___markupValue(Page $page, Field $field, $value = null, $property = '') {
+		$m = new MarkupFieldtype($page, $field, $value); 	
+		if(strlen($property)) return $m->render($property); 
+		return $m;
+	}
+
+	/**
 	 * Return the blank value for this fieldtype, whether that is a blank string, zero value, blank object or array
 	 *
-	 * @param Page $page
+	 * @param Page|NullPage $page
 	 * @param Field $field
-	 * @return string|int|object
+	 * @return string|int|object|null
 	 *
  	 */
 	public function getBlankValue(Page $page, Field $field) {
 		return '';
+	}
+
+	/**
+	 * Return whether the given value is considered empty or not
+	 * 
+	 * This an be anything that might be present in a selector value and thus is
+	 * typically a string. However, it may be used outside of that purpose so you
+	 * shouldn't count on it being a string. 
+	 * 
+	 * Example: an integer or text Fieldtype might not consider a "0" to be empty,
+	 * whereas a Page reference would. 
+	 * 
+	 * @param Field $field
+	 * @param mixed $value
+	 * @return bool
+	 * 
+	 */
+	public function isEmptyValue(Field $field, $value) {
+		return empty($value); 
 	}
 
 	/**
@@ -433,8 +538,12 @@ abstract class Fieldtype extends WireData implements Module {
 		foreach($schema['keys'] as $v) {
 			$sql .= "$v, ";
 		}
+		
+		$xtra = isset($schema['xtra']) ? $schema['xtra'] : array();
+		if(is_string($xtra)) $xtra = array('append' => $xtra); // backwards compat: xtra used to be a string, what 'append' is now. 
+		$append = isset($xtra['append']) ? $xtra['append'] : '';
 
-		$sql = rtrim($sql, ", ") . ') ' . (isset($schema['xtra']) ? $schema['xtra'] : ''); 
+		$sql = rtrim($sql, ", ") . ') ' . $append;
 		
 		$query = $database->prepare($sql);
 		$result = $query->execute();
@@ -456,7 +565,13 @@ abstract class Fieldtype extends WireData implements Module {
 	 * 	'keys' => array(
 	 * 		'FULLTEXT KEY data (data)', 
 	 * 	),
-	 *	'xtra' => 'ENGINE=MyISAM DEFAULT CHARSET=latin1' // optional extras, MySQL defaults will be used if ommitted
+	 *	'xtra' => array(
+	 *		// optional extras, MySQL defaults will be used if ommitted
+	 * 		'append' => 'ENGINE=MyISAM DEFAULT CHARSET=latin1'
+	 * 
+	 * 		// true (default) if this schema provides all storage for this fieldtype.
+	 * 		// false if other storage is involved with this fieldtype, beyond this schema (like repeaters, PageTable, etc.)
+	 * 		'all' => true, 
 	 *	)
 	 * );
 	 *
@@ -478,8 +593,15 @@ abstract class Fieldtype extends WireData implements Module {
 				'primary' => 'PRIMARY KEY (`pages_id`)', 
 				'data' => 'KEY data (`data`)',
 			),
-			// any optional statements that should follow after the closing paren (i.e. engine, default charset, etc)
-			'xtra' => "ENGINE=$engine DEFAULT CHARSET=$charset", 
+			// additional data 
+			'xtra' => array(
+				// any optional statements that should follow after the closing paren (i.e. engine, default charset, etc)
+				'append' => "ENGINE=$engine DEFAULT CHARSET=$charset", 
+				
+				// true (default) if this schema provides all storage for this fieldtype.
+				// false if other storage is involved with this fieldtype, beyond this schema (like repeaters, PageTable, etc.)
+				'all' => true, 
+			)
 		); 
 		return $schema; 
 	}
@@ -538,9 +660,13 @@ abstract class Fieldtype extends WireData implements Module {
 		if($isMulti) $query->orderby('sort'); 
 
 		$value = null;
-		$stmt = $query->execute();
-		$result = $stmt->errorCode() > 0 ? false : true;
-		
+		try {
+			$stmt = $query->prepare();
+			$result = $this->wire('pages')->executeQuery($stmt);
+		} catch(Exception $e) {
+			$result = false;
+			$this->error($e->getMessage());	
+		}
 		$fieldName = $database->escapeCol($field->name); 
 		$schema = $this->trimDatabaseSchema($this->getDatabaseSchema($field));
 
@@ -624,7 +750,7 @@ abstract class Fieldtype extends WireData implements Module {
 		$value = $page->get($field->name);
 
 		// if the value is the same as the default, then remove the field from the database because it's redundant
-		if($value === $this->getDefaultValue($page, $field)) return $this->deletePageField($page, $field); 
+		if($value === $this->getBlankValue($page, $field)) return $this->deletePageField($page, $field); 
 
 		$value = $this->sleepValue($page, $field, $value); 
 
@@ -651,7 +777,7 @@ abstract class Fieldtype extends WireData implements Module {
 					$sql2 .= ",'$v'";
 				}
 				
-				$sql3 .= "$k=VALUES($k), ";
+				$sql3 .= "`$k`=VALUES(`$k`), ";
 			}
 
 			$sql = "$sql1) $sql2) " . rtrim($sql3, ', ');

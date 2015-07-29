@@ -3,64 +3,52 @@
 /**
  * ProcessWire Module Interface
  *
- * Provides the base interfaces required by modules. 
+ * Provides the base interfaces required by modules.
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2011 by Ryan Cramer 
+ * ProcessWire 2.x
+ * Copyright (C) 2015 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
+ *
+ * https://processwire.com
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * 
+ * About the Module interface
+ * ==========================
+ * This interface doesn't actually require any specific methods,
+ * but is required as an interface to state your intention to 
+ * ProcessWire that your class is to be used as a Module. 
+ * 
+ * Requirements for classes using Module interface
+ * ===============================================
+ * 1. Must provide a means of getting information about the module.
+ *    This can be with a static getModuleInfo() method, or with
+ *    a ModuleName.info.php file or a MdouleName.info.json file. 
+ *    See implementation details in the notes within the interface.
+ * 2. Must provide a className() method that returns the module 
+ *    class name. All Wire derived objects already do this, so 
+ *    you don't have to provide it unless your Module does not
+ *    descend from a ProcessWire class. We recommend that your
+ *    modules extend the WireData class. 
+ * 3. If you have a __construct() method, it must not require any
+ *    particular arguments. 
+ * 4. If your module is configurable, it must also fulfill the
+ *    ConfigurableModule interface. 
+ * 
+ * Optional methods for Module interface
+ * =====================================
+ * 1. __construct() - called before module config is populated.
+ * 2. init() - called after module config is populated.
+ * 3. ready() - called after init(), after API ready.
+ *    Note that ready() applies to 'autoload' modules only. 
+ * 4. ___install() - called when module is installed. 
+ * 5. ___uninstall() - called when module is uninstalled. 
+ * 
+ * For more details on these methods, see comments within the 
+ * interface below.
+ * 
  *
  */
 
-/**
- * ConfigurableModule is an interface that indicates the module is configurable by providing 
- * a getModuleConfigInputfields method and config properties may be get/set directly like: 
- * 
- * $val = $obj->property, and $obj->property = $val
- *
- * When you use this as an interface, you MUST also use 'Module' as an interface, 
- * i.e. "class Something implements Module, ConfigurableModule"
- * 
- * Hint: Make your ConfigurableModule classes inherit from WireData, which already has 
- * the get/set required methods.
- *
- * You may optionally specify a handler method for configuration data: setConfigData().
- * See commented function reference in the interface below. 
- *
- */
-interface ConfigurableModule {
-
-	/** 
-	 * Return an InputfieldsWrapper of Inputfields used to configure the class
-	 *
-	 * @param array $data Array of config values indexed by field name
-	 * @return InputfieldsWrapper
-	 *
-	 */ 
-	public static function getModuleConfigInputfields(array $data); 
-
-	public function __get($key);
-
-	public function __set($key, $value); 
-
-	/**
-	 * An optional method you may include in your ConfigurableModule to have ProcessWire 
-	 * send the configuration data to it rather than populating the properties individually. 
-	 *
-	 * @param array $data Array of data in $key => $value format.
-	 * 
-	public function setConfigData(array $data);
-	 *
-	 */
-	 	
-}
-
-/**
- * Base interface for all ProcessWire Modules
- *
- */
 interface Module {
 
 	/**
@@ -122,7 +110,7 @@ interface Module {
 	 * 
 	 * 	+ title: The module's title. 
 	 * 	+ version: an integer that indicates the version number, 101 = 1.0.1
-	 * 	+ summary: a summary of the module (1 sentence to 1 paragraph reommended)
+	 * 	+ summary: a summary of the module (1 sentence to 1 paragraph recommended)
 	 * 	- href: URL to more information about the module. 
 	 *	- requires: array or CSV string of module class names that are required by this module in order to install.
 	 *		--
@@ -193,7 +181,6 @@ interface Module {
 	 *
 	 * ProcessWire may sometimes substitute placeholders for a module that need to respond with the 
 	 * non-placeholder classname. PHP's get_class won't work, which is why this method is used instead. 
-	 * This method is only required for PW internal classes. As a result, implementation is optional for others.
 	 *
 	public function className();
 	 */

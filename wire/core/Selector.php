@@ -8,8 +8,6 @@
  * This file provides the base implementation for a Selector, as well as implementation
  * for several actual Selector types under the main Selector class. 
  * 
- * @TODO should the individual Selector types be convereted to Modules?
- * 
  * ProcessWire 2.x 
  * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
@@ -18,8 +16,6 @@
  *
  */
 
-// require_once(PROCESSWIRE_CORE_PATH . "Selectors.php"); 
-
 /**
  * Selector maintains a single selector consisting of field name, operator, and value.
  * 
@@ -27,18 +23,36 @@
  *
  * Serves as the base class for the different Selector types (seen below this class). 
  * 
+ * @property string|array $field Field or fields present in the selector (can be string or array)*
+ * @property array $fields Fields that were present in selector (same as $field, but always array)
+ * @property string $operator Operator used by the selector**
+ * @property string|array $value Value or values present in the selector (can be string or array)*
+ * @property array $values Values that were present in selector (same as $value, but always array)
+ * @property bool $not Is this a NOT selector? (i.e. returns the opposite if what it would otherwise)
+ * @property string|null $group Group name for this selector (if field was prepended with a "group_name@")
+ * @property string $quote Type of quotes value was in, or blank if it was not quoted. One of: '"[{(
+ * 
+ * *The $field and $value properties may either be an array or string. As a result, we recommend
+ * accessing the $fields or $values properties (instead of $field or $value), because they are always
+ * return an array. 
+ * 
+ * **Operator is determined by the Selector class name, and thus may not be changed without replacing
+ * the entire Selector. 
+ * 
+ * 
  */
 abstract class Selector extends WireData {
 
 	/**
 	 * Given a field name and value, construct the Selector. 
 	 *
-	 * If the provided value is an array of values, then it is assumed this Selector may match any one of them (OR condition).
-	 *
-	 * If only one field is provided, and that field is prepended by an exclamation point, i.e. !field=something
+	 * If the provided $field is an array or pipe "|" separated string, Selector may match any of them (OR field condition)
+	 * If the provided $value is an array of pipe "|" separated string, Selector may match any one of them (OR value condition).
+	 * 
+	 * If only one field is provided as a string, and that field is prepended by an exclamation point, i.e. !field=something
 	 * then the condition is reversed. 
 	 *
-	 * @param string $field
+	 * @param string|array $field 
 	 * @param string|int|array $value 
 	 *
 	 */
@@ -60,7 +74,29 @@ abstract class Selector extends WireData {
 	public function get($key) {
 		if($key == 'operator') return $this->getOperator();
 		if($key == 'str') return $this->__toString();
+		if($key == 'values') {
+			$value = $this->value; 
+			if(is_array($value)) return $value; 
+			if(!is_object($value) && !strlen($value)) return array();
+			return array($value);
+		}
+		if($key == 'fields') {
+			$field = $this->field; 
+			if(is_array($field)) return $field;
+			if(!strlen($field)) return array();
+			return array($field); 
+		}
 		return parent::get($key); 
+	}
+	
+	public function set($key, $value) {
+		if($key == 'fields') return parent::set('field', $value);
+		if($key == 'values') return parent::set('value', $value); 
+		if($key == 'operator') {
+			$this->error("You cannot set the operator on a Selector: $this");
+			return $this;
+		}
+		return parent::set($key, $value); 
 	}
 
 	/**
@@ -327,7 +363,7 @@ class SelectorEnds extends Selector {
 	protected function match($value1, $value2) { 
 		$value2 = trim($value2); 
 		$value1 = substr($value1, -1 * strlen($value2));
-                return $this->evaluate(strcasecmp($value1, $value2) == 0);
+		return $this->evaluate(strcasecmp($value1, $value2) == 0);
 	}
 }
 

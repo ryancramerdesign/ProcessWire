@@ -1,17 +1,15 @@
 .InputfieldImage img {
 	max-width: 90%; 
 }
+.InputfieldImage img:hover {
+	cursor: zoom-in;
+}
 
 .InputfieldImage a.InputfieldFileLink + label.InputfieldFileDescription,
 .InputfieldImage a.InputfieldFileLink + label.InputfieldFileTags {
 	margin-top: 0.5em;
 }
 
-.InputfieldImage a.InputfieldFileMove span.ui-icon {
-	float: right; 
-	position: relative; 
-	top: 2px; 
-}
 .InputfieldImage a.InputfieldFileMove {
 	float: right;
 	width: 20px; 
@@ -26,16 +24,14 @@
 	display: none; 
 }
 
+.InputfieldFileDelete {
+	cursor: pointer;
+}
 
 /**
  * Grid mode
  *
  */
-.InputfieldImage .InputfieldHeader i.icon-th, 
-.InputfieldImage .InputfieldHeader i.icon-list {
-	font-size: 14px; 
-}
-
 .InputfieldImageGrid .InputfieldContent {
 	padding-right: 0;
 }
@@ -71,6 +67,7 @@
 }
 
 .InputfieldImageGrid .InputfieldFileList .InputfieldFileData a.InputfieldFileLink {
+	position: relative; 
 	overflow: hidden; 
 	width: 100px;
 	height: 100px; 
@@ -106,5 +103,50 @@
 }
 .InputfieldStateCollapsed .InputfieldHeader .InputfieldImageListToggle {
 	display: none; 
+}
+
+.InputfieldImageRenderValue > span {
+	display: block;
+	float: left;
+	margin: 0 0.25em 0.25em 0;
+}
+.InputfieldImageRenderValue > span img {
+	max-width: 100%; 
+}
+
+.InputfieldImage a.InputfieldImageVariationCnt:hover {
+	text-decoration: underline;
+}
+
+.InputfieldImagePreview {
+	position: relative;
+	margin-bottom: 0.5em;
+}
+
+.InputfieldImageActions {
+	display: none; 
+}
+
+.InputfieldImagePreview:hover .InputfieldImageActions {
+	display: block;
+	position: absolute;
+	top: 0;
+	left: 0;
+}
+
+.InputfieldImage .InputfieldImageActions a {
+	display: block;
+	float: left;
+	padding: 0 4px;
+	margin-right: 3px;
+	margin-bottom: 3px;
+	background-color: #000;
+	background-color: rgba(0, 0, 0, 0.5);
+	color: #fff;
+}
+
+.InputfieldImage .InputfieldImageActions a:hover {
+	color: #fff;
+	background-color: rgba(0, 0, 0, 0.8);
 }
 

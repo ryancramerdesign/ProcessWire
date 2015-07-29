@@ -8,10 +8,10 @@
  * Templates also maintain several properties which can affect the render behavior of pages using it. 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://processwire.com
+ * https://processwire.com
  * 
  * @property int $id Get or set the template's numbered database ID.
  * @property string $name Get or set the template's name.
@@ -37,7 +37,7 @@
  * @property int $allowPageNum Allow page numbers in URLs? (0=no, 1=yes)
  * @property int $allowChangeUser Allow the createdUser/created_users_id field of pages to be changed? (with API or in admin w/superuser only). 0=no, 1=yes
  * @property int $redirectLogin Redirect when no access: 0 = 404, 1 = login page, url = URL to redirect to.
- * @property int $urlSegments Allow URL segments on pages? (0=no, 1=yes)
+ * @property int|string $urlSegments Allow URL segments on pages? (0=no, 1=yes (all), string=space separted list of segments to allow)
  * @property int $https Use https? 0 = http or https, 1 = https only, -1 = http only
  * @property int $slashUrls Page URLs should have a trailing slash? 1 = yes, 0 = no	
  * @property string $altFilename Alternate filename for template file, if not based on template name.
@@ -50,13 +50,18 @@
  * @property int $noSettings Don't show a settings tab on pages using this template? (0=use settings tab, 1=no settings tab)
  * @property int $noChangeTemplate Don't allow pages using this template to change their template? (0=template change allowed, 1=template change not allowed)
  * @property int $noUnpublish Don't allow pages using this template to ever exist in an unpublished state - if page exists, it must be published. (0=page may be unpublished, 1=page may not be unpublished)
+ * @property int $noShortcut Don't allow pages using this template to appear in shortcut "add new page" menu
  * @property int $nameContentTab Pages should display the name field on the content tab? (0=no, 1=yes)
  * @property string $noCacheGetVars GET vars that trigger disabling the cache (only when cache_time > 0)
  * @property string $noCachePostVars POST vars that trigger disabling the cache (only when cache_time > 0)
  * @property int $useCacheForUsers Use cache for: 0 = only guest users, 1 = guests and logged in users
  * @property int $cacheExpire Expire the cache for all pages when page using this template is saved? (1 = yes, 0 = no- only current page)
  * @property array $cacheExpirePages Array of Page IDs that should be expired, when cacheExpire == Template::cacheExpireSpecific
+ * @property string $cacheExpireSelector Selector string matching pages that should be expired, when cacheExpire == Template::cacheExpireSelector
  * @property string $tags Optional tags that can group this template with others in the admin templates list 
+ * @property string $tabContent Optional replacement for default "Content" label
+ * @property string $tabChildren Optional replacmenet for default "Children" label
+ * @property string $contentType Content-type header or index (extension) of content type header from $config->contentTypes
  *
  */
 
@@ -96,7 +101,13 @@ class Template extends WireData implements Saveable, Exportable {
 	 * Cache expiration options: expire page and other specific pages (stored in cacheExpirePages)
 	 *
 	 */
-	const cacheExpireSpecific = 3; 
+	const cacheExpireSpecific = 3;
+
+	/**
+	 * Cache expiration options: expire pages matching a selector
+	 * 
+	 */
+	const cacheExpireSelector = 4; 
 
 	/**
 	 * Cache expiration options: don't expire anything
@@ -164,7 +175,7 @@ class Template extends WireData implements Saveable, Exportable {
 		'allowPageNum' => 0, 		// allow page numbers in URLs?
 		'allowChangeUser' => 0,		// allow the createdUser/created_users_id field of pages to be changed? (with API or in admin w/superuser only)
 		'redirectLogin' => 0, 		// redirect when no access: 0 = 404, 1 = login page, 'url' = URL to redirec to
-		'urlSegments' => 0,		// allow URL segments on pages?
+		'urlSegments' => 0,		// allow URL segments on pages? (0=no, 1=yes any, string=only these segments)
 		'https' => 0, 			// use https? 0 = http or https, 1 = https only, -1 = http only
 		'slashUrls' => 1, 		// page URLs should have a trailing slash? 1 = yes, 0 = no	
 		'altFilename' => '',		// alternate filename for template file, if not based on template name
@@ -185,6 +196,7 @@ class Template extends WireData implements Saveable, Exportable {
 		'useCacheForUsers' => 0, 	// use cache for: 0 = only guest users, 1 = guests and logged in users
 		'cacheExpire' => 0, 		// expire the cache for all pages when page using this template is saved? (1 = yes, 0 = no- only current page)
 		'cacheExpirePages' => array(),	// array of Page IDs that should be expired, when cacheExpire == Template::cacheExpireSpecific
+		'cacheExpireSelector' => '', // selector string that matches pages to expire when cacheExpire == Template::cacheExpireSelector
 		'label' => '',			// label that describes what this template is for (optional)
 		'tags' => '',			// optional tags that can group this template with others in the admin templates list 
 		'modified' => 0, 		// last modified time for template or template file
@@ -193,6 +205,9 @@ class Template extends WireData implements Saveable, Exportable {
 		'noAppendTemplateFile' => 0, // disable automatic inclusion of $config->appendTemplateFile
 		'prependFile' => '', // file to prepend (relative to /site/templates/)
 		'appendFile' => '', // file to append (relative to /site/templates/)
+		'tabContent' => '', 	// label for the Content tab (if different from 'Content')
+		'tabChildren' => '', 	// label for the Children tab (if different from 'Children')
+		'contentType' => '', // Content-type header or index of header from $config->contentTypes
 		); 
 
 
@@ -211,6 +226,8 @@ class Template extends WireData implements Saveable, Exportable {
 		if($key == 'fieldgroupPrevious') return $this->fieldgroupPrevious; 
 		if($key == 'roles') return $this->getRoles();
 		if($key == 'cacheTime') $key = 'cache_time'; // for camel case consistency
+		if($key == 'icon') return $this->getIcon();
+		if($key == 'urlSegments') return $this->urlSegments();
 
 		return isset($this->settings[$key]) ? $this->settings[$key] : parent::get($key); 
 	}
@@ -400,21 +417,79 @@ class Template extends WireData implements Saveable, Exportable {
 			if(!is_array($value)) $value = array();
 			foreach($value as $k => $v) {
 				if(is_object($v)) {
-					$v = $v->id; 
+					$v = $v->id;
 				} else if(!ctype_digit("$v")) {
 					$p = $this->wire('pages')->get($v);
-					if(!$p->id) $this->error("Unable to load page: $v"); 
-					$v = $p->id; 
+					if(!$p->id) $this->error("Unable to load page: $v");
+					$v = $p->id;
 				}
-				$value[(int)$k] = (int) $v; 
+				$value[(int) $k] = (int) $v;
 			}
-			parent::set($key, $value); 
+			parent::set($key, $value);
 
+		} else if($key == 'icon') {
+			$this->setIcon($value);
+
+		} else if($key == 'urlSegments') {
+			$this->urlSegments($value); 
+			
 		} else {
 			parent::set($key, $value); 
 		}
 
 		return $this; 
+	}
+
+	/**
+	 * Get or set allowed URL segments
+	 * 
+	 * @param array|int|bool|string $value Omit to return current value, or to set value: 
+	 * 	Specify array of allowed URL segments, may include 'segment', 'segment/path' or 'regex:your-regex'.
+	 * 	Or specify true or 1 to enable all URL segments
+	 * 	Or specify 0, false, or blank array to disable all URL segments
+	 * @return array|int Returns array of allowed URL segments, or 0 if disabled, or 1 if any allowed
+	 * 
+	 */
+	public function urlSegments($value = '~') {
+		
+		if($value === '~') {
+			// return current only
+			$value = $this->data['urlSegments'];
+			if(empty($value)) return 0; 
+			if(is_array($value)) return $value; 
+			return 1; 
+			
+		} else if(is_array($value)) {
+			// set array value
+			if(count($value)) {
+				// we'll take it
+				foreach($value as $k => $v) {
+					$v = trim($v); // trim whitespace
+					$v = trim($v, '/'); // remove leading/trailing slashes
+					if($v !== $value[$k]) $value[$k] = $v; 
+				}
+			} else {
+				// blank array becomes 0
+				$value = 0;
+			}
+			
+		} else {
+			// enforce 0 or 1
+			$value = empty($value) ? 0 : 1;
+		}
+	
+		if(empty($this->data['urlSegments']) && empty($value)) {
+			// don't bother updating if both are considered empty
+			return $value;
+		}
+		
+		if($this->data['urlSegments'] !== $value) {
+			// update current value
+			$this->trackChange('urlSegments', $this->data['urlSegments'], $value); 
+			$this->data['urlSegments'] = $value; 
+		} 
+		
+		return $value; 
 	}
 
 	/**
@@ -675,8 +750,69 @@ class Template extends WireData implements Saveable, Exportable {
 		if(!strlen($label)) $label = $this->name;
 		return $label;
 	}
+	
+	/**
+	 * Return tab label for current language (or specified language if provided)
+	 *
+	 * @param string $tab Which tab? 'content' or 'children'
+	 * @param Page|Language $language Optional, if not used then user's current language is used
+	 * @return string Returns blank if default tab label not overridden
+	 *
+	 */
+	public function getTabLabel($tab, $language = null) {
+		$tab = ucfirst(strtolower($tab)); 
+		if(is_null($language)) $language = $this->wire('languages') ? $this->wire('user')->language : null;
+		if(!$language || $language->isDefault()) $language = '';
+		$label = $this->get("tab$tab$language");
+		return $label;
+	}
+
+	/**
+	 * Return the icon name used by this template (if specified in pageLabeField)
+	 * 
+	 * @param bool $prefix Specify true if you want the icon prefix (icon- or fa-) to be included (default=false).
+	 * @return string
+	 * 
+	 */
+	public function getIcon($prefix = false) {
+		$label = $this->pageLabelField; 
+		$icon = '';
+		if(strpos($label, 'icon-') !== false || strpos($label, 'fa-') !== false) {
+			if(preg_match('/\b(icon-|fa-)([^\s,]+)/', $label, $matches)) {
+				if($matches[1] == 'icon-') $matches[1] = 'fa-';
+				$icon = $prefix ? $matches[1] . $matches[2] : $matches[2];
+			}
+		}
+		return $icon;
+	}
+
+	/**
+	 * Set the icon to use with this template
+	 * 
+	 * This manipulates the pageLabelField property, since there isn't actually an icon property. 
+	 * 
+	 * @param $icon 
+	 * @return $this
+	 * 
+	 */
+	public function setIcon($icon) {
+		$icon = $this->wire('sanitizer')->pageName($icon); 
+		$current = $this->getIcon(false); 	
+		$label = $this->pageLabelField;
+		if(strpos($icon, "icon-") === 0) $icon = str_replace("icon-", "fa-", $icon); // convert icon-str to fa-str
+		if($icon && strpos($icon, "fa-") !== 0) $icon = "fa-$icon"; // convert anon icon to fa-icon
+		if($current) {
+			// replace icon currently in pageLabelField with new one
+			$label = str_replace(array("fa-$current", "icon-$current"), $icon, $label);
+		} else if($icon) {
+			// add icon to pageLabelField where there wasn't one already
+			if(empty($label)) $label = $this->fieldgroup->hasField('title') ? 'title' : '';
+			$label = trim("$icon $label");
+		}
+		$this->pageLabelField = $label;
+		return $this;
+	}
 
 }
-
 
 

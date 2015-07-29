@@ -1,4 +1,5 @@
 .DS_Store?
+.DS_Store
 *.old
 *.old/*
 *.new
@@ -11,7 +12,6 @@ sess_*
 *.cache
 *.swp
 *.swo
-*.sh
 site-default/config-dev.php
 site-default/assets/logs
 site-default/assets/files
@@ -27,3 +27,5 @@ upgrade.php
 .svn
 .sass-cache
 .sass-cache/*
+*.css.map
+wire/modules/AdminTheme/AdminThemeDefault/styles/sass/*.css

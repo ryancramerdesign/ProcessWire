@@ -12,6 +12,8 @@
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
+ * 
+ * @property int|string $version Current admin theme version
  *
  */
 
@@ -35,10 +37,26 @@ abstract class AdminTheme extends WireData implements Module {
 	}
 
 	/**
+	 * Current admin theme version (cached from module info)
+	 * 
+	 * @var int
+	 * 
+	 */
+	protected $version = 0;
+
+	/**
 	 * Keeps track of quantity of admin themes installed so that we know when to add profile field
 	 *
 	 */
 	protected static $numAdminThemes = 0;
+
+	/**
+	 * Additional classes for body tag
+	 * 
+	 * @var array
+	 * 
+	 */
+	protected $bodyClasses = array();
 
 	/**
 	 * Initialize the admin theme systme and determine which admin theme should be used
@@ -48,11 +66,16 @@ abstract class AdminTheme extends WireData implements Module {
 	 */
 	public function init() { 
 		self::$numAdminThemes++;
+		
+		$info = $this->wire('modules')->getModuleInfo($this);
+		$this->version = $info['version'];
 
 		// if module has been called when it shouldn't (per the 'autoload' conditional)
 		// then module author probably forgot the right 'autoload' string, so this 
 		// serves as secondary stopgap to keep this module from loading when it shouldn't.
 		if(!$this->wire('page') || $this->wire('page')->template != 'admin') return;
+		
+		if(self::$numAdminThemes > 1 && !$this->wire('fields')->get('admin_theme')) $this->install();
 
 		// if admin theme has already been set, then no need to continue
 		if($this->wire('adminTheme')) return; 
@@ -64,8 +87,8 @@ abstract class AdminTheme extends WireData implements Module {
 			// there is user specified admin theme
 			// check if this is the one that should be used
 			if($adminTheme == $this->className()) $isCurrent = true; 
-
-		} else {
+			
+		} else if($this->wire('config')->defaultAdminTheme == $this->className()) {
 			// there is no user specified admin theme, so use this one
 			$isCurrent = true; 
 		}
@@ -76,6 +99,23 @@ abstract class AdminTheme extends WireData implements Module {
 			$this->config->paths->set('adminTemplates', $this->config->paths->get($this->className())); 
 			$this->config->urls->set('adminTemplates', $this->config->urls->get($this->className())); 
 		}
+
+		// adjust $config adminThumbOptions[scale] for auto detect when requested
+		$o = $this->wire('config')->adminThumbOptions; 
+		if($o && isset($o['scale']) && $o['scale'] === 1) {
+			$o['scale'] = $this->wire('session')->hidpi ? 0.5 : 1.0; 
+			$this->wire('config')->adminThumbOptions = $o;
+		}
+
+		$this->config->js('modals', $this->config->modals); 
+		
+		if($this->wire('session')->hidpi) $this->addBodyClass('hidpi-device');
+		if($this->wire('session')->touch) $this->addBodyClass('touch-device'); 
+	}
+	
+	public function get($key) {
+		if($key == 'version') return $this->version;
+		return parent::get($key); 
 	}
 
 	/**
@@ -84,6 +124,41 @@ abstract class AdminTheme extends WireData implements Module {
 	 */
 	public function isCurrent() {
 		return $this->wire('adminTheme') === $this; 
+	}
+
+	/**
+	 * Enables hooks to append extra markup to various sections of the admin page
+	 * 
+	 * @return array Associative array containing the following properties, any of 
+	 * which may be populated or empty: 
+	 * 	- head
+	 * 	- body
+	 * 	- masthead
+	 * 	- content
+	 * 	- footer
+	 * 	- sidebar
+	 * 
+	 */
+	public function ___getExtraMarkup() {
+		$parts = array(
+			'head' => '',
+			'notices' => '', 
+			'body' => '',
+			'masthead' => '',
+			'content' => '',
+			'footer' => '',
+			'sidebar' => '', // sidebar not used in all admin themes
+		);
+		if($this->wire('config')->advanced) $parts['footer'] = "<p class='AdvancedMode'><i class='fa fa-flask'></i> " . $this->_('Advanced Mode') . "</p>"; 
+		return $parts; 
+	}
+	
+	public function addBodyClass($className) {
+		$this->bodyClasses[$className] = $className; 
+	}
+	
+	public function getBodyClass() {
+		return trim(implode(' ', $this->bodyClasses)); 
 	}
 
 	/**
@@ -134,6 +209,7 @@ abstract class AdminTheme extends WireData implements Module {
 
 	public function ___uninstall() { 
 
+		/*
 		if(self::$numAdminThemes > 1) return;
 
 		// this is the last installed admin theme
@@ -148,6 +224,7 @@ abstract class AdminTheme extends WireData implements Module {
 
 		$this->wire('fields')->delete($field); 
 		$this->message($this->_('Removed field "admin_theme" from system.')); 
+		*/
 	}
 }
 

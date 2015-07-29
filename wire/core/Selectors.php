@@ -60,6 +60,28 @@ class Selectors extends WireArray {
 	protected $selectorStr = '';
 
 	/**
+	 * Whether or not variables like [user.id] should be converted to actual value
+	 * 
+	 * In most cases this should be true. 
+	 * 
+	 * @var bool
+	 *
+	 */
+	protected $parseVars = true;
+
+	/**
+	 * API variable names that are allowed to be parsed
+	 * 
+	 * @var array
+	 * 
+	 */
+	protected $allowedParseVars = array(
+		'session', 
+		'page', 
+		'user',
+	);
+
+	/**
 	 * Types of quotes selector values may be surrounded in
 	 *
 	 */
@@ -74,10 +96,22 @@ class Selectors extends WireArray {
 
 	/**
 	 * Given a selector string, extract it into one or more corresponding Selector objects, iterable in this object.
+	 * 
+	 * @param string|null Selector string. If not provided here, please follow-up with a setSelectorString($str) call. 
 	 *
 	 */
-	public function __construct($selectorStr) {
-		$this->selectorStr = $selectorStr; 
+	public function __construct($selectorStr = null) {
+		if(!is_null($selectorStr)) $this->setSelectorString($selectorStr); 
+	}
+
+	/**
+	 * Set the selector string (if not provided to constructor)
+	 * 
+	 * @param string $selectorStr
+	 * 
+	 */
+	public function setSelectorString($selectorStr) {
+		$this->selectorStr = $selectorStr;
 		$this->extractString(trim($selectorStr)); 
 	}
 
@@ -271,7 +305,7 @@ class Selectors extends WireArray {
 			$operator = $this->extractOperator($str, $this->getOperatorChars());
 			$value = $this->extractValue($str, $quote); 
 
-			if($quote == '[' && !self::stringHasOperator($value)) {
+			if($this->parseVars && $quote == '[' && $this->valueHasVar($value)) {
 				// parse an API variable property to a string value
 				$v = $this->parseValue($value); 
 				if($v !== null) {
@@ -532,13 +566,65 @@ class Selectors extends WireArray {
 		if(!preg_match('/^\$?[_a-zA-Z0-9]+(?:\.[_a-zA-Z0-9]+)?$/', $value)) return null;
 		$property = '';
 		if(strpos($value, '.')) list($value, $property) = explode('.', $value); 
-		$allowed = array('session', 'page', 'user'); // @todo make the whitelist configurable
-		if(!in_array($value, $allowed)) return null; 
+		if(!in_array($value, $this->allowedParseVars)) return null; 
 		$value = $this->wire($value); 
 		if(is_null($value)) return null; // does not resolve to API var
 		if(empty($property)) return (string) $value;  // no property requested, just return string value 
 		if(!is_object($value)) return null; // property requested, but value is not an object
 		return (string) $value->$property; 
+	}
+	
+	/**
+	 * Set whether or not vars should be parsed
+	 *
+	 * By default this is true, so only need to call this method to disable variable parsing.
+	 *
+	 * @param bool $parseVars
+	 *
+	 */
+	public function setParseVars($parseVars) {
+		$this->parseVars = $parseVars ? true : false;
+	}
+
+	/**
+	 * Does the given Selector value contain a parseable value?
+	 * 
+	 * @param Selector $selector
+	 * @return bool
+	 * 
+	 */
+	public function selectorHasVar(Selector $selector) {
+		if($selector->quote != '[') return false; 
+		$has = false;
+		foreach($selector->values as $value) {
+			if($this->valueHasVar($value)) {
+				$has = true; 
+				break;
+			}
+		}
+		return $has;
+	}
+
+	/**
+	 * Does the given value contain an API var reference?
+	 * 
+	 * It is assumed the value was quoted in "[value]", and the quotes are not there now. 
+	 *
+	 * @param string $value The value to evaluate
+	 * @return bool
+	 *
+	 */
+	public function valueHasVar($value) {
+		if(self::stringHasOperator($value)) return false;
+		if(strpos($value, '.') !== false) {
+			list($name, $subname) = explode('.', $value);
+		} else {
+			$name = $value;
+			$subname = '';
+		}
+		if(!in_array($name, $this->allowedParseVars)) return false;
+		if(strlen($subname) && $this->wire('sanitizer')->fieldName($subname) !== $subname) return false;
+		return true; 
 	}
 
 	public function __toString() {
@@ -549,7 +635,157 @@ class Selectors extends WireArray {
 		return rtrim($str, ", "); 
 	}
 
-	
+
+	/**
+	 * Utility method to convert array to selector string (work in progress, future use)
+	 * 
+	 * Accepts regular indexed or associative array. 
+	 * 
+	 * When given an associative array, the keys are assumed to be field names. An operator
+	 * may be appended to this field name. If no operator is present, then "=" is assumed. 
+	 * The values may be string, int or array. When given an array, it is assumed the values
+	 * are OR values. 
+	 * 
+	 * When given a regular array, the value may be an int or a string. if the value contains 
+	 * an operator, it is assumed to be a key=value statement. If the value is an integer or
+	 * integer string, it is assumed to be a page ID. Otherwise, if the value contains no
+	 * operator, it is discarded. 
+	 * 
+	 * Currently this method does no sanitization, it only converts an array to a selector
+	 * string. 
+	 * 
+	 * @todo this method is not yet functional or in use
+	 * 
+	 * @param array $a
+	 * @return string
+	 * 
+	 */
+	public static function arrayToSelectorString(array $a) {
+
+		$parts = array(); // regular array, components of the selector
+		$ids = array(); // array of page IDs, if present
+		$sanitizer = wire('sanitizer');
+
+		foreach($a as $key => $value) {
+
+			if(ctype_digit($key)) {
+				
+				// regular array, we can ignore $key
+				if(is_int($value) || ctype_digit("$value")) {
+					// value is page ID
+					$ids[] = (int) $value;
+					
+				} else if(strpos($value, '=') || strpos($value, '<') || strpos($value, '>')) {
+					// value contains an operator
+					$parts[] = $value; 
+					
+				} else {
+					// we have no idea what $value is? discard it
+					continue;
+				}
+
+			} else {
+				// associative, array key is field name, optionally with operator at end (= assumed otherwise)
+
+				if(is_array($value)) {
+					// value contains multiple OR values
+					foreach($value as $k => $v) {
+						if(!ctype_digit("$v")) $value[$k] = $sanitizer->selectorValue($v);
+					}
+					$value = implode('|', $value);
+
+				} else if(is_int($value) || ctype_digit("$value")) {
+					// number
+					$value = (int) $value;
+
+				} else {
+					// value is single value
+					$value = trim($value); 
+					$quotes = substr($value, 0, 1) . substr($value, -1);
+					if($quotes == '""' || $quotes == "''" || $quotes == '[]' || $quotes == '()') {
+						// value is already quoted so we leave it 
+					} else {
+						// value may need quotes, let sanitizer decide
+						$value = $sanitizer->selectorValue($value);
+					}
+				}
+
+				if(strpos($key, '=') || strpos($key, '<') || strpos($key, '>')) {
+					// key already contains operator at end
+				} else {
+					// no operator present, so we assume the "=" operator by appending to key
+					$key .= '=';
+				}
+
+				$parts[] = "$key$value";
+			}
+		}
+
+		// create selector string
+		$str = '';
+		if(count($ids)) $str .= "id=" . implode('|', $ids) . ', ';
+		if(count($parts)) $str .= implode(', ', $parts);
+		
+		return rtrim($str, ', ');
+	}
+
+	/**
+	 * Simple "a=b, c=d" selector-style string conversion to associative array, for fast/simple needs
+	 * 
+	 * - The only supported operator is "=". 
+	 * - Each key=value statement should be separated by a comma. 
+	 * - Do not use quoted values. 
+	 * - If you need a literal comma, use a double comma ",,".
+	 * - If you need a literal equals, use a double equals "==". 
+	 * 
+	 * @param string $s
+	 * @return array
+	 * 
+	 */
+	public static function keyValueStringToArray($s) {
+		
+		if(strpos($s, '~~COMMA') !== false) $s = str_replace('~~COMMA', '', $s); 
+		if(strpos($s, '~~EQUAL') !== false) $s = str_replace('~~EQUAL', '', $s); 
+		
+		$hasEscaped = false;
+		
+		if(strpos($s, ',,') !== false) {
+			$s = str_replace(',,', '~~COMMA', $s);
+			$hasEscaped = true; 
+		}
+		if(strpos($s, '==') !== false) {
+			$s = str_replace('==', '~~EQUAL', $s);
+			$hasEscaped = true; 
+		}
+		
+		$a = array();	
+		$parts = explode(',', $s); 
+		foreach($parts as $part) {
+			if(!strpos($part, '=')) continue;
+			list($key, $value) = explode('=', $part); 
+			if($hasEscaped) $value = str_replace(array('~~COMMA', '~~EQUAL'), array(',', '='), $value); 
+			$a[trim($key)] = trim($value); 	
+		}
+		
+		return $a; 
+	}
+
+	/**
+	 * Given an assoc array, convert to a key=value selector-style string
+	 * 
+	 * @param $a
+	 * @return string
+	 * 
+	 */
+	public static function arrayToKeyValueString($a) {
+		$s = '';
+		foreach($a as $key => $value) {
+			if(strpos($value, ',') !== false) $value = str_replace(array(',,', ','), ',,', $value); 
+			if(strpos($value, '=') !== false) $value = str_replace('=', '==', $value); 
+			$s .= "$key=$value, ";
+		}
+		return rtrim($s, ", "); 
+	}
 
 }
 

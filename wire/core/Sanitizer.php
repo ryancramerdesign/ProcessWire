@@ -66,7 +66,8 @@ class Sanitizer extends Wire {
 		if(!is_string($value)) $value = (string) $value;
 		
 		$allowed = array_merge($this->allowedASCII, $allowedExtras); 
-		$needsWork = strlen(str_replace($allowed, '', $value)); 
+		$needsWork = strlen(str_replace($allowed, '', $value));
+		$extras = implode('', $allowedExtras);
 
 		if($beautify && $needsWork) {
 			if($beautify === self::translate && $this->multibyteSupport) {
@@ -90,20 +91,23 @@ class Sanitizer extends Wire {
 		}
 
 		if(strlen($value) > $maxLength) $value = substr($value, 0, $maxLength); 
-		if(!$needsWork)  return $value; // quick exit if possible
-
-		$value = str_replace(array("'", '"'), '', $value); // blank out any quotes
-		$value = filter_var($value, FILTER_SANITIZE_STRING, FILTER_FLAG_STRIP_LOW | FILTER_FLAG_STRIP_HIGH | FILTER_FLAG_NO_ENCODE_QUOTES); 
-		$extras = implode('', $allowedExtras); 
-		$chars = $extras . 'a-zA-Z0-9';
-		if(in_array('-', $allowedExtras) && strpos($chars, '-') !== 0) {
-			// if hyphen present, ensure its first (per PCRE requirements)
-			$chars = '-' . str_replace('-', '', $chars); 
+		
+		if($needsWork) {
+			$value = str_replace(array("'", '"'), '', $value); // blank out any quotes
+			$value = filter_var($value, FILTER_SANITIZE_STRING, FILTER_FLAG_STRIP_LOW | FILTER_FLAG_STRIP_HIGH | FILTER_FLAG_NO_ENCODE_QUOTES);
+			$chars = $extras . 'a-zA-Z0-9';
+			if(in_array('-', $allowedExtras) && strpos($chars, '-') !== 0) {
+				// if hyphen present, ensure its first (per PCRE requirements)
+				$chars = '-' . str_replace('-', '', $chars);
+			}
+			$value = preg_replace('{[^' . $chars . ']}', $replacementChar, $value);
 		}
-		$value = preg_replace('{[^' . $chars . ']}', $replacementChar, $value); 
 
 		// remove leading or trailing dashes, underscores, dots
-		if($beautify) $value = trim($value, $extras);
+		if($beautify) {
+			if(strpos($extras, $replacementChar) === false) $extras .= $replacementChar;
+			$value = trim($value, $extras);
+		}
 
 		return $value; 
 	}
@@ -133,7 +137,7 @@ class Sanitizer extends Wire {
 			$allowedExtras = array('-', '_', '.');
 			$allowedExtrasStr = '-_.';
 		}
-			
+	
 		$value = $this->nameFilter($value, $allowedExtras, $replacement, $beautify, $maxLength);
 		
 		if($beautify) {
@@ -168,22 +172,28 @@ class Sanitizer extends Wire {
 	/**
 	 * Standard alphanumeric and dash, underscore, dot name plus multiple names may be separated by a delimeter
 	 *
-	 * @param string $value Value to filter
+	 * @param string|array $value Value(s) to filter
 	 * @param string $delimeter Character that delimits values (optional)
 	 * @param array $allowedExtras Additional characters that are allowed in the value (optional)
 	 * @param string 1 character replacement value for invalid characters (optional)
 	 * @param bool $beautify
-	 * @return string
+	 * @return string|array Return string if given a string for $value, returns array if given an array for $value
 	 *
 	 */
 	public function names($value, $delimeter = ' ', $allowedExtras = array('-', '_', '.'), $replacementChar = '_', $beautify = false) {
+		$isArray = false;
+		if(is_array($value)) {
+			$isArray = true; 
+			$value = implode(' ', $value); 
+		}
 		$replace = array(',', '|', '  ');
 		if($delimeter != ' ' && !in_array($delimeter, $replace)) $replace[] = $delimeter; 
 		$value = str_replace($replace, ' ', $value);
 		$allowedExtras[] = ' ';
-		$value = $this->nameFilter($value, $allowedExtras, $replacementChar, $beautify, 128);
+		$value = $this->nameFilter($value, $allowedExtras, $replacementChar, $beautify, 8192);
 		if($delimeter != ' ') $value = str_replace(' ', $delimeter, $value); 
-		return $value; 
+		if($isArray) $value = explode($delimeter, $value); 
+		return $value;
 	}
 
 
@@ -291,6 +301,17 @@ class Sanitizer extends Wire {
 	 *
 	 */
 	public function filename($value, $beautify = false, $maxLength = 128) {
+
+		$value = basename($value); 
+		
+		if(strlen($value) > $maxLength) {
+			// truncate, while keeping extension in tact
+			$pathinfo = pathinfo($value);
+			$extLen = strlen($pathinfo['extension']) + 1; // +1 includes period
+			$basename = substr($pathinfo['filename'], 0, $maxLength - $extLen);
+			$value = "$basename.$pathinfo[extension]";
+		}
+		
 		return $this->name($value, $beautify, $maxLength, '_', array(
 			'allowAdjacentExtras' => true, // language translation filenames require doubled "--" chars, others may too
 			)
@@ -306,21 +327,34 @@ class Sanitizer extends Wire {
 	}
 
 	/**
-	 * Return the given path if valid, or blank if not.
+	 * Return the given path if valid, or boolean false if not.
 	 *
 	 * Path is validated per ProcessWire "name" convention of ascii only [-_./a-z0-9]
 	 * As a result, this function is primarily useful for validating ProcessWire paths,
 	 * and won't always work with paths outside ProcessWire.
 	 * 
+	 * This method validates only and does not sanitize. See pagePathName() for a similar
+	 * method that does sanitiation. 
+	 * 
 	 * @param string $value Path
-	 * @param int $maxLength
-	 * @return string
+	 * @param int|array $options Options to modify behavior, or maxLength (int) may be specified.
+	 * 	- allowDotDot: Whether to allow ".." in a path (default=false)
+	 * 	- maxLength: Maximum length of allowed path (default=1024)
+	 * @return bool|string Returns false if invalid, actual path (string) if valid.
 	 *
 	 */
-	public function path($value, $maxLength = 1024) {
+	public function path($value, $options = array()) {
+		if(is_int($options)) $options = array('maxLength' => $options); 
+		$defaults = array(
+			'allowDotDot' => false,
+			'maxLength' => 1024
+		);
+		$options = array_merge($defaults, $options);
 		if(DIRECTORY_SEPARATOR != '/') $value = str_replace(DIRECTORY_SEPARATOR, '/', $value); 
-		if(!preg_match('{^[-_./a-z0-9]+$}iD', $value)) return '';
-		if(strpos($value, '/./') !== false || strpos($value, '//') !== false) $value = '';
+		if(strlen($value) > $options['maxLength']) return false;
+		if(strpos($value, '/./') !== false || strpos($value, '//') !== false) return false;
+		if(!$options['allowDotDot'] && strpos($value, '..') !== false) return false;
+		if(!preg_match('{^[-_./a-z0-9]+$}iD', $value)) return false;
 		return $value;
 	}
 
@@ -336,10 +370,18 @@ class Sanitizer extends Wire {
 	 *
 	 */
 	public function pagePathName($value, $beautify = false, $maxLength = 1024) {
-		$options = array('allowedExtras' => array('/', '-', '_', '.'));
-		return $this->name($value, $beautify, $maxLength, '-', $options); 
+		$options = array(
+			'allowedExtras' => array('/', '-', '_', '.')
+		);
+		$value = $this->name($value, $beautify, $maxLength, '-', $options); 
+		// disallow double slashes
+		while(strpos($value, '//') !== false) $value = str_replace('//', '/', $value); 
+		// disallow relative paths
+		while(strpos($value, '..') !== false) $value = str_replace('..', '.', $value);
+		// disallow names that start with a period
+		while(strpos($value, '/.') !== false) $value = str_replace('/.', '/', $value); 
+		return $value; 
 	}
-
 
 	/**
 	 * Returns valid email address, or blank if it isn't valid
@@ -394,18 +436,24 @@ class Sanitizer extends Wire {
 
 		if($options['inCharset'] != $options['outCharset']) $value = iconv($options['inCharset'], $options['outCharset'], $value); 
 
-		if($this->multibyteSupport) {
-			if(mb_strlen($value, $options['outCharset']) > $options['maxLength']) $value = mb_substr($value, 0, $options['maxLength'], $options['outCharset']); 
-		} else {
-			if(strlen($value) > $options['maxLength']) $value = substr($value, 0, $options['maxLength']); 
+		if($options['maxLength']) {
+			if($this->multibyteSupport) {
+				if(mb_strlen($value, $options['outCharset']) > $options['maxLength']) $value = mb_substr($value, 0, $options['maxLength'], $options['outCharset']);
+			} else {
+				if(strlen($value) > $options['maxLength']) $value = substr($value, 0, $options['maxLength']);
+			}
 		}
 
-		$n = $options['maxBytes']; 
-		while(strlen($value) > $options['maxBytes']) {
-			$n--; 
-			if($this->multibyteSupport) $value = mb_substr($value, 0, $n, $options['outCharset']); 			
-				else $value = substr($value, 0, $n); 
-		
+		if($options['maxBytes']) {
+			$n = $options['maxBytes'];
+			while(strlen($value) > $options['maxBytes']) {
+				$n--;
+				if($this->multibyteSupport) {
+					$value = mb_substr($value, 0, $n, $options['outCharset']);
+				} else {
+					$value = substr($value, 0, $n);
+				}
+			}
 		}
 
 		return trim($value); 	
@@ -424,6 +472,9 @@ class Sanitizer extends Wire {
 		if(!isset($options['multiLine'])) $options['multiLine'] = true; 	
 		if(!isset($options['maxLength'])) $options['maxLength'] = 16384; 
 		if(!isset($options['maxBytes'])) $options['maxBytes'] = $options['maxLength'] * 3; 
+	
+		// convert \r\n to just \n
+		if(empty($options['allowCRLF']) && strpos($value, "\r\n") !== false) $value = str_replace("\r\n", "\n", $value); 
 
 		return $this->text($value, $options); 
 	}
@@ -495,7 +546,12 @@ class Sanitizer extends Wire {
 			if($options['allowRelative']) {
 				// determine if this is a domain name 
 				// regex legend:       (www.)?      company.         com       ( .uk or / or end)
-				if(strpos($value, '.') && preg_match('{^([^\s_.]+\.)?[^-_\s.][^\s_.]+\.([a-z]{2,6})([./:#]|$)}i', $value, $matches)) {
+				$dotPos = strpos($value, '.');	
+				$slashPos = strpos($value, '/'); 
+				if($slashPos === false) $slashPos = $dotPos+1;
+				// if the first slash comes after the first dot, the dot is likely part of a domain.com/path/
+				// if the first slash comes before the first dot, then it's likely a /path/product.html
+				if($dotPos && $slashPos > $dotPos && preg_match('{^([^\s_.]+\.)?[^-_\s.][^\s_.]+\.([a-z]{2,6})([./:#]|$)}i', $value, $matches)) {
 					// most likely a domain name
 					// $tld = $matches[3]; // TODO add TLD validation to confirm it's a domain name
 					$value = filter_var("http://$value", FILTER_VALIDATE_URL); // add scheme for validation
@@ -503,9 +559,10 @@ class Sanitizer extends Wire {
 				} else if($options['allowQuerystring']) {
 					// we'll construct a fake domain so we can use FILTER_VALIDATE_URL rules
 					$fake = 'http://processwire.com/';
+					$slash = strpos($value, '/') === 0 ? '/' : '';
 					$value = $fake . ltrim($value, '/'); 
 					$value = filter_var($value, FILTER_VALIDATE_URL); 
-					$value = str_replace($fake, '/', $value);
+					$value = str_replace($fake, $slash, $value);
 
 				} else {
 					// most likely a relative path
@@ -612,7 +669,7 @@ class Sanitizer extends Wire {
 		}
 
 		$value = trim($value); // trim any kind of whitespace
-		$value = trim($value, '+!'); // chars to remove from begin and end 
+		$value = trim($value, '+!,'); // chars to remove from begin and end 
 		
 		if(!$needsQuotes && strlen($value)) {
 			$a = substr($value, 0, 1); 
@@ -655,6 +712,75 @@ class Sanitizer extends Wire {
 	public function entities1($str, $flags = ENT_QUOTES, $encoding = 'UTF-8') {
 		return htmlentities($str, $flags, $encoding, false);
 	}
+	
+	/**
+	 * Entity encode while translating some markdown tags to HTML equivalents
+	 * 
+	 * Allowed markdown currently includes: 
+	 * 		**strong**
+	 * 		*emphasis*
+	 * 		[anchor-text](url)
+	 * 		~~strikethrough~~
+	 * 		`code`
+	 * 
+	 * The primary reason to use this over full-on Markdown is that it has less overhead
+	 * and is faster then full-blown Markdowon, for when you don't need it. It's also safer
+	 * for text coming from user input since it doesn't allow any other HTML.
+	 *
+	 * @param string $str
+	 * @param array $options Options include the following:
+	 * 	- flags (int): See htmlentities() flags. Default is ENT_QUOTES. 
+	 * 	- encoding (string): PHP encoding type. Default is 'UTF-8'. 
+	 * 	- doubleEncode (bool): Whether to double encode (if already encoded). Default is true. 
+	 * 	- allow (array): Only markdown that translates to these tags will be allowed. Default=array('a', 'strong', 'em', 'code', 's')
+	 * 	- disallow (array): Specified tags (in the default allow list) won't be allowed. Default=array(). 
+	 * 		Note: The 'disallow' is an alternative to the default 'allow'. No point in using them both. 
+	 * 	- linkMarkup (string): Markup to use for links. Default='<a href="{url}" rel="nofollow" target="_blank">{text}</a>'
+	 * @return string
+	 *
+	 */
+	public function entitiesMarkdown($str, array $options = array()) {
+		
+		$defaults = array(
+			'flags' => ENT_QUOTES, 
+			'encoding' => 'UTF-8', 
+			'doubleEncode' => true, 
+			'allow' => array('a', 'strong', 'em', 'code', 's'), 
+			'disallow' => array(), 
+			'linkMarkup' => '<a href="{url}" rel="nofollow" target="_blank">{text}</a>', 
+		);
+		
+		$options = array_merge($defaults, $options); 
+		$str = $this->entities($str, $options['flags'], $options['encoding'], $options['doubleEncode']);
+		
+		if(strpos($str, '](') && in_array('a', $options['allow']) && !in_array('a', $options['disallow'])) {
+			// link
+			$linkMarkup = str_replace(array('{url}', '{text}'), array('$2', '$1'), $options['linkMarkup']); 
+			$str = preg_replace('/\[(.+?)\]\(([^)]+)\)/', $linkMarkup, $str);
+		}
+		
+		if(strpos($str, '**') !== false && in_array('strong', $options['allow']) && !in_array('strong', $options['disallow'])) {
+			// strong
+			$str = preg_replace('/\*\*(.*?)\*\*/', '<strong>$1</strong>', $str);
+		}
+		
+		if(strpos($str, '*') !== false && in_array('em', $options['allow']) && !in_array('em', $options['disallow'])) {
+			// em
+			$str = preg_replace('/\*([^*\n]+)\*/', '<em>$1</em>', $str);
+		}
+		
+		if(strpos($str, "`") !== false && in_array('code', $options['allow']) && !in_array('code', $options['disallow'])) {
+			// code
+			$str = preg_replace('/`+([^`]+)`+/', '<code>$1</code>', $str);
+		}
+		
+		if(strpos($str, '~~') !== false && in_array('s', $options['allow']) && !in_array('s', $options['disallow'])) {
+			// strikethrough
+			$str = preg_replace('/~~(.+?)~~/', '<s>$1</s>', $str);
+		}
+		
+		return $str;
+	}
 
 	/**
 	 * Remove entity encoded characters from a string. 
@@ -670,8 +796,22 @@ class Sanitizer extends Wire {
 	 * @return string
 	 *
 	 */
-	public function removeEntities($str, $flags = ENT_QUOTES, $encoding = 'UTF-8') {
-		return htmlentities($str, $flags, $encoding, $doubleEncode); 
+	public function unentities($str, $flags = ENT_QUOTES, $encoding = 'UTF-8') {
+		return html_entity_decode($str, $flags, $encoding); 
+	}
+
+	/**
+	 * Alias for unentities
+	 * 
+	 * @param $str
+	 * @param $flags
+	 * @param $encoding
+	 * @return string
+	 * @deprecated
+	 * 
+	 */
+	public function removeEntities($str, $flags, $encoding) {
+		return $this->unentities($str, $flags, $encoding); 
 	}
 
 	/**
@@ -694,6 +834,60 @@ class Sanitizer extends Wire {
 			$_options = $options; 
 		}
 		return $purifier->purify($str); 
+	}
+
+	/**
+	 * Validate a file using FileValidator modules
+	 * 
+	 * Note that this is intended for validating file data, not file names. 
+	 * 
+	 * IMPORTANT: This method returns NULL if it can't find a validator for the file. This does 
+	 * not mean the file is invalid, just that it didn't have the tools to validate it. 
+	 * 
+	 * @param $filename Full path and filename to validate
+	 * @param array $options If available, provide array with any one or all of the following:
+	 * 	'page' => Page object associated with $filename
+	 * 	'field' => Field object associated with $filename
+	 * 	'pagefile' => Pagefile object associated with $filename
+	 * @return bool|null Returns TRUE if valid, FALSE if not, or NULL if no validator available for given file type.
+	 * 
+	 */
+	public function validateFile($filename, array $options = array()) {
+		$defaults = array(
+			'page' => null,
+			'field' => null, 
+			'pagefile' => null,
+		);
+		$options = array_merge($defaults, $options);
+		$extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+		$validators = $this->wire('modules')->findByPrefix('FileValidator', false);
+		$isValid = null;
+		foreach($validators as $validatorName) {
+			$info = $this->wire('modules')->getModuleInfoVerbose($validatorName);
+			if(empty($info) || empty($info['validates'])) continue;
+			foreach($info['validates'] as $ext) {
+				if($ext[0] == '/') {
+					if(!preg_match($ext, $extension)) continue;		
+				} else if($ext !== $extension) {
+					continue;
+				}
+				$validator = $this->wire('modules')->get($validatorName);
+				if(!$validator) continue;
+				if(!empty($options['page'])) $validator->setPage($options['page']);
+				if(!empty($options['field'])) $validator->setField($options['field']);
+				if(!empty($options['pagefile'])) $validator->setPagefile($options['pagefile']);
+				$isValid = $validator->isValid($filename);
+				if(!$isValid) {
+					// move errors to Sanitizer class so they can be retrieved
+					foreach($validator->errors('clear array') as $error) {
+						$this->wire('log')->error($error);
+						$this->error($error);
+					}
+					break;
+				}
+			}
+		}
+		return $isValid;	
 	}
 
 	/**

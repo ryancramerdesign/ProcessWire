@@ -38,7 +38,7 @@
 			function init() {
 
 				if(!options.items) return;
-				if(options.items.size() < 2) return;
+				if(options.items.length < 2) return;
 				
 				if(options.id.length) {
 					$tabList = $("#" + options.id);
@@ -64,10 +64,20 @@
 					}); 
 				}
 
-				if(cookieTab.length > 0 && options.rememberTabs > -1) $rememberTab = $tabList.find("a#_" + cookieTab);
-				if($rememberTab && $rememberTab.size() > 0) {
+				var hash = document.location.hash.replace("#",""); // thanks to @da-fecto
+				if(hash.length) {
+					$rememberTab = $tabList.find("a#_" + hash); 
+					if($rememberTab.length == 0) {
+						$rememberTab = null;
+					} else {
+						document.location.hash = '';
+					}
+				}
+				if($rememberTab == null && cookieTab.length > 0 && options.rememberTabs > -1) $rememberTab = $tabList.find("a#_" + cookieTab);
+				if($rememberTab && $rememberTab.length > 0) {
 					$rememberTab.click();
-					if(options.rememberTabs == 0) setTabCookie(''); // don't clear cookie when rememberTabs=1, so it continues
+					if (options.rememberTabs == 0) setTabCookie(''); // don't clear cookie when rememberTabs=1, so it continues
+					setTimeout(function() { $rememberTab.click(); }, 200); // extra backup, necessary for some event monitoring
 				} else {
 					$tabList.children("li:first").children("a").click();
 				}
@@ -90,6 +100,13 @@
 						.html(title)
 						.click(tabClick); 
 					$tabList.append($("<li></li>").append($a)); 
+				}
+				var tip = $t.attr('data-tooltip'); 
+				if($t.hasClass('WireTabTip') || tip) {
+					// if the tab being added has the class 'WireTabTip' or has a data-tooltip attribute
+					// then display a tooltip with the tab
+					$a.addClass('tooltip');
+					$a.attr('title', tip ? tip : title); 
 				}
 				$t.hide();
 				// the following removed to prevent DOM manipulation if the tab content:

@@ -6,7 +6,7 @@
 
 	<div id="footer" class="footer">
 		<div class="container">
-			<p>ProcessWire 2.5 &copy; 2014</p>
+			<p>ProcessWire <?php echo PROCESSWIRE_INSTALL; ?> &copy; 2015</p>
 		</div>
 	</div><!--/#footer-->
 

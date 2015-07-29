@@ -24,8 +24,17 @@
 	cursor: move; 
 }
 
-.Inputfields .InputfieldPageTable td ul,
-.Inputfields .InputfieldPageTable td ul li {
+.InputfieldPageTable td ul,
+.InputfieldPageTable td ul li {
 	margin: 0;
+}
+
+.Inputfields .InputfieldPageTable td .InputfieldTextareaContentTypeHTML {
+	background: none;
+	border: none;
+	padding: 0;
+}
+.Inputfields .InputfieldPageTable td .InputfieldTextareaContentTypeHTML * {
+	background: none;
 }
 

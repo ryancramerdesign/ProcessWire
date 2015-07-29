@@ -1,4 +1,9 @@
-MULTI-LANGUAGE MINIMAL PROFILE
+MULTI-LANGUAGE DEFAULT PROFILE
+
+Please see this HTML document for an introduction to how this 
+site profile works: 
+
+http://processwire.com/docs/tutorials/default-site-profile/
 
 The files in this templates directory are largely identical to those 
 in the non-multi-language version except for use of these static text

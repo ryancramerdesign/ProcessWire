@@ -10,6 +10,11 @@
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
+ * 
+ * @property int $languagesPageID
+ * @property int $defaultLanguagePageID
+ * @property int $languageTranslatorPageID
+ * @property array $otherLanguagePageIDs Quick reference to non-default language IDs, for when needed before languages loaded
  *
  */
 
@@ -54,24 +59,32 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 
 	/**
 	 * Reference to the default language page
+	 * 
+	 * @var Language|null
 	 *
 	 */
 	protected $defaultLanguagePage = null;
 
 	/**
 	 * Array of pages that were cached before this module was loaded. 
+	 * 
+	 * @var array
 	 *
 	 */
 	protected $earlyCachedPages = array();
 
 	/**
 	 * Instanceof LanguageSupportFields, if installed
+	 * 
+	 * @var LanguageSupportFields|null
 	 *
 	 */
 	protected $LanguageSupportFields = null;
 
 	/**
 	 * Instanceof LanguageTabs, if installed
+	 * 
+	 * @var LanguageTabs|null
 	 *
 	 */
 	protected $languageTabs = null;
@@ -116,7 +129,7 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 
 		// prevent possible double init
 		if($this->initialized) return; 
-		$this->initialized = true; 
+		$this->initialized = true;
 
 		FieldtypePageTitle::$languageSupport = true; 
 
@@ -125,25 +138,42 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 		// create the $languages API var
 		$languageTemplate = $this->templates->get('language'); 
 		if(!$languageTemplate) return;
+		
+		if(!$this->languagesPageID) {
+			// fallback if LanguageSupport config lost or not accessible for some reason
+			$this->languagesPageID = $this->wire('pages')->get("template=admin, name=languages"); 
+		}
+	
+		// prevent fields like 'title' from autojoining until languages are fully loaded
+		$this->wire('pages')->setAutojoin(false); 
+		
 		$languages = new Languages($languageTemplate, $this->languagesPageID); 
 		$_default = null; // just in case
 
 		// ensure all languages are loaded and get instantiated versions of system/default languages
+		$numOtherLanguages = 0;
 		foreach($languages as $language) {
 			if($language->id == $defaultLanguagePageID) {
 				$this->defaultLanguagePage = $language; 
 			} else if($language->name == 'default') {
 				$_default = $language; // backup plan
+			} else {
+				$numOtherLanguages++;
 			}
 		}
 		
 		if(!$this->defaultLanguagePage) {
-			if($_default) $this->defaultLanguagePage = $_default;
-				else $this->defaultLanguagePage = $languages->getAll()->first();
+			if($_default) {
+				$this->defaultLanguagePage = $_default;
+			} else {
+				$this->defaultLanguagePage = $languages->getAll()->first();
+			}
 		}
 		$this->defaultLanguagePage->setIsDefaultLanguage();
 		$languages->setDefault($this->defaultLanguagePage);
-		Wire::setFuel('languages', $languages); 
+		
+		// set $languages API variable
+		$this->wire('languages', $languages); 
 
 		// identify the current language from the user, or set one if it's not already
 		if($this->user->language && $this->user->language->id) {
@@ -153,7 +183,7 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 			$this->user->language = $language; 
 		}
 
-		wire('config')->dateFormat = $this->_('Y-m-d H:i:s'); // Sortable date format used in the admin
+		$this->wire('config')->dateFormat = $this->_('Y-m-d H:i:s'); // Sortable date format used in the admin
 		$locale = $this->_('C'); // Value to pass to PHP's setlocale(LC_ALL, 'value') function when initializing this language // Default is 'C'. Specify '0' to skip the setlocale() call (and carry on system default).
 		if($locale != '0') setlocale(LC_ALL, $locale); 
 
@@ -172,7 +202,13 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 			$this->LanguageSupportFields = wire('modules')->get('LanguageSupportFields'); 
 			$this->LanguageSupportFields->LS_init(); 
 		}
+	
+		if($numOtherLanguages && $numOtherLanguages != count($this->otherLanguagePageIDs)) {
+			$this->refreshLanguageIDs();
+		}
 		
+		// restore autojoin state for pages
+		$this->wire('pages')->setAutojoin(true);
 	}
 
 	/**
@@ -272,8 +308,10 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 	public function hookInputfieldAfterRender(HookEvent $event) {
 
 		static $numLanguages = null;
+		/** @var Inputfield $inputfield */
 		$inputfield = $event->object; 
 		$name = $inputfield->attr('name'); 
+		/** @var Languages $languages */
 		$languages = $this->wire('languages');
 		if(is_null($numLanguages)) $numLanguages = $languages->count();
 
@@ -361,6 +399,7 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 	public function hookInputfieldAfterProcessInput(HookEvent $event) {
 
 		$inputfield = $event->object; 
+		/** @var Inputfield $inputfield */
 		if(!$inputfield->useLanguages) return;
 		$post = $event->arguments[0];
 		$languages = $this->wire('languages');	
@@ -409,6 +448,7 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 		$language = $this->wire('user')->language; 
 		if(!$language || !$language->id) return; 
 
+		/** @var Field $field */
 		$field = $event->object; 
 		$inputfield = $event->return; 
 		$translatable = array('label', 'description', 'notes');
@@ -640,6 +680,28 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 		$form = new InputfieldWrapper();
 		// TBA
 		return $form; 
+	}
+
+	/**
+	 * Refresh the config stored value for $this->otherLanguagePageIDs
+	 * 
+	 */
+	public function refreshLanguageIDs() {
+		$this->message('Refreshing other language page IDs', Notice::debug); 
+		if(!$this->wire('languages')) return;
+		$ids = array();
+		foreach($this->wire('languages') as $language) {
+			if($language->isDefault()) continue; 
+			$ids[] = $language->id; 
+		}
+		if($this->otherLanguagePageIDs != $ids) {
+			$this->set('otherLanguagePageIDs', $ids);
+			$configData = $this->wire('modules')->getModuleConfigData('LanguageSupport');
+			if($configData['otherLanguagePageIDs'] != $ids) {
+				$configData['otherLanguagePageIDs'] = $ids;
+				$this->wire('modules')->saveModuleConfigData('LanguageSupport', $configData);
+			}
+		}
 	}
 
 	/**

@@ -376,7 +376,7 @@ INSERT INTO `field_title` (`pages_id`, `data`, `data1012`, `data1013`) VALUES('3
 INSERT INTO `field_title` (`pages_id`, `data`, `data1012`, `data1013`) VALUES('36', 'View pages', '', '');
 INSERT INTO `field_title` (`pages_id`, `data`, `data1012`, `data1013`) VALUES('50', 'Sort child pages', '', '');
 INSERT INTO `field_title` (`pages_id`, `data`, `data1012`, `data1013`) VALUES('51', 'Change templates on pages', '', '');
-INSERT INTO `field_title` (`pages_id`, `data`, `data1012`, `data1013`) VALUES('52', 'Administer users (role must also have template edit access)', '', '');
+INSERT INTO `field_title` (`pages_id`, `data`, `data1012`, `data1013`) VALUES('52', 'Administer users', '', '');
 INSERT INTO `field_title` (`pages_id`, `data`, `data1012`, `data1013`) VALUES('53', 'User can update profile/password', '', '');
 INSERT INTO `field_title` (`pages_id`, `data`, `data1012`, `data1013`) VALUES('54', 'Lock or unlock a page', '', '');
 INSERT INTO `field_title` (`pages_id`, `data`, `data1012`, `data1013`) VALUES('1', 'Home', 'Zuhause', 'Koti');

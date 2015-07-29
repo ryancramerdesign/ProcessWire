@@ -224,6 +224,23 @@ body.has-sidebar #sidebar {
 	top: 0.5em;
 }
 
+figure {
+	display: table;
+	width: 1px;
+	margin: 1em 0;
+}
+
+figure img {
+	display: table-row;
+	margin-bottom: 0.5em;
+}
+
+figure figcaption {
+	display: table-row;
+	font-size: smaller;
+	color: #777;
+	line-height: 1.4em;
+}
 
 /*********************************************************************
  * 4. Footer

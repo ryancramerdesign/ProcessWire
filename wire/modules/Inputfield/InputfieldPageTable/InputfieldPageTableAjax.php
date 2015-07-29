@@ -36,7 +36,7 @@ class InputfieldPageTableAjax extends Wire {
 	 * Check if current request is a valid ajax request and call renderAjax() if it is.
 	 * 
 	 */
-	protected function checkAjax() { 
+	protected function ___checkAjax() { 
 
 		$input = $this->wire('input'); 
 		$fieldName = $input->get('InputfieldPageTableField'); 
@@ -62,6 +62,9 @@ class InputfieldPageTableAjax extends Wire {
 		// check for new item that should be added
 		$itemID = (int) $input->get('InputfieldPageTableAdd'); 
 		if($itemID) $this->addItem($page, $field, $this->wire('pages')->get($itemID)); 
+		
+		$sort = $input->get('InputfieldPageTableSort'); 
+		if(strlen($sort)) $this->sortItems($page, $field, $sort); 
 
 		$this->renderAjax($page, $field); 
 	}
@@ -111,5 +114,34 @@ class InputfieldPageTableAjax extends Wire {
 		}
 
 		return false;
+	}
+
+	/**
+	 * Update items to make sure they are in same order specified in GET var InputfieldPageTableSort
+	 *
+	 * @param Page $page
+	 * @param Field $field
+	 * @param string $sort CSV string
+	 *
+	 */
+	protected function sortItems(Page $page, Field $field, $sort) {
+	
+		// if this field has it's own sort settings, then we have nothing to do here.
+		if($field->sortfields && $field->sortfields != 'sort') return;
+		
+		$value = $page->getUnformatted($field->name); 
+		if(!$value instanceof PageArray || !$value->count()) return;
+		$sortedIDs = explode(',', $sort);
+		
+		$test = implode('|', $sortedIDs);
+		if($test == ((string) $value)) return; // already in right order?
+		
+		foreach($value as $item) {
+			$sort = array_search($item->id, $sortedIDs); 
+			if($sort === false) $sort = count($value); 
+			$item->set('_pagetable_sort', $sort); 
+		}
+		
+		$value->sort('_pagetable_sort'); 
 	}
 }

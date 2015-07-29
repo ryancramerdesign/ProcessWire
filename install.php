@@ -12,14 +12,14 @@
  * reason, then you'll want to delete that file. This was implemented just in case someone doesn't delete the installer.
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2014 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
  * 
  */
 
-define("PROCESSWIRE_INSTALL", 2); 
+define("PROCESSWIRE_INSTALL", 2.6); 
 
 /**
  * class Installer
@@ -77,8 +77,6 @@ class Installer {
 	protected $colors = array(
 		'classic',
 		'warm',
-		'modern',
-		'futura'
 		);
 
 
@@ -93,8 +91,10 @@ class Installer {
 			ini_set('display_errors', 1);
 		}
 
-		$title = "ProcessWire 2.5 Installation";
-
+		// these two vars used by install-head.inc
+		$title = "ProcessWire " . PROCESSWIRE_INSTALL . " Installation";
+		$formAction = "./install.php";
+		
 		require("./wire/modules/AdminTheme/AdminThemeDefault/install-head.inc"); 
 
 		if(isset($_POST['step'])) switch($_POST['step']) {
@@ -147,7 +147,12 @@ class Installer {
 	 * 
 	 */
 	protected function findProfiles() {
-		$profiles = array();
+		$profiles = array(
+			'site-beginner' => null,
+			'site-default' => null, // preferred starting order
+			'site-languages' => null, 
+			'site-blank' => null
+			); 
 		$dirTests = array(
 			'install', 
 			'templates',
@@ -177,6 +182,10 @@ class Installer {
 			}
 			$profiles[$name] = $profile;
 		}
+		// remove any preferred starting order profiles that weren't present
+		foreach($profiles as $name => $profile) {
+			if(is_null($profile)) unset($profiles[$name]); 	
+		}
 		return $profiles; 
 	}
 	
@@ -190,7 +199,7 @@ class Installer {
 			//$selected = $name == 'site-default' ? " selected='selected'" : "";
 			$options .= "<option value='$name'>$title</option>"; 
 			$out .= "<div class='profile-preview' id='$name' style='display: none;'>";
-			if(!empty($profile['summary'])) $out .= "<p class='detail'>$profile[summary]</p>";
+			if(!empty($profile['summary'])) $out .= "<p>$profile[summary]</p>";
 				else $out .= "<p class='detail'>No summary.</p>";
 			if(!empty($profile['screenshot'])) {
 				$file = $profile['screenshot'];
@@ -203,15 +212,16 @@ class Installer {
 		}
 		
 		echo "
-			<p>A site profile is a ready-to-use and modify site for ProcessWire. 
+			<p>A site installation profile is a ready-to-use and modify site for ProcessWire. 
 			If you are just getting started with ProcessWire, we recommend choosing
 			the <em>Default</em> site profile. If you already know what you are doing,
 			you might prefer the <em>Blank</em> site profile. 
 			<p>
 			<select name='profile' id='select-profile'>
-			<option value=''>Select a site profile</option>
+			<option value=''>Installation Profiles</option>
 			$options
 			</select>
+			<span class='detail'><i class='fa fa-angle-left'></i> Select each installation profile to see more information and a preview.</span>
 			</p>
 			$out
 			<script type='text/javascript'>
@@ -230,7 +240,7 @@ class Installer {
 	 */
 	protected function initProfile() {
 	
-		$this->h('Site Profile'); 
+		$this->h('Site Installation Profile'); 
 		
 		if(is_file("./site/install/install.sql")) {
 			$this->ok("Found installation profile in /site/install/");
@@ -376,7 +386,7 @@ class Installer {
 		echo "<a class='ui-priority-secondary' style='float: right' title='Experimental Database Options' href='#' onclick='$(\"#dbAdvanced\").slideToggle();'><i class='fa fa-wrench'></i></a>";
 		
 		$this->h("MySQL Database"); 
-		$this->p("Please create a MySQL 5.x database and user account on your server. The user account should have full read, write and delete permissions on the database.* Once created, please enter the information for this database and account below:"); 
+		$this->p("Please specify a MySQL 5.x database and user account on your server. If the database does not exist, we will attempt to create it. If the database already exists, the user account should have full read, write and delete permissions on the database.*"); 
 		$this->p("*Recommended permissions are select, insert, update, delete, create, alter, index, drop, create temporary tables, and lock tables.", "detail"); 
 
 		if(!isset($values['dbName'])) $values['dbName'] = '';
@@ -384,7 +394,8 @@ class Installer {
 		if(!isset($values['dbHost'])) $values['dbHost'] = ini_get("mysqli.default_host"); 
 		if(!isset($values['dbPort'])) $values['dbPort'] = ini_get("mysqli.default_port"); 
 		if(!isset($values['dbUser'])) $values['dbUser'] = ini_get("mysqli.default_user"); 
-		if(!isset($values['dbPass'])) $values['dbPass'] = ini_get("mysqli.default_pw"); 
+		if(!isset($values['dbPass'])) $values['dbPass'] = ini_get("mysqli.default_pw");
+		if(!isset($values['dbEngine'])) $values['dbEngine'] = 'MyISAM';
 
 		if(!$values['dbHost']) $values['dbHost'] = 'localhost';
 		if(!$values['dbPort']) $values['dbPort'] = 3306; 
@@ -466,7 +477,8 @@ class Installer {
 			"When ProcessWire creates directories or files, it assigns permissions to them. " . 
 			"Enter the most restrictive permissions possible that give ProcessWire (and you) read and write access to the web server (Apache). " . 
 			"The safest setting to use varies from server to server. " . 
-			"If you are not on a dedicated or private server, or are in any kind of shared environment, you may want to contact your web host to advise on what are the best permissions to use in your environment. " 
+			"If you are not on a dedicated or private server, or are in any kind of shared environment, you may want to contact your web host to advise on what are the best permissions to use in your environment. " . 
+			"<a target='_blank' href='https://processwire.com/docs/security/file-permissions/'>Read more about securing file permissions</a>"
 			);
 
 		$this->p("Permissions must be 3 digits each. Should you opt to use the defaults provided, you can also adjust these permissions later if desired by editing <u>/site/config.php</u>.", "detail");
@@ -474,7 +486,11 @@ class Installer {
 		$this->input('chmodDir', 'Directories', $values['chmodDir']); 
 		$this->input('chmodFile', 'Files', $values['chmodFile'], true); 
 
-		if($cgi) echo "<p class='detail' style='margin-top: 0;'>We detected that this file (install.php) is writable. That means Apache may be running as your user account. Given that, we populated the permissions above (755 &amp; 644) as possible starting point.</p>";
+		if($cgi) {
+			echo "<p class='detail' style='margin-top: 0;'>We detected that this file (install.php) is writable. That means Apache may be running as your user account. Given that, we populated the permissions above (755 &amp; 644) as possible starting point.</p>";
+		} else {
+			echo "<p class='detail' style='margin-top: 0;'>WARNING: 777 and 666 permissions mean that directories and files are readable and writable to everyone on the server (and thus not particularly safe). If in any kind of shared hosting environment, please consult your web host for their recommended permission settings for Apache readable/writable directories and files before proceeding. <a target='_blank' href='https://processwire.com/docs/security/file-permissions/'>More</a></p>";
+		}
 
 		$this->h("HTTP Host Names"); 
 		$this->p("What host names will this installation run on now and in the future? Please enter one host per line. You may also choose to leave this blank to auto-detect on each request, but we recommend using this whitelist for the best security in production environments."); 
@@ -552,15 +568,24 @@ class Installer {
 				PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES 'UTF8'",
 				PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
 				);
+			
 			try {
-				$database = new PDO($dsn, $values['dbUser'], $values['dbPass'], $driver_options); 
+				$database = new PDO($dsn, $values['dbUser'], $values['dbPass'], $driver_options);
+				
 			} catch(Exception $e) {
-				$this->err("Database connection information did not work."); 
-				$this->err($e->getMessage());
+				
+				if($e->getCode() == 1049) {
+					// If schema does not exist, try to create it
+					$database = $this->dbCreateDatabase($dsn, $values, $driver_options); 
+					
+				} else {
+					$this->err("Database connection information did not work.");
+					$this->err($e->getMessage());
+				}
 			}
 		}
 
-		if($this->numErrors) {
+		if($this->numErrors || !$database) {
 			$this->dbConfig($values);
 			return;
 		}
@@ -571,6 +596,54 @@ class Installer {
 
 		if($this->dbSaveConfigFile($values)) $this->profileImport($database, $options);
 			else $this->dbConfig($values);
+	}
+
+	/**
+	 * Create database
+	 * 
+	 * Note: only handles database names that stick to ascii _a-zA-Z0-9.
+	 * For database names falling outside that set, they should be created
+	 * ahead of time. 
+	 * 
+	 * Contains contributions from @plauclair PR #950
+	 * 
+	 * @param string $dsn
+	 * @param array $values
+	 * @param array $driver_options
+	 * @return PDO|null
+	 * 
+	 */
+	protected function dbCreateDatabase($dsn, $values, $driver_options) {
+		
+		$dbCharset = preg_replace('/[^a-z0-9]/', '', strtolower(substr($values['dbCharset'], 0, 64)));
+		$dbName = preg_replace('/[^_a-zA-Z0-9]/', '', substr($values['dbName'], 0, 64));
+		$dbNameTest = str_replace('_', '', $dbName);
+
+		if(ctype_alnum($dbNameTest) && $dbName === $values['dbName']
+			&& ctype_alnum($dbCharset) && $dbCharset === $values['dbCharset']) {
+			
+			// valid database name with no changes after sanitization
+
+			try {
+				$dsn2 = "mysql:host=$values[dbHost];port=$values[dbPort]";
+				$database = new PDO($dsn2, $values['dbUser'], $values['dbPass'], $driver_options);
+				$database->exec("CREATE SCHEMA IF NOT EXISTS `$dbName` DEFAULT CHARACTER SET `$dbCharset`");
+				// reconnect
+				$database = new PDO($dsn, $values['dbUser'], $values['dbPass'], $driver_options);
+				if($database) $this->ok("Created database: $dbName"); 
+
+			} catch(Exception $e) {
+				$this->err("Failed to create database with name $dbName");
+				$this->err($e->getMessage()); 
+				$database = null;
+			}
+			
+		} else {
+			$database = null;
+			$this->err("Unable to create database with that name. Please create the database with another tool and try again."); 
+		}
+		
+		return $database; 
 	}
 
 	/**
@@ -803,7 +876,7 @@ class Installer {
 		
 		$this->p("<i class='fa fa-info-circle'></i> You can change the admin URL later by editing the admin page and changing the name on the settings tab.<br /><i class='fa fa-info-circle'></i> You can change the colors later by going to Admin <i class='fa fa-angle-right'></i> Modules <i class='fa fa-angle-right detail'></i> Core <i class='fa fa-angle-right detail'></i> Admin Theme <i class='fa fa-angle-right'></i> Settings.", "detail"); 
 		$this->h("Admin Account Information");
-		$this->p("The account you create here will have superuser access, so please make sure to create a <a target='_blank' href='http://en.wikipedia.org/wiki/Password_strength'>strong password</a>.");
+		$this->p("You will use this account to login to your ProcessWire admin. It will have superuser access, so please make sure to create a <a target='_blank' href='http://en.wikipedia.org/wiki/Password_strength'>strong password</a>.");
 		$this->input("username", "User", $clean['username'], false, "name"); 
 		$this->input("userpass", "Password", $clean['userpass'], false, "password"); 
 		$this->input("userpass_confirm", "Password <small class='detail'>(again)</small>", $clean['userpass_confirm'], true, "password"); 
@@ -835,7 +908,12 @@ class Installer {
 				'label' => 'Remove installer site profile assets (/site/install/)',
 				'path' => $root . "site/install/", 
 				'file' => '/site/install/', 
-			),
+				), 
+			'gitignore' => array(
+				'label' => 'Remove .gitignore file',
+				'path' => $root . ".gitignore",
+				'file' => '/.gitignore',
+				)
 		);
 		
 		foreach($this->findProfiles() as $name => $profile) {
@@ -958,9 +1036,11 @@ class Installer {
 
 		$this->h("Complete &amp; Secure Your Installation");
 		$this->getRemoveableItems($wire, false, true); 
-		$this->warn("Depending on the environment, you may want to make <b>/site/config.php</b> non-writable, for security.");
+
 		$this->ok("Note that future runtime errors are logged to <b>/site/assets/logs/errors.txt</b> (not web accessible).");
 		$this->ok("For more configuration options see <b>/wire/config.php</b>.");
+		$this->warn("Please make your <b>/site/config.php</b> file non-writable, and readable only to you and Apache.");
+		$this->p("<a target='_blank' href='https://processwire.com/docs/security/file-permissions/#securing-your-site-config.php-file'>How to secure your /site/config.php file <i class='fa fa-angle-right'></i></a>");
 		
 		if(is_writable("./site/modules/")) wireChmod("./site/modules/", true); 
 

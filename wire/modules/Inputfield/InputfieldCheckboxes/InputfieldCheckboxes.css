@@ -1,8 +1,19 @@
+.InputfieldCheckboxes ul {
+	margin-left: 0;
+	padding-left: 0;
+	list-style: none; 
+}
+
 .InputfieldCheckboxes ul li {
 	/* we don't need checkboxes/radios to have bullets, etc. */
 	list-style: none !important;
 	/* no need for top/bottom margins in a group of checkboxes or radios */
 	margin: 0 !important;
+}
+
+.InputfieldCheckboxes table input, 
+.InputfieldCheckboxes li input {
+	margin-right: 0.5em;
 }
 
 .InputfieldCheckboxes table,

@@ -276,12 +276,13 @@ class Fieldgroups extends WireSaveableItemsLookup {
 	 * If the new item uses a 'name' field, it will contain a number at the end to make it unique
 	 *
 	 * @param Saveable $item Item to clone
-	 * @param bool|Saveable $item Returns the new clone on success, or false on failure
+	 * @param string $name
+	 * @return bool|Saveable $item Returns the new clone on success, or false on failure
 	 * @return Saveable|Fieldgroup
 	 *
 	 */
-	public function ___clone(Saveable $item) {
-		return parent::___clone($item);
+	public function ___clone(Saveable $item, $name = '') {
+		return parent::___clone($item, $name);
 		// @TODO clone the field context data
 		/*
 		$id = $item->id; 

@@ -1,5 +1,8 @@
 <?php
 
+// search.php template file
+// See README.txt for more information. 
+
 // look for a GET variable named 'q' and sanitize it
 $q = $sanitizer->text($input->get->q); 
 
@@ -35,7 +38,7 @@ if($q) {
 		// yes we did
 		$content = "<h2>Found $matches->count pages matching your query:</h2>";
 		// we'll use our renderNav function (in _func.php) to render the navigation
-		$content .= renderNav($matches, 0, 'summary'); 
+		$content .= renderNav($matches); 
 	} else {
 		// we didn't find any
 		$content = "<h2>Sorry, no results were found.</h2>";

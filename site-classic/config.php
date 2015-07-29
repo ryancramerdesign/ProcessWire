@@ -8,9 +8,14 @@
  * Please see the file /wire/config.php which contains all configuration options you may
  * specify here. Simply copy any of the configuration options from that file and paste
  * them into this file in order to modify them.
+ * 
+ * SECURITY NOTICE
+ * In non-dedicated environments, you should lock down the permissions of this file so
+ * that it cannot be seen by other users on the system. For more information, please
+ * see the config.php section at: https://processwire.com/docs/security/file-permissions/
  *
  * ProcessWire 2.x
- * Copyright (C) 2014 by Ryan Cramer
+ * Copyright (C) 2015 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  *
  * http://processwire.com

@@ -71,6 +71,7 @@ class ProcessModuleInstall extends Wire {
 		foreach(new DirectoryIterator($path) as $file) {
 			
 			if($file->isDot()) continue; 
+			if(substr($file->getBasename(), 0, 1) == '.') continue;
 			
 			if($file->isDir() && $level < $maxLevel) {
 				$_files = $this->findModuleFiles($file->getPathname());
@@ -96,11 +97,11 @@ class ProcessModuleInstall extends Wire {
 	 * i.e. /site/modules/[ModuleDir]/
 	 *
 	 * @param array $files Files found in the module's ZIP file
-	 * @param string $modulesPath Path where module will live
+	 * @param string $modulePath Path where module will live
 	 * @return bool|string Returns false if no module files found. Otherwise returns string with module path.  
 	 *
 	 */
-	public function determineDestinationDir(array $files, $modulesPath = '') {
+	public function determineDestinationDir(array $files, $modulePath = '') {
 		
 		$moduleFiles = array(); // all module files found
 		$moduleFiles1 = array(); // level1 module files (those in closest dir or subdir)
@@ -142,7 +143,9 @@ class ProcessModuleInstall extends Wire {
 			// if only 1 module file, use that as the dir name
 			reset($moduleFiles1);
 			$moduleDir = key($moduleFiles1);
-			return $modulePath . $moduleDir . '/';
+			$dir = $modulePath . $moduleDir . '/';
+			//$this->message("Determined destination dir to be (1): $dir", Notice::debug); 
+			return $dir;
 		}
 	
 		// see if any of the module files match up with one already on the file system,
@@ -151,9 +154,15 @@ class ProcessModuleInstall extends Wire {
 		foreach($moduleFiles1 as $name) {
 			if(isset($moduleFilesAll[$name])) {
 				$moduleDir = dirname($moduleFilesAll[$name]);
+				$moduleDir = basename($moduleDir); 
+				if($moduleDir == 'modules') $moduleDir = '';
 			}
 		}
-		if($moduleDir) return $modulePath . $moduleDir  . '/';
+		if($moduleDir) {
+			$dir = $modulePath . $moduleDir  . '/';
+			//$this->message("Determined destination dir to be (2): $dir", Notice::debug); 
+			return $dir;
+		}
 
 
 		// sort by length 
@@ -195,14 +204,18 @@ class ProcessModuleInstall extends Wire {
 				// if we haven't been able to match to a moduleName, 
 				// just use the extractedDir since it follows a class name format
 				if(!$moduleDir) {
-					return $modulePath . $extractedDir . '/';
+					$dir = $modulePath . $extractedDir . '/';
+					//$this->message("Determined destination dir to be (3): $dir", Notice::debug); 
+					return $dir; 
 				}
 			}
 		}
 
 		// if we reach this point, use the shortest module name as the dirname	
 		$moduleDir = end($moduleFiles1);
-		return $modulePath . $moduleDir . '/';
+		$dir = $modulePath . $moduleDir . '/';
+		//$this->message("Determined destination dir to be (4): $dir", Notice::debug); 
+		return $dir; 
 	}
 
 	/**
@@ -235,10 +248,7 @@ class ProcessModuleInstall extends Wire {
 			$destinationDir = $this->determineDestinationDir($files); 
 			if(!$destinationDir) throw new WireException($this->_('Unable to find any module files'));
 		}
-		
-		if(is_link($destinationDir)) {
-			throw new WireException($this->_('Directory is a symbolic link') . " - $destinationDir");
-		}
+		$this->message("Destination directory: $destinationDir", Notice::debug); 
 		
 		$files0 = trim($files[0], '/');
 		$extractedDir = is_dir("$tempDir/$files0") && substr($files0, 0, 1) != '.' ? "$files0/" : "";
@@ -247,7 +257,7 @@ class ProcessModuleInstall extends Wire {
 		if(is_dir($destinationDir)) {
 			// destination dir already there, perhaps an older version of same module?
 			// create a backup of it
-			$hasBackup = $this->backupDir($destinationDir); 
+			$hasBackup = $this->backupDir($destinationDir);
 			if($hasBackup) wireMkdir($destinationDir, true); 
 		} else {
 			if(wireMkdir($destinationDir, true)) $mkdirDestination = true;
@@ -287,11 +297,28 @@ class ProcessModuleInstall extends Wire {
 		$parentDir = dirname($dir);
 		$backupDir = "$parentDir/.$name/";
 		if(is_dir($backupDir)) wireRmdir($backupDir, true); // if there's already an old backup copy, remove it
-		if(rename($moduleDir, $backupDir)) {
+		$success = false;
+		
+		if(is_link(rtrim($moduleDir, '/'))) {
+			// module directory is a symbolic link
+			// copy files from symlink dir to real backup dir
+			$success = wireCopy($moduleDir, $backupDir); 
+			// remove symbolic link
+			unlink(rtrim($moduleDir, '/'));
+			$dir = str_replace($this->wire('config')->paths->root, '/', $moduleDir); 
+			$this->error(sprintf($this->_('Please note that %s was a symbolic link and has been converted to a regular directory'), $dir), Notice::warning); 
+		} else {
+			// module is a regular directory
+			// just rename it to become the new backup dir
+			if(rename($moduleDir, $backupDir)) $success = true; 
+		}
+		
+		if($success) {
 			$this->message(sprintf($this->_('Backed up existing %s'), $name) . " => " . str_replace($this->wire('config')->paths->root, '/', $backupDir));
 			return true; 
+		} else {
+			return false;
 		}
-		return false;
 	}
 	
 	protected function restoreDir($moduleDir) {
@@ -337,7 +364,7 @@ class ProcessModuleInstall extends Wire {
 
 		if(count($files)) {
 			$file = $tempDir . reset($files);
-			$destinationDir = $this->unzipModule($file, $destinationDir); 
+			$destinationDir = $this->unzipModule($file, $destinationDir);
 			if($destinationDir) $this->modules->resetCache();
 
 		} else {
@@ -383,7 +410,7 @@ class ProcessModuleInstall extends Wire {
 			$this->message(sprintf($this->_('Downloaded ZIP file: %s (%d bytes)'), $url, filesize($file)));
 			$destinationDir = $this->unzipModule($file, $destinationDir);
 			if($destinationDir) {
-				$success = true; 
+				$success = true;
 				$this->modules->resetCache();
 			}
 

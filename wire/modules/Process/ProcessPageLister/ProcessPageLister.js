@@ -1,4 +1,3 @@
-
 var ProcessLister = {
 
 	form: null,
@@ -11,6 +10,7 @@ var ProcessLister = {
 	filters: null,
 	lister: null,
 	initialized: false,
+	resetTotal: false, 
 	clickAfterRefresh: '', // 'id' attribute of link to automatically click after a refresh
 
 	columnSort: function() {
@@ -49,6 +49,7 @@ var ProcessLister = {
 		}); 
 
 		$("#submit_refresh").click(function() {
+			ProcessLister.resetTotal = true; 
 			ProcessLister.submit();
 			$(this).fadeOut("normal", function() {
 				$("#submit_refresh").removeClass('ui-state-active').fadeIn();
@@ -67,6 +68,7 @@ var ProcessLister = {
 		$("#_ProcessListerRefreshTab").html("<i class='fa fa-refresh ui-priority-secondary'></i>")
 			.unbind('click')
 			.click(function() {
+				ProcessLister.resetTotal = true; 
 				ProcessLister.submit();
 				return false;
 			});
@@ -97,15 +99,22 @@ var ProcessLister = {
 		if(typeof url == "undefined") var url = "./";
 
 		ProcessLister.spinner.fadeIn('fast'); 
+		
+		var submitData = {
+			filters: ProcessLister.filters.val(),
+			columns: $('#lister_columns').val(),
+			sort: $('#lister_sort').val()
+		};
+		
+		if(ProcessLister.resetTotal) {
+			submitData['reset_total'] = 1;
+			ProcessLister.resetTotal = false;
+		}
 
 		$.ajax({
 			url: url, 
 			type: 'POST', 
-			data: { 
-				filters: ProcessLister.filters.val(),
-				columns: $('#lister_columns').val(), 
-				sort: $('#lister_sort').val()
-			}, 
+			data: submitData, 
 			success: function(data) {
 				var sort = $("#lister_sort").val();
 				ProcessLister.results.html(data).find("th").each(function() {
@@ -113,6 +122,7 @@ var ProcessLister = {
 					var txt = $b.text();
 					$b.remove();
 					$(this).find('span').remove();
+					var $icon = $(this).find('i');
 					var label = $(this).text();
 					if(txt == sort) {
 						$(this).html("<u>" + label + "</u><span>&nbsp;&darr;</span><b>" + txt + "</b>");
@@ -121,6 +131,7 @@ var ProcessLister = {
 					} else {
 						$(this).html(label + "<b>" + txt + "</b>");
 					}
+					if($icon.length > 0) $(this).prepend($icon);
 					if(ProcessLister.clickAfterRefresh.length > 0) {
 						var $a = $('#' + ProcessLister.clickAfterRefresh).click(); 
 						ProcessLister.clickAfterRefresh = '';

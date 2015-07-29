@@ -127,7 +127,7 @@
 
 .InputfieldSelector a.selector-add {
 	width: 50%; 
-	float: left 
+	float: left;
 	display: block;
 	clear: both; 
 }

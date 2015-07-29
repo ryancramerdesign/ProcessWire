@@ -101,6 +101,12 @@ DirectoryIndex index.php index.html index.htm
   AddDefaultCharset UTF-8
 
   # -----------------------------------------------------------------------------------------------
+  # If you only want to allow HTTPS, uncomment the RewriteCond and RewriteRule lines below.
+  # -----------------------------------------------------------------------------------------------
+  # RewriteCond %{HTTPS} off
+  # RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI} [L]
+
+  # -----------------------------------------------------------------------------------------------
   # Set an environment variable so the installer can detect that mod_rewrite is active.
   # Note that some web hosts don't support this. If you get a 500 error, you might try 
   # commenting out this SetEnv line below. 

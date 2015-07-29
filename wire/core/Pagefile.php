@@ -13,21 +13,31 @@
  *
  *
  * @property string $url URL to the file on the server	
+ * @proeprty string $URL Same as $url property but with cache buster appended.
  * @property string $filename full disk path to the file on the server
  * @property string $name Returns the filename without the path (basename)
+ * @property string $basename Returns the filename without the path (alias of name)
  * @property string $description value of the file's description field (text). Note you can also set this property directly.
  * @property string $tags value of the file's tags field (text). Note you can also set this property directly.
  * @property string $ext file's extension (i.e. last 3 or so characters)
  * @property int $filesize file size, number of bytes
- * @property int $modified timestamp of when file was last modified
+ * @property int $modified timestamp of when pagefile (file, description or tags) was last modified.
+ * @property int $mtime timestamp of when file (only) was last modified. 
  * @property int $created timestamp of when file was created
  * @property string $filesizeStr file size as a formatted string
  * @property Pagefiles $pagefiles the WireArray that contains this file
  * @property Page $page the $page that contains this file
+ * @property Field $field the $field that contains this file
  *
  */
 
 class Pagefile extends WireData {
+
+	/**
+	 * Timestamp 'created' used by pagefiles that are temporary, not yet published
+	 * 
+	 */
+	const createdTemp = 10; 
 
 	/**
 	 * Reference to the owning collection of Pagefiles
@@ -149,11 +159,16 @@ class Pagefile extends WireData {
 	 *
 	 */
 	protected function setDescription($value, Page $language = null) {
+		
+		$field = $this->field; 
+		$noLang = $field && $field->noLang; // noLang setting to disable multi-language from InputfieldFile
 
 		if(!is_null($language) && $language->id) {
 			$name = "description";
-			if(!$language->isDefault()) $name .= $language->id; 
-			parent::set($name, $this->wire('sanitizer')->textarea($value)); 
+			if(!$language->isDefault() && !$noLang) {
+				$name .= $language->id;
+			}
+			parent::set($name, $value); 
 			return $this; 
 		}
 
@@ -171,17 +186,17 @@ class Pagefile extends WireData {
 			foreach($values as $id => $v) {	
 				// first item is always default language. this ensures description will still
 				// work even if language support is later uninstalled. 
+				if($noLang && $n > 0) continue;
 				$name = $n > 0 ? "description$id" : "description"; 
-				parent::set($name, $this->wire('sanitizer')->textarea($v)); 
+				parent::set($name, $v); 
 				$n++; 
 			}
 		} else {
 			// no JSON values so assume regular language description
 			$languages = $this->wire('languages');
 			$language = $this->wire('user')->language; 
-			$value = $this->wire('sanitizer')->textarea($value); 
 
-			if($languages && $language && !$language->isDefault()) {
+			if($languages && $language && !$noLang && !$language->isDefault()) {
 				parent::set("description$language", $value); 
 			} else {
 				parent::set("description", $value); 
@@ -278,7 +293,7 @@ class Pagefile extends WireData {
 
 		switch($key) {
 			case 'url':
-			case 'httpUrl': 
+			case 'httpUrl':
 			case 'filename':
 			case 'description':
 			case 'tags':
@@ -288,6 +303,10 @@ class Pagefile extends WireData {
 			case 'filesizeStr':
 				// 'basename' property intentionally excluded 
 				$value = $this->$key();
+				break;
+			case 'URL':
+				// nocache url
+				$value = $this->url() . '?nc=' . @filemtime($this->filename());
 				break;
 			case 'pagefiles': 
 				$value = $this->pagefiles; 
@@ -305,6 +324,9 @@ class Pagefile extends WireData {
 					$value = filemtime($this->filename()); 
 					parent::set($key, $value); 
 				}
+				break;
+			case 'mtime':
+				$value = filemtime($this->filename()); 
 				break;
 		}
 		if(is_null($value)) return parent::get($key); 
@@ -333,20 +355,24 @@ class Pagefile extends WireData {
 
 	/**
 	 * Return the web accessible URL to this Pagefile
+	 * 
+	 * @return string
 	 *
 	 */
 	public function url() {
 		return self::isHooked('Pagefile::url()') ? $this->__call('url', array()) : $this->___url();
 	}
-
+	
 	/**
 	 * Hookable version of url() method
+	 * 
+	 * @return string
 	 *
 	 */
 	protected function ___url() {
-		return $this->pagefiles->url . $this->basename; 	
+		return $this->pagefiles->url . $this->basename;
 	}
-
+	
 	/**
 	 * Return the web accessible URL (with schema and hostname) to this Pagefile
 	 *
@@ -412,14 +438,11 @@ class Pagefile extends WireData {
 	/**
 	 * Returns the filesize in a formatted, output-ready string
 	 *
-	 * @return int
+	 * @return string
 	 *
 	 */
 	public function filesizeStr() {
-		$size = $this->filesize();
-		if($size < 1024) return number_format($size) . ' ' . $this->_('bytes');
-		$kb = round($size / 1024); 
-		return number_format($kb) . " " . $this->_('kB'); // kilobytes
+		return wireBytesStr($this->filesize()); 
 	}
 
 	/**
@@ -537,6 +560,17 @@ class Pagefile extends WireData {
 	public function setPagefilesParent(Pagefiles $pagefiles) {
 		$this->pagefiles = $pagefiles; 
 		return $this;
+	}
+
+	/**
+	 * Returns true if this Pagefile is temporary, not yet published. Or use this to set the temp status. 
+	 * 
+	 * @param bool $set Optionally set the temp status to true or false
+	 * @return bool
+	 * 
+	 */
+	public function isTemp($set = null) {
+		return $this->pagefiles->isTemp($this, $set); 
 	}
 
 

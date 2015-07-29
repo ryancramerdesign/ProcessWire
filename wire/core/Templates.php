@@ -213,10 +213,11 @@ class Templates extends WireSaveableItems {
 	 * Note that this also clones the Fieldgroup if the template being cloned has it's own named fieldgroup.
 	 *
 	 * @param Template|Saveable $item Item to clone
+	 * @param string $name
 	 * @return bool|Saveable|Template $item Returns the new clone on success, or false on failure
 	 *
 	 */
-	public function ___clone(Saveable $item) {
+	public function ___clone(Saveable $item, $name = '') {
 
 		$original = $item;
 		$item = clone $item; 
@@ -234,16 +235,16 @@ class Templates extends WireSaveableItems {
 
 		if($fieldgroup->name == $item->name) {
 			// if the fieldgroup and the item have the same name, we'll also clone the fieldgroup
-			$fieldgroup = wire('fieldgroups')->clone($fieldgroup); 	
+			$fieldgroup = $this->wire('fieldgroups')->clone($fieldgroup, $name); 	
 			$item->fieldgroup = $fieldgroup;
 		}
 
-		$item = parent::___clone($item);
+		$item = parent::___clone($item, $name);
 
 		if($item && $item->id && !$item->altFilename) { 
 			// now that we have a clone, lets also clone the template file, if it exists
-			$path = $this->fuel('config')->paths->templates; 
-			$file = $path . $item->name . '.' . $this->fuel('config')->templateExtension; 
+			$path = $this->wire('config')->paths->templates; 
+			$file = $path . $item->name . '.' . $this->wire('config')->templateExtension; 
 			if($original->filenameExists() && is_writable($path) && !file_exists($file)) { 
 				if(copy($original->filename, $file)) $item->filename = $file;
 			}
@@ -469,7 +470,7 @@ class Templates extends WireSaveableItems {
 			if(!in_array($template->id, $parentTemplate->childTemplates)) continue;
 
 			// sort=status ensures that a non-hidden page is given preference to a hidden page
-			$include = $checkAccess ? "hidden" : "all";
+			$include = $checkAccess ? "unpublished" : "all";
 			$parentPages = $this->wire('pages')->find("templates_id=$parentTemplate->id, include=$include, sort=status, limit=2");
 
 			$numParentPages = count($parentPages);

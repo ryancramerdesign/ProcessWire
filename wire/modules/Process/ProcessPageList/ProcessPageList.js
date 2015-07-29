@@ -1,4 +1,3 @@
-
 /**
  * ProcessWire Page List Process, JQuery Plugin
  *
@@ -100,7 +99,16 @@ $(document).ready(function() {
 			openPageIDs: [],
 
 			// speed at which the slideUp/slideDown run (in ms)
-			speed: 200
+			speed: 200,
+			
+			// whether or not hovering an item reveals its actions
+			useHoverActions: false, 
+		
+			// milliseconds delay between hovering an item and it revealing actions 
+			hoverActionDelay: 250,
+			
+			// milliseconds in fade time to reveal or hide hover actions
+			hoverActionFade: 150
 		}; 
 
 		$.extend(options, customOptions);
@@ -133,9 +141,86 @@ $(document).ready(function() {
 					$container.append($root); 
 					loadChildren(options.rootPageID > 0 ? options.rootPageID : 1, $root, 0, true); 
 				}
-
+				
+				if(options.useHoverActions && !$("body").hasClass('touch-device')) {
+					$root.addClass('PageListUseHoverActions');
+					setupHoverActions();
+				}
 			}
 
+			/**
+			 * If hover actions enabled, setup events to hide/show hover actions
+			 * 
+ 			 */
+			function setupHoverActions() {
+				
+				var hoverTimeout = null;
+				var hoverOutTimeout = null;
+				var $hoveredItem = null;
+				
+				function showItem($item) {
+					var $actions = $item.find('.PageListActions');
+					if(!$actions.is(":visible") || $item.hasClass('PageListItemOpen')) {
+						// we confirm :visible so that we don't iterfere with admin themes that already
+						// make the PageList items visible with css hover states
+						$item.addClass('PageListItemHover');
+						$actions.css('display', 'inline').css('opacity', 0)
+							.animate({opacity: 1.0}, options.hoverActionFade);
+					}
+				}
+				
+				function hideItem($item) {
+					var $actions = $item.find('.PageListActions');
+					$item.removeClass('PageListItemHover');
+					if($actions.is(":visible")) { // || $hoveredItem.hasClass('PageListItemOpen')) {
+						$actions.animate({opacity: 0}, options.hoverActionFade, function () {
+							$actions.hide();
+						});
+					}
+				}
+				
+				$(document).on('mouseover', '.PageListItem', function(e) {
+
+					if($root.is(".PageListSorting") || $root.is(".PageListSortSaving")) return;
+					if(!$(this).children('a:first').is(":hover")) return;
+					
+					$hoveredItem = $(this);
+					//console.log('pageX=' + e.pageX);
+					//console.log('offsetX=' + $hoveredItem.offset().left);
+					
+					//var maxPageX = $(this).children('.PageListNumChildren').offset().left + 100;
+					//if(e.pageX > maxPageX) return;
+					
+					if($hoveredItem.hasClass('PageListItemHover')) return;
+					var $item = $(this);
+					if(hoverTimeout) clearTimeout(hoverTimeout);
+					var delay = options.hoverActionDelay;
+					
+					
+					hoverTimeout = setTimeout(function() {
+						if($hoveredItem.attr('class') == $item.attr('class')) {
+							if(!$hoveredItem.children('a:first').is(":hover")) return;
+							var $hideItems = $(".PageListItemHover");
+							showItem($hoveredItem);
+							$hideItems.each(function() { hideItem($(this)); });
+						}
+					}, delay); 
+
+				}).on('mouseout', '.PageListItem', function(e) {
+					if($root.is(".PageListSorting") || $root.is(".PageListSortSaving")) return;
+					var $item = $(this);
+					if($item.hasClass('PageListItemOpen')) return;
+					if(!$item.hasClass('PageListItemHover')) return;
+					var delay = options.hoverActionDelay * 0.7;
+					hoverOutTimeout = setTimeout(function() {
+						if($item.is(":hover")) return;
+						if($item.attr('class') == $hoveredItem.attr('class')) return;
+						hideItem($item);
+					}, delay);
+				});
+			
+			}
+			
 			/**
 	 		 * Sets up a mode where the user is given a "select" link for each page, rather than a list of actions
 			 * 
@@ -173,7 +258,7 @@ $(document).ready(function() {
 						var parentPath = '';
 						if(options.selectShowPath) {
 							parentPath = data.page.path;
-							parentPath = parentPath.substring(0, parentPath.length-1); 
+							if(parentPath.substring(-1) == '/') parentPath = parentPath.substring(0, parentPath.length-1); 
 							parentPath = parentPath.substring(0, parentPath.lastIndexOf('/')+1); 
 							parentPath = '<span class="detail">' + parentPath + '</span> ';
 						} 
@@ -401,7 +486,20 @@ $(document).ready(function() {
 				}; 
 
 				if(!replace) $target.append($loading.show()); 
-				$.getJSON(options.ajaxURL + "?id=" + id + "&render=JSON&start=" + start + "&lang=" + options.langID + "&open=" + options.openPageIDs[0] + "&mode=" + options.mode, processChildren); 
+				
+				// $.getJSON(options.ajaxURL + "?id=" + id + "&render=JSON&start=" + start + "&lang=" + options.langID + "&open=" + options.openPageIDs[0] + "&mode=" + options.mode, processChildren);
+				// @teppokoivula PR #1052
+				$.getJSON(options.ajaxURL + "?id=" + id + "&render=JSON&start=" + start + "&lang=" + options.langID + "&open=" + options.openPageIDs[0] + "&mode=" + options.mode)
+					.done(function(data, textStatus, jqXHR) {
+						processChildren(data);
+					})
+					.fail(function(jqXHR, textStatus, errorThrown) {
+						processChildren({
+							error: 1,
+							message: !jqXHR.status ? options.ajaxNetworkError : options.ajaxUnknownError
+						});
+					});
+				// end #1052
 			}
 
 			/**
@@ -553,8 +651,16 @@ $(document).ready(function() {
 			function clickMove() {
 
 				if(ignoreClicks) return false;
+				
 
-				var $t = $(this); 
+				var $t = $(this);
+				
+				if($(".PageListItem:visible").length == 1) {
+					// no other items to sort/move to
+					$t.css('text-decoration', 'line-through').addClass('ui-state-disabled');
+					return false;
+				}
+				
 				var $li = $t.parent('li').parent('ul.PageListActions').parent('.PageListItem'); 
 
 				// $li.children(".PageListPage").click(); 
@@ -597,6 +703,7 @@ $(document).ready(function() {
 				if($li.hasClass('trashable')) { 
 					var $trashLink = $("<a class='PageListActionTrash ui-priority-secondary' href='#'><i class='fa fa-trash-o'></i> " + options.trashLabel + "</i></a>").click(function() {
 						trashPage($li);
+						return false;
 					});
 					$li.addClass('ui-helper-clearfix');
 					$moveAction.append($trashLink);

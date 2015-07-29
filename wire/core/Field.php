@@ -7,10 +7,10 @@
  * and is managed by the 'Fields' class.
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://processwire.com
+ * https://processwire.com
  *
  * @property int $id
  * @property string $name
@@ -20,6 +20,11 @@
  * @property Fieldtype $prevFieldtype
  * @property int $flags
  * @property string $label
+ * @property string $description
+ * @property string $notes
+ * @property string $icon
+ * 
+ * @todo add modified date property
  *
  */
 class Field extends WireData implements Saveable, Exportable {
@@ -59,7 +64,7 @@ class Field extends WireData implements Saveable, Exportable {
 	 *
 	 */
 	const flagSystemOverride = 32768; 
-
+	
 	/**
 	 * Permanent/native settings to an individual Field
 	 *
@@ -111,6 +116,10 @@ class Field extends WireData implements Saveable, Exportable {
 
 	/**
 	 * Set a native setting or a dynamic data property for this Field
+	 * 
+	 * @param string $key
+	 * @param mixed $value
+	 * @return this
 	 *
 	 */
 	public function set($key, $value) {
@@ -131,7 +140,9 @@ class Field extends WireData implements Saveable, Exportable {
 			}
 
 		if(isset($this->settings[$key])) {
-			$this->settings[$key] = $value; 
+			$this->settings[$key] = $value;
+		} else if($key == 'icon') {
+			$this->setIcon($value); 
 		} else {
 			return parent::set($key, $value); 
 		}
@@ -141,6 +152,8 @@ class Field extends WireData implements Saveable, Exportable {
 
 	/**
 	 * Set the flags field, ensuring a system flag remains set
+	 * 
+	 * @param int $value
 	 *
 	 */
 	protected function setFlags($value) {
@@ -156,6 +169,9 @@ class Field extends WireData implements Saveable, Exportable {
 
 	/**
 	 * Get a Field setting or dynamic data property
+	 * 
+	 * @param string $key
+	 * @return mixed
 	 *
 	 */
 	public function get($key) {
@@ -163,6 +179,7 @@ class Field extends WireData implements Saveable, Exportable {
 			else if($key == 'prevTable') return $this->prevTable; 
 			else if($key == 'prevFieldtype') return $this->prevFieldtype; 
 			else if(isset($this->settings[$key])) return $this->settings[$key]; 
+			else if($key == 'icon') return $this->getIcon(true); 
 		$value = parent::get($key); 
 		if(is_array($this->trackGets)) $this->trackGets($key); 
 		return $value; 
@@ -232,7 +249,7 @@ class Field extends WireData implements Saveable, Exportable {
 		
 		if($this->type) {
 			$typeData = $this->type->exportConfigData($this, $data);
-			$data = array_merge($typeData, $data); 
+			$data = array_merge($data, $typeData); 
 		}
 		
 		// remove named flags from data since the 'flags' property already covers them
@@ -496,38 +513,64 @@ class Field extends WireData implements Saveable, Exportable {
 
 		$wrapper = new InputfieldWrapper();
 		$fieldgroupContext = $this->flags & Field::flagFieldgroupContext; 
+		
+		if($fieldgroupContext) {
+			$allowContext = $this->type->getConfigAllowContext($this); 
+			if(!is_array($allowContext)) $allowContext = array();
+		} else {
+			$allowContext = array();
+		}
 
-		if(!$fieldgroupContext) {
+		if(!$fieldgroupContext || count($allowContext)) {
+			
 			$inputfields = new InputfieldWrapper();
-			$inputfields->head = $this->_('Field type details');
+			if(!$fieldgroupContext) $inputfields->head = $this->_('Field type details');
 			$inputfields->attr('title', $this->_('Details'));
 
 			try {
 				$fieldtypeInputfields = $this->type->getConfigInputfields($this); 
-				if($fieldtypeInputfields) foreach($fieldtypeInputfields as $inputfield) {
-					$inputfields->append($inputfield); 
+				if(!$fieldtypeInputfields) $fieldtypeInputfields = new InputfieldWrapper();
+				$configArray = $this->type->getConfigArray($this); 
+				if(count($configArray)) {
+					$w = new InputfieldWrapper();
+					$w->importArray($configArray);
+					$w->populateValues($this);
+					$fieldtypeInputfields->import($w);
+				}
+				foreach($fieldtypeInputfields as $inputfield) {
+					if($fieldgroupContext && !in_array($inputfield->name, $allowContext)) continue;
+					$inputfields->append($inputfield);
 				}
 			} catch(Exception $e) {
 				$this->error($e->getMessage()); 
 			}
 
 			if(count($inputfields)) $wrapper->append($inputfields); 
-		} else {
-			// we currently exclude fieldtype configuration changes when in fieldgroup context
-			// not sure that we need to, but keeping it simple to start
 		}
 
 		$inputfields = new InputfieldWrapper();
-		$dummyPage = $this->fuel('pages')->get("/"); // only using this to satisfy param requirement 
+		$dummyPage = $this->wire('pages')->get("/"); // only using this to satisfy param requirement 
 
 		if($inputfield = $this->getInputfield($dummyPage)) {
-			if(!$fieldgroupContext) $inputfields->head = $this->_('Input field settings');
+			if($fieldgroupContext) {
+				$allowContext = array('visibility', 'collapsed', 'columnWidth', 'required', 'requiredIf', 'showIf');
+				$allowContext = array_merge($allowContext, $inputfield->getConfigAllowContext($this)); 
+			} else {
+				$allowContext = array();
+				$inputfields->head = $this->_('Input field settings');
+			}
 			$inputfields->attr('title', $this->_('Input')); 
 			$inputfieldInputfields = $inputfield->getConfigInputfields();
-			if($inputfieldInputfields) foreach($inputfieldInputfields as $i) { 
-				// currently we only support collapsed and columnWidth for fieldgroup context
-				// however we may support everything after starting with these limited options for awhile
-				if($fieldgroupContext && !in_array($i->name, array('visibility', 'collapsed', 'columnWidth', 'required', 'requiredIf', 'showIf'))) continue; 
+			if(!$inputfieldInputfields) $inputfieldInputfields = new InputfieldWrapper();
+			$configArray = $inputfield->getConfigArray(); 
+			if(count($configArray)) {
+				$w = new InputfieldWrapper();
+				$w->importArray($configArray);
+				$w->populateValues($this);
+				$inputfieldInputfields->import($w);
+			}
+			foreach($inputfieldInputfields as $i) { 
+				if($fieldgroupContext && !in_array($i->name, $allowContext)) continue; 
 				$inputfields->append($i); 
 			}
 		}
@@ -537,11 +580,11 @@ class Field extends WireData implements Saveable, Exportable {
 		return $wrapper; 
 	}
 
-
 	public function getTable() {
 		if(is_null(self::$lowercaseTables)) self::$lowercaseTables = $this->config->dbLowercaseTables ? true : false;
 		$name = $this->settings['name'];
 		if(self::$lowercaseTables) $name = strtolower($name); 
+		if(!strlen($name)) throw new WireException("Field 'name' is required"); 
 		return "field_" . $name;
 	}
 
@@ -557,6 +600,26 @@ class Field extends WireData implements Saveable, Exportable {
 		if(parent::__isset($key)) return true; 
 		return isset($this->settings[$key]); 
 	}
+	
+	/**
+	 * Return field label, description or notes for current language
+	 *
+	 * @param string $property Specify either label, description or notes
+	 * @param Page|Language $language Optionally specify a language. If not specified user's current language is used.
+	 * @return string
+	 *
+	 */
+	protected function getText($property, $language = null) {
+		if(is_null($language)) $language = $this->wire('languages') ? $this->wire('user')->language : null;
+		if($language) {
+			$value = $this->get("$property$language");
+			if(!strlen($value)) $value = $this->$property;
+		} else {
+			$value = $this->$property;
+		}
+		if($property == 'label' && !strlen($value)) $value = $this->name;
+		return $value;
+	}
 
 	/**
 	 * Return field label for current language
@@ -568,15 +631,7 @@ class Field extends WireData implements Saveable, Exportable {
 	 *
 	 */
 	public function getLabel($language = null) {
-		if(is_null($language)) $language = $this->wire('languages') ? $this->wire('user')->language : null;
-		if($language) {
-			$label = $this->get("label$language");
-			if(!strlen($label)) $label = $this->label;
-		} else {
-			$label = $this->label;
-		}
-		if(!strlen($label)) $label = $this->name;
-		return $label;
+		return $this->getText('label', $language);
 	}
 
 	/**
@@ -589,14 +644,68 @@ class Field extends WireData implements Saveable, Exportable {
 	 *
 	 */
 	public function getDescription($language = null) {
-		if(is_null($language)) $language = $this->wire('languages') ? $this->wire('user')->language : null;
-		if($language) {
-			$description = $this->get("description$language");
-			if(!strlen($description)) $description = $this->description;
-		} else {
-			$description = $this->description;
-		}
-		return $description;
+		return $this->getText('description', $language);
+	}
+
+	/**
+	 * Return field notes for current language
+	 *
+	 * This is different from $this->notes in that it knows about languages (when installed).
+	 *
+	 * @param Page|Language $language Optionally specify a language. If not specified user's current language is used.
+	 * @return string
+	 *
+	 */
+	public function getNotes($language = null) {
+		return $this->getText('notes', $language);
+	}
+
+	/**
+	 * Return the icon used by this field, or blank if none
+	 * 
+	 * @param bool $prefix Whether or not you want the fa- prefix included
+	 * @return mixed|string
+	 * 
+	 */
+	public function getIcon($prefix = false) {
+		$icon = parent::get('icon'); 
+		if(empty($icon)) return '';
+		if(strpos($icon, 'fa-') === 0) $icon = str_replace('fa-', '', $icon);
+		if(strpos($icon, 'icon-') === 0) $icon = str_replace('icon-', '', $icon); 
+		return $prefix ? "fa-$icon" : $icon;
+	}
+
+	/**
+	 * Set the icon for this field
+	 * 
+	 * @param string $icon Icon name
+	 * @return $this
+	 * 
+	 */
+	public function setIcon($icon) {
+		// store the non-prefixed version
+		if(strpos($icon, 'icon-') === 0) $icon = str_replace('icon-', '', $icon);
+		if(strpos($icon, 'fa-') === 0) $icon = str_replace('fa-', '', $icon); 
+		$icon = $this->wire('sanitizer')->pageName($icon); 
+		parent::set('icon', $icon); 
+		return $this; 
+	}
+
+	/**
+	 * debugInfo PHP 5.6+ magic method
+	 *
+	 * This is used when you print_r() an object instance.
+	 *
+	 * @return array
+	 *
+	 */
+	public function __debugInfo() {
+		$info = parent::__debugInfo();
+		$info['settings'] = $this->settings; 
+		if($this->prevTable) $info['prevTable'] = $this->prevTable;
+		if($this->prevFieldtype) $info['prevFieldtype'] = (string) $this->prevFieldtype;
+		if(!empty($this->trackGets)) $info['trackGets'] = $this->trackGets;
+		return $info; 
 	}
 	
 }

@@ -162,7 +162,7 @@ class LanguageSupportInstall extends Wire {
 		}
 		// update
 		$field->label = 'Site Translation Files';
-		$field->description = 'Use this for field for translations specific to your site (like files in /site/templates/ for example).';
+		$field->description = 'Use this field for translations specific to your site (like files in /site/templates/ for example).';
 		$field->descriptionRows = 0;
 		$field->save();
 		$fieldgroup->add($field);
@@ -184,7 +184,7 @@ class LanguageSupportInstall extends Wire {
 		}
 		// update
 		$field->label = 'Core Translation Files';
-		$field->description = 'Use this for field for [language packs](http://modules.processwire.com/categories/language-pack/). To delete all files, double-click the trash can for any file, then save.';
+		$field->description = 'Use this field for [language packs](http://modules.processwire.com/categories/language-pack/). To delete all files, double-click the trash can for any file, then save.';
 		$field->descriptionRows = 0;
 		$field->save();
 		$fieldgroup->add($field); 

@@ -94,6 +94,7 @@
 	font-weight: $bold-weight; 
 }
 
+/*
 #notices .ui-state-highlight, 
 #notices .ui-state-error {
 	padding: 0.25em 0; 
@@ -132,6 +133,7 @@
 	p span.ui-state-error {
 		padding: 0.25em 0.5em;
 	}
+*/
 
 /**
  * ui-dialog
@@ -161,7 +163,8 @@
 	.ui-dialog-buttonpane {
 		background: $subtle-bg; 
 		border: none; 
-		margin-top: 0;
+		margin-top: -7px;
+		padding: 1px 8px 1px 8px; 
 	}
 
 	.ui-dialog-content {
@@ -247,6 +250,10 @@ button.ui-button.ui-state-default,
 
 	.ui-menu-item {
 
+		i.fa {
+			margin-right: 2px; 
+		}
+
 		a {
 			font-size: $base-font-size; 
 			color: $topnav-link-color; 
@@ -254,6 +261,7 @@ button.ui-button.ui-state-default,
 			margin: 0 !important; 
 			padding: 0.5em 0.75em 0.5em 0.75em; 
 			cursor: pointer; 
+			white-space: nowrap; 
 
 			&.on {
 				background: $topnav-link-hover-bg; 
@@ -270,31 +278,59 @@ button.ui-button.ui-state-default,
 			.ui-menu-icon {
 				display: none; 
 			}
-		}
-
-		.ui-menu {
-			border-left: 1px solid lighten($masthead-bg, 5%); 
-			padding-bottom: 0.5em; 
-			@include border-radius($menu-radius); 
-
-			.ui-menu-item {
-				line-height: 1em; 
-
-				a {
-					padding-top: 0;
-					padding-bottom: 0; 
-				}
-
-				&:first-child a {
-					padding-top: 0.5em;
-					padding-bottom: 0.5em;
-					background: lighten($masthead-bg, 5%); 
-					&:hover {
-						background: $topnav-link-hover-bg; 
-					}
-				}
+			
+			small {
+				opacity: 0.5;
 			}
 		}
+		
+		.ui-menu {
+			border-left: 1px solid lighten($masthead-bg, 5%);
+			@include border-radius($menu-radius); 
+		}
+
+		.ui-menu.navJSON {
+			border-left: 1px solid lighten($masthead-bg, 5%); 
+			@include border-radius($menu-radius);
+
+			.ui-menu-item:not(.add) {
+				line-height: 1.1em;
+				//font-size: 0.866666666666667em;
+				font-size: 0.933333333333333em;
+				
+				a {
+					padding-top: 0;
+					padding-bottom: 0;
+				}
+				
+				&:first-child {
+					padding-top: 0.5em;
+				}
+				
+				&:last-child {
+					padding-bottom: 0.5em;
+				}
+
+			}
+			
+			.ui-menu-item.add {
+				background: lighten($masthead-bg, 5%);
+				
+				&:hover {
+					background: $topnav-link-hover-bg;
+				}
+			}
+			
+			.ui-menu-item.add + .ui-menu-item:not(.add) {
+				padding-top: 0.3em;
+			}
+			
+			&.length0 { // 0 items, no padding necessary at bottom
+				padding-bottom: 0;
+			}
+		}
+		
+		
 	}
 }
 
@@ -337,10 +373,6 @@ button.ui-button.ui-state-default,
 			@include border-radius($menu-radius); 
 			background: $masthead-bg; 
 
-		}
-
-		small {
-			opacity: 0.5; 
 		}
 	}
 	.ui-widget-header {
@@ -438,5 +470,11 @@ button.ui-button.ui-state-default,
 		margin: 0;
 		border: none; 
 	}
+}
+
+a.tooltip:hover {
+	border: none;
+	background: inherit; 
+	cursor: help; 
 }
 

@@ -1,42 +1,23 @@
+
 $(document).ready(function() {
 
 	/**
 	 * Setup a live change event for the delete links
 	 *
 	 */
+	
+	// not IE < 9
+	$(document).on('change', '.InputfieldFileDelete input', function() {
+		setInputfieldFileStatus($(this));
 
-	if($.browser.msie && $.browser.version < 9) {
-		
-		// $(".InputfieldFileDelete span.ui-icon").live("click", function() {
-		$(".InputfieldFileDelete").on("click", "span.ui-icon", function() {
-			
-			var input = $(this).prev('input'); 
-			if(input.is(":checked")){
-				input.removeAttr("checked");
-			} else {
-				input.attr({"checked":"checked"});	
-			}
-			
-			setInputfieldFileStatus(input);
-			
-		});
-		
-	} else {
-		// not IE < 9
-		// $(this).find(".InputfieldFileDelete input").live('change', function() {
-		$(document).on('change', '.InputfieldFileDelete input', function() {
-			setInputfieldFileStatus($(this));
-
-		}).on('dblclick', '.InputfieldFileDelete', function() {
-			// enable double-click to delete all
-			var $input = $(this).find('input'); 
-			var $items = $(this).parents('.InputfieldFileList').find('.InputfieldFileDelete input');
-			if($input.is(":checked")) $items.removeAttr('checked').change();
-				else $items.attr('checked', 'checked').change();
-			return false; 
-		}); 
-
-	}
+	}).on('dblclick', '.InputfieldFileDelete', function() {
+		// enable double-click to delete all
+		var $input = $(this).find('input'); 
+		var $items = $(this).parents('.InputfieldFileList').find('.InputfieldFileDelete input');
+		if($input.is(":checked")) $items.removeAttr('checked').change();
+			else $items.attr('checked', 'checked').change();
+		return false; 
+	}); 
 
 	function setInputfieldFileStatus($t) {
 		if($t.is(":checked")) {
@@ -86,7 +67,7 @@ $(document).ready(function() {
 					ui.item.children(".InputfieldFileInfo").removeClass("ui-state-highlight"); 
 					// Firefox has a habit of opening a lightbox popup after a lightbox trigger was used as a sort handle
 					// so we keep a 500ms class here to keep a handle on what was a lightbox trigger and what was a sort
-					$inputfield.addClass('InputfieldFileJustSorted'); 
+					$inputfield.addClass('InputfieldFileJustSorted InputfieldStateChanged'); 
 					setTimeout(function() { $inputfield.removeClass('InputfieldFileJustSorted'); }, 500); 
 				}
 			});
@@ -132,11 +113,19 @@ $(document).ready(function() {
 	 * and Robert Nyman (http://robertnyman.com/html5/fileapi-upload/fileapi-upload.html)
 	 * 	
 	 */
-	function InitHTML5() {
+	function InitHTML5($inputfield) {
 
-		$(".InputfieldFileUpload").closest('.ui-widget-content, .InputfieldContent').each(function(i) {
+		if($inputfield.length > 0) {
+			var $target = $inputfield.find(".InputfieldFileUpload"); // just one
+		} else {
+			var $target = $(".InputfieldFileUpload"); // all 
+		}
+		$target.closest('.ui-widget-content, .InputfieldContent').each(function (i) {
+			initHTML5Item($(this), i);
+		});
+			
+		function initHTML5Item($this, i) {
 
-			var $this = $(this); 
 			var $form = $this.parents('form'); 
 			var postUrl = $form.attr('action'); 
 
@@ -163,9 +152,13 @@ $(document).ready(function() {
 
 			var fileList = $fileList.get(0);
 			var maxFiles = parseInt($this.find('.InputfieldFileMaxFiles').val()); 
+			
+			$fileList.children().addClass('InputfieldFileItemExisting'); // identify items that are already there
 
 			$this.find('.AjaxUploadDropHere').show();
-				
+			
+			var doneTimer = null; // for AjaxUploadDone event
+			
 			function uploadFile(file) {
 
 				var $progressItem = $('<li class="InputfieldFile ui-widget AjaxUpload"><p class="InputfieldFileInfo ui-widget ui-widget-header InputfieldItemHeader"></p></li>'),
@@ -199,17 +192,19 @@ $(document).ready(function() {
 						// No data to calculate on
 					}
 				}, false);
+
 				
-				// File uploaded
+				// File uploaded: called for each file
 				xhr.addEventListener("load", function() {
 
 					var response = $.parseJSON(xhr.responseText); 
 					if(response.error !== undefined) response = [response];
-
+					
+					// note the following loop will always contain only 1 item, unless a file containing more files (ZIP file) was uploaded
 					for(var n = 0; n < response.length; n++) {
 
 						var r = response[n]; 
-
+						
 						if(r.error) {
 							var $pi = $progressItem.clone(); 
 							$pi.find(".InputfieldFileInfo").addClass('ui-state-error'); 
@@ -228,17 +223,53 @@ $(document).ready(function() {
 							var $input = $this.find('input[type=file]');
 							if($input.val()) $input.replaceWith($input.clone(true));
 
-							var $markup = $(r.markup); 
+							var $markup = $(r.markup);
 							$markup.hide();
-							$fileList.append($markup); 
-							$markup.slideDown(); 
+
+							// look for and handle replacements
+							if(r.overwrite) {
+								var basename = $markup.find('.InputfieldFileName').text();
+								var $item = null;
+								// find an existing item having the same basename
+								$fileList.children('.InputfieldFileItemExisting').each(function() {
+									if($item === null && $(this).find('.InputfieldFileName').text() == basename) {
+										// filenames match
+										$item = $(this);
+									}
+								});
+								if($item !== null) {
+									// found replacement
+									var $newInfo = $markup.find(".InputfieldFileInfo");
+									var $newLink = $markup.find(".InputfieldFileLink"); 
+									var $info = $item.find(".InputfieldFileInfo"); 
+									var $link = $item.find(".InputfieldFileLink"); 
+									$info.html($newInfo.html() + "<i class='fa fa-check'></i>");
+									$link.html($newLink.html());
+									$item.addClass('InputfieldFileItemExisting'); 
+									$item.effect('highlight', 500); 
+								} else {
+									// didn't find a match, just append
+									$fileList.append($markup);
+									$markup.slideDown();
+									$markup.addClass('InputfieldFileItemExisting');
+								}
+								
+							} else {
+								// overwrite mode not active
+								$fileList.append($markup);
+								$markup.slideDown();
+							}
 						}
-							
+						
 					}
 
 					$progressItem.remove();
-					if(maxFiles != 1 && !$fileList.is('.ui-sortable')) initSortable($fileList); 
-					$fileList.trigger('AjaxUploadDone'); // for things like fancybox that need to be re-init'd
+					
+					if(doneTimer) clearTimeout(doneTimer); 
+					doneTimer = setTimeout(function() { 
+						if(maxFiles != 1 && !$fileList.is('.ui-sortable')) initSortable($fileList); 
+						$fileList.trigger('AjaxUploadDone'); // for things like fancybox that need to be re-init'd
+					}, 500); 
 
 				}, false);
 				
@@ -259,6 +290,7 @@ $(document).ready(function() {
 				
 				$progressItem.find('p.ui-widget-header').html(fileData);
 				$fileList.append($progressItem);
+				$fileList.closest('.Inputfield').addClass('InputfieldStateChanged');
 			}
 			
 	
@@ -315,8 +347,8 @@ $(document).ready(function() {
 				evt.preventDefault();
 				evt.stopPropagation();
 			}, false);		
-		});
-	}
+		} // initHTML5Item
+	} // initHTML5
 
 	/**
 	 * MAIN
@@ -332,7 +364,7 @@ $(document).ready(function() {
 	 * 
 	 */
 	if (window.File && window.FileList && window.FileReader && $("#PageIDIndicator").size() > 0) {  
-		InitHTML5();  
+		InitHTML5('');  
 	} else {
 		InitOldSchool();
 	}
@@ -357,5 +389,10 @@ $(document).ready(function() {
 		resizeActive = true; 
 		setTimeout(windowResize, 1000); 
 	}).resize();
+	
+	$(document).on('reloaded', '.InputfieldFileMultiple, .InputfieldFileSingle', function(event) {
+		initSortable($(this).find(".InputfieldFileList"));
+		InitHTML5($(this)); 
+	}); 
 	
 }); 

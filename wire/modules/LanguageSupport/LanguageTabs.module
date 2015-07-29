@@ -24,7 +24,7 @@ class LanguageTabs extends WireData implements Module {
 			'author' => 'adamspruijt, ryan', 
 			'singular' => true,
 			'autoload' => "template=admin",
-			'requires' => 'LanguageSupportFields'
+			'requires' => 'LanguageSupport'
 		);
 	}
 
@@ -67,7 +67,7 @@ class LanguageTabs extends WireData implements Module {
 			'activeTab' => $activeTab, 
 			); 
 
-		$this->config->js('LanguageTabs', $settings); 
+		$this->wire('config')->js('LanguageTabs', $settings);
 	}
 
 	/**
@@ -77,11 +77,10 @@ class LanguageTabs extends WireData implements Module {
 	 * 
 	 */
 	public function hookRenderInputfieldForm(HookEvent $e) {
+		$this->wire('modules')->loadModuleFileAssets($this); 
 		if(strpos($e->return, 'LanguageSupport') === false) return;
 		$id = $e->object->attr('id'); 
 		$e->return .= "<script>setupLanguageTabs($('#$id'));</script>";
-		$this->config->scripts->add($this->config->urls->LanguageTabs . "LanguageTabs.js");
-		$this->config->styles->add($this->config->urls->LanguageTabs . "LanguageTabs.css");
 	}
 
 	/**

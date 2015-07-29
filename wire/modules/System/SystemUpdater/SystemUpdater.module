@@ -4,11 +4,10 @@
  * ProcessWire System Helper Module
  *
  * ProcessWire 2.x 
- * Copyright (C) 2012 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * https://processwire.com
  *
  * Update 1: Applied database changes to fieldgroups
  * Update 2: Force modules refresh since files moved
@@ -73,7 +72,7 @@ class SystemUpdater extends WireData implements Module, ConfigurableModule {
 			 * This version number is important, as this updater keeps the systemVersion up with this version
 			 *
 			 */
-			'version' => 7, 
+			'version' => 10, 
 			);
 	}
 
@@ -104,25 +103,33 @@ class SystemUpdater extends WireData implements Module, ConfigurableModule {
 	 */
 	public function init() {
 
-		$config = wire('config');
+		$config = $this->wire('config');
 		$info = self::getModuleInfo();
 		$moduleVersion = $info['version'];
-
+		
 		foreach($this->configData as $key => $value) {
 			$config->$key = $value; 
 		}
+		
+		$systemVersion = (int) $config->systemVersion;
+		
+		if(empty($systemVersion)) {
+			// double check, just in case (should not be possible for this to occur)
+			$this->configData = $this->wire('modules')->getModuleConfigData($this);
+			$systemVersion = (int) isset($this->configData['systemVersion']) ? $this->configData['systemVersion'] : 0;
+		}
 
-		while($config->systemVersion < $moduleVersion) {
+		while($systemVersion < $moduleVersion) {
 
 			// apply the incremental version update
-			if(!$this->update($config->systemVersion+1)) break;
+			if(!$this->update($systemVersion+1)) break;
 
 			// we increment the config systemVersion so that the version is also available to the updater
-			$config->systemVersion++;	
+			$systemVersion++;
 
 			// we save the configData for every version in case an update throws an exception
 			// then already applied updates won't be applied again
-			$this->saveSystemVersion($config->systemVersion); 
+			$this->saveSystemVersion($systemVersion); 
 			$this->numUpdatesApplied++;
 		}
 

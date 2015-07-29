@@ -16,9 +16,18 @@
  * 
  * http://www.processwire.com
  * http://www.ryancramer.com
+ * 
+ * @property array $where
  *
  */
 abstract class DatabaseQuery extends WireData { 
+	
+	protected $bindValues = array();
+	
+	public function bindValue($key, $value) {
+		$this->bindValues[$key] = $value; 
+		return $this; 
+	}
 
 	/**
 	 * Enables calling the various parts of a query as functions for a fluent interface.
@@ -49,6 +58,9 @@ abstract class DatabaseQuery extends WireData {
 
 	/**
 	 * Merge the contents of current query with another
+	 * 
+	 * @param DatabaseQuery $query
+	 * @return this
 	 *
 	 */
 	public function merge(DatabaseQuery $query) {
@@ -77,13 +89,27 @@ abstract class DatabaseQuery extends WireData {
 	}
 
 	/**
+	 * Prepare and return a PDOStatement
+	 * 
+	 * @return PDOStatement
+	 * 
+	 */
+	public function prepare() {
+		$query = $this->wire('database')->prepare($this->getQuery()); 
+		foreach($this->bindValues as $key => $value) {
+			$query->bindValue($key, $value); 
+		}
+		return $query; 
+	}
+
+	/**
 	 * Execute the query with the current database handle
 	 *
 	 */
 	public function execute() {
 		$database = $this->wire('database');
 		try { 
-			$query = $database->prepare($this->getQuery()); 
+			$query = $this->prepare();
 			$query->execute();
 		} catch(Exception $e) {
 			$msg = $e->getMessage();

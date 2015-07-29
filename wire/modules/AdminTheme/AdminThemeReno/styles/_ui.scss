@@ -110,62 +110,9 @@
 	border-bottom: $error-border; 
 }
 
-#notices {
-	position: relative;
-	// z-index: 5; 
-	border-top: $notices-border-top;
-	border-bottom: $notices-border-bottom;
-
-	li {
-		padding: 0.2em 1.5em !important;
-		&:first-child { padding-top: 0.6em !important; }
-		&:last-child { padding-bottom: 0.6em !important; }
-	}
-
-	& .ui-priority-secondary {
-		background: $highlight-bg !important;
-		color: $highlight-color !important;
-	}
+p span.ui-state-error {
+	padding: 0.25em 0.5em;
 }
-
-
-#notices .ui-state-highlight, 
-#notices .ui-state-error {
-	padding: 0.25em 0; 
-	color: $highlight-color; 
-}
-
-	#notices .ui-state-error {
-		color: $error-color; 
-	}
-	#notices .ui-state-highlight a{
-		color: $highlight-color; 
-	}
-	#notices .ui-state-error a {
-		color: $error-color; 
-	}
-	#notices .ui-state-highlight .ui-icon,
-	#notices .ui-state-error .ui-icon {
-		position: relative;
-		top: 2px; 
-	}
-
-	#notices .notice-remove {
-		float: right; 
-		color: $highlight-color; 
-		text-decoration: none; 
-		padding: 0 0.5em 0 1em; 
-	}
-	
-
-	.ui-state-highlight a,
-	.ui-state-error a {
-		text-decoration: underline; 
-	}
-
-	p span.ui-state-error {
-		padding: 0.25em 0.5em;
-	}
 
 /**
  * ui-dialog
@@ -202,7 +149,7 @@
 	.ui-dialog-buttonpane {
     	background: none;
     	border: none;
-    	margin-top: 0;
+    	margin-top: -5px;
 
     	button {
     		font-weight: bold !important;
@@ -219,7 +166,6 @@
 	  padding: 5px 10px;
 	  font-weight: normal;
 	  color: $white;
-	  text-transform: uppercase;
 	  letter-spacing: 1px;
 	  font-size: 1.2em !important;
 	}
@@ -273,12 +219,12 @@ button.ui-button span {
 button.ui-button.ui-priority-secondary, 
 .ui-button.ui-priority-secondary {
 	background: $button-secondary-bg !important; 
-	border: 1px solid $button-secondary-border !important; 
+	border: 1px solid $button-secondary-border; 
 	color: $button-secondary-color !important; 
 
 	&:hover {
 		color: $button-secondary-hover-color !important;
-		border: 1px solid $button-border !important;
+		border: 1px solid $button-border;
 		background: $button-bg !important;
 		cursor: pointer !important;
 	}
@@ -293,7 +239,8 @@ button.ui-button.ui-state-hover,
 	text-decoration: none; 
 }
 
-.ui-button.ui-state-hover.ui-state-active {
+.ui-button.ui-state-hover.ui-state-active, 
+.ui-button.ui-state-hover.ui-priority-secondary.ui-state-active {
 	background: $button-active-bg !important;
 	border-color: $button-active-bg !important; 
 }
@@ -407,10 +354,6 @@ button.ui-state-disabled{
 		cursor: pointer;
 	}
 
-	li small {
-		opacity: 0.7; 
-	}
-
 	.ui-widget-header{
 		border: none; 
 		margin: 0;
@@ -462,6 +405,10 @@ button.ui-state-disabled{
 
 .ui-menu a{
 	border-width: 0;
+	
+	small {
+		opacity: 0.7;
+	}
 } 
 
 .ui-menu a.ui-state-focus {
@@ -481,6 +428,7 @@ button.ui-state-disabled{
 	font-size: 0.9em;
 	padding: 0.3em 1.2em;
 	line-height: 1em;
+	
 }
 
 .ui-menu
@@ -721,7 +669,9 @@ button.ui-state-disabled{
 
 .ui-datepicker td .ui-state-highlight,
 .ui-datepicker td .ui-state-highlight:hover {
-	border: $datepicker-td-border !important;
+	border: $datepicker-td-hover-border !important;
+	background: $datepicker-td-hover-bg !important;
+	color: $datepicker-td-hover-color !important;
 }
 
 .ui-datepicker td .ui-state-active,
@@ -800,4 +750,10 @@ Full screen TinyMCE
  */
 #mce_fullscreen_container {
 	top: $masthead-height !important;
+}
+
+a.tooltip:hover {
+	border: none;
+	background: inherit;
+	cursor: help;
 }

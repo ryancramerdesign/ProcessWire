@@ -1,7 +1,7 @@
 function initPageEditForm() {
 
 	// instantiate the WireTabs
-	$('#ProcessPageEdit').WireTabs({
+	$('#ProcessPageEdit:not(.ProcessPageEditSingleField)').WireTabs({
 		items: $("#ProcessPageEdit > .Inputfields > .InputfieldWrapper"), 
 		id: 'PageEditTabs',
 		skipRememberTabIDs: ['ProcessPageEditDelete']
@@ -22,4 +22,7 @@ function initPageEditForm() {
 		$("#ProcessPageEdit").submit();
 	}); 
 
+	// prevent Firefox from sending two requests for same click
+	$("#AddPageBtn").click(function() { return false; }); 
+	
 }

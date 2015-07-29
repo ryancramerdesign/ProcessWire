@@ -7,11 +7,12 @@
  * /wire/core/Process.php 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2012 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * https://processwire.com
+ * 
+ * @property int $maxAjaxQty
  *
  */
 
@@ -20,21 +21,30 @@ class ProcessUser extends ProcessPageType {
 	static public function getModuleInfo() {
 		return array(
 			'title' => __('Users', __FILE__), // getModuleInfo title
-			'version' => 103, 
+			'version' => 105, 
 			'summary' => __('Manage system users', __FILE__), // getModuleInfo summary
 			'permanent' => true, 
 			'permission' => 'user-admin',
 			'icon' => 'group', 
+			'useNavJSON' => true,
 			); 
 	}
 	
 	protected $lister = null;
-
+	
+	public function __construct() {
+		$this->set("maxAjaxQty", 25); 
+		return parent::__construct();
+	}
+	
 	public function init() {
 		$this->wire('pages')->addHookBefore('save', $this, 'hookPageSave');	
 		parent::init();
-	
-		if($this->wire('user')->hasPermission('page-lister')) {
+		
+		// init lister, but only if executing an action that will use it
+		$segment = $this->wire('input')->urlSegment1;
+		$user = $this->wire('user'); 
+		if(!in_array($segment, array('edit', 'add', 'navJSON')) && $user->hasPermission('page-lister')) {
 			if($this->wire('modules')->isInstalled('ProcessPageListerPro')) {
 				$this->lister = $this->wire('modules')->get('ProcessPageListerPro');
 			}
@@ -42,30 +52,94 @@ class ProcessUser extends ProcessPageType {
 				$this->lister = $this->wire('modules')->get('ProcessPageLister'); 
 			}
 		}
-	
 		// make this field translatable
 		$roles = $this->wire('fields')->get('roles'); 
 		$roles->label = $this->_('Roles'); 
 		$roles->description = $this->_("User will inherit the permissions assigned to each role. You may assign multiple roles to a user. When accessing a page, the user will only inherit permissions from the roles that are also assigned to the page's template."); // Roles description
 	}
+
+	/**
+	 * Output JSON list of navigation items for this (intended to for ajax use)
+	 *
+	 */
+	public function ___executeNavJSON(array $options = array()) {
+
+		$max = $this->maxAjaxQty > 0 && $this->maxAjaxQty <= 100 ? (int) $this->maxAjaxQty : 50; 
+		
+		if(empty($options) && $this->pages->count("id>0") > $max) {
+			$items = array();
+			foreach($this->wire('roles') as $role) {
+				$cnt = $this->pages->count("roles=$role"); 
+				$item = array(
+					'id' => $role->id, 
+					'name' => $role->name, 
+					'cnt' => sprintf($this->_n('%d user', '%d users', $cnt), $cnt)
+				);
+				$items[] = $item;
+			}
+			$options['itemLabel'] = 'name';
+			$options['itemLabel2'] = 'cnt';
+			$options['add'] = 'add/';
+			$options['items'] = $items;
+			$options['edit'] = "?roles={id}";
+		}
+
+		return parent::___executeNavJSON($options);
+	}
+
+	public function hookListerExecute($event) {
+		$role = (int) $this->wire('session')->get($this, 'listerRole');
+		if(!$role) return;
+		$lister = $event->object;
+		$defaultSelector = $lister->defaultSelector;
+		if(strpos($defaultSelector, 'roles=') !== false) {
+			$defaultSelector = preg_replace('/\broles=\d*/', "roles=$role", $defaultSelector);
+		} else {
+			$defaultSelector .= ", roles=$role";
+		}
+		$lister->defaultSelector = $defaultSelector;
+	}
 	
 	protected function getLister($selector = '') {
-		$selector = "template=$this->template, $selector";
+		
 		$lister = $this->lister;
+		if(!$lister) return null;
 		if($lister->className() == 'ProcessPageLister') $lister->editMode = ProcessPageLister::windowModeDirect;
 		
+		$templates = $this->pages->getTemplates();
+		$selector = "template=" . implode('|', array_keys($templates)) . ", include=unpublished, check_access=0, $selector";
+		$role = (int) $this->wire('input')->get('roles');
+		$session = $this->wire('session');
+		$ajax = $this->wire('config')->ajax;
+		
+		if($role) {
+			$lister->resetLister();
+			$session->set($this, 'listerRole', $role);
+		} else if(!$ajax) {
+			if((int) $session->get($this, 'listerRole') > 0) {
+				$lister->resetLister();
+				$session->set($this, 'listerRole', 0);
+			}
+		} else {
+			$role = $session->get($this, 'listerRole');
+		}
+		
+		$this->lister->addHookBefore('execute', $this, 'hookListerExecute');
+
 		$properties = array(
 			'initSelector' => $selector,
 			'columns' => $this->showFields,
-			'defaultSelector' => "name%=, roles=",
+			'defaultSelector' => "name%=, roles=" . ($role ? $role : ''),
 			'defaultSort' => 'name',
 			'parent' => $this->page,
-			'template' => $this->template,
 			'editURL' => './edit/',
 			'addURL' => './add/',
 			'delimiters' => array('roles' => ', '),
 			'allowSystem' => true,
+			'allowIncludeAll' => true, 
 			);
+		
+		if(count($templates) == 1) $properties['template'] = reset($templates);
 		
 		foreach($properties as $name => $value) {
 			$lister->$name = $value; 
@@ -84,8 +158,8 @@ class ProcessUser extends ProcessPageType {
 	}
 
 	protected function renderList($selector = '', $pagerOptions = array()) {
-		if(!$this->lister) return parent::renderList($selector, $pagerOptions); 
 		$lister = $this->getLister($selector);
+		if(!$lister) return parent::renderList($selector, $pagerOptions); 
 		return $lister->execute();
 	}
 	
@@ -95,10 +169,14 @@ class ProcessUser extends ProcessPageType {
 	public function executeActions() { return $this->getLister()->executeActions(); }
 
 	public function ___executeEdit() {
+		
 		if(!$this->wire('user')->isSuperuser()) { 
 			// prevent showing superuser role at all
 			$this->addHookAfter('InputfieldPage::getSelectablePages', $this, 'hookGetSelectablePages'); 
 		}
+		
+		$this->addHookAfter('ProcessPageEdit::buildForm', $this, 'hookPageEditBuildForm'); 
+		
 		return parent::___executeEdit();
 	}
 	
@@ -107,6 +185,15 @@ class ProcessUser extends ProcessPageType {
 		$suRoleID = $this->wire('config')->superUserRolePageID;
 		foreach($event->return as $role) {
 			if($role->id == $suRoleID) $event->return->remove($role);
+		}
+	}
+	
+	public function hookPageEditBuildForm(HookEvent $event) {
+		$form = $event->return;
+		$theme = $form->getChildByName('admin_theme');
+		if(!$theme) return;
+		if(!$theme->attr('value')) {
+			$theme->attr('value', $this->wire('config')->defaultAdminTheme); 
 		}
 	}
 	

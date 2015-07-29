@@ -74,9 +74,9 @@
 }
 
 /**
-	 * FieldsetTab Descriptions
-	 *
-	 */
+ * FieldsetTab Descriptions
+ *
+ */
 
 .InputfieldFieldsetTabOpen > .Inputfields > h2 {
 
@@ -391,6 +391,7 @@ table {
 		border-style: solid;
 		border-color: darken($item-border-color, 4%);
 		background: $item-bg;
+		border-top: none;
 	}
 
 	.InputfieldItemList .InputfieldItemHeader {
@@ -505,17 +506,6 @@ table {
 }
 
 
-/**
- * Styles for item listing inputfields
- *
-
-.InputfieldItemList .InputfieldContent .InputfieldHeader {
-	font-weight: bold;
-	padding: 5px 10px; 
-	text-shadow: none; 
-}
- */
-
 .InputfieldStateRequired > .InputfieldHeader:first-child:after {
 	/* Add asterisk to indicate field is required */
 	content: ' *';
@@ -587,6 +577,11 @@ table {
 
 .Inputfield .LanguageSupport {
 	margin-bottom: 1em; 
+}
+
+.Inputfields .Inputfield:not(.InputfieldStateCollapsed) > .InputfieldHeaderHidden > span {
+	/* hide header for inputfield */
+	display: none;
 }
 
 /****************************************************************************

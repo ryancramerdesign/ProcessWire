@@ -20,7 +20,7 @@ class FieldtypePageTable extends FieldtypeMulti implements Module {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'ProFields: Page Table',
-			'version' => 7,
+			'version' => 8,
 			'summary' => 'A fieldtype containing a group of editable pages.',
 			'installs' => 'InputfieldPageTable',
 			'autoload' => true, 
@@ -245,6 +245,7 @@ class FieldtypePageTable extends FieldtypeMulti implements Module {
 		$schema = parent::getDatabaseSchema($field);
 		$schema['data'] = 'int NOT NULL';
 		$schema['keys']['data'] = 'KEY data (data, pages_id, sort)';
+		$schema['xtra']['all'] = false; // indicate that this schema doesn't hold all data managed by this fieldtype
 		return $schema;
 	}
 
@@ -272,8 +273,16 @@ class FieldtypePageTable extends FieldtypeMulti implements Module {
 	 * 
 	 */
 	public function getInputfield(Page $page, Field $field) {
-		$inputfield = $this->modules->get('InputfieldPageTable'); 
-		$inputfield->attr('value', $page->getUnformatted($field->name)); 
+		$inputfield = $this->modules->get('InputfieldPageTable');
+		$value = $page->getUnformatted($field->name); 
+		$inputfield->attr('value', $value);
+		$templateID = $field->template_id;
+		
+		if(!$field->parent_id && !empty($templateID) && $page->numChildren > count($value)) {
+			$orphans = $this->findOrphans($page, $field); 
+			if(count($orphans)) $inputfield->setOrphans($orphans); 
+		}
+		
 		return $inputfield; 
 	}
 
@@ -453,6 +462,37 @@ class FieldtypePageTable extends FieldtypeMulti implements Module {
 	public function ___importConfigData(Field $field, array $data) {
 		$data = $this->wire('fieldtypes')->get('FieldtypePage')->importConfigData($field, $data);
 		return $data;
+	}
+
+	/**
+	 * Return orphan pages that match the PageTable settings
+	 * 
+	 * Applicable only to PageTable fields utilizing the editable page's children as PageTable items.
+	 * (i.e. no parent_id is set)
+	 *
+	 * @param Page $page
+	 * @param Field $field
+	 * @return PageArray Found orphans
+	 *
+	 */
+	public function findOrphans(Page $page, Field $field) { 
+		$orphans = new PageArray();
+		if($field->parent_id) return $orphans;
+		$templateID = $field->template_id; 
+		if(!$templateID) return $orphans; // we need at least a template to do this
+		if(!is_array($templateID)) $templateID = array($templateID); 
+		$value = $page->getUnformatted($field->name); 
+		if(!$value instanceof PageArray) $value = new PageArray();
+		if($page->numChildren <= $value->count()) return $orphans; // nothing new
+		$templateNames = array();
+		foreach($templateID as $id) {
+			$template = $this->wire('templates')->get($id);
+			if($template) $templateNames[] = $template->name; 
+		}
+		$selector = "include=unpublished, template=" . implode('|', $templateNames); 
+		if($value->count()) $selector .= ", id!=$value";
+		foreach($page->children($selector) as $item) $orphans->add($item); 
+		return $orphans;	
 	}
 
 	/**

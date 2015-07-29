@@ -4,5 +4,5 @@
 // Generate navigation that descends up to 4 levels into the tree.
 // See the _func.php for the renderNav() function definition. 
 
-$content = renderNav($homepage, 4); 
+$content = renderNavTree($homepage, 4); 
 

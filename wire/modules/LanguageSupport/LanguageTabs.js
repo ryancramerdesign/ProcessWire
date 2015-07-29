@@ -1,3 +1,4 @@
+
 /**
  * Establish tabs for all ".langTabs" elements in the given element
  * 
@@ -55,5 +56,8 @@ function toggleLanguageTabs() {
 
 $(document).ready(function() { 
 	$(document).on('click', '.langTabsToggle', toggleLanguageTabs); 
+	$(document).on('reloaded', '.Inputfield', function() {
+		setupLanguageTabs($(this));
+	}); 
 }); 
 

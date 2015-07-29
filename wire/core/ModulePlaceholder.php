@@ -7,11 +7,17 @@
  * As used by the Modules class. 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * https://.processwire.com
+ * 
+ * @property bool $autoload
+ * @property bool $singular
+ * @property string $file
+ * @property string $className
+ * @property string $class alias of className
+ * @property string $name alias of className
  *
  */
 
@@ -21,6 +27,7 @@ class ModulePlaceholder extends WireData implements Module {
 	protected $moduleInfo = array();
 
 	public function __construct() {
+		$this->set('autoload', false); 
 		$this->set('singular', true); 
 		$this->set('file', ''); 
 	}
@@ -54,7 +61,7 @@ class ModulePlaceholder extends WireData implements Module {
 		return false; 
 	}
 
-	public function className() {
+	public function className($options = null) {
 		return $this->class; 
 	}
 

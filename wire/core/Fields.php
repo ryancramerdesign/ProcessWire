@@ -6,57 +6,13 @@
  * Manages collection of ALL Field instances, not specific to any particular Fieldgroup
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
-/**
- * WireArray of Field instances, as used by Fields class
- *
- */
-class FieldsArray extends WireArray {
-
-	/**
-	 * Per WireArray interface, only Field instances may be added
-	 *
-	 */
-	public function isValidItem($item) {
-		return $item instanceof Field; 	
-	}
-
-	/**
-	 * Per WireArray interface, Field keys have to be integers
-	 *
-	 */
-	public function isValidKey($key) {
-		return is_int($key) || ctype_digit($key); 
-	}
-
-	/**
-	 * Per WireArray interface, Field instances are keyed by their ID
-	 *
-	 */
-	public function getItemKey($item) {
-		return $item->id; 
-	}
-
-	/**
-	 * Per WireArray interface, return a blank Field
-	 *
-	 */
-	public function makeBlankItem() {
-		return new Field();
-	}
-}
-
-/**
- * Manages the collection of all Field instances, not specific to any one Fieldgroup
- *
- */
 class Fields extends WireSaveableItems {
 
 	/**
@@ -178,6 +134,7 @@ class Fields extends WireSaveableItems {
 	public function ___save(Saveable $item) {
 
 		if($item->flags & Field::flagFieldgroupContext) throw new WireException("Field $item is not saveable because it is in a specific context"); 
+		if(!strlen($item->name)) throw new WireException("Field name is required"); 
 
 		$database = $this->wire('database');
 		$isNew = $item->id < 1;
@@ -239,7 +196,7 @@ class Fields extends WireSaveableItems {
 				if($field->type->createField($field)) $this->message("Created table '$table'"); 
 			}
 		} catch(Exception $e) {
-			$this->error($e->getMessage()); 
+			$this->error($e->getMessage() . " (checkFieldTable)"); 
 		}
 	}
 
@@ -281,7 +238,7 @@ class Fields extends WireSaveableItems {
 		$this->fuel('fieldgroups')->deleteField($item); 
 
 		// drop the field's table
-		$item->type->deleteField($item); 
+		if($item->type) $item->type->deleteField($item); 
 
 		return parent::___delete($item); 
 	}
@@ -291,11 +248,12 @@ class Fields extends WireSaveableItems {
 	 * Create and return a cloned copy of the given Field
 	 *
 	 * @param Field|Saveable $item Item to clone
+	 * @param string $name Optionally specify name for new cloned item
 	 * @return bool|Saveable $item Returns the new clone on success, or false on failure
 	 * @throws WireException
 	 *
 	 */
-	public function ___clone(Saveable $item) {
+	public function ___clone(Saveable $item, $name = '') {
 	
 		$item = $item->type->cloneField($item); 
 	
@@ -309,9 +267,10 @@ class Fields extends WireSaveableItems {
 
 		// don't clone the 'global' flag
 		if($item->flags & Field::flagGlobal) $item->flags = $item->flags & ~Field::flagGlobal;
-
-
-		return parent::___clone($item);
+		
+		$item = parent::___clone($item, $name);
+		if($item) $item->prevTable = null;
+		return $item;
 	}
 
 	/**
@@ -522,16 +481,19 @@ class Fields extends WireSaveableItems {
 			break;
 		}
 
-		$selector = "templates_id=$template->id, include=all";
-		$numPages = $this->wire('pages')->count($selector); 
+		$numPages = $this->getNumPages($field, array('template' => $template)); 
+		$numRows = $this->getNumRows($field, array('template' => $template)); 
 		$success = true;
 
 		if($numPages <= 200 || $hasDeletePageField) {
+			$deleteType = $this->_('page-by-page'); 
 			
 			// not many pages to operate on, OR fieldtype has a custom deletePageField method, 
 			// so use verbose/slow method to delete the field from pages
 			
-			$items = $this->wire('pages')->find($selector); 
+			$ids = $this->getNumPages($field, array('template' => $template, 'getPageIDs' => true)); 
+			$items = $this->wire('pages')->getById($ids, $template); 
+			
 			foreach($items as $page) {
 				try {
 					$field->type->deletePageField($page, $field);
@@ -541,10 +503,10 @@ class Fields extends WireSaveableItems {
 					$this->error($e->getMessage());
 					$success = false;
 				}
-
 			}
 
 		} else {
+			$deleteType = $this->_('single-query'); 
 			
 			// large number of pages to operate on: use fast method
 			
@@ -558,13 +520,161 @@ class Fields extends WireSaveableItems {
 			try {
 				$query->execute();
 			} catch(Exception $e) {
-				$this->error($e->getMessage());
+				$this->error($e->getMessage(), Notice::log);
 				$success = false;
 			}
 		}
-
-		$this->message(sprintf($this->_('Deleted field "%s" data from %d pages.'), $field->name, $numPages));
+		
+		if($success) {
+			$this->message(
+				sprintf($this->_('Deleted field "%1$s" data in %2$d row(s) from %3$d page(s).'), 
+					$field->name, $numRows, $numPages) . " [$deleteType]",
+				Notice::log
+			);
+		} else {
+			$this->error(
+				sprintf($this->_('Error deleting field "%1$s" data, %2$d row(s), %3$d page(s).'), 
+					$field->name, $numRows, $numPages) . " [$deleteType]",
+				Notice::log
+			);
+		}
+		
 		return $success;
+	}
+
+	/**
+	 * Return a count of pages containing populated values for the given field
+	 *
+	 * @param Field $field
+	 * @param array $options Optionally specify one of the following options:
+	 * 	template: Specify a Template object, ID or name to isolate returned rows specific to pages using that template.
+	 * 	page: Specify a Page object, ID or path to isolate returned rows specific to that page.
+	 * 	getPageIDs: Specify boolean true to make it return an array of matching Page IDs rather than a count. 
+	 * @return int|array Returns array only if getPageIDs option set. 
+	 * @throws WireException If given option for page or template doesn't resolve to actual page/template.
+	 *
+	 */
+	public function getNumPages(Field $field, array $options = array()) {
+		$options['countPages'] = true; 
+		return $this->getNumRows($field, $options); 
+	}
+
+	/**
+	 * Return a count of database rows populated the given field
+	 *
+	 * @param Field $field
+	 * @param array $options Optionally specify any of the following options:
+	 * 	template: Specify a Template object, ID or name to isolate returned rows specific to pages using that template. 
+	 * 	page: Specify a Page object, ID or path to isolate returned rows specific to that page. 
+	 * 	countPages: Specify boolean true to make it return a page count rather than a row count (default=false). 
+	 * 		There will only potential difference between rows and pages counts with multi-value fields. 
+	 * 	getPageIDs: Specify boolean true to make it return an array of matching Page IDs rather than a count (overrides countPages).
+	 * @return int|array Returns array only if getPageIDs option set. 
+	 * @throws WireException If given option for page or template doesn't resolve to actual page/template.
+	 *
+	 */
+	public function getNumRows(Field $field, array $options = array()) {
+
+		$defaults = array(
+			'template' => 0,
+			'page' => 0,
+			'countPages' => false,
+			'getPageIDs' => false, 
+		);
+
+		$options = array_merge($defaults, $options);
+		$database = $this->wire('database');
+		$table = $database->escapeTable($field->getTable());
+		$useRowCount = false;
+		$schema = $field->type->getDatabaseSchema($field);
+		
+		if(empty($schema)) {
+			// field has no schema or table (example: FieldtypeConcat)
+			if($options['getPageIDs']) return array();
+			return 0; 
+		}
+
+		if($options['template']) {
+			// count by pages using specific template
+
+			if($options['template'] instanceof Template) {
+				$template = $options['template'];
+			} else {
+				$template = $this->wire('templates')->get($options['template']);
+			}
+
+			if(!$template) throw new WireException("Unknown template: $options[template]");
+			
+		
+			if($options['getPageIDs']) {
+				$sql = 	"SELECT DISTINCT $table.pages_id FROM $table ".
+						"JOIN pages ON pages.templates_id=:templateID AND pages.id=pages_id ";
+
+			} else if($options['countPages']) {
+				$sql = 	"SELECT COUNT(DISTINCT pages_id) FROM $table ". 
+						"JOIN pages ON pages.templates_id=:templateID AND pages.id=pages_id ";
+			} else {
+				$sql = 	"SELECT COUNT(*) FROM pages " . 
+						"JOIN $table ON $table.pages_id=pages.id " .
+						"WHERE pages.templates_id=:templateID ";
+			}
+			$query = $database->prepare($sql);
+			$query->bindValue(':templateID', $template->id, PDO::PARAM_INT);
+
+		} else if($options['page']) {
+			// count by specific page
+
+			if(is_int($options['page'])) {
+				$pageID = $options['page'];
+			} else {
+				$page = $this->wire('pages')->get($options['page']);
+				$pageID = $page->id;
+			}
+
+			if(!$pageID) throw new WireException("Unknown page: $options[page]");
+			
+			if($options['countPages']) {
+				// is there any the point to  this?
+				$sql = "SELECT COUNT(DISTINCT pages_id) FROM $table WHERE pages_id=:pageID ";
+			} else {
+				$sql = "SELECT COUNT(*) FROM $table WHERE pages_id=:pageID ";
+			}
+
+			$query = $database->prepare($sql);
+			$query->bindValue(':pageID', $pageID, PDO::PARAM_INT);
+
+		} else {
+			// overall total count
+			
+			if($options['getPageIDs']) {
+				$sql = "SELECT DISTINCT $table.pages_id FROM $table";
+			} else if($options['countPages']) {
+				$sql = "SELECT COUNT(DISTINCT pages_id) FROM $table";
+			} else {
+				$sql = "SELECT COUNT(*) FROM $table";
+			}
+			$query = $database->prepare($sql);
+		}
+
+		$return = $options['getPageIDs'] ? array() : 0;	
+		
+		try {
+			$query->execute();
+			if($options['getPageIDs']) {
+				while($row = $query->fetch(PDO::FETCH_NUM)) {
+					$return[] = (int) $row['id'];
+				}
+			} else if($useRowCount) {
+				$return = (int) $query->rowCount();
+			} else {
+				list($return) = $query->fetch(PDO::FETCH_NUM);
+				$return = (int) $return;
+			}
+		} catch(Exception $e) {
+			$this->error($e->getMessage() . " (getNumRows)");
+		}
+
+		return $return;
 	}
 
 	/**
@@ -606,6 +716,9 @@ class Fields extends WireSaveableItems {
 
 	/**
 	 * Overridden from WireSaveableItems to retain keys with 0 values and remove defaults we don't need saved
+	 * 
+	 * @param array $value
+	 * @return string of JSON
 	 *
 	 */
 	protected function encodeData(array $value) {
@@ -614,7 +727,24 @@ class Fields extends WireSaveableItems {
 		return wireEncodeJSON($value, 0); 	
 	}
 
+	/**
+	 * Hook called when a field has changed type
+	 * 
+	 * @param Field|Saveable $item
+	 * @param Fieldtype $fromType
+	 * @param Fieldtype $toType
+	 * 
+	 */
 	public function ___changedType(Saveable $item, Fieldtype $fromType, Fieldtype $toType) { }
+
+	/**
+	 * Hook called right before a field is about to change type
+	 * 
+	 * @param Field|Saveable $item
+	 * @param Fieldtype $fromType
+	 * @param Fieldtype $toType
+	 * 
+	 */
 	public function ___changeTypeReady(Saveable $item, Fieldtype $fromType, Fieldtype $toType) { }
 
 }

@@ -6,10 +6,10 @@
  * Base class for Inputfield modules. 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://processwire.com
+ * https://processwire.com
  *
  */
 
@@ -42,9 +42,32 @@ interface InputfieldHasArrayValue { }
  *
  * Inputfield::value
  *	The current value of the field. May correspond go the XHTML "value" attribute on some inputs. 
+ *
+ * @property string $name HTML 'name' attribute for Inputfield (required). 
+ * @property string $id HTML 'id' attribute for the Inputfield (value is set automatically). 
+ * @property mixed $value HTML 'value' attribute for the Inputfield. 
+ * @property string $class HTML 'class' attribute for the Inputfield, but it is better to use the addClass() method. 
+ *
+ * @property string $label Inputfield label 
+ * @property string $description Optional description (appears under label to provide more detailed label/description).
+ * @property string $notes Optional notes (appears under input area to provide additional notes).
+ * @property string $icon Optional font-awesome icon name to accompany label. 
+ * @property string $head Optional text that appears below label but above description (only used by some Inputfields). 
+ * @property int|bool $required Set to 1 to make input required, or 0 to make not required (default). 
+ * @property string $requiredIf Optional conditions under which input is required (selector string). 
+ * @property string $showIf Optional conditions under which the Inputfield appears in the form (selector string). 
+ * @property int $collapsed Whether the field is collapsed or visible, i.e. Inputfield::collapsedYes, Inputfield::collapsedBlank, etc., see the 'collapsed' constants in Inputfield class. 
+ * @property int $columnWidth Width of column for this Inputfield 10-100 percent. 0 is assumed to be 100 (default). 
+ * @property int $skipLabel Skip display of the label? See the skipLabel constants for options. 
+ * @property string $wrapClass Optional class name (CSS) to apply to the HTML element wrapping the Inputfield.
+ * @property string $headerClass Optional class name (CSS) to apply to the InputfieldHeader element
+ * @property string $contentClass Optional class name (CSS) to apply to the InputfieldContent element
+ * @property InputfieldWrapper|null $parent The parent InputfieldWrapper for this Inputfield or null if not set. 
+ * @property null|Fieldtype $hasFieldtype Set to the Fieldtype using this Inputfield (by Field), when applicable, null when not.
+ * @property null|bool $entityEncodeLabel Set to boolean false to specifically disable entity encoding of field header/label.
+ * @property bool|null $useLanguages When multi-language support active, can be set to true to make it provide inputs for each language (where supported).
  * 
- * @var null|Fieldtype hasFieldtype Set to the Fieldtype using this Inputfield (by Field), when applicable, null when not.
- * @var null|bool entityEncodeLabel Set to boolean false to specifically disable entity encoding of field header/label.
+ *
  *
  */
 abstract class Inputfield extends WireData implements Module {
@@ -71,12 +94,24 @@ abstract class Inputfield extends WireData implements Module {
 	const skipLabelFor = true; 	// don't use a 'for' attribute with the <label>
 	const skipLabelHeader = 2; 	// don't use a ui-widget-header label at all
 	const skipLabelBlank = 4; 	// skip the label only when blank
-
+	
 	/**
 	 * The total number of Inputfield instances, kept as a way of generating unique 'id' attributes
 	 *
 	 */
-	static protected $numInstances = 0; 	
+	static protected $numInstances = 0;
+
+	/**
+	 * Custom html for Inputfield output, if supported, and default overridden
+	 * 
+	 * In the string specify {attr} to substitute a string of all attributes, or to
+	 * specify attributes individually, specify name="{name}" replacing "name" in both
+	 * cases with the actual name of the attribute. 
+	 * 
+	 * @var string
+	 * 
+	private $html = '';
+	 */
 
 	/**
 	 * Attributes specified for the XHTML output, like class, rows, cols, etc. 
@@ -115,7 +150,9 @@ abstract class Inputfield extends WireData implements Module {
 		$this->set('showIf', ''); 		// optional conditions selector
 		$this->set('columnWidth', ''); 	// percent width of the field. blank or 0 = 100.
 		$this->set('skipLabel', self::skipLabelNo); // See the skipLabel constants
-		$this->set('wrapClass', ''); // optional class to apply to the wrapper
+		$this->set('wrapClass', ''); // optional class to apply to the Inputfield wrapper (contains InputfieldHeader + InputfieldContent)
+		$this->set('headerClass', ''); // optional class to apply to InputfieldHeader wrapper
+		$this->set('contentClass', ''); // optional class to apply to InputfieldContent wrapper
 
 		// default ID attribute if no 'id' attribute set
 		$this->defaultID = $this->className() . self::$numInstances; 
@@ -145,28 +182,8 @@ abstract class Inputfield extends WireData implements Module {
 	 *
 	 */
 	public function init() { 
-		$this->addHookBefore('render', $this, 'hookRender'); 
 	}
 
-	/**
-	 * This hook is called when the ___render() method is called, ensuring that related styles and scripts are added. 
-	 *
-	 * This is hooked rather than called directly in init() to make sure that styles/scripts aren't loaded in instances where 
-	 * The Inputfield is loaded, but not rendered. 
-	 *
-	 * @param HookEvent $event
-	 *
-	 */
-	public function hookRender($event) {
-		$class = $this->className();
-		$url = $this->config->urls->$class;
-		$path = $this->config->paths->$class;
-		$info = $this->wire('modules')->getModuleInfo($this, array('verbose' => false));
-		$version = (int) isset($info['version']) ? $info['version'] : 0;
-		if(file_exists("$path$class.css")) $this->config->styles->add("$url$class.css?v=$version");
-		if(file_exists("$path$class.js")) $this->config->scripts->add("$url$class.js?v=$version"); 
-	}
-	
 	/**
 	 * Per the Module interface, install() is called when this Inputfield is instally installed
 	 *
@@ -217,6 +234,9 @@ abstract class Inputfield extends WireData implements Module {
 	 * like getSetting() or getAttribute().
 	 *
 	 * This method is also tied into __get() like all WireData classes.
+	 * 
+	 * @param string $key
+	 * @return mixed
 	 *
 	 */ 
 	public function get($key) {	
@@ -390,28 +410,70 @@ abstract class Inputfield extends WireData implements Module {
 	 * Add the given classname to this inputfield
 	 * 
 	 * @param string $class
+	 * @param string $property Optionally specify property you want to add class to (default=class)
 	 * @return $this
 	 * 
 	 */
-	public function addClass($class) {
-		$c = explode(' ', $this->getAttribute('class'));
+	public function addClass($class, $property = 'class') {
+		if($property == 'contentClass') {
+			$value = $this->contentClass;
+		} else if($property == 'wrapClass') {
+			$value = $this->wrapClass;
+		} else if($property == 'headerClass') {
+			$value = $this->headerClass;
+		} else {
+			$property = 'class';
+			$value = $this->getAttribute('class');
+		}
+		$c = explode(' ', $value); 
 		$c[] = $class;
-		$this->attributes['class'] = implode(' ', $c); 
+		$value = implode(' ', $c); 
+		if($property == 'class') {
+			$this->attributes['class'] = $value;
+		} else {
+			$this->set($property, $value); 
+		}
 		return $this;
+	}
+
+	/**
+	 * Does this inputfield have the given class?
+	 * 
+	 * @param $class
+	 * @param string $property Optionally specify property you want to pull class from (default=class)
+	 * @return bool
+	 * 
+	 */
+	public function hasClass($class, $property = 'class') {
+		if($property == 'class') {
+			$value = explode(' ', $this->getAttribute('class'));
+		} else {
+			$value = explode(' ', $this->$property);
+		}
+		return in_array($class, $value); 
 	}
 
 	/**
 	 * Remove the given classname from this inputfield
 	 *
 	 * @param string $class
+	 * @param string $property
 	 * @return $this
 	 *
 	 */
-	public function removeClass($class) {
-		$c = explode(' ', $this->getAttribute('class'));
+	public function removeClass($class, $property = 'class') {
+		if($property == 'class') {
+			$c = explode(' ', $this->getAttribute('class'));
+		} else {
+			$c = explode(' ', $this->$property); 
+		}
 		$key = array_search($class, $c);
 		if($key !== false) unset($c[$key]);
-		$this->attributes['class'] = implode(' ', $c);
+		if($property == 'class') {
+			$this->attributes['class'] = implode(' ', $c);
+		} else {
+			$this->set($property, implode(' ', $c)); 
+		}
 		return $this;
 	}
 
@@ -445,7 +507,7 @@ abstract class Inputfield extends WireData implements Module {
 			// if an attribute has multiple values (like class), then bundle them into a string separated by spaces
 			if(is_array($value)) $value = implode(' ', $value); 
 
-			$str .= "$attr=\"" . htmlspecialchars($value, ENT_QUOTES) . '" ';
+			$str .= "$attr=\"" . htmlspecialchars($value, ENT_QUOTES, "UTF-8") . '" ';
 		}
 
 		return trim($str); 
@@ -466,6 +528,9 @@ abstract class Inputfield extends WireData implements Module {
 
 	/**
 	 * Render just the value (not input) in text/markup for presentation purposes
+	 * 
+	 * This is within the context of an InputfieldForm, where the rendered markup can have
+	 * external CSS or JS dependencies (in Inputfield[Name].css or Inputfield[Name].js)
 	 *
  	 * @return string of text or markup where applicable
 	 *
@@ -482,7 +547,33 @@ abstract class Inputfield extends WireData implements Module {
 		}
 		return $out; 
 	}
+	
+	/**
+	 * Called before render() or renderValue() method by InputfieldWrapper, before Inputfield-specific CSS/JS files added
+	 * 
+	 * In this case used to populate any required CSS/JS files. The return value is true if assets were just added, 
+	 * and false if assets have already been added in a previous call. This distinction probably doesn't matter in 
+	 * most usages, but here just in case a descending class needs to know when/if to add additional assets (i.e. 
+	 * when this function returns true). 
+	 * 
+	 * @param Inputfield|InputfieldWrapper|null The parent Inputfield/wrapper that is rendering it or null if no parent.
+	 * @param bool $renderValueMode Whether renderValueMode will be used. 
+	 * @return bool 
+	 *
+	 */
+	public function renderReady(Inputfield $parent = null, $renderValueMode = false) {
+		return $this->wire('modules')->loadModuleFileAssets($this) > 0;
+	}
 
+	/**
+	 * This hook was replaced by renderReady
+	 * 
+	 * @param $event
+	 * @deprecated
+	 *
+	 */
+	public function hookRender($event) {  }
+	
 	/**
 	 * Process the input from the given WireInputData (usually $input->get or $input->post), load and clean the value for use in this Inputfield. 
 	 *
@@ -535,9 +626,10 @@ abstract class Inputfield extends WireData implements Module {
 		} else { 
 			if(ctype_digit("$value") && (((int) $value) <= PHP_INT_MAX)) $value = (int) "$value"; // force digit strings as integers
 			// string value provided in the input
+			$this->setAttribute('value', $value); 
+			$value = $this->attr('value'); 
 			if("$value" !== (string) $previousValue) {
 				$changed = true; 
-				$this->setAttribute('value', $value); 
 			}
 		}
 
@@ -660,10 +752,50 @@ abstract class Inputfield extends WireData implements Module {
 			$fields->add($field); 
 			
 		}
-
+	
 		return $fields; 
 	}
 
+	/**
+	 * Same as getConfigInputfields but allows for array definition instead
+	 * 
+	 * If both getConfigInputfields and getConfigArray are implemented, both will be used. 
+	 * 
+	 * See comments for InputfieldWrapper::importArray for example of array definition. 
+	 * 
+	 * @return array
+	 * 
+	 */
+	public function ___getConfigArray() {
+		return array(
+			/* Example:
+			'test' => array(
+				'type' => 'text',
+				'label' => 'This is a test',
+				'value' => 'Test', 
+			)
+			*/
+		);
+	}
+
+	/**
+	 * Return a list of Inputfield names from getConfigInputfields() that are allowed in fieldgroup/template context
+	 * 
+	 * @param Field $field
+	 * @return array of Inputfield names
+	 * 
+	 */
+	public function ___getConfigAllowContext($field) {
+		return array(
+			'visibility', 
+			'collapsed', 
+			'columnWidth', 
+			'required', 
+			'requiredIf', 
+			'showIf'
+		);
+	}
+	
 	/**
 	 * Export configuration values for external consumption
 	 *
@@ -714,6 +846,10 @@ abstract class Inputfield extends WireData implements Module {
 
 	/**
 	 * Override Wire's error method and place errors in the context of their inputfield
+	 * 
+	 * @param string $text
+	 * @param int $flags
+	 * @return mixed
 	 *
 	 */
 	public function error($text, $flags = 0) {
@@ -789,23 +925,89 @@ abstract class Inputfield extends WireData implements Module {
 	 *
 	 */
 	public function entityEncode($str, $markdown = false) {
+		
 		// if already encoded, then un-encode it
 		if(strpos($str, '&') !== false && preg_match('/&(#\d+|[a-z]+);/', $str)) {
 			$str = html_entity_decode($str, ENT_QUOTES, "UTF-8"); 
 		}
 
-		$str = htmlentities($str, ENT_QUOTES, "UTF-8"); 
-
-		// convert markdown-style links to HTML
-		if($markdown && strpos($str, '](')) {
-			$str = preg_replace('/\[(.+?)\]\(([^)]+)\)/', '<a href="$2" target="_blank">$1</a>', $str); 
-		}
-		// convert markdown-style emphasis to <strong> tags
-		if($markdown && strpos($str, '**') !== false) {
-			$str = preg_replace('/\*\*(.*?)\*\*/', '<strong>$1</strong>', $str); 
+		if($markdown) {
+			$str = $this->wire('sanitizer')->entitiesMarkdown($str); 
+		} else {
+			$str = $this->wire('sanitizer')->entities($str); 
 		}
 
 		return $str; 
 	}
+	
+	/**
+	 * Set custom html render, see $this->html at top for reference.
+	 *
+	 * @param string $html
+	 *
+	public function setHTML($html) { 
+		$this->html = $html;
+	}
+	 */
+
+	/**
+	 * Get default or custom HTML for render
+	 * 
+	 * If $this->html is populated, it gets returned. 
+	 * If not, then this should return the default HTML for the Inputfield,
+	 * where supported. 
+	 * 
+	 * If this returns blank, then it means either custom HTML is not supported.
+	 *
+	 * @param array $attr When populated with key=value, tags will be replaced. 
+	 * @return array
+	 *
+	public function getHTML($attr = array()) { 
+		if(!strlen($this->html) || empty($attr) || strpos($this->html, '{') === false) return $this->html;
+		$html = $this->html;
+		
+		if(strpos($html, '{attr}')) {
+			
+			$html = str_replace('{attr}', $this->getAttributesString($attr), $html);	
+			
+		} else {
+			
+			// a version of html where the {tags} get replaced with blanks
+			// used for testing if more attributes present without possibility
+			// of those attributes being injected
+			// $_html = $html;
+			
+			// extract value so that a substitution can't result in input-injected tags
+			if(isset($attr['value'])) {
+				$value = $attr['value'];
+				unset($attr['value']); 
+			} else {
+				$value = null;
+			}
+			// populate attributes
+			foreach($attr as $name => $v) {
+				$tag = '{' . $name . '}';
+				if(strpos($html, $tag) === false) continue; 
+				$v = htmlspecialchars($v, ENT_QUOTES, 'UTF-8'); 
+				$html = str_replace($tag, $v, $html);
+				//$_html = str_replace($tag, '', $html); 
+			}
+			// see if any non-value attributes are left
+			$pos = strpos($html, '{'); 
+			if($pos !== false && $pos != strpos($html, '{value}')) {
+				// there are unpopulated tags that need to be removed
+				preg_match_all('/\{[-_a-zA-Z0-9]+\}/', $html, $matches); 
+			}
+			// once all other attributes populated, we can populate {value}
+			if($value !== null) {
+				$value = htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+				$html = str_replace('{value}', $value, $html);
+				$_html = str_replace('{value}', '', $html);
+			}
+			// if ther
+		}
+		return $html;	
+	}
+	 */
 
 }

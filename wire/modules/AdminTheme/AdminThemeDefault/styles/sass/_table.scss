@@ -24,6 +24,7 @@
 
 		thead th,
 		thead th.header,
+		tfoot td, 
 		tbody td {
 			border-left: 1px dotted #ccc; 
 			padding-left: 8px; 
@@ -32,7 +33,8 @@
 
 		thead th:first-child,
 		thead th.header:first-child,
-		tbody td:first-child {
+		tbody td:first-child,
+		tfoot td:first-child {
 			border-left: none;
 			padding-left: 0;
 		}

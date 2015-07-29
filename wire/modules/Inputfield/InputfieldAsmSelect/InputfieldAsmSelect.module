@@ -11,9 +11,8 @@ class InputfieldAsmSelect extends InputfieldSelectMultiple implements Inputfield
 	public static function getModuleInfo() {
 		return array(
 			'title' => __('asmSelect', __FILE__),
-			'version' => 114,
+			'version' => 117,
 			'summary' => __('Multiple selection, progressive enhancement to select multiple', __FILE__), // Module Summary
-			'href' => 'http://code.google.com/p/jquery-asmselect/',
 			'permanent' => true, 
 			);
 	}
@@ -33,8 +32,16 @@ class InputfieldAsmSelect extends InputfieldSelectMultiple implements Inputfield
 		$this->setAsmSelectOption('editLink', ''); 
 
 		// only applicable if editLink is set. set to false if you don't want edit link to be modal
-		$this->setAsmSelectOption('editLinkModal', true); 
+		$this->setAsmSelectOption('editLinkModal', true);
 
+		if($this->wire('adminTheme')) {
+			// replace jquery ui icon default with a font-awesome icon
+			$this->setAsmSelectOption('removeLabel', "<i class='fa fa-trash'></i>");
+
+			// replace jquery ui icon default with a font-awesome icon
+			$this->setAsmSelectOption('sortLabel', "<i class='fa fa-fw fa-sort'></i>");
+		}
+			
 		// cancel the 'size' attribute used by select multiple
 		$this->set('size', null); 
 	}
@@ -42,15 +49,19 @@ class InputfieldAsmSelect extends InputfieldSelectMultiple implements Inputfield
 	public function setAsmSelectOption($key, $value) {
 		$this->asmOptions[$key] = $value; 
 	}
-
+	
 	public function ___render() {
+		if(!empty($this->asmOptions['editLink'])) {
+			$this->wire('modules')->get('JqueryUI')->use('modal');
+		}
 
 		// require javascript and css
 		$class = $this->className(); 
 		$info = self::getModuleInfo();
 		$ver = $info['version'];
+		$jsfile = $this->wire('config')->debug ? 'jquery.asmselect.js' : 'jquery.asmselect.min.js';
 
-		$this->config->scripts->add($this->config->urls->$class . "asmselect/jquery.asmselect.js?v=$ver");
+		$this->config->scripts->add($this->config->urls->$class . "asmselect/$jsfile?v=$ver");
 		$this->config->styles->add($this->config->urls->$class . "$class.css?v=$ver");
 		$this->config->styles->add($this->config->urls->$class . "asmselect/jquery.asmselect.css?v=$ver");
 

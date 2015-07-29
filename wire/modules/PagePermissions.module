@@ -88,7 +88,7 @@ class PagePermissions extends WireData implements Module {
 			$event->return = false;
 
 		} else if(isset($event->arguments[0])) {
-			$event->return = $this->fieldEditable($page, $event->arguments[0]); 
+			$event->return = $this->fieldEditable($page, $event->arguments[0], false); 
 
 		} else {
 			$event->return = true; 
@@ -98,9 +98,12 @@ class PagePermissions extends WireData implements Module {
 
 	/**
 	 * Is the given page editable?
+	 * 
+	 * @param Page $page;
+	 * @return bool
 	 *
 	 */
-	protected function pageEditable(Page $page) {
+	public function pageEditable(Page $page) {
 
 		$user = $this->wire('user');
 
@@ -116,7 +119,7 @@ class PagePermissions extends WireData implements Module {
 		}
 			
 		// special conditions apply if the page is a User
-		if($page instanceof User || $page->template->id == $this->wire('config')->userTemplateID) {
+		if($page instanceof User || in_array($page->template->id, $this->wire('config')->userTemplateIDs)) {
 
 			// if the current process is something other than ProcessUser, they don't have permission
 			if($this->wire('process') != 'ProcessUser') return false;
@@ -160,10 +163,20 @@ class PagePermissions extends WireData implements Module {
 
 	/**
 	 * Assuming the page is editable, is the given field name also editable?
+	 * 
+	 * Do not call this method unless you've already confirmed that the given $page is editable,
+	 * as it does not perform that check. 
+	 * 
+	 * @param Page $page
+	 * @param string $name Field name
+	 * @param bool $checkPageEditable Check if the page is editable? Default=true. 
+	 * 	Specify false here as an optimization if you've already confirmed $page is editable.
+	 * @return bool
 	 *
 	 */
-	protected function fieldEditable(Page $page, $name) {
-	
+	public function fieldEditable(Page $page, $name, $checkPageEditable = true) {
+		
+		if($checkPageEditable && !$this->pageEditable($page)) return false;
 		if(!is_string($name)) return false; 
 		if(!strlen($name)) return true; 
 
@@ -176,7 +189,7 @@ class PagePermissions extends WireData implements Module {
 				return false;
 			}
 		}
-
+		
 		if($name == 'template' || $name == 'templates_id') {
 			if($page->template->noChangeTemplate) return false;
 			if(!$user->hasPermission('page-template', $page)) return false; 
@@ -194,10 +207,30 @@ class PagePermissions extends WireData implements Module {
 		if($name == 'roles') {
 			if(!$user->hasPermission('user-admin')) return false; 
 		}
-
+		
+		if($user->id === $page->id) return $this->userFieldEditable($name, $user);
+		
 		// FUTURE: check per-field edit access
 
 		return true; 
+	}
+
+	/**
+	 * Is the given field editable by the current user in their user profile?
+	 *
+	 * @param string $name Field name
+	 * @param User|null User to check (default=current user)
+	 * @return bool
+	 *
+	 */
+	public function userFieldEditable($name, User $user = null) {
+		if(is_null($user)) $user = $this->wire('user');
+		if(!$user->isLoggedin()) return false;
+		if(!$user->hasPermission('profile-edit')) return false;
+		$data = $this->wire('modules')->getModuleConfigData('ProcessProfile');
+		$profileFields = isset($data['profileFields']) ? $data['profileFields'] : array();
+		if(in_array($name, $profileFields)) return true;
+		return false;
 	}
 
 	/**
@@ -220,7 +253,7 @@ class PagePermissions extends WireData implements Module {
 		if($page->status >= Page::statusUnpublished) $viewable = false;
 			else if(!$page->template || !$page->template->filenameExists()) $viewable = false; 
 			else if($user->isSuperuser()) $viewable = true; 
-			else if($page->process) $viewable = $this->processViewable($page->process);
+			else if($page->process) $viewable = $this->processViewable($page);
 			else if(!$user->hasPermission("page-view", $page)) $viewable = false;
 			else if($page->isTrash()) $viewable = false; 
 
@@ -241,21 +274,15 @@ class PagePermissions extends WireData implements Module {
  	 * give the existing roles access to the admin process and then 'view' access is assumed for that page.
 	 *
 	 */
-	protected function processViewable($process) {
+	protected function processViewable(Page $page) {
 
 		$user = $this->wire('user');
+		$process = $page->process; 
 
 		if($user->isGuest()) return false;
 		if($user->isSuperuser()) return true; 
-
-		$info = $this->wire('modules')->getModuleInfo($process); 
-		$permissionName = empty($info['permission']) ? '' : $info['permission'];
-
-		// if the process module doesn't explicitely define a permission, 
-		// then we assume the user doesn't have access
-		if(!$permissionName) return false;
-
-		return $user->hasPermission($permissionName); 
+		
+		return $this->wire('modules')->hasPermission($process, $user, $page, true); 
 	}
 
 	/**
@@ -274,7 +301,7 @@ class PagePermissions extends WireData implements Module {
 		if($user->isSuperuser()) $listable = true; 
 			else if($page instanceof User && $user->hasPermission('user-admin')) $listable = true; 
 			else if($page->is(Page::statusUnpublished) && !$page->editable()) $listable = false;
-			else if($page->process && !$this->processViewable($page->process)) $listable = false;
+			else if($page->process && !$this->processViewable($page)) $listable = false;
 			else if($page->isTrash()) $listable = false; 
 			else if($page->getAccessTemplate()->guestSearchable) $listable = true; 
 			else if(!$user->hasPermission("page-view", $page)) $listable = false;
@@ -336,7 +363,7 @@ class PagePermissions extends WireData implements Module {
 		} else if($user->isSuperuser()) {
 			$addable = true; 
 
-		} else if($page->id == $this->wire('config')->usersPageID && $user->hasPermission('user-admin')) {
+		} else if(in_array($page->id, $this->wire('config')->usersPageIDs) && $user->hasPermission('user-admin')) {
 			// users with user-admin access adding a page to users: add access is assumed
 			// rather than us having a separate 'users' template where access is defined
 			$addable = true; 
@@ -383,7 +410,7 @@ class PagePermissions extends WireData implements Module {
 				if($has) break;
 			}
 			
-		} else if($page->id == $this->wire('config')->usersPageID && $user->hasPermission('user-admin')) {
+		} else if(in_array($page->id, $this->wire('config')->usersPageIDs) && $user->hasPermission('user-admin')) {
 			// user-admin permission implies create access to the 'user' template
 			$has = true; 
 
@@ -457,6 +484,9 @@ class PagePermissions extends WireData implements Module {
 		// if there is no page-publish permission, then it's publishable
 		$perm = wire('permissions')->get('page-publish'); 
 		if(!$perm->id) return;
+	
+		// if Page is a user, and user has user-admin permission, they can also publish the user
+		if($page instanceof User && $user->hasPermission('user-admin')) return;
 
 		// check if user has the permission assigned
 		if($user->hasPermission('page-publish', $page)) return;

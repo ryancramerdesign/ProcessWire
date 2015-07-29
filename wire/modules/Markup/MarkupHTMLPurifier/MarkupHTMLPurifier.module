@@ -65,6 +65,13 @@ class MarkupHTMLPurifier extends WireData implements Module {
 	 */
 	public function init() {
 		$this->settings->set('Cache.SerializerPath', $this->getCachePath());
+		$this->settings->set('Attr.AllowedRel', array('nofollow'));
+		$this->settings->set('HTML.DefinitionID', 'html5-definitions');
+		$this->settings->set('HTML.DefinitionRev', 1);
+		if($def = $this->settings->maybeGetRawHTMLDefinition()) {
+			$def->addElement('figure', 'Block', 'Optional: (figcaption, Flow) | (Flow, figcaption) | Flow', 'Common');
+			$def->addElement('figcaption', 'Inline', 'Flow', 'Common');
+		}
 	}
 
 	/**
@@ -72,7 +79,7 @@ class MarkupHTMLPurifier extends WireData implements Module {
 	 *
 	 */
 	protected function getCachePath()  {
-		$cachePath = wire('config')->paths->cache . $this->className() . '/';
+		$cachePath = $this->wire('config')->paths->cache . $this->className() . '/';
 		if(!is_dir($cachePath)) wireMkdir($cachePath); 
 		return $cachePath;
 	}

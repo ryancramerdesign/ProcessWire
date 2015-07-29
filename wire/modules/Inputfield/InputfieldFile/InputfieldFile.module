@@ -10,11 +10,11 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 		return array(
 			'title' => __('Files', __FILE__), // Module Title
 			'summary' => __('One or more file uploads (sortable)', __FILE__), // Module Summary
-			'version' => 113,
+			'version' => 118,
 			'permanent' => true, 
 			);
 	}
-
+	
 	/**
 	 * Cache of responses we'll be sending on ajax requests
 	 *
@@ -32,6 +32,22 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 	 *
 	 */
 	protected $wireUpload = null;
+
+	/**
+	 * Set to the current Pagefile item when doing iteration
+	 * 
+	 * @var Pagefile|null
+	 * 
+	 */
+	protected $currentItem = null;
+
+	/**
+	 * True when field should behave in an upload only mode
+	 * 
+	 * @var bool
+	 * 
+	 */
+	protected $uploadOnlyMode = false;
 
 	/**
 	 * Initialize the InputfieldFile
@@ -57,6 +73,7 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 		$this->set('tagsFieldLabel', $this->_('Tags')); // Tags field label
 		$this->set('noUpload', 0); // set to 1 to disable uploading to this field
 		$this->set('noLang', 0); 
+		$this->set('noAjax', 0); // disable ajax uploading
 		$this->attr('type', 'file'); 
 
 		// get the max filesize
@@ -66,6 +83,8 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 			else if($last == 'm') $this->maxFilesize = ($filesize*1024)*1024;
 			else if($last == 'k') $this->maxFilesize = $filesize*1024;
 			else $this->maxFilesize = (5*1024)*1024; 
+		
+		if($this->wire('input')->get('uploadOnlyMode')) $this->uploadOnlyMode = true; 
 	}
 
 	/**
@@ -180,14 +199,16 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 	}
 
 	protected function ___renderItem($pagefile, $id, $n) {
-
+	
 		$out = 
 			"\n\t\t<p class='InputfieldFileInfo InputfieldItemHeader ui-state-default ui-widget-header'>" . 
-			"\n\t\t\t<span class='ui-icon ui-icon-arrowthick-2-n-s HideIfSingle HideIfEmpty'></span>" .
-			"\n\t\t\t<span class='ui-icon ui-icon-arrowthick-1-e HideIfMultiple'></span>" . 
-			"\n\t\t\t<a class='InputfieldFileName' href='{$pagefile->url}'>{$pagefile->basename}</a> " . 
-			"\n\t\t\t<span class='InputfieldFileStats'>{$pagefile->filesizeStr}</span> " . 
-			"\n\t\t\t<label class='InputfieldFileDelete'><input type='checkbox' name='delete_$id' value='1' /><span class='ui-icon ui-icon-trash'>Delete</span></label>" . 
+			"\n\t\t\t" . wireIconMarkupFile($pagefile->basename, "fa-fw HideIfEmpty") . 
+			//"\n\t\t\t<i class='fa fa-fw fa-caret-right HideIfMultiple'></i>" . 
+			"\n\t\t\t<a class='InputfieldFileName' target='_blank' href='{$pagefile->url}'>{$pagefile->basename}</a> " . 
+			"\n\t\t\t<span class='InputfieldFileStats'>" . str_replace(' ', '&nbsp;', $pagefile->filesizeStr) . "</span> " . 
+			"\n\t\t\t<label class='InputfieldFileDelete'>" . 
+				"<input type='checkbox' name='delete_$id' value='1' title='" . $this->_('Delete') . "' />" . 
+				"<i class='fa fa-fw fa-trash'></i></label>" . 
 			"\n\t\t</p>" . 
 			"\n\t\t<div class='InputfieldFileData description ui-widget-content'>" . 
 			"\n\t\t\t" . $this->renderItemDescriptionField($pagefile, $id, $n) . 
@@ -198,7 +219,12 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 	}
 
 	protected function renderItemWrap($out) {
-		return 	"\n\t<li class='{$this->itemClass}'>$out\n\t</li>";
+		// note: using currentItem rather than a new argument since there are now a few modules extending
+		// this one and if they implement their own calls to this method or version of this method then 
+		// they will get strict notices from php if we add a new argument here. 
+		$item = $this->currentItem; 
+		$id = $item ? " id='file_$item->hash'" : "";
+		return 	"\n\t<li$id class='{$this->itemClass}'>$out\n\t</li>";
 	}
 
 	protected function ___renderList($value) {
@@ -206,13 +232,27 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 		if(!$value) return '';
 		$out = '';
 		$n = 0; 
-
-		foreach($value as $k => $pagefile) {
-			$id = $this->pagefileId($pagefile);
-			$out .= $this->renderItemWrap($this->renderItem($pagefile, $id, $n++)); 
+		
+		// if just rendering the files list (as opposed to saving it), delete any temp files that may have accumulated
+		if(!$this->overwrite && !count($_POST) && !$this->config->ajax && !$this->uploadOnlyMode) {
+			// don't delete files when in render single field or fields mode
+			if(!$this->wire('input')->get('field') && !$this->wire('input')->get('fields')) {
+				$value->deleteAllTemp();
+			}
 		}
 
-		if($out) $out = "\n<ul class='InputfieldFileList ui-helper-clearfix'>$out\n</ul>";
+		if(!$this->uploadOnlyMode) {
+			foreach($value as $k => $pagefile) {
+				$id = $this->pagefileId($pagefile);
+				$this->currentItem = $pagefile;
+				$out .= $this->renderItemWrap($this->renderItem($pagefile, $id, $n++));
+			}
+		}
+
+		$class = 'InputfieldFileList ui-helper-clearfix';
+		if($this->overwrite) $class .= " InputfieldFileOverwrite";
+		if($out) $out = "\n<ul class='$class'>$out\n</ul>";
+		
 		return $out; 
 	}
 
@@ -229,12 +269,16 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 		$extensions = $this->extensions; 
 		if($this->unzip && !$this->maxFiles) $extensions .= ' zip';
 
-		$out =	"\n<p data-maxfilesize='{$this->maxFilesize}' data-extensions='{$extensions}' data-fieldname='$attrs[name]' class='InputfieldFileUpload'>" . 
+		$out =	
+			"\n<p data-maxfilesize='{$this->maxFilesize}' data-extensions='{$extensions}' data-fieldname='$attrs[name]' class='InputfieldFileUpload'>" . 
 			"\n\t<input type='hidden' class='InputfieldFileMaxFiles' value='{$this->maxFiles}' />" . 
 			"\n\t<input " . $this->getAttributesString($attrs) . " />" . 
-			"\n\t<span class='InputfieldFileValidExtensions detail'>" . htmlspecialchars(str_replace(' ', ', ', trim($extensions))) . "</span>" . 
-			"\n\t<span class='AjaxUploadDropHere description'><i class='fa fa-upload'></i>&nbsp; " . $this->_('drag and drop files in here') . "</span>" . // Ajax upload instruction
-			"\n</p>";
+			"\n\t<span class='InputfieldFileValidExtensions detail'>" . htmlspecialchars(str_replace(' ', ', ', trim($extensions))) . "</span>";
+		
+		if(!$this->noAjax) $out .= 
+			"\n\t<span class='AjaxUploadDropHere description'><i class='fa fa-upload'></i>&nbsp; " . $this->_('drag and drop files in here') . "</span>"; // Ajax upload instruction
+		
+		$out .= "\n</p>";
 
 		return $out; 
 	}
@@ -246,35 +290,94 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 
 	protected function ___fileAdded(Pagefile $pagefile) {
 		if($this->noUpload) return;
+		
+		$isValid = $this->wire('sanitizer')->validateFile($pagefile->filename(), array(
+			'pagefile' => $pagefile
+		));
+		
+		if($isValid === false) {
+			$errors = $this->wire('sanitizer')->errors('clear array');
+			throw new WireException(
+				$this->_('File failed validation') . 
+				(count($errors) ? ": " . implode(', ', $errors) : "")
+			);
+		} else if($isValid === null) {
+			// there was no validator available for this file type
+		}
 
 		$message = $this->_('Added file:') . " {$pagefile->basename}"; // Label that precedes an added filename
 
-		if($this->config->ajax) {
+		if($this->config->ajax && !$this->noAjax) {
 			$n = count($this->value); 
 			if($n) $n--; // for sorting
+			$this->currentItem = $pagefile; 
 			$markup = $this->renderItemWrap($this->renderItem($pagefile, $this->pagefileId($pagefile), $n));	
 			$this->ajaxResponse(false, $message, $pagefile->url, $pagefile->filesize(), $markup); 
 		} else {
 			$this->message($message); 
 		}
-			
 	}
 
 	protected function ___processInputAddFile($filename) {
 
 		$total = count($this->value); 
+		$description = '';
+		$tags = '';
+		$isAjax = $this->config->ajax; 
+		$rm = null;
 
 		if($this->maxFiles > 1 && $total >= $this->maxFiles) return; 
-
+		
 		// allow replacement of file if maxFiles is 1
 		if($this->maxFiles == 1 && $total) {
-			$this->processInputDeleteFile($this->value->first());
-			$this->singleFileReplacement = true; 
+			$pagefile = $this->value->first();
+			$description = $pagefile->description;
+			$tags = $pagefile->tags;
+			$rm = true; 
+			if($filename == $pagefile->basename) {
+				// use overwrite mode rather than replace mode when single file and same filename
+				if($this->overwrite) $rm = false;
+			}
+			if($rm) {
+				if($this->overwrite) $this->processInputDeleteFile($pagefile);
+				$this->singleFileReplacement = true; 
+			}
+		} 
+	
+		if($this->overwrite) {
+			$pagefile = $this->value->get($filename); 
+			clearstatcache();
+			if($pagefile) {
+				// already have a file of the same name
+				if($pagefile instanceof Pageimage) $pagefile->removeVariations(); 
+				$description = $pagefile->description;
+				$tags = $pagefile->tags;
+			} else {
+				// we don't have a file with the same name as the one that was uploaded
+				// file must be in another files field on the same page, that could be problematic
+				$ul = $this->getWireUpload();
+				// see if any files were overwritten that weren't part of our field
+				// if so, we need to restore them and issue an error
+				$err = false;
+				foreach($ul->getOverwrittenFiles() as $bakFile => $newFile) {
+					if(basename($newFile) != $filename) continue; 
+					unlink($newFile); 	
+					rename($bakFile, $newFile); // restore
+					$ul->error(sprintf($this->_('Refused file %s because it is already on the file system and owned by a different field.'), $filename)); 
+					$err = true; 
+				}
+				if($err) return;
+			}
 		}
 
 		$this->value->add($filename); 
 		$item = $this->value->last();
+		
 		try {
+			if($description) $item->description = $description;
+			if($tags) $item->tags = $tags;
+			// items saved in ajax or uploadOnly mode are temporary till saved in non-ajax/non-uploadOnly
+			if($isAjax && !$this->overwrite) $item->isTemp(true); 
 			$this->fileAdded($item); 
 		} catch(Exception $e) {
 			$item->unlink();
@@ -290,7 +393,14 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 
 	protected function ___processInputFile(WireInputData $input, Pagefile $pagefile, $n) {
 
-		$id = $this->name . '_' . $pagefile->hash; 		
+		$id = $this->name . '_' . $pagefile->hash;
+	
+		if($this->uploadOnlyMode) {
+			// skip files that aren't present as just uploaded
+			$key = "sort_$id";
+			if($input->$key === null) return false;
+		}
+		
 		$changed = false; 
 		$languages = $this->noLang ? null : $this->wire('languages'); 
 		$keys = $languages ? array('tags') : array('description', 'tags'); 
@@ -314,18 +424,33 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 				$pagefile->description($language, $value); 
 				$changed = true; 
 			}
-		}	
+		}
+		
+		if($this->uploadOnlyMode) {
+			$sort = null;
+			$changed = true; 
+		} else {
+			$key = "sort_$id";
+			$sort = $input->$key;
+			if($sort !== null) {
+				$sort = (int) $sort; 
+				$pagefile->sort = $sort;
+				if($n !== $sort) $changed = true;
+			}
+		}
 
 		if(isset($input['delete_' . $id])) {
 			$this->processInputDeleteFile($pagefile); 
 			$changed = true; 
-		}
-
-		$key = "sort_$id";
-		$val = (int) $input->$key;
-		if($val !== NULL) {
-			$pagefile->sort = $val;
-			if($n !== $val) $changed = true; 
+			
+		} else if(!$this->config->ajax && !$this->overwrite && $pagefile->isTemp() && $sort !== null) {
+			// if page saved with temporary items when not ajax, those temporary items become non-temp
+			$pagefile->isTemp(false);
+			if($this->maxFiles == 1) while(count($this->value) > 1) {
+				$item = $this->value->first();
+				$this->value->remove($item);
+			}
+			$changed = true;
 		}
 
 		return $changed; 
@@ -333,10 +458,10 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 
 	public function ___processInput(WireInputData $input) {
 		
-		if(is_null($this->value)) $this->value = new Pagefiles($this->fuel('page')); 
+		if(is_null($this->value)) $this->value = new Pagefiles($this->wire('page'));
 		if(!$this->destinationPath) $this->destinationPath = $this->value->path();
-		if(!$this->destinationPath || !is_dir($this->destinationPath)) return $this->error($this->_("destinationPath is empty or does not exist")); 
-		if(!is_writable($this->destinationPath)) return $this->error($this->_("destinationPath is not writable")); 
+		if(!$this->destinationPath || !is_dir($this->destinationPath)) return $this->error($this->_("destinationPath is empty or does not exist"));
+		if(!is_writable($this->destinationPath)) return $this->error($this->_("destinationPath is not writable"));
 
 		$changed = false; 
 		$total = count($this->value); 
@@ -349,7 +474,7 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 				$ul->setName($this->attr('name')); 
 				$ul->setDestinationPath($this->destinationPath); 
 				$ul->setOverwrite($this->overwrite); 
-				$ul->setAllowAjax(true);
+				$ul->setAllowAjax($this->noAjax ? false : true);
 				if($this->maxFilesize) $ul->setMaxFileSize($this->maxFilesize); 
 
 				if($this->maxFiles == 1) {
@@ -370,7 +495,7 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 					$changed = true; 
 				}
 
-				if($this->config->ajax) foreach($ul->getErrors() as $error) { 
+				if($this->config->ajax && !$this->noAjax) foreach($ul->getErrors() as $error) { 
 					$this->ajaxResponse(true, $error); 
 				}
 
@@ -415,6 +540,7 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 			'size' => $size,
 			'markup' => $markup, 
 			'replace' => $this->singleFileReplacement,
+			'overwrite' => $this->overwrite
 			);
 
 		$this->ajaxResponses[] = $response; 
@@ -433,15 +559,25 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 
 
 	public function ___getConfigInputfields() {
-		$inputfields = parent::___getConfigInputfields(); 
-
+		$inputfields = parent::___getConfigInputfields();
+		
 		$f = $this->modules->get("InputfieldCheckbox"); 
 		$f->attr('name', 'unzip'); 
 		$f->attr('value', 1); 
 		$f->setAttribute('checked', $this->unzip ? 'checked' : ''); 
 		$f->label = $this->_('Decompress ZIP files?');
 		$f->description = $this->_("If checked, ZIP archives will be decompressed and all valid files added as uploads (if supported by the hosting environment). Max files must be set to 0 (no max) in order for ZIP uploads to be functional."); // Decompress ZIP files description
-		$inputfields->append($f); 
+		$f->collapsed = Inputfield::collapsedBlank;
+		$inputfields->append($f);
+		
+		$f = $this->modules->get("InputfieldCheckbox");
+		$f->attr('name', 'overwrite');
+		$f->label = $this->_('Overwrite existing files?');
+		$f->description = $this->_('If checked, a file uploaded with the same name as an existing file will replace the existing file (description and tags will remain). If not checked, uploaded filenames will be renamed to be unique.'); // Overwrite description
+		$f->notes = $this->_('Please note that when this option is enabled, AJAX-uploaded files are saved with the page immediately at upload, rather than when you click "save". As a result, you may wish to leave this option unchecked unless you have a specific need for it.'); // Overwrite notes
+		if($this->overwrite) $f->attr('checked', 'checked');
+		$f->collapsed = Inputfield::collapsedBlank;
+		$inputfields->append($f);
 
 		$f = $this->modules->get("InputfieldInteger"); 
 		$f->attr('name', 'descriptionRows'); 
@@ -461,6 +597,8 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 			$f->description = $this->_('By default, descriptions are multi-language when you have Language Support installed. If you want to disable multi-language descriptions, check this box.'); // Disable multi-language description
 			$inputfields->append($f); 
 		}
+		
+		// @todo make noAjax option configurable
 
 		return $inputfields; 	
 	}

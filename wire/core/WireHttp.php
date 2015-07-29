@@ -6,7 +6,7 @@
  * Provides capability for sending POST/GET requests to URLs
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2014 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
@@ -15,7 +15,19 @@
 
 class WireHttp extends Wire {
 	
-	const debug = false; 
+	const debug = false;
+
+	/**
+	 * Default timeout seconds for send() methods: GET, POST, etc.
+	 * 
+	 */
+	const defaultTimeout = 4.5;
+
+	/**
+	 * Default timeout seconds for download() methods. 
+	 *
+	 */
+	const defaultDownloadTimeout = 50; 
 
 	/**
 	 * Default value for $headers, when reset
@@ -26,10 +38,16 @@ class WireHttp extends Wire {
 		);
 
 	/**
-	 * Schemes wwe are allowed to use
+	 * Schemes we are allowed to use
 	 *
 	 */
-	protected $allowSchemes = array('http', 'https'); 
+	protected $allowSchemes = array('http', 'https');
+
+	/**
+	 * HTTP methods we are allowed to use
+	 *
+	 */
+	protected $allowHttpMethods = array('GET', 'POST', 'PUT', 'DELETE', 'HEAD'); 
 
 	/**
 	 * Headers to include in the request
@@ -106,12 +124,28 @@ class WireHttp extends Wire {
 		);
 
 	/**
+	 * Seconds till timing out on a connection
+	 * 
+	 * @var float|null Contains a float value when set, or a NULL when not set (indicating default should be used)
+	 * 
+	 */
+	protected $timeout = null;
+
+	/**
 	 * Last HTTP code
 	 * 
 	 * @var int
 	 * 
 	 */
 	protected $httpCode = 0;
+	
+	/**
+	 * Last HTTP code text
+	 *
+	 * @var int
+	 *
+	 */
+	protected $httpCodeText = '';
 
 	/**
 	 * Data to send in the request
@@ -140,10 +174,10 @@ class WireHttp extends Wire {
 	protected $responseHeaders = array();
 	
 	/**
-	 * Last error message
+	 * Error messages
 	 *
 	 */
-	protected $error = '';
+	protected $error = array();
 
 	/**
 	 * Whether the system supports CURL
@@ -229,15 +263,12 @@ class WireHttp extends Wire {
 	 * @param string $url URL to request (including http:// or https://)
 	 * @param mixed $data Array of data to send (if not already set before) or raw data
 	 * @param bool $textMode When true function will return a string rather than integer, see the statusText() method.
-	 * @return bool|integer|string False on failure or integer of status code (200|404|etc) on success.
+	 * @return bool|integer|string False on failure or integer or string of status code (200|404|etc) on success.
 	 *
 	 */
 	 public function status($url, $data = array(), $textMode = false) {
-		$responseHeader = $this->send($url, $data, 'HEAD');
-		if(!is_array($responseHeader)) return false;
-		$statusCode = (preg_match("=^(HTTP/\d+\.\d+) (\d{3}) (.*)=", $responseHeader[0], $matches) === 1) ? intval($matches[2]) : false;
-		if($textMode) $statusCode = isset($matches[3]) ? "$statusCode $matches[3]" : "$statusCode";
-		return $statusCode;
+		$this->send($url, $data, 'HEAD');
+		return $this->getHttpCode($textMode); 
 	}
 
 	/**
@@ -295,7 +326,7 @@ class WireHttp extends Wire {
 	 *
 	 */
 	public function set($key, $value) {
-		$this->$data[$key] = $value; 
+		$this->data[$key] = $value; 
 		return $this;
 	}
 
@@ -316,11 +347,11 @@ class WireHttp extends Wire {
 	}	
 
 	/**
-	 * Send the given $data array to a URL using either POST or GET
+	 * Send the given $data array to a URL using either POST, GET, PUT or DELETE
 	 *
 	 * @param string $url URL to post to (including http:// or https://)
 	 * @param array $data Array of data to send (if not already set before)
-	 * @param string $method Method to use (either POST or GET)
+	 * @param string $method Method to use (either POST, GET, PUT or DELETE)
 	 * @return bool|string False on failure or string of contents received on success.
 	 *
 	 */
@@ -332,7 +363,8 @@ class WireHttp extends Wire {
 		$unmodifiedURL = $url;
 
 		if(!empty($data)) $this->setData($data);
-		if($method !== 'GET') $method = 'POST';
+		
+		if(!in_array(strtoupper($method), $this->allowHttpMethods)) $method = 'POST';
 
 		if(!$this->hasFopen || strpos($url, 'https://') === 0 && !extension_loaded('openssl')) {
 			return $this->sendSocket($url, $method); 
@@ -354,39 +386,96 @@ class WireHttp extends Wire {
 
 		$header = '';
 		foreach($this->headers as $key => $value) $header .= "$key: $value\r\n";
+		$header .= "Connection: close\r\n";
 
 		$options = array(
 			'http' => array( 
 				'method' => $method,
+				'timeout' => $this->getTimeout(), 
 				'content' => $content,
-				'header' => $header
+				'header' => $header,
 				)
 			);      
 
-		$context = @stream_context_create($options); 
-		$fp = @fopen($url, 'rb', false, $context); 
-		if(!$fp) {
-			//$this->error = "fopen() failed, see result of getResponseHeader()";
-			//if(isset($http_response_header)) $this->responseHeader = $http_response_header; 
-			return $this->sendSocket($unmodifiedURL, $method); 
+		set_error_handler(array($this, '_errorHandler'));
+		$context = stream_context_create($options); 
+		$fp = fopen($url, 'rb', false, $context);
+		restore_error_handler();
+
+		if(isset($http_response_header)) $this->setResponseHeader($http_response_header); 
+		
+		if($fp) {
+			$result = @stream_get_contents($fp); 
+			
+		} else {
+			$code = $this->getHttpCode();
+			if($code && isset($this->errorCodes[$code])) {
+				// known http error code, no need to fallback to sockets
+				$result = false;
+			} else {
+				//fallback to sockets
+				$result = $this->sendSocket($unmodifiedURL, $method);
+			}
 		}
 
-		$result = @stream_get_contents($fp); 
-		if(isset($http_response_header)) $this->setResponseHeader($http_response_header); 
 		return $result;
 	}
+	
+	/**
+	 * Send using CURL (coming soon)
+	 *
+	 * @param string $url 
+	 * @param string $method
+	 * @param array $options
+	 * @return bool|string
+	 *
+	protected function sendCURL($url, $method = 'POST', $options = array()) {
+
+		$this->resetResponse();
+		$timeout = isset($options['timeout']) ? (float) $options['timeout'] : $this->getTimeout();
+		if(!in_array(strtoupper($method), $this->allowHttpMethods)) $method = 'POST';
+
+		$curl = curl_init($url);
+
+		curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, $timeout);
+		curl_setopt($curl, CURLOPT_TIMEOUT, $timeout);
+		curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
+		if($method == 'POST') curl_setopt($curl, CURLOPT_POST, true);
+			else if($method == 'PUT') curl_setopt($curl, CURLOPT_PUT, true);
+			else curl_setopt($curl, CURLOPT_GET, true);
+		curl_setopt($curl, CURLOPT_RETURNTRANSFER, true); 
+
+		// @felixwahner #1027
+		if(isset($options['http']) && isset($options['http']['proxy']) && !is_null($options['http']['proxy'])) {
+			curl_setopt($curl, CURLOPT_PROXY, $options['http']['proxy']);
+		}
+
+		$result = curl_exec($curl);
+		if($result) $this->httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+		if($result === false) $this->error[] = curl_error($curl);
+		curl_close($curl);
+
+		return $result;
+	}
+	 */
 
 	/**
 	 * Alternate method of sending when allow_url_fopen isn't allowed
+	 * 
+	 * @param string $url
+	 * @param string $method
+	 * @param array $options Optional settings: 
+	 * 	- timeout: number of seconds to timeout
+	 * @return bool|string
 	 *
 	 */
-	protected function sendSocket($url, $method = 'POST') {
+	protected function sendSocket($url, $method = 'POST', $options = array()) {
 		
 		static $level = 0; // recursion level
 
 		$this->resetResponse();
-		$timeoutSeconds = 3; 
-		if($method != 'GET') $method = 'POST';
+		$timeout = isset($options['timeout']) ? (float) $options['timeout'] : $this->getTimeout();
+		if(!in_array(strtoupper($method), $this->allowHttpMethods)) $method = 'POST';
 
 		$info = parse_url($url);
 		$host = $info['host'];
@@ -425,7 +514,8 @@ class WireHttp extends Wire {
 		$errno = '';
 		$errstr = '';
 
-		if(false !== ($fs = fsockopen($scheme . $host, $port, $errno, $errstr, $timeoutSeconds))) {
+		set_error_handler(array($this, '_errorHandler'));
+		if(false !== ($fs = fsockopen($scheme . $host, $port, $errno, $errstr, $timeout))) {
 			fwrite($fs, "$request\r\n$content");
 			while(!feof($fs)) {
 				// get 1 tcp-ip packet per iteration
@@ -433,7 +523,8 @@ class WireHttp extends Wire {
 			}
 			fclose($fs);
 		}
-		if(strlen($errstr)) $this->error = $errno . ': ' . $errstr; 
+		restore_error_handler();
+		if(strlen($errstr)) $this->error[] = $errno . ': ' . $errstr; 
 	
 		// skip past the headers in the response, so that it is consistent with 
 		// the results returned by the regular send() method
@@ -468,6 +559,7 @@ class WireHttp extends Wire {
 	 * @param string $toFile Filename you want to save it to (including full path).
 	 * @param array $options Optional aptions array for PHP's stream_context_create(), plus these optional options: 
 	 * 	- useMethod (string): Specify "curl", "fopen" or "socket" to force a specific method (default=autodetect)
+	 * 	- timeout (float): Number of seconds till timeout
 	 * @return string Filename that was downloaded (including full path).
 	 * @throws WireException All error conditions throw exceptions. 
 	 * 
@@ -482,6 +574,14 @@ class WireHttp extends Wire {
 		
 		if(!$http && !$https) {
 			throw new WireException($this->_('Download URLs must begin with http:// or https://'));
+		}
+	
+		if(!isset($options['timeout'])) {
+			if(is_null($this->timeout)) {
+				$options['timeout'] = self::defaultDownloadTimeout;
+			} else {
+				$options['timeout'] = $this->timeout; 
+			}
 		}
 		
 		if(isset($options['useMethod'])) {
@@ -530,7 +630,7 @@ class WireHttp extends Wire {
 		fclose($fp); 
 			
 		$methods = implode(", ", $triedMethods);
-		if($this->error || isset($this->errorCodes[$this->httpCode])) {
+		if(count($this->error) || isset($this->errorCodes[$this->httpCode])) {
 			unlink($toFile);
 			$error = $this->_('File could not be downloaded') . ' ' . htmlentities("($fromURL) ") . $this->getError() . " (tried: $methods)";
 			throw new WireException($error); 
@@ -560,15 +660,23 @@ class WireHttp extends Wire {
 		$fromURL = str_replace(' ', '%20', $fromURL);
 		
 		$curl = curl_init($fromURL);
-		
-		curl_setopt($curl, CURLOPT_TIMEOUT, 50);
+
+		if(isset($options['timeout'])) {
+			curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, (int) $options['timeout']);
+			curl_setopt($curl, CURLOPT_TIMEOUT, (int) $options['timeout']);
+		}
 		curl_setopt($curl, CURLOPT_FILE, $fp); // write curl response to file
 		curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
+
+		// @felixwahner #1027
+		if(isset($options['http']) && isset($options['http']['proxy']) && !is_null($options['http']['proxy'])) {
+			curl_setopt($curl, CURLOPT_PROXY, $options['http']['proxy']);
+		}
 		
 		$result = curl_exec($curl);
 		if($result) $this->httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
 
-		if($result === false) $this->error = curl_error($curl);
+		if($result === false) $this->error[] = curl_error($curl);
 		curl_close($curl);
 		
 		return $result; 
@@ -588,12 +696,17 @@ class WireHttp extends Wire {
 		$this->resetResponse();
 
 		// Define the options
-		$defaultOptions = array('max_redirects' => 3);
+		$defaultOptions = array(
+			'max_redirects' => 3,
+		);
+		
 		$options = array_merge($defaultOptions, $options);
 		$context = stream_context_create(array('http' => $options));
 
 		// download the file
+		set_error_handler(array($this, '_errorHandler'));
 		$content = file_get_contents($fromURL, false, $context);
+		restore_error_handler();
 
 		if(isset($http_response_header)) $this->setResponseHeader($http_response_header);
 
@@ -619,12 +732,12 @@ class WireHttp extends Wire {
 	protected function downloadSocket($fromURL, $fp, array $options) {
 		$this->resetResponse();
 		$this->resetRequest();
-
+	
 		// download the file
-		$content = $this->sendSocket($fromURL, 'GET');
+		$content = $this->sendSocket($fromURL, 'GET', $options);
 		fwrite($fp, $content);
-		if(empty($content) && !$this->error) $this->error = 'no data received'; 
-		return $this->error ? false : true; 
+		if(empty($content) && !count($this->error)) $this->error[] = 'no data received'; 
+		return count($this->error) ? false : true; 
 	}
 
 	/**
@@ -671,17 +784,19 @@ class WireHttp extends Wire {
 		
 		$this->responseHeader = $responseHeader;
 		
-		if(isset($responseHeader[0])) {
-			$properties = explode(' ', $responseHeader[0]);
-			$httpCode = isset($properties[1]) ? (int) $properties[1] : 0;
-			$message = isset($properties[2]) ? $properties[2] : '';
+		if(!empty($responseHeader[0])) {
+			list($http, $httpCode, $httpText) = explode(' ', trim($responseHeader[0]), 3); 
+			$httpCode = (int) $httpCode;
+			$httpText = preg_replace('/[^-_.;() a-zA-Z0-9]/', ' ', $httpText); 
 		} else {
 			$httpCode = 0;
-			$message = '';
+			$httpText = '';
 		}
 		
 		$this->httpCode = (int) $httpCode;
-		if(isset($this->errorCodes[$this->httpCode])) $this->error = $this->errorCodes[$this->httpCode]; 
+		$this->httpCodeText = $httpText; 
+		
+		if(isset($this->errorCodes[$this->httpCode])) $this->error[] = $this->errorCodes[$this->httpCode]; 
 
 		// parsed version
 		$this->responseHeaders = array();
@@ -738,7 +853,7 @@ class WireHttp extends Wire {
 		$this->responseHeader = array();
 		$this->responseHeaders = array();
 		$this->httpCode = 0;
-		$this->error = '';
+		$this->error = array();
 	}
 
 	/**
@@ -754,24 +869,32 @@ class WireHttp extends Wire {
 	/**
 	 * Get a string of the last error message
 	 *
-	 * @return string
+	 * @param bool $getArray Specify true to receive an array of error messages, or omit for a string. 
+	 * @return string|array
 	 *
 	 */
-	public function getError() {
-		$error = $this->error; 
+	public function getError($getArray = false) {
+		$error = $getArray ? $this->error : implode(', ', $this->error); 
 		if(isset($this->errorCodes[$this->httpCode])) {
-			$error = "$this->httpCode " . $this->errorCodes[$this->httpCode] . ": $error";
+			$httpError = "$this->httpCode " . $this->errorCodes[$this->httpCode];
+			if($getArray) {
+				array_unshift($error, $httpError); 
+			} else {
+				$error = "$httpError: $error";
+			}
 		}
 		return $error; 
 	}
 
 	/**
-	 * Get last HTTP error code
+	 * Get last HTTP code
 	 *
-	 * @return int
+	 * @param bool $withText Specify true to include the HTTP code text label with the code
+	 * @return int|string
 	 *
 	 */
-	public function getHttpCode() {
+	public function getHttpCode($withText = false) {
+		if($withText) return "$this->httpCode $this->httpCodeText";
 		return $this->httpCode; 
 	}
 
@@ -820,6 +943,34 @@ class WireHttp extends Wire {
 	 */
 	public function getAllowSchemes() {
 		return $this->allowSchemes; 
+	}
+
+	/**
+	 * Set the number of seconds till connection times out 
+	 * 
+	 * @param int|float $seconds
+	 * @return this
+	 * 
+	 */
+	public function setTimeout($seconds) {
+		$this->timeout = (float) $seconds; 
+		return $this; 
+	}
+
+	/**
+	 * Get the number of seconds till connection times out
+	 *
+	 * Used by send(), get(), post(), getJSON(), but not by download() methods.
+	 *
+	 * @return float
+	 *
+	 */
+	public function getTimeout() {
+		return $this->timeout === null ? self::defaultTimeout : (float) $this->timeout; 
+	}
+	
+	public function _errorHandler($errno, $errstr, $errfile, $errline, $errcontext) {
+		$this->error[] = "$errno: $errstr";
 	}
 
 

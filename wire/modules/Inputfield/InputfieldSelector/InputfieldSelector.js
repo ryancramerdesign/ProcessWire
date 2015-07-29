@@ -43,6 +43,9 @@ var InputfieldSelector = {
 		$(document).on('change', '.InputfieldSelector :input:not(.select-field):not(.input-value-autocomplete)', function() {
 			InputfieldSelector.changeAny($(this)); 
 		}); 
+		$(document).on('opened', '.InputfieldSelector', function() {
+			InputfieldSelector.normalizeHeightRows($(this)); 
+		}); 
 
 		var timeout = null;
 		$(document).on('keyup', '.InputfieldSelector input.input-value', function() {
@@ -67,7 +70,7 @@ var InputfieldSelector = {
 
 		$(document).on('wiretabclick', function(event, $newTab, $oldTab) {
 			var $inputfield = $newTab.find(".InputfieldSelector"); 
-			if($inputfield.size() == 0) return;
+			if($inputfield.length == 0) return;
 			InputfieldSelector.normalizeHeightRows($inputfield); 
 		}); 
 
@@ -78,7 +81,7 @@ var InputfieldSelector = {
 		// trigger change any event for first item, in case we have one already populated
 		//var $rows = $(".InputfieldSelector .selector-row:not(.selector-template-row)"); 
 		var $rows = $(".InputfieldSelector .selector-row"); 
-		if($rows.size() > 0) {
+		if($rows.length > 0) {
 			$rows.eq(0).find(".select-field").each(function() {
 				// this ensures any data-template-ids attributes affect the field disabled state at the template-row level
 				InputfieldSelector.changeAny($(this)); 
@@ -89,7 +92,7 @@ var InputfieldSelector = {
 				$row.css('border-color', InputfieldSelector.borderColor); // match border color to current admin theme
 				InputfieldSelector.normalizeHeightRow($row); 
 				var $ac = $row.find(".input-value-autocomplete"); 
-				if($ac.size() > 0) {
+				if($ac.length > 0) {
 					// setup autocomplete
 					var field = $row.find(".select-field").val();
 					var name = $row.parents(".InputfieldSelector").find("input.selector-value").attr('name'); // selector-value intentional!
@@ -99,7 +102,7 @@ var InputfieldSelector = {
 		}
 
 		$(".InputfieldSelector").each(function() {
-			if($(this).find(".selector-preview-disabled").size() > 0) return;
+			if($(this).find(".selector-preview-disabled").length > 0) return;
 			// force items to populate previews
 			$(this).find(".input-value:eq(0)").change();
 		}); 
@@ -285,7 +288,7 @@ var InputfieldSelector = {
 				//$data.fadeIn('fast');
 				InputfieldSelector.changeAny($select);
 				var $ac = $opval.find(".input-value-autocomplete"); 
-				if($ac.size() > 0) InputfieldSelector.setupAutocomplete($ac, field, name); 
+				if($ac.length > 0) InputfieldSelector.setupAutocomplete($ac, field, name); 
 			} else {
 				var $subfield = $row.children('.subfield');
 				$subfield.html('').append($data); 
@@ -598,7 +601,7 @@ var InputfieldSelector = {
 				$preview.fadeIn(); 
 			}
 			var $counter = $preview.siblings('.selector-counter'); 
-			if($counter.size() > 0 && !$counter.is('.selector-counter-disabled')) {
+			if($counter.length > 0 && !$counter.is('.selector-counter-disabled')) {
 				$counter.html(InputfieldSelector.spinner).fadeIn('fast'); 
 				$.post('./?InputfieldSelector=test&name=' + $hiddenInput.attr('name'), { selector: selector }, function(data) {
 					$counter.hide();
