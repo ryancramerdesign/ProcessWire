@@ -866,7 +866,26 @@ function InputfieldStates() {
 		var isIcon = $t.hasClass('toggle-icon');
 		var $icon = isIcon ? $t : $li.children('.InputfieldHeader, .ui-widget-header').find('.toggle-icon'); 
 		var isCollapsed = $li.hasClass("InputfieldStateCollapsed"); 
-		var wasCollapsed = $li.hasClass("InputfieldStateWasCollapsed"); 
+		var wasCollapsed = $li.hasClass("InputfieldStateWasCollapsed");
+		
+		// check for ajax rendered Inputfields
+		if(isCollapsed && $li.hasClass('collapsed10')) {
+			var ajaxURL = $li.find('.renderInputfieldAjax').attr('value'); // hidden input with ajax URL
+			if(typeof ajaxURL != "undefined" && ajaxURL.length) {
+				var $spinner = $("<i style='margin-left:0.5em;' class='fa fa-spin fa-spinner'></i>");
+				$li.children(".InputfieldHeader").append($spinner);
+				$.get(ajaxURL, function(data) {
+					$li.children(".InputfieldContent").html(data);
+					$li.trigger('reloaded');
+					setTimeout(function() {
+						$spinner.fadeOut();
+						$t.click();
+					}, 500); 
+				});
+				return;
+			}
+		}
+			
 		if(isCollapsed || wasCollapsed || isIcon) {
 			$li.addClass('InputfieldStateWasCollapsed'); // this class only used here
 			$li.trigger(isCollapsed ? 'openReady' : 'closeReady'); 
@@ -881,7 +900,7 @@ function InputfieldStates() {
 				}
 			});
 			$icon.toggleClass($icon.attr('data-to')); // data-to=classes to toggle
-			setTimeout('InputfieldColumnWidths()', 500); 
+			setTimeout('InputfieldColumnWidths()', 500);
 		} else {
 			if(typeof jQuery.ui != 'undefined') {
 				var color1 = $icon.css('color');

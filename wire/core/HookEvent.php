@@ -4,32 +4,27 @@
  * ProcessWire HookEvent
  *
  * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://processwire.com
+ * https://processwire.com
  *
  */
 
 /**
+ * class HookEvent
+ * 
  * Instances of HookEvent are passed to Hook handlers when their requested method has been called.
  *
  * HookEvents have the following properties available: 
  *
  * @property Wire|WireData|WireArray|Process|Fieldtype|Inputfield|Module $object Instance of the object where the Hook event originated. 
- * 
  * @property string $method The name of the method that was called to generate the Hook event. 
- * 
  * @property array $arguments A numerically indexed array of the arguments sent to the above mentioned method. 
- * 
  * @property mixed $return Applicable only for 'after' or ('replace' + 'before' hooks), contains the value returned by the above mentioned method. The hook handling method may modify this return value. 
- * 
  * @property bool $replace Set to boolean TRUE in a 'before' hook if you want to prevent execution of the original hooked function. In such a case, your hook is replacing the function entirely. Not recommended, so be careful with this.
- *
  * @property array $options An optional array of user-specified data that gets sent to the hooked function. The hook handling method may access it from $event->data. This array also includes all of the Wire:defaultHookOptions
- * 
  * @property string $id A unique identifier string that may be used with a call to Wire::removeHook()
- * 
  * @property string $when In an active hook, contains either the string 'before' or 'after', indicating whether it is executing before or after the hooked method. 
  *
  */
@@ -105,7 +100,6 @@ class HookEvent extends WireData {
 		}
 
 		return $argumentsByName;
-		
 	}
 
 
@@ -161,6 +155,26 @@ class HookEvent extends WireData {
 		self::$argumentNames[$key] = $argumentNames; 
 
 		return $argumentNames; 
+	}
+
+	/**
+	 * Remove a hook by ID
+	 * 
+	 * To remove the hook that this event is for, call it with the $hookId argument as null or blank.
+	 * 
+	 * @param string|null $hookId
+	 * @return $this
+	 * 
+	 */
+	public function removeHook($hookId) {
+		if(empty($hookId)) {
+			if($this->object && $this->id) {
+				$this->object->removeHook($this->id);
+			}
+			return $this;
+		} else {
+			return parent::removeHook($hookId);
+		}
 	}
 
 	/**

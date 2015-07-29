@@ -18,7 +18,7 @@ class InputfieldPageAutocomplete extends Inputfield implements InputfieldHasArra
 		return array(
 			'title' => __('Page Auto Complete', __FILE__), // Module Title
 			'summary' => __('Multiple Page selection using auto completion and sorting capability. Intended for use as an input field for Page reference fields.', __FILE__), // Module Summary
-			'version' => 106,
+			'version' => 107,
 			);
 	}
 
@@ -104,14 +104,16 @@ class InputfieldPageAutocomplete extends Inputfield implements InputfieldHasArra
 	 */
 	public function ___render() {
 
+		if($this->maxSelectedItems == 1) $this->useList = false;
 		$out = $this->useList ? $this->renderList() : '';
 		$value = implode(',', $this->value); 
 		$url = $this->getAjaxUrl();
 
 		// convert our list of search fields to a CSV string for use in the ProcessPageSearch query
 		$searchField = '';
-		foreach(explode(' ', $this->searchFields) as $key => $name) {
-			$name = trim($name, ',| '); 
+		$searchFields = str_replace(array(',', '|'), ' ', $this->searchFields);
+		foreach(explode(' ', $searchFields) as $key => $name) {
+			$name = trim($name); 
 			// @esrch pr#994 --
 			if(strpos($name, '.')) {
 				list($name, $subname) = explode('.', $name);
@@ -154,12 +156,27 @@ class InputfieldPageAutocomplete extends Inputfield implements InputfieldHasArra
 			"data-search='$searchField' " . 
 			"data-operator='$operator' ";
 		
+		$textValue = '';
+		$remove = '';
+		if(!$this->useList) { 
+			if(count($this->value)) {
+				$item = $this->wire('pages')->getById($this->value)->first();
+				if($item && $item->id) {
+					$textValue = $item->get($labelField);
+					if(!strlen($textValue)) $textValue = $item->get('name');
+				}
+			}
+			$remove = "<i class='fa fa-fw fa-times-circle InputfieldPageAutocompleteRemove'></i>";
+			
+		}
+		
 		$out .= <<< _OUT
 
 		<p>
 		<input type='hidden' name='{$this->name}[]' id='$id' class='InputfieldPageAutocompleteData' value='$value' $attrs/>
-		<input type='text' data-parent-input='$id' id='{$id}_input' class='$class' value='' $disableChars/>
+		<input type='text' data-parent-input='$id' id='{$id}_input' class='$class' value='$textValue' $disableChars/>
 		<i class='fa fa-fw fa-angle-double-right InputfieldPageAutocompleteStatus'></i>
+		$remove
 		<span class='notes InputfieldPageAutocompleteNote'><br />$addNote</span>
 		</p>
 		

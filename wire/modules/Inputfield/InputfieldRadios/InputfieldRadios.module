@@ -47,19 +47,21 @@ class InputfieldRadios extends InputfieldSelect {
 
 			$attrs = $this->getOptionAttributes($key);
 			if($this->isOptionSelected($key)) $checked = " checked='checked'";
-
-			unset($attrs['selected'], $attrs['checked']); 
+			$disabled = empty($attrs['disabled']) ? "" : " disabled='disabled'";
+			unset($attrs['selected'], $attrs['checked'], $attrs['disabled']); 
+			$textClass = 'pw-no-select';
+			if($disabled) $textClass .= ' ui-state-disabled';
 			$attrs = $this->getOptionAttributesString($attrs);
 			if($attrs) $attrs = ' ' . $attrs; 
 
 			$out .= 
 				"\n\t\t<li$liAttr><label$attrs>" . 
-				"<input$checked " . 
+				"<input$checked$disabled " . 
 				"type='radio' " . 
 				"name='{$this->name}' " . 
-				"id='$id' " . 
+				"id='$id' " .
 				"value='" . htmlspecialchars($key, ENT_QUOTES) . "' />" . 
-				"<span class='pw-no-select'>" . $this->entityEncode($value) ."</span>" . 
+				"<span class='$textClass'>" . $this->entityEncode($value) ."</span>" . 
 				"</label></li>";
 		}
 

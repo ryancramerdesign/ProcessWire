@@ -400,6 +400,16 @@ body.modal {
 
 }
 
+body.modal-inline {
+	#content {
+		padding-bottom: 0;
+	}
+	.container {
+		padding-left: 0;
+		padding-right: 0;
+	}
+}
+
 
 /***********************************************************************************************
  * MISC

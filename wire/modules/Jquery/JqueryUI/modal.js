@@ -140,8 +140,12 @@ function pwModalWindow(href, options, size) {
 		$iframe.dialog('destroy').remove();
 		pwModalWindows[n] = null;
 	}
-	
-	var url = href + (href.indexOf('?') > -1 ? '&' : '?') + 'modal=1';
+
+	if(href.indexOf('modal=')) {
+		var url = href; 
+	} else {
+		var url = href + (href.indexOf('?') > -1 ? '&' : '?') + 'modal=1';
+	}
 	var $iframe = $('<iframe class="pw-modal-window" frameborder="0" src="' + url + '"></iframe>');
 	$iframe.attr('id', 'pw-modal-window-' + (pwModalWindows.length+1));
 	

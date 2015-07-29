@@ -35,6 +35,8 @@
  *
  * // note that the send() function always returns the quantity of messages sent
  * $numSent = $mail->send();
+ * 
+ * @method int send()
  *
  */
 

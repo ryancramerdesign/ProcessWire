@@ -42,6 +42,8 @@
  * @method changed(string $what) See Wire::___changed()
  * @method log($str = '', array $options = array()) See Wire::___log()
  * @method callUnknown($method, $arguments) See Wire::___callUnknown()
+ * 
+ * @todo Move all hooks implementation to separate WireHooks class
  *
  */
 
@@ -238,6 +240,8 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 * - priority: a number determining the priority of a hook, where lower numbers are executed before higher numbers.
 	 * - allInstances: attach the hook to all instances of this object? (store in staticHooks rather than localHooks). Set automatically, but you may still use in some instances.
 	 * - fromClass: the name of the class containing the hooked method, if not the object where addHook was executed. Set automatically, but you may still use in some instances.
+	 * - argMatch: array of Selectors objects where the indexed argument (n) to the hooked method must match, order to execute hook.
+	 * - objMatch: Selectors object that the current object must match in order to execute hook
 	 *
 	 */
 	protected static $defaultHookOptions = array(
@@ -247,6 +251,8 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 		'priority' => 100,
 		'allInstances' => false,
 		'fromClass' => '',
+		'argMatch' => null, 
+		'objMatch' => null, 
 	);
 
 	/**
@@ -396,7 +402,40 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 
 			foreach($hooks as $priority => $hook) {
 
-				if(!$hook['options'][$when]) continue; 
+				if(!$hook['options'][$when]) continue;
+
+				if(!empty($hook['options']['objMatch'])) {
+					$objMatch = $hook['options']['objMatch'];
+					// object match comparison to determine at runtime whether to execute the hook
+					if(is_object($objMatch)) {
+						if(!$objMatch->matches($this)) continue;
+					} else {
+						if(((string) $this) != $objMatch) continue;
+					}
+				}
+				
+				if($type == 'method' && !empty($hook['options']['argMatch'])) {
+					// argument comparison to determine at runtime whether to execute the hook
+					$argMatches = $hook['options']['argMatch'];
+					$matches = true;
+					foreach($argMatches as $argKey => $argMatch) {
+						$argVal = isset($arguments[$argKey]) ? $arguments[$argKey] : null;
+						if(is_object($argMatch)) {
+							// Selectors object
+							if(is_object($argVal)) {
+								$matches = $argMatch->matches($argVal);
+							} else {
+								// we don't work with non-object here
+								$matches = false;
+							}
+						} else {
+							// exact string match
+							$matches = $argMatch == $argVal;
+						}
+						if(!$matches) break;
+					}
+					if(!$matches) continue; // don't run hook
+				}
 
 				$event = new HookEvent(); 
 				$event->object = $this;
@@ -597,10 +636,13 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 * If you are hooking a procedural function, you may omit the $toObject and instead just call via:
 	 * $this->addHook($method, 'function_name'); or $this->addHook($method, 'function_name', $options); 
 	 *
-	 * @param string $method Method name to hook into, NOT including the three preceding underscores. May also be Class::Method for same result as using the fromClass option.
-	 * @param object|null $toObject Object to call $toMethod from, or null if $toMethod is a function outside of an object
-	 * @param string $toMethod Method from $toObject, or function name to call on a hook event
-	 * @param array $options See self::$defaultHookOptions at the beginning of this class
+	 * @param string $method Method name to hook into, NOT including the three preceding underscores. 
+	 * 	May also be Class::Method for same result as using the fromClass option.
+	 * @param object|null|callable $toObject Object to call $toMethod from,
+	 * 	Or null if $toMethod is a function outside of an object,
+	 * 	Or function|callable if $toObject is not applicable or function is provided as a closure.
+	 * @param string $toMethod Method from $toObject, or function name to call on a hook event. Optional.
+	 * @param array $options See self::$defaultHookOptions at the beginning of this class. Optional.
 	 * @return string A special Hook ID that should be retained if you need to remove the hook later
 	 * @throws WireException
 	 *
@@ -630,7 +672,45 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 		if(method_exists($this, $method)) throw new WireException("Method " . $this->className() . "::$method is not hookable"); 
 
 		$options = array_merge(self::$defaultHookOptions, $options);
-		if(strpos($method, '::')) list($options['fromClass'], $method) = explode('::', $method); 
+		if(strpos($method, '::')) {
+			list($fromClass, $method) = explode('::', $method, 2);
+			if(strpos($fromClass, '(') !== false) {
+				// extract object selector match string
+				list($fromClass, $objMatch) = explode('(', $fromClass, 2);
+				$objMatch = trim($objMatch, ') ');
+				if(Selectors::stringHasSelector($objMatch)) $objMatch = new Selectors($objMatch);
+				if($objMatch) $options['objMatch'] = $objMatch;
+			}
+			$options['fromClass'] = $fromClass;
+		}
+	
+		$argOpen = strpos($method, '('); 
+		if($argOpen && strpos($method, ')') > $argOpen+1) {
+			// extract argument selector match string(s), arg 0: Something::something(selector_string)
+			// or: Something::something(1:selector_string, 3:selector_string) matches arg 1 and 3. 
+			list($method, $argMatch) = explode('(', $method, 2); 
+			$argMatch = trim($argMatch, ') ');
+			if(strpos($argMatch, ':') !== false) {
+				// zero-based argument indexes specified, i.e. 0:template=product, 1:order_status
+				$args = preg_split('/\b([0-9]):/', trim($argMatch), -1, PREG_SPLIT_DELIM_CAPTURE);
+				if(count($args)) {
+					$argMatch = array();
+					array_shift($args); // blank
+					while(count($args)) {
+						$argKey = (int) trim(array_shift($args));
+						$argVal = trim(array_shift($args), ', ');
+						$argMatch[$argKey] = $argVal;
+					}
+				}
+			} else {
+				// just single argument specified, so argument 0 is assumed
+			}
+			if(is_string($argMatch)) $argMatch = array(0 => $argMatch);
+			foreach($argMatch as $argKey => $argVal) {
+				if(Selectors::stringHasSelector($argVal)) $argMatch[$argKey] = new Selectors($argVal);
+			}
+			if(count($argMatch)) $options['argMatch'] = $argMatch; 
+		}
 
 		if($options['allInstances'] || $options['fromClass']) {
 			// hook all instances of this class
@@ -713,9 +793,12 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 * $this->addHookBefore($method, 'function_name'); 
 	 *
 	 * @param string $method Method name to hook into, NOT including the three preceding underscores
-	 * @param object|null $toObject Object to call $toMethod from, or null if $toMethod is a function outside of an object
-	 * @param string $toMethod Method from $toObject, or function name to call on a hook event
-	 * @param array $options See self::$defaultHookOptions at the beginning of this class
+	 * 	May also be Class::Method for same result as using the fromClass option.
+	 * @param object|null|callable $toObject Object to call $toMethod from,
+	 * 	Or null if $toMethod is a function outside of an object,
+	 * 	Or function|callable if $toObject is not applicable or function is provided as a closure. 
+	 * @param string $toMethod Method from $toObject, or function name to call on a hook event. Optional.
+	 * @param array $options See self::$defaultHookOptions at the beginning of this class. Optional.
 	 * @return string A special Hook ID that should be retained if you need to remove the hook later
 	 *
 	 */
@@ -734,9 +817,12 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 * $this->addHookAfter($method, 'function_name'); 
 	 *
 	 * @param string $method Method name to hook into, NOT including the three preceding underscores
-	 * @param object|null $toObject Object to call $toMethod from, or null if $toMethod is a function outside of an object
-	 * @param string $toMethod Method from $toObject, or function name to call on a hook event
-	 * @param array $options See self::$defaultHookOptions at the beginning of this class
+	 * 	May also be Class::Method for same result as using the fromClass option.
+	 * @param object|null|callable $toObject Object to call $toMethod from,
+	 * 	Or null if $toMethod is a function outside of an object,
+	 * 	Or function|callable if $toObject is not applicable or function is provided as a closure.
+	 * @param string $toMethod Method from $toObject, or function name to call on a hook event. Optional.
+	 * @param array $options See self::$defaultHookOptions at the beginning of this class. Optional.
 	 * @return string A special Hook ID that should be retained if you need to remove the hook later
 	 *
 	 */
@@ -758,9 +844,12 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 * $this->addHookProperty($method, 'function_name'); 
 	 *
 	 * @param string $property Method name to hook into, NOT including the three preceding underscores
-	 * @param object|null $toObject Object to call $toMethod from, or null if $toMethod is a function outside of an object
-	 * @param string $toMethod Method from $toObject, or function name to call on a hook event
-	 * @param array $options See self::$defaultHookOptions at the beginning of this class
+	 * 	May also be Class::Method for same result as using the fromClass option.
+	 * @param object|null|callable $toObject Object to call $toMethod from,
+	 * 	Or null if $toMethod is a function outside of an object,
+	 * 	Or function|callable if $toObject is not applicable or function is provided as a closure.
+	 * @param string $toMethod Method from $toObject, or function name to call on a hook event. Optional.
+	 * @param array $options See self::$defaultHookOptions at the beginning of this class. Optional.
 	 * @return string A special Hook ID that should be retained if you need to remove the hook later
 	 *
 	 */
@@ -771,13 +860,18 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 
 	/**
 	 * Given a Hook ID provided by addHook() this removes the hook
+	 * 
+	 * To have a hook function remove itself within the hook function, say this is your hook function: 
+	 * function(HookEvent $event) {
+	 *   $event->removeHook(null); // remove self
+	 * }
 	 *
-	 * @param string $hookId
+	 * @param string|null $hookId
 	 * @return $this
 	 *
 	 */
 	public function removeHook($hookId) {
-		if(strpos($hookId, ':')) {
+		if(!empty($hookId) && strpos($hookId, ':')) {
 			list($hookClass, $priority, $method) = explode(':', $hookId); 
 			if(empty($hookClass)) {
 				unset($this->localHooks[$method][$priority]);	

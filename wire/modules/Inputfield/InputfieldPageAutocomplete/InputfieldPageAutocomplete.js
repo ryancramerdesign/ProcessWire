@@ -18,7 +18,8 @@ var InputfieldPageAutocomplete = {
 	 *
 	 */
 	init: function(id, url, labelField, searchField, operator) {
-
+		
+		var $value = $('#' + id);
 		var $ol = $('#' + id + '_items'); 
 		var $input = $('#' + id + '_input'); 
 		var $icon = $input.parent().find(".InputfieldPageAutocompleteStatus");
@@ -36,7 +37,36 @@ var InputfieldPageAutocomplete = {
 		} else {
 			// icon is not visible (in a tab or collapsed field), we'll leave it alone
 		}	
-
+		
+		if($input.hasClass('no_list')) {
+			// specific to single-item autocompletes, where there is no separate "selected" list
+			
+			$input.attr('data-selectedLabel', $input.val());
+			var $remove = $input.siblings('.InputfieldPageAutocompleteRemove');
+			
+			$remove.click(function() {
+				$value.val('').change();
+				$input.val('').attr('placeholder', '').attr('data-selectedLabel', '').change().focus();
+			});
+			
+			$input.change(function() {
+				if($(this).val().length == 0) {
+					$remove.hide();
+				} else {
+					$remove.show();
+				}
+			});
+			
+			$input.focus(function() {
+				if($value.val().length) $(this).attr('placeholder', $(this).attr('data-selectedLabel'));	
+				$(this).val('');
+			}).blur(function() {
+				setTimeout(function() {
+				}, 200);
+			});
+		}
+		
+		
 		$icon.click(function() { $input.focus(); });
 		$icon.attr('data-class', $icon.attr('class')); 
 
@@ -99,21 +129,34 @@ var InputfieldPageAutocomplete = {
 			},
 			select: function(event, ui) {
 				if(!ui.item) return;
-				if($(this).hasClass('no_list')) {
-					$(this).val(ui.item.label).change();
-					$(this).blur();
+				var $t = $(this);
+				if($t.hasClass('no_list')) {
+					$t.val(ui.item.label).change();
+					$t.attr('data-selectedLabel', ui.item.label);
+					$t.closest('.InputfieldPageAutocomplete')
+						.find('.InputfieldPageAutocompleteData').val(ui.item.page_id).change();
+					$t.blur();
 					return false;
 				} else {
 					InputfieldPageAutocomplete.pageSelected($ol, ui.item);
-					$(this).val('').focus();
+					$t.val('').focus();
 					return false;
 				}
 			}
 
 		}).blur(function() {
-			if(!$(this).val().length) $input.val('');
+			var $input = $(this);
+			//if(!$input.val().length) $input.val('');
 			$icon.attr('class', $icon.attr('data-class')); 
 			$note.hide();
+			if($input.hasClass('no_list')) {
+				if($value.val().length) {
+					$input.val($input.attr('data-selectedLabel')).attr('placeholder', '');
+				} else {
+					$input.val('').attr('placeholder', '').attr('data-selectedLabel', '');
+				}
+				//$(this).closest('.InputfieldPageAutocomplete').find('.InputfieldPageAutocompleteData').val('').change();
+			}
 
 		}).keyup(function() {
 			$icon.attr('class', $icon.attr('data-class')); 
@@ -160,11 +203,9 @@ var InputfieldPageAutocomplete = {
 			$ol.addClass('InputfieldPageAutocompleteSortable'); 
 		};
 
-		// $('#' + $ol.attr('id') + '>li').live('mouseover', function() {
 		$('#' + $ol.attr('id')).on('mouseover', '>li', function() { 
 			$(this).removeClass('ui-state-default').addClass('ui-state-hover'); 
 			makeSortable($ol); 
-		// }).live('mouseout', function() {
 		}).on('mouseout', '>li', function() {
 			$(this).removeClass('ui-state-hover').addClass('ui-state-default'); 
 		}); 

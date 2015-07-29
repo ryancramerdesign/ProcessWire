@@ -1074,11 +1074,11 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 							foreach($inputfield->getSelectablePages($page) as $item) {
 								$options[$item->id] = $item->get('title|name'); 
 							}
-							if(!count($options) 
+							if(count($options) < 2
 								&& ($field->parent_id || $field->template_id) 
 								&& ($field->findPagesCode || $field->findPagesSelector)) {
 								// see if we can locate options purely with the parent or template
-								$findSelector = array("include=unpublished, limit=500, sort=name");
+								$findSelector = array("include=unpublished, limit=500, sort=title, sort=name, ");
 								if($field->parent_id) $findSelector[] = "parent_id=" . (int) $field->parent_id; 
 								if($field->template_id) $findSelector[] = "templates_id=" . (int) $field->template_id; 
 								foreach($this->wire('pages')->find(implode(', ', $findSelector)) as $item) {
@@ -1325,6 +1325,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 	 */
 	protected function useAutocomplete(Field $field, $threshold = 100, $checkQuantity = true) {
 
+		//$selectorInfo = $this->getSelectorInfo($field);
 		if(!$field->type instanceof FieldtypePage) return ''; 
 
 		$selector = '';
@@ -1332,7 +1333,12 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		// determine autocomplete state based on field settings and quantity of pages involved
 		if($field->findPagesSelector) {
 			// user-specified selector determines which pages match
-			$selector = trim($field->findPagesSelector, ', '); 
+			$selector = trim($field->findPagesSelector, ', ');
+			if(strpos($selector, 'page.') !== false) {
+				// remove page.something impossible reference, if present
+				$selector = preg_replace('/[_a-zA-Z0-9]+[=<>!]+page\.[_a-zA-Z0-9]+[\s,]*/', '', $selector);
+				//$selector = preg_replace('/(^|,)\s*page\.[_a-zA-Z0-9][=<>!]+[^,]*/', '', $selector);
+			}
 			if($field->parent_id) $selector .= ",has_parent=" . (int) $field->parent_id; 
 		} else {
 			if($field->parent_id) $selector = "parent_id=" . (int) $field->parent_id; 
@@ -1380,19 +1386,32 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			'selector' => '', 
 			'items' => array()
 			);
-
+		$selector = '';
+		
 		if(strpos($fieldName, '.') !== false) {
-			list($ignored, $fieldName) = explode('.', $fieldName); 
+			list($fieldName, $subfield) = explode('.', $fieldName);
+		}
+		
+		$field = $this->wire('fields')->get($fieldName);
+		$selectorInfo = $this->getSelectorInfo($field); 
+		if(isset($selectorInfo['subfields'][$subfield])) {
+			$selectorInfo = $selectorInfo['subfields'][$subfield];
+			if($selectorInfo['input'] == 'autocomplete' && isset($selectorInfo['selector'])) {
+				$selector = $selectorInfo['selector'];		
+			}
+		}
+		
+		if(!$selector) {
+			$fieldName = $subfield;
+			$field = $this->wire('fields')->get($fieldName);
 		}
 
-		$field = $this->wire('fields')->get($fieldName); 
-
 		if(!$field) {
-			$data['error'] = 'Field does not exist';
+			$data['error'] = 'Field does not exist: ' . $fieldName;
 			return json_encode($data); 
 		}
 
-		$selector = $this->useAutocomplete($field, 100, false); 
+		if(!$selector) $selector = $this->useAutocomplete($field, 100, false); 
 
 		if(!$selector) {
 			$data['error'] = "Field '$field->name' does not require autocomplete";
@@ -1401,6 +1420,8 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 
 		$searchFields = $field->searchFields; // used by InputfieldPageAutocomplete
 		$labelFieldName = $field->labelFieldName; 
+		if(!$searchFields && isset($selectorInfo['searchFields'])) $searchFields = $selectorInfo['searchFields'];
+		if(!$labelFieldName && isset($selectorInfo['labelFieldName'])) $labelFieldName = $selectorInfo['labelFieldName'];
 		$labelField = $this->wire('fields')->get($labelFieldName); 
 		$template_id = (int) (is_array($field->template_id) ? reset($field->template_id) : $field->template_id); 
 		$template = $template_id ? $this->wire('templates')->get($template_id) : null;

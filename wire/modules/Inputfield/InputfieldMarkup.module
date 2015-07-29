@@ -11,13 +11,14 @@ class InputfieldMarkup extends InputfieldWrapper {
 		return array(
 			'title' => __('Markup', __FILE__),
 			'summary' => __('Contains any other markup and optionally child Inputfields', __FILE__),
-			'version' => 101,
+			'version' => 102,
 			'permanent' => true, 
 			);
 	}
 
 	public function init() {
 		$this->set('markupText', '');
+		$this->set('markupFunction', null); // closure or name of function that returns markup, receives $this as arg0.
 		$this->set('textformatters', array());
 		$this->skipLabel = Inputfield::skipLabelBlank;
 		parent::init();
@@ -25,9 +26,15 @@ class InputfieldMarkup extends InputfieldWrapper {
 
 	public function ___render() {
 		$out = '';
-
-		if(strlen($this->attr('value'))) $out .= "\n" . $this->attr('value'); 
-		if(strlen($this->markupText)) $out .= "\n" . $this->markupText; 
+		if(strlen($this->attr('value'))) {
+			$out .= "\n" . $this->attr('value');
+		}
+		if($this->markupFunction !== null & is_callable($this->markupFunction)) {
+			$out .= "\n" . call_user_func($this->markupFunction, $this);
+		}
+		if(strlen($this->markupText)) {
+			$out .= "\n" . $this->markupText;
+		}
 		$out = trim($out);
 
 		if(count($this->textformatters)) {

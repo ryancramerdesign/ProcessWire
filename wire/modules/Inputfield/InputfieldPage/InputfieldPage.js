@@ -63,6 +63,8 @@ function initInputfieldPage($this) {
 						// add the <option> to the <select>
 						$select.append($option);
 					}
+					$blankOption = $("<option value=''></option>");
+					$select.prepend($blankOption);
 					$select.children(".option-tbd").remove();
 					$select.change();
 				});

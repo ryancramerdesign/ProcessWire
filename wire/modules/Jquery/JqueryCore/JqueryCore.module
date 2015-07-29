@@ -34,6 +34,8 @@ class JqueryCore extends ModuleJS {
 			'latest' => 'jquery-1.11.1.js',
 			'migrate-dev' => 'jquery-migrate-1.2.1.js',
 			'cookie' => 'jquery.cookie.js',
+			'iframe-resizer' => 'iframe-resizer.min.js',
+			'iframe-resizer-frame' => 'iframe-resizer-frame.min.js', 
 			));
 		$info = self::getModuleInfo();
 		$this->config->scripts->prepend($this->config->urls->JqueryCore . "JqueryCore.js?v=$info[version]");

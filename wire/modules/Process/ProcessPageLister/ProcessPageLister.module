@@ -53,7 +53,7 @@
  * @property bool $allowIncludeAll allow include=all or check_access=0 mode when user is non-superuser? [false]
  * @property bool $preview whether or not to show the selector string preview in InputfieldSelector [self::debug]
  * @property bool $cacheTotal cache the total, per selector, for increased performance? [true] 
- * @property array $toggles One or more of: collapseFilters, collapseColumns, noNewFilters, disableColumns [empty]
+ * @property array $toggles One or more of: collapseFilters, collapseColumns, noNewFilters, disableColumns, noButtons [empty]
  * @property array $systemLabels Array of system page labels of field_name => label
  * @property array $limitFields Limit selectable filters/columns to only those present in this array [empty]
  * @property string $nativeDateFormat wireDate() format for created and modified dates
@@ -216,7 +216,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		// cache the total, per selector, for increased performance?
 		$this->set('cacheTotal', true); 
 	
-		// toggles: collapseFilters, collapseColumns, noNewFilters, disableColumns
+		// toggles: collapseFilters, collapseColumns, noNewFilters, disableColumns, noButtons
 		$this->set('toggles', array()); 
 	
 		// date format for native properties: created and modified
@@ -330,7 +330,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		}
 
 		if($clear) { 
-			$this->message("Using session bookmark: $id", Notice::debug); 
+			//$this->message("Using session bookmark: $id", Notice::debug); 
 			$this->sessionClear();
 			$this->sessionSet('bookmark', $id); 
 		}
@@ -1522,6 +1522,10 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		$modules->get('JqueryWireTabs');
 		$modules->get('MarkupAdminDataTable'); // to ensure css/js load
 		$modules->get('JqueryTableSorter')->use('widgets');
+		
+		if($this->wire('input')->get('modal') == 'inline') {
+			$modules->get('JqueryCore')->use('iframe-resizer-frame');
+		}
 
 		$out = '';
 		if(!$this->wire('input')->get('minimal')) {
@@ -1533,17 +1537,20 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		}
 		
 		$out .= "<div id='ProcessListerResults' class='PageList $this->className'></div>";
-		
-		$out .= $this->renderButtons();
+
+		if(!in_array('noButtons', $this->toggles)) $out .= $this->renderButtons();
 		$out .= $this->renderFooter();
 		
 		return "<div id='ProcessLister'>$out</div>"; 
 	}
 	
 	protected function renderFooter() {
-		$modules = $this->wire('modules');
-		$info = $modules->getModuleInfo($this);
-		$out = "<p class='detail version'>$info[title] v" . $modules->formatVersion($info['version']) . " &beta;</p>";
+		$out = '';
+		if(!$this->wire('input')->get('minimal')) {
+			$modules = $this->wire('modules');
+			$info = $modules->getModuleInfo($this);
+			$out = "<p class='detail version'>$info[title] v" . $modules->formatVersion($info['version']) . " &beta;</p>";
+		}
 		return $out; 
 	}
 	
@@ -1571,7 +1578,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 			$btn->addClass('head_button_clone');
 			$btn->icon = 'plus-circle';
 			$out = str_replace("<a ", "<a class='$btnClass' ", $btn->render());
-			if($this->editMode == self::windowModeBlank) $out = str_replace("<a " ,"<a target='_blank' ", $btnOut);
+			if($this->editMode == self::windowModeBlank) $out = str_replace("<a " ,"<a target='_blank' ", $out);
 		}
 		
 		return $out; 

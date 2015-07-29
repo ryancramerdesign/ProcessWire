@@ -209,6 +209,15 @@ class InputfieldSelect extends Inputfield {
 
 		return "$value" == (string) $this->value; 
 	}
+	
+	public function isOptionDisabled($value) {
+		$disabled = false;
+		if(isset($this->optionAttributes[$value])) {
+			$attrs = $this->optionAttributes[$value];
+			if(!empty($attrs['disabled'])) $disabled = true; 
+		}
+		return $disabled;
+	}
 
 	protected function renderOptions($options, $allowBlank = true) {
 

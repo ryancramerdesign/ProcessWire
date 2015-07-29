@@ -21,7 +21,7 @@ class ProcessTemplate extends Process {
 	protected $form; 
 	protected $template;
 	protected $id; 
-	protected $numPages; 
+	protected $numPages = 0; 
 	protected $moduleInfo; 
 	protected $labels = array();
 
@@ -29,7 +29,7 @@ class ProcessTemplate extends Process {
 		return array(
 			'title' => __('Templates', __FILE__),
 			'summary' => __('List and edit the templates that control page output', __FILE__),
-			'version' => 112,
+			'version' => 113,
 			'permanent' => true, 
 			'icon' => 'cubes', 
 			'useNavJSON' => true, 
@@ -46,16 +46,7 @@ class ProcessTemplate extends Process {
 	public function init() {
 
 		$this->moduleInfo = self::getModuleInfo();
-		$this->setFuel('processHeadline', $this->moduleInfo['title']); 
-		$this->labels = array(
-			'Yes' => $this->_('Yes'), 
-			'No' => $this->_('No'), 
-			'Either' => $this->_('Either / does not matter'), 
-			'Are you sure?' => $this->_('Are you sure?'),
-			'Export' => $this->_('Export'),
-			'Import' => $this->_('Import'),
-			'Add New' => $this->_x('Add New Template', 'list-button'),
-			);
+		$this->headline($this->moduleInfo['title']); 
 
 		if(isset($_POST['id'])) {
 			$this->id = (int) $_POST['id']; 
@@ -68,6 +59,21 @@ class ProcessTemplate extends Process {
 			if(!$this->template) throw new WireException("Unknown template"); 
 			$this->numPages = $this->template->getNumPages();
 		}
+		
+		$this->labels = array(
+			'Yes' => $this->_('Yes'),
+			'No' => $this->_('No'),
+			'Either' => $this->_('Either / does not matter'),
+			'Are you sure?' => $this->_('Are you sure?'),
+			'Export' => $this->_('Export'),
+			'Import' => $this->_('Import'),
+			'Add New' => $this->_x('Add New Template', 'list-button'),
+			'numPages' => sprintf($this->_n(
+				'This template is used by %d page', 
+				'This template is used by %d pages', 
+				$this->numPages), $this->numPages
+			),
+		);
 
 		if($this->input->urlSegment1) $this->modules->get("JqueryWireTabs"); 
 		
@@ -366,13 +372,13 @@ class ProcessTemplate extends Process {
 			$notes .= "<a class='tooltip templateFlag $class' title='$label'><i class='fa fa-$flag[icon]'></i>&nbsp;</a> ";
 		}
 
-		$numPages = $template->getNumPages(); 
+		$numPages = $template->getNumPages();
 		$numPagesLink = $this->config->urls->admin . "page/search/?show_options=1&template={$template->name}&sort=title";
 
 		$numFields = count($template->fieldgroup);
 		if($template->fieldgroup && $template->fieldgroup->name != $template->name) $numFields .= " " . $template->fieldgroup->name; 
 		$numFieldsLink = "../field/?templates_id={$template->id}&nosave=1";
-
+	
 		$row = array();
 		$row["{$template->name} "] = "edit?id={$template->id}";
 		if($useLabel) $row[] = $this->sanitizer->entities($template->getLabel());
@@ -535,8 +541,13 @@ class ProcessTemplate extends Process {
 
 		$this->fuel('breadcrumbs')->add(new Breadcrumb('./', $this->moduleInfo['title'])); 
 		$this->wire('config')->scripts->add($this->wire('config')->urls->ProcessTemplate . 'ProcessTemplateFieldCreator.js?v=1');
-		if(!$this->template) throw new WireException("No Template specified"); 
-		$this->headline(sprintf($this->_('Edit Template: %s'), $this->template->name)); // Headline when editing a template
+		if(!$this->template) throw new WireException("No Template specified");
+		$label = $this->template->getLabel();
+		if(!$label) $label = $this->template->name;
+		if($label != $this->template->name) $label = "$label ({$this->template->name})";
+		$headline = sprintf($this->_('Edit Template: %s'), $label); // Headline when editing a template
+		$this->headline($headline);
+		$this->browserTitle($headline);
 		$this->form = $this->buildEditForm($this->template);
 		$out = $this->form->render();
 		return $out; 
@@ -548,9 +559,7 @@ class ProcessTemplate extends Process {
 	 */
 	protected function ___buildEditForm(Template $template) {
 
-		$languages = wire('languages');
 		$form = $this->modules->get('InputfieldForm');
-
 		$form->attr('id', 'ProcessTemplateEdit'); 
 		$form->attr('action', "save"); 
 		$form->attr('method', 'post'); 
@@ -561,29 +570,9 @@ class ProcessTemplate extends Process {
 
 		$t = new InputfieldWrapper();
 		$t->attr('title', $this->_x('Basics', 'tab'));
-		$t->attr('class', 'WireTab'); 
-		// $head = sprintf($this->_n('This template is used by 1 page', 'This template is used by %d pages', $this->numPages), $this->numPages);
-		// if($this->numPages) $head = str_replace(" {$this->numPages} ", " [{$this->numPages}]({$this->config->urls->admin}page/search/?show_options=0&amp;template={$template->name}) ", $head); 
-		// $t->head = $head; 
-		$f = $this->modules->get('InputfieldText'); 
-		$f->attr('name', 'templateLabel'); 
-		$f->attr('value', $template->label); 
-		$f->label = $this->_x('Label', 'field-label');
-		$f->description = $this->_('An optional label to describe this template.');
-		$f->collapsed = Inputfield::collapsedBlank;
-		if($languages) {
-			$f->useLanguages = true; 
-			foreach($languages as $language) $f->set('value' . $language->id, $template->get('label' . $language->id)); 
-		}
-		
-		$t->add($f); 
-		$t->add($this->buildEditFormFields($template)); 
-		$f = $this->wire('modules')->get('InputfieldHidden'); 
-		$f->attr('id+name', '_fieldgroup_fields_changed'); 
-		$f->attr('value', ''); 
-		$t->add($f); 
-		if($template->name != $template->fieldgroup->name || $this->config->advanced) $t->add($this->buildEditFormFieldgroup($template)); 
-		$form->add($t); 
+		$t->attr('class', 'WireTab');
+		$this->buildEditFormBasics($template, $t);
+		$form->add($t);
 		
 		$t = new InputfieldWrapper();
 		$t->attr('title', $this->_x('Access', 'tab'));
@@ -596,6 +585,7 @@ class ProcessTemplate extends Process {
 		$t->attr('title', $this->_x('Family', 'tab'));
 		// $t->head = $this->_('Optional usage and placement in the page tree');
 		$t->attr('class', 'WireTab'); 
+		$t->attr('id', 'tab_family');
 		$t->add($this->buildEditFormFamily($template)); 
 		$form->add($t); 
 
@@ -665,6 +655,65 @@ class ProcessTemplate extends Process {
 
 		return $form; 
 	}
+	
+	protected function buildEditFormBasics(Template $template, InputfieldWrapper $t) {
+		$languages = $this->wire('languages');
+
+		$t->add($this->buildEditFormFields($template));
+		$f = $this->wire('modules')->get('InputfieldHidden');
+		$f->attr('id+name', '_fieldgroup_fields_changed');
+		$f->attr('value', '');
+		$t->add($f);
+		if($template->name != $template->fieldgroup->name || $this->config->advanced) $t->add($this->buildEditFormFieldgroup($template));
+		
+		$f = $this->modules->get('InputfieldText');
+		$f->attr('name', 'templateLabel');
+		$f->attr('value', $template->label);
+		$f->icon = 'barcode';
+		$f->label = $this->_x('Label', 'field-label');
+		$f->description = $this->_('An optional label to describe this template.');
+		$f->collapsed = Inputfield::collapsedBlank;
+		if($languages) {
+			$f->useLanguages = true;
+			foreach($languages as $language) $f->set('value' . $language->id, $template->get('label' . $language->id));
+		}
+		$t->add($f);
+		
+		if($this->numPages > 0 && version_compare(PHP_VERSION, '5.3.8') >= 0) {
+			$this->modules->get('JqueryCore')->use('iframe-resizer');
+			$f = $this->modules->get('InputfieldMarkup');
+			$f->label = $this->_('Usage') . ' (' .
+				sprintf($this->_n('%d page', '%d pages', $this->numPages), $this->numPages) . ')';
+			$f->set('template', $this->template);
+			$f->collapsed = Inputfield::collapsedYesAjax;
+			$f->markupFunction = function($inputfield) {
+				// bookmarks for Lister
+				$inputfield->wire('modules')->includeModule('ProcessPageLister');
+				$windowMode = ProcessPageLister::windowModeBlank;
+				$bookmark = array(
+					'initSelector' => "template=$inputfield->template, include=all",
+					'defaultSelector' => 'sort=-modified',
+					'columns' => array('title', 'path', 'modified', 'modified_users_id'),
+					'toggles' => array('noButtons'),
+					'viewMode' => $windowMode,
+					'editMode' => $windowMode,
+					'editOption' => 0,
+				);
+				$id = "template_{$inputfield->template}_pages";
+				$url = ProcessPageLister::addSessionBookmark($id, $bookmark) . '&modal=inline&minimal=1';
+				if($url) return "
+					<iframe id='ProcessTemplatePageLister' scrolling='no' style='width:100%; border: none;' src='$url'></iframe>
+					<script>$('#ProcessTemplatePageLister').iFrameResize({ });</script>
+					";
+			};
+			$icon = $template->getIcon();
+			if(!$icon) $icon = 'search';
+			$f->icon = $icon;
+			$t->add($f);
+		}
+
+
+	}
 
 	protected function buildEditFormDelete(Template $template) {
 
@@ -715,6 +764,7 @@ class ProcessTemplate extends Process {
 		$field->attr('id+name', 'fieldgroup'); 
 		$field->attr('value', $template->fieldgroup->id); 
 		$field->required = true; 
+		$field->icon = 'cubes';
 		$field->description = $this->_("By default, each template manages it's own group of fields. If you want to have this template use the fields from another template, select it here."); // Fieldgroup description
 		
 		foreach($this->fieldgroups->getAll()->sort('name') as $fieldgroup) {
@@ -764,6 +814,7 @@ class ProcessTemplate extends Process {
 		$select = $this->modules->get('InputfieldAsmSelect'); 
 		$select->label = $this->_x('Fields', 'field-label');
 		$select->description = $this->_('Define the fields that are used by this template. You may also drag and drop fields to the desired order or [create a new field](../field/add).'); // Fields definition, description
+		$select->icon = 'cube';
 		$select->attr('name', 'fieldgroup_fields'); 
 		$select->attr('id', 'fieldgroup_fields'); 
 		$select->attr('title', $this->_('Add Field')); 
@@ -1320,25 +1371,65 @@ class ProcessTemplate extends Process {
 		$field->attr('name', 'noParents'); 
 		$field->label = $this->_('Can this template be used for new pages?');
 		// $field->notes = $this->_("An example of a template that you wouldn't want to be used for new pages is your 'homepage' template."); // noParents option, description
-		$field->addOption(0, $this->labels['Yes']); 
-		$field->addOption(1, $this->labels['No']); 
+		$field->addOption(0, $this->labels['Yes']);
+		$field->addOption(1, $this->labels['No']);
+		$one = $this->_('One');
+		$numPages = $this->numPages;
+		if($numPages == 1) {
+			// One option shown, but the one page already exists so no more are allowed
+			$one .= " (" . $this->_('no more allowed') . ")";
+			$field->addOption(-1, $one);
+		} else if($numPages > 1) {
+			// no "One" option should be shown, since more than one page already exists
+			if($template->noParents == -1) $template->noParents = 1; 
+		} else {
+			// No pages using this template exist yet, so make the One option available
+			$field->addOption(-1, $one);
+		}
 		$field->attr('value', (int) $template->noParents); 
 		$field->columnWidth = 50; 
 		$field->optionColumns = 1; 
 		$form->add($field);
 
 		// ----------------------
+		$conflictIndicator = ' ♦';
+		$successIndicator = ' ✓';
 
 		$field = $this->modules->get('InputfieldAsmSelect'); 
 		$field->attr('name', 'childTemplates'); 
 		$field->label = $this->_('Allowed template(s) for children');
 		$field->description = $this->_('Select the template(s) that will be allowed for children of pages using this template. Use this only if you specifically want to restrict placement of pages using this template.'); // childTemplates option, description
+		$field->description .= ' ' . $this->_("If none are selected then any are allowed, within the user's access limits. An example usage could be a 'news-list' template that is only allowed to have children using 'news-item' or 'press-release' templates."); // childTemplates option, notes
 
-		foreach($this->templates as $t) $field->addOption($t->id, $t->name);
+		$hasConflicts = false;
+		$hasSuccess = false;
+		foreach($this->templates as $t) {
+			$label = $t->name;
+			if(count($t->parentTemplates)) { 
+				if(in_array($template->id, $t->parentTemplates)) {
+					$hasSuccess = true;
+					$label .= $successIndicator;
+				} else {
+					$hasConflicts = true;
+					$label .= $conflictIndicator;
+				} 
+			}
+			$tlabel = $t->getLabel();
+			if($tlabel == $t->name) $tlabel = '';
+			$attrs = array('data-desc' => $tlabel);
+			$ticon = $t->getIcon();
+			if($ticon) $attrs['data-handle'] = "<i class='fa fa-fw fa-$ticon'></i>";
+			$field->addOption($t->id, $label, $attrs);
+		}
 		$field->attr('value', $template->childTemplates); 
 		$field->collapsed = count($template->childTemplates) ? Inputfield::collapsedNo : Inputfield::collapsedYes; 
-		$field->notes = $this->_("If none are selected then any are allowed, within the user's access limits. An example usage could be a 'news-list' template that is only allowed to have children using 'news-item' or 'press-release' templates."); // childTemplates option, notes
+		$notes = array();
+		if($hasConflicts) $notes[] = sprintf($this->_('Templates indicated with %s also need to be configured to allow this template as a parent. Click any selected template as a shortcut to configure allowed parents.'), $conflictIndicator); // childTemplates family conflict, notes
+		if($hasSuccess) $notes[] = sprintf($this->_('Templates indicated with a %s are already configured to allow this template as a parent.'), $successIndicator); 
+		$field->notes = implode("\n", $notes);
 		$field->showIf = 'noChildren!=1';
+		$field->setAsmSelectOption('editLink', "./edit?id={value}&modal=1#tab_family");
+		$field->setAsmSelectOption('editLinkOnlySelected', false);
 		$form->add($field); 
 
 		// ----------------------
@@ -1347,12 +1438,37 @@ class ProcessTemplate extends Process {
 		$field->attr('name', 'parentTemplates'); 
 		$field->label = $this->_('Allowed template(s) for parents');
 		$field->description = $this->_("Select the template(s) that will be allowed as parents for pages using this template. Use this only if you specifically want to restrict placement of pages using this template."); // parentTemplates option, description
+		$field->description .= ' ' . $this->_("If none are selected then any parent template is allowed, within the user's access limits. An example usage could be an 'employee' template that is only allowed to have a parent page using a 'company-directory' template."); // parentTemplates option, notes
 
-		foreach($this->templates as $t) $field->addOption($t->id, $t->name);
+		$hasConflicts = false;
+		$hasSuccess = false;
+		foreach($this->templates as $t) {
+			$label = $t->name;
+			if(count($t->childTemplates)) {
+				if(in_array($template->id, $t->childTemplates)) {
+					$hasSuccess = true;
+					$label .= $successIndicator;
+				} else {
+					$hasConflicts = true;
+					$label .= $conflictIndicator;
+				}
+			}
+			$tlabel = $t->getLabel();
+			if($tlabel == $t->name) $tlabel = '';
+			$attrs = array('data-desc' => $tlabel); 
+			$ticon = $t->getIcon();
+			if($ticon) $attrs['data-handle'] = "<i class='fa fa-fw fa-$ticon'></i>";
+			$field->addOption($t->id, $label, $attrs);
+		}
 		$field->attr('value', $template->parentTemplates); 
-		$field->collapsed = count($template->parentTemplates) ? Inputfield::collapsedNo : Inputfield::collapsedYes; 
-		$field->notes = $this->_("If none are selected then any parent template is allowed, within the user's access limits. An example usage could be an 'employee' template that is only allowed to have a parent page using a 'company-directory' template."); // parentTemplates option, notes
+		$field->collapsed = count($template->parentTemplates) ? Inputfield::collapsedNo : Inputfield::collapsedYes;
+		$notes = array();
+		if($hasConflicts) $notes[] = sprintf($this->_('Templates indicated with %s also need to be configured to allow this template for children. Click any selected template as a shortcut to configure allowed children.'), $conflictIndicator); // parentTemplates family conflict, notes
+		if($hasSuccess) $notes[] = sprintf($this->_('Templates indicated with a %s are already configured to allow this template as a child.'), $successIndicator); 
+		$field->notes = implode("\n", $notes);
 		$field->showIf = 'noParents!=1';
+		$field->setAsmSelectOption('editLink', "./edit?id={value}&modal=1#tab_family"); 
+		$field->setAsmSelectOption('editLinkOnlySelected', false);
 		$form->add($field); 
 
 		// --------------------
@@ -1857,8 +1973,10 @@ class ProcessTemplate extends Process {
 			$this->template->noChildren = 0;
 		}
 
-		if($this->input->post->noParents) {
-			$this->template->noParents = 1; 	
+		if($this->input->post->noParents == -1) {
+			$this->template->noParents = -1;
+		} else if($this->input->post->noParents == 1) {
+			$this->template->noParents = 1;
 			$this->template->parentTemplates = array();
 		} else {
 			$a = array();
@@ -2053,7 +2171,7 @@ class ProcessTemplate extends Process {
 		$f->attr('id', 'changed_fields'); 
 		$f->label = $this->_('Fields that will be deleted');
 		$f->description = sprintf($this->_('You have requested to change the Fieldgroup from "%1$s" to "%2$s".'), $this->template->fieldgroup, $fieldgroup) . ' ' . 
-			sprintf($this->_n('This template is used by 1 page', 'This template is used by %d pages', $this->numPages), $this->numPages) . ' ' . 
+			$this->labels['numPages'] . ' ' . 
 			$this->_('The following fields will be permanently deleted on pages using this template:');
 		$f->value = "<ul>$list</ul>";
 		$form->append($f); 

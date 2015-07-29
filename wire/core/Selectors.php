@@ -629,6 +629,37 @@ class Selectors extends WireArray {
 		return true; 
 	}
 
+	/**
+	 * Does the given Wire match these Selectors?
+	 * 
+	 * @param Wire $item
+	 * @return bool
+	 * 
+	 */
+	public function matches(Wire $item) {
+		
+		// if item provides it's own matches function, then let it have control
+		if($item instanceof WireMatchable) return $item->matches($this);
+	
+		$matches = true;
+		foreach($this as $selector) {
+			$value = array();
+			foreach($selector->fields as $property) {
+				if(strpos($property, '.') && $item instanceof WireData) {
+					$value[] =  $item->getDot($property);
+				} else {
+					$value[] = (string) $item->$property;
+				}
+			}
+			if(!$selector->matches($value)) {
+				$matches = false;
+				break;
+			}
+		}
+		
+		return $matches;
+	}
+
 	public function __toString() {
 		$str = '';
 		foreach($this as $selector) {

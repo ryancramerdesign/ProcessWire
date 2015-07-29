@@ -34,7 +34,7 @@
  * @property int $childrenTemplatesID Template ID for child pages, or -1 if no children allowed. DEPRECATED
  * @property string $sortfield Field that children of templates using this page should sort by. blank=page decides or sort=manual drag-n-drop
  * @property int $noChildren Set to 1 to cancel use of childTemplates
- * @property int $noParents Set to 1 to cancel use of parentTemplates
+ * @property int $noParents Set to 1 to cancel use of parentTemplates, set to -1 to only allow one page using this template to exist.
  * @property array $childTemplates Array of template IDs that are allowed for children. blank array = any. 
  * @property array $parentTemplates Array of template IDs that are allowed for parents. blank array = any.
  * @property int $allowPageNum Allow page numbers in URLs? (0=no, 1=yes)

@@ -377,6 +377,8 @@ class AdminThemeDefaultHelpers extends WireData {
 			$outMobile .= "<li><a href='$p->url'>$p->title</a></li>";
 		}
 	
+		
+		// @todo move outTools to separate hookable method, so new tools can be added
 		$outTools .=	
 			"<li><a href='{$config->urls->root}'><i class='fa fa-fw fa-eye'></i> " . 
 			$this->_('View Site') . "</a></li>";
@@ -480,7 +482,10 @@ class AdminThemeDefaultHelpers extends WireData {
 	 */
 	public function renderBodyClass() {
 		$page = $this->wire('page');
-		$bodyClass = $this->wire('input')->get->modal ? 'modal ' : '';
+		$modal = $this->wire('input')->get('modal');
+		$bodyClass = '';
+		if($modal) $bodyClass .= 'modal ';
+		if($modal == 'inline') $bodyClass .= 'modal-inline ';
 		$bodyClass .= "id-{$page->id} template-{$page->template->name} pw-init";
 		if($this->wire('config')->js('JqueryWireTabs')) $bodyClass .= " hasWireTabs";
 		$bodyClass .= ' ' . $this->wire('adminTheme')->getBodyClass(); 

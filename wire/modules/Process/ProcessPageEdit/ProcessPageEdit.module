@@ -1304,6 +1304,10 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 			if($isSuperuser) { 
 				$templates[$template->id] = $template;
 
+			} else if($template->noParents == -1) {
+				// only one of these is allowed to exist
+				if($template->getNumPages() > 0) continue;
+				
 			} else if($template->noParents) {
 				// user can't change to a template that has been specified as no more instances allowed
 				// except for superuser... we'll let them do it

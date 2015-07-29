@@ -511,6 +511,29 @@ class InputfieldWrapper extends Inputfield implements Countable, IteratorAggrega
 	public function ___renderInputfield(Inputfield $inputfield, $renderValueMode = false) {
 		
 		$inputfield->renderReady($this, $renderValueMode);
+	
+		if($inputfield->getSetting('collapsed') == Inputfield::collapsedYesAjax) {
+			$inputfieldID = $inputfield->attr('id');
+			if($this->wire('config')->ajax && $this->wire('input')->get('renderInputfieldAjax') == $inputfieldID) {
+				// render ajax inputfield
+				if($renderValueMode) {
+					echo $inputfield->renderValue();
+				} else {
+					if($inputfield->editable()) echo $inputfield->render();
+				}
+				echo "<input type='hidden' name='processInputfieldAjax[]' value='$inputfieldID' />";
+				exit;
+			} else {
+				// do not render ajax inputfield
+				$url = $this->wire('input')->url();
+				$queryString = $this->wire('input')->queryString();
+				$url .= $queryString ? "?$queryString&" : "?";
+				$url .= "renderInputfieldAjax=$inputfieldID";
+				$out = "<input type='hidden' class='renderInputfieldAjax' value='$url' />";
+				return $out; 
+			}
+		}
+		
 		if(!$renderValueMode && $inputfield->editable()) return $inputfield->render();
 	
 		// renderValueMode
@@ -577,6 +600,16 @@ class InputfieldWrapper extends Inputfield implements Countable, IteratorAggrega
 			Inputfield::collapsedYesLocked
 			);
 		if(in_array((int) $inputfield->getSetting('collapsed'), $skipTypes)) return false;
+		
+		if($inputfield->collapsed == Inputfield::collapsedYesAjax) {
+			$processAjax = $this->wire('input')->post('processInputfieldAjax');
+			if(is_array($processAjax) && in_array($inputfield->attr('id'), $processAjax)) {
+				// field can be processed
+			} else {
+				// field was not rendered via ajax and thus can't be processed
+				return false;
+			}
+		}
 
 		// if dependencies aren't in use, we can skip the rest
 		if($this->useDependencies === false) return true; 

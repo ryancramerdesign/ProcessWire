@@ -71,7 +71,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Page',
-			'version' => 105,
+			'version' => 106,
 			'summary' => 'Select one or more pages',
 			'permanent' => true, 
 			);

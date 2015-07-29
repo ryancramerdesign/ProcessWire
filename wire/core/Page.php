@@ -86,7 +86,7 @@
  *
  */
 
-class Page extends WireData implements Countable {
+class Page extends WireData implements Countable, WireMatchable {
 
 	/*
 	 * The following constant flags are specific to a Page's 'status' field. A page can have 1 or more flags using bitwise logic. 
@@ -1745,6 +1745,8 @@ class Page extends WireData implements Countable {
 	
 	/**
 	 * Given a Selectors object or a selector string, return whether this Page matches it
+	 * 
+	 * Implements WireMatchable interface
 	 *
 	 * @param string|Selectors $s
 	 * @return bool

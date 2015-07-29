@@ -226,7 +226,12 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 		
 		foreach($allTemplates as $t) {
 			
-			if($t->noParents) continue;
+			if($t->noParents == -1) {
+				// only 1 of this type allowed
+				if($t->getNumPages() > 0) continue;
+			} else if($t->noParents) {
+				continue;
+			}
 			if($t->useRoles && !$user->hasPermission('page-create', $t)) continue;  
 			if(!$t->useRoles && !$parentEditable) continue; 
 			if(!$t->useRoles && !$user->hasPermission('page-create', $parent)) continue;
@@ -311,6 +316,8 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 				$allowed = false;
 			} else if(count($template->parentTemplates) && !in_array($parent->template->id, $template->parentTemplates)) {
 				$allowed = false;
+			} else if($template->noParents == -1) {
+				$allowed = $template->getNumPages() == 0;
 			} else if($template->noParents) {
 				$allowed = false;
 			}
