@@ -55,7 +55,7 @@ class Sanitizer extends Wire {
 	 * @param array $allowedExtras Additional characters that are allowed in the value
 	 * @param string 1 character replacement value for invalid characters
 	 * @param bool $beautify Whether to beautify the string, specify Sanitizer::translate to perform transliteration. 
-	 * @param int $maxLength
+	 * @param mixed $maxLength Maximum length for input, false for no limit
 	 * @return string
 	 *
 	 */
@@ -90,7 +90,7 @@ class Sanitizer extends Wire {
 			$needsWork = strlen(str_replace($allowed, '', $value)); 
 		}
 
-		if(strlen($value) > $maxLength) $value = substr($value, 0, $maxLength); 
+		if((ctype_digit($maxLength) || is_int($maxLength)) && strlen($value) > $maxLength) $value = substr($value, 0, $maxLength);
 		
 		if($needsWork) {
 			$value = str_replace(array("'", '"'), '', $value); // blank out any quotes
