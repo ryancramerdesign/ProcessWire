@@ -9,7 +9,7 @@ class AdminThemeReno extends AdminTheme implements Module, ConfigurableModule {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Reno',
-			'version' => 15,
+			'version' => 17,
 			'summary' => __('Admin theme for ProcessWire 2.5+ by Tom Reno (Renobird)', __FILE__),
 			'autoload' => "template=admin",
 			'author' => "Tom Reno (Renobird)",
@@ -34,20 +34,6 @@ class AdminThemeReno extends AdminTheme implements Module, ConfigurableModule {
 			$this->$key = $value;
 		}
 	}
-
-	// no longer used, but left here for reference.
-	/*
-	public function getSearchPlaceholder() {
-		// if placeholder text is not translated for user's language, make it blank
-		$placeholder = $this->_('Search');
-		if(!$this->wire('languages')) return $placeholder;
-		$user = $this->wire('user'); 
-		if($placeholder === 'Search' && $user->language && !$user->language->isDefault()) {
-			$placeholder = '';
-		}
-		return $placeholder;
-	}
-	*/
 
 	public static function getModuleConfigInputfields(array $data) {
 		
@@ -84,7 +70,6 @@ class AdminThemeReno extends AdminTheme implements Module, ConfigurableModule {
 		$field->optionColumns = 1; 
 		$inputfields->add($field);
 		
-
 		// User templates
 		// Processwire 2.5.14+ supports multiple user templates
 		// Revisit when droppping support for 2.5.3
@@ -103,7 +88,7 @@ class AdminThemeReno extends AdminTheme implements Module, ConfigurableModule {
 			// User Avatar fields
 			$field = wire('modules')->get("InputfieldSelect"); 
 			$field->attr('name', "avatar_field_$template->name"); 
-			$field->label = sprintf(__("Image field for the %s template"), $template->name); 
+			$field->label = sprintf(__('Image field for the %s template'), $template->name); 
 			$imageField = false;
 
 			foreach($template->fields as $f) {
@@ -147,7 +132,7 @@ class AdminThemeReno extends AdminTheme implements Module, ConfigurableModule {
 			$template = wire('templates')->get($id);
 			$field = wire('modules')->get("InputfieldText");
 	        $field->attr("name+id", "userFields_$template->name");
-	        $field->label = sprintf(__("Display name for the %s template"), $template->name);
+	        $field->label = sprintf(__('Display name for the %s template'), $template->name);
 	        isset($data["userFields_$template->name"]) ? $user_info = $data["userFields_$template->name"] : $user_info = "name";
 	        $field->value = $user_info;
 	        $fieldset->add($field);

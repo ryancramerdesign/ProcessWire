@@ -53,7 +53,10 @@ var ProcessWireAdminTheme = {
 
 		$(document).keydown(function(e) {
 			var type = e.target.tagName.toLowerCase();
-			if (type == 'input' || type == 'textarea') return;
+			var firstClass = e.target.className.split(" ")[0];
+
+			// input, textarea, CKEditor (Inline mode) focused, so do nothing.
+			if (type == 'input' || type == 'textarea' || firstClass == 'InputfieldCKEditorInline') return; 
 		    
 		    switch(e.which) {
 		        case 37:

@@ -31,7 +31,6 @@
 
 	.Inputfields {
 
-
 		.InputfieldColumnWidthFirst,
 		.InputfieldColumnWidth + .InputfieldSubmit {
 			/* first Inputfield with a percent width... */
@@ -165,13 +164,23 @@ table {
 	/**
 	 * file and image input field containers
 	 */
-	
-	.InputfieldImageGrid .InputfieldFileItem {
-		padding: 0.3em !important;
-		margin: 0 0.2em 0 0 !important;
-		border: 1px solid $border-color !important;
+	.InputfieldImageGrid {
+		
+		.InputfieldFileList{
+			margin-top: 1em;
+		}
+
+		.InputfieldFileItem {
+			background: $white !important;
+			padding: 0.4em !important;
+			margin: 0 0.6em 0.6em 0 !important;
+			//border: 1px solid $border-color !important;
+			box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+		}
+
 		.InputfieldFileData {
 			border: none !important;
+			margin-bottom: 0 !important;
 		}
 		a.InputfieldFileLink {
 			display: block !important;
@@ -379,17 +388,20 @@ table {
 
 	.InputfieldFileList > li {
 		margin-top: 0;
+		margin-bottom: 0.5em !important;
+		box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 	}
 	.InputfieldFileList .InputfieldFileItem {
 		border: none;
 	}
 
 	.InputfieldFileList .InputfieldFileItem .ui-widget-content, .InputfieldFileData {
-		border-width: 0 1px 1px 1px;
-		border-style: solid;
-		border-color: darken($item-border-color, 4%);
+		//border-width: 0 1px 1px 1px;
+		//border-style: solid;
+		//border-color: darken($item-border-color, 4%);
 		background: $item-bg;
-		border-top: none;
+		border: none;
+		margin-bottom: 1em;
 	}
 
 	.InputfieldItemList .InputfieldItemHeader {
@@ -414,6 +426,10 @@ table {
 			a {
 				color: $item-header-hover-color; 
 			}
+		}
+
+		&.InputfieldFileInfo > i.fa{
+			left: 0;
 		}
 	}
 
@@ -634,4 +650,3 @@ body:not(.AdminThemeReno) .Inputfields {
 		}
 	}
 }
-

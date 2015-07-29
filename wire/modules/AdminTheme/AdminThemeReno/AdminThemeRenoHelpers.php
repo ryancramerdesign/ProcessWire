@@ -11,7 +11,7 @@
  * Copyright (C) 2015 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  *
- * http://processwire.com
+ * https://processwire.com
  *
  * 
  */
@@ -87,33 +87,28 @@ class AdminThemeRenoHelpers extends AdminThemeDefaultHelpers {
 		$items[] = array(
 			"class" => "",
 			"label" => "<i class='fa {$adminTheme->home}'></i>",
-			"link" => $config->urls->root,
+			"link" => $config->urls->root
 		);
 
 		// Search toggle
 		$items[] = array(
 			"class" => "search-toggle",
 			"label" => "<i class='fa fa-search'></i>",
-			"link" => "#",
+			"link" => "#"
 		);
 
 		// Superuser quick links
 		if ($this->user->isSuperuser()){
-
-			// Links in dropdown
-			$superuserPages = array(
-				"<i class='fa fa-life-ring'></i> " . $this->_('Support Forums')  => "http://processwire.com/talk/",
-				"<i class='fa fa-book'></i> " . $this->_('Documentation') => "https://processwire.com/docs/",
-				"<i class='fa fa-github'></i> " . $this->_('Github Repo') => "https://github.com/ryancramerdesign/ProcessWire/",
-				"<i class='fa fa-code'></i> " . $this->_('Cheatsheet')  => "http://cheatsheet.processwire.com",
-				"<i class='fa fa-anchor'></i> " . $this->_('Captain Hook')  => "http://processwire.com/api/hooks/captain-hook/",
-			);
-
-			// add to items array
 			$items[] = array(
 				"class" => "superuser",
 				"label" => "<i class='fa fa-bolt'></i>",
-				"children" => $superuserPages
+				"children" => array(
+					"<i class='fa fa-life-ring'></i> " . $this->_('Support Forums')  => array('http://processwire.com/talk/', 'target="_blank"'),
+					"<i class='fa fa-book'></i> " . $this->_('Documentation') => array('https://processwire.com/docs/', 'target="_blank"'),
+					"<i class='fa fa-github'></i> " . $this->_('Github Repo') => array('https://github.com/ryancramerdesign/ProcessWire/', 'target="_blank"'),
+					"<i class='fa fa-code'></i> " . $this->_('Cheatsheet')  => array('http://cheatsheet.processwire.com', 'target="_blank"'),
+					"<i class='fa fa-anchor'></i> " . $this->_('Captain Hook')  => array('http://processwire.com/api/hooks/captain-hook/', 'target="_blank"'),
+				)
 			);
 		}
 
@@ -124,24 +119,21 @@ class AdminThemeRenoHelpers extends AdminThemeDefaultHelpers {
 			$userImg = $img->size(52,52); // render at 2x for hi-dpi (52x52 for 26x26)
 			$avatar = "<img src='$userImg->url' alt='$user->name' />";
 		}
-		
-		// Pages for the user dropdown.
-		$userPages = array(
-			"<i class='fa fa-user'></i> " . $this->_('Profile') => $config->urls->admin . "profile/",
-			"<i class='fa $adminTheme->signout'></i> " . $this->_('Logout') => $config->urls->admin . "login/logout/"
-		);
 
 		// User information, profile, logout
 		$items[] = array(
 			"class" => "avatar",
 			"label" => "$avatar <span>" . $this->getDisplayName($user) . "</span>",
-			"children" => $userPages
+			"children" => array(
+				"<i class='fa fa-user'></i> " . $this->_('Profile') => $config->urls->admin . "profile/",
+				"<i class='fa $adminTheme->signout'></i> " . $this->_('Logout') => $config->urls->admin . "login/logout/"
+			)
 		);
 
 		return $this->topNavItems($items);
 
 	}
-	
+
 	/**
 	 * Render top navigation items (hookable)
 	 * 
@@ -151,21 +143,36 @@ class AdminThemeRenoHelpers extends AdminThemeDefaultHelpers {
 	public function ___topNavItems(array $items) {
 		
 		$out = '';
+		$defaults = array(
+			"class" => "",
+			"label" => "<i class='fa fa-question-circle'></i>",
+			"link" => "#",
+			"attrs" => "",
+			"children" => false
+		);
+
 		foreach ($items as $item){
-			array_key_exists('class', $item) ? $class = $item['class'] : $class = '';
-			array_key_exists('label', $item) ? $label = $item['label'] : $label = "<i class='fa fa-question-circle'></i>";
-			array_key_exists('link', $item) ? $link = $item['link'] : $link = '#';
-			array_key_exists('children', $item) && is_array($item['children']) ? $children = $item['children'] : $children = false;
-			
-			// $item['children'] ? $class .= " dropdown" : '';
-			if(!empty($item['children'])) $class .= " dropdown";
+
+			// Create variables for each default key.
+			// If $item contains a key listed in the default array, use that value, otherwise use the default.
+			foreach ($defaults as $key => $val){
+				array_key_exists($key, $item) ? ${$key} = $item[$key] : ${$key} = $val; 
+			}
+
+			// Add dropdown class if there are children
+			if($children) $class .= " dropdown";
 
 			$out .= "<li class='$class'><a href='$link'>$label</a>";
-				if ($children){
+				if (is_array($children)){
 					$out .= "<ul>";
 						foreach($children as $child_label => $child_link){
-							$current = ($this->wire('page')->path == $child_link) ? 'current' : ''; // current class
-							$out .= "<li><a href='$child_link' class='$current'>$child_label</a></li>";
+							$attrs = '';
+							$current = ($this->wire('page')->path == $child_link) ? 'class="current"' : ''; // current class
+							if (is_array($child_link)){
+								$attrs = implode(" ", array_slice($child_link,1)); // any array items other than the 1st are treated as attrs
+								$child_link = $child_link[0]; // first item in array is the url
+							}
+							$out .= "<li><a href='$child_link' $current $attrs>$child_label</a></li>";
 						}
 					$out .= "</ul>";
 				}
@@ -328,8 +335,8 @@ class AdminThemeRenoHelpers extends AdminThemeDefaultHelpers {
                 $out .= "{$user->name} "; // can't use wire('fields') to get name field
             } else {
                 $field = $this->wire('fields')->get($f);
-                if($field instanceof Field && ($field->type == "FieldtypeText" || $field->type == "FieldtypeConcat")){
-                    $out .= "{$user->$f} ";
+                if($field instanceof Field && in_array($field->type, array('FieldtypeText', 'FieldtypeConcat', 'FieldtypePageTitle'))){
+                    $out .= $this->wire('sanitizer')->entities1($user->$f) . " ";
 				}
             }
         }

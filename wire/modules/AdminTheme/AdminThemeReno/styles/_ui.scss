@@ -5,7 +5,8 @@
 
 .ui-icon {
 	float: left; 
-	margin-right: 2px; 
+	margin-right: 2px;
+	margin-top: 4px;
 }
 
 .ui-widget {
@@ -131,7 +132,7 @@ p span.ui-state-error {
 
   .ui-dialog-titlebar {
 	    margin: 0;
-	    background: $masthead-bg !important;
+	    background: $masthead-secondary-bg !important;
 	    border: none;
 	    -webkit-border-radius: 0;
 	    -moz-border-radius: 0;
@@ -256,6 +257,18 @@ div + a > .ui-button {
 
     &:hover {
     	color: $ui-priority-secondary-hover !important;
+    }
+}
+
+.ui-widget-header .ui-priority-secondary{
+	padding: 0.2em 0.4em;
+    border-radius: $button-radius;
+    color: $item-header-color !important;
+    background: darken($item-header-bg, 5%);
+
+    &:hover {
+    	color: $item-header-color !important;
+    	background: darken($item-header-bg, 10%);
     }
 }
 

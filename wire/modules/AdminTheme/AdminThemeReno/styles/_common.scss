@@ -32,6 +32,7 @@ $masthead-height: 52px;
 @import 'sidebar';
 @import 'search';
 @import 'pagination';
+@import 'logs';
 
 
 /***********************************************************************************************
@@ -317,6 +318,18 @@ ul.action-group{
 		}
 	}
 }
+
+#action_icons span{
+	border-radius: $button-radius;
+	color: $button-secondary-color !important;
+	background: $button-secondary-bg !important;
+
+	&:hover{
+		color: $button-color !important;
+		background: $button-bg !important;
+	}
+}
+
 .content {
 
 	img {
@@ -454,11 +467,13 @@ ul.action-group{
 		cursor: move;
 	}
 
-	.PageListItem > a span + span:before {
-		content: " / ";
-		color: $medium-text-color;
+	.PageListItem > a span {
+		display: inline-block;
+		& + span:before {
+			content: " / ";
+			color: $medium-text-color;
+		}
 	}
-
 
 	.PageListActionMore a {
 		margin-top: 0.5em;
@@ -871,6 +886,12 @@ ul.action-group{
 
 }
 
+body.modal-inline #ProcessListerResults {
+	padding: 0;
+	border: none;
+	margin-bottom: 0;
+}
+
 /***********************************************************************************************
  * FOOTER
  *
@@ -886,6 +907,9 @@ ul.action-group{
 
 	a {
 		margin: 0 0 0 1em;
+	}
+	#debug_toggle {
+		margin-left: 0;
 	}
 
 	p {
@@ -996,6 +1020,17 @@ body.modal {
 		right: 1.5em;
 	}
 
+}
+
+body.modal-inline {
+	/* modal content in a frame/iframe that needs no padding/margins/borders around it */
+	#content {
+		padding: 0; 
+	}
+	.container {
+		padding-left: 0;
+		padding-right: 0;
+	}
 }
 
 
