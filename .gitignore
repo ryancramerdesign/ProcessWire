@@ -6,8 +6,8 @@
 *.new/*
 old
 old/*
-*.1
-*.1/*
+*[a-z].1
+*[a-z].1/*
 sess_*
 *.cache
 *.swp

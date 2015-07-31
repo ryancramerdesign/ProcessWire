@@ -12,7 +12,9 @@
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://www.processwire.com
- *
+ * 
+ * @todo add renderValue support (perhaps delegating to Fieldtype::markupValue), likewise for repeaters. 
+ * 
  */
 
 class InputfieldPageTable extends Inputfield {
@@ -21,7 +23,7 @@ class InputfieldPageTable extends Inputfield {
 		return array(
 			'title' => __('ProFields: Page Table', __FILE__), // Module Title
 			'summary' => __('Inputfield to accompany FieldtypePageTable', __FILE__), // Module Summary
-			'version' => 10,
+			'version' => 11,
 			'requires' => 'FieldtypePageTable'
 			);
 	}
@@ -81,6 +83,11 @@ class InputfieldPageTable extends Inputfield {
 
 		return parent::init();
 	}
+	
+	public function renderReady(Inputfield $parent = null, $renderValueMode = false) {
+		$this->wire('modules')->get('JqueryUI')->use('modal'); 
+		return parent::renderReady($parent, $renderValueMode);
+	}
 
 	/**
 	 * Render the PageTable Inputfield
@@ -89,7 +96,6 @@ class InputfieldPageTable extends Inputfield {
 	 * 
 	 */
 	public function ___render() {
-		$this->wire('modules')->get('JqueryUI')->use('modal'); 
 
 		// make sure we've got enough info to generate a table
 		$errors = array();
@@ -128,7 +134,7 @@ class InputfieldPageTable extends Inputfield {
 		}
 		$out .= "<div class='InputfieldPageTableButtons ui-helper-clearfix'>$btn</div>";
 
-		if(!$this->wire('config')->ajax) {
+		if(!$this->wire('input')->get('InputfieldPageTableField')) {
 			$url = "./?id=$editID&InputfieldPageTableField=$this->name"; 
 			$out = "<div class='InputfieldPageTableContainer' data-url='$url' data-noclose='$this->noclose'>$out</div>";
 			// input for sorting purposes

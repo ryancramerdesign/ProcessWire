@@ -289,13 +289,20 @@ $(document).ready(function() {
 				
 				// Present file info and append it to the list of files
 				fileData = '' + 
-					"<span class='ui-icon ui-icon-arrowreturnthick-1-e' style='margin-left: 2px;'></span>" + 
+					"<i class='fa fa-fw fa-spin fa-spinner'></i> " + 
 					'<span class="InputfieldFileName">' + file.name + '</span>' + 
 					'<span class="InputfieldFileStats"> &bull; ' + parseInt(file.size / 1024, 10) + " kb</span>";
 				
 				$progressItem.find('p.ui-widget-header').html(fileData);
 				$fileList.append($progressItem);
-				$fileList.closest('.Inputfield').addClass('InputfieldStateChanged');
+				var $inputfield = $fileList.closest('.Inputfield');
+				$inputfield.addClass('InputfieldStateChanged');
+				var numFiles = $inputfield.find('.InputfieldFileItem').length;
+				if(numFiles == 1) {
+					$inputfield.removeClass('InputfieldFileEmpty').removeClass('InputfieldFileMultiple').addClass('InputfieldFileSingle');
+				} else if(numFiles > 1) {
+					$inputfield.removeClass('InputfieldFileEmpty').removeClass('InputfieldFileSingle').addClass('InputfieldFileMultiple');
+				}
 			}
 			
 	

@@ -858,32 +858,76 @@ function InputfieldFormBeforeUnloadEvent(e) {
  */
 function InputfieldStates() {
 	
+	function InputfieldStateAjaxClick($li) {
+		
+		function headerHighlightEffect($header, $li) {
+			$header.fadeTo('fast', 0.5, function() {
+				$header.fadeTo('fast', 1.0, function() {
+					if($li.hasClass('InputfieldAjaxLoading')) headerHighlightEffect($header, $li);
+				});
+			});
+		}
+		
+		// check for ajax rendered Inputfields
+		var $parent = $li.children('.InputfieldContent').children('.renderInputfieldAjax');
+		var isTab = false;
+		if(!$parent.length) {
+			$parent = $li.children('.renderInputfieldAjax'); // WireTab
+			isTab = true; 
+		}
+		
+		var ajaxURL = $parent.children('input').attr('value');
+		if(typeof ajaxURL == "undefined" || ajaxURL.length < 1) return false;
+		var $spinner = null;
+		
+		if(isTab) {
+			var $header = $('#_' + $li.attr('id')); // WireTab
+			headerHighlightEffect($header, $li);
+		} else {
+			var $header = $li.children(".InputfieldHeader");
+			$spinner = $("<i class='fa fa-spin fa-spinner'></i>");
+			$spinner.css('margin-left', '0.5em');
+			$header.append($spinner);
+		}
+
+		$li.removeClass('collapsed10 collapsed11 ').addClass('InputfieldAjaxLoading');
+		
+		$.get(ajaxURL, function(data) {
+			$li.removeClass('InputfieldAjaxLoading InputfieldStateCollapsed');
+			$parent.replaceWith($(data)).hide();
+			$parent.slideDown();
+			$li.trigger('reloaded');
+			$li.find(".Inputfield:not(.collapsed9) > .InputfieldHeader").addClass("InputfieldStateToggle");
+			$li.find('.Inputfield').trigger('reloaded');
+			setTimeout(function() {
+				if($spinner) $spinner.fadeOut('fast', function() {
+					$spinner.remove();
+				});
+				$header.click();
+			}, 500);
+		}, 'html');
+		
+		return true;
+	}
+	
 	$(".Inputfield:not(.collapsed9) > .InputfieldHeader, .Inputfield:not(.collapsed9) > .ui-widget-header").addClass("InputfieldStateToggle");
 	
+	$(document).on('wiretabclick', function(e, $newTab, $oldTab) {
+		if($newTab.hasClass('collapsed10')) InputfieldStateAjaxClick($newTab);
+	});
+	
 	$(document).on('click', '.InputfieldStateToggle, .toggle-icon', function() {
+		
 		var $t = $(this);
 		var $li = $t.closest('.Inputfield');
 		var isIcon = $t.hasClass('toggle-icon');
 		var $icon = isIcon ? $t : $li.children('.InputfieldHeader, .ui-widget-header').find('.toggle-icon'); 
 		var isCollapsed = $li.hasClass("InputfieldStateCollapsed"); 
 		var wasCollapsed = $li.hasClass("InputfieldStateWasCollapsed");
-		
-		// check for ajax rendered Inputfields
-		if(isCollapsed && $li.hasClass('collapsed10')) {
-			var ajaxURL = $li.find('.renderInputfieldAjax').attr('value'); // hidden input with ajax URL
-			if(typeof ajaxURL != "undefined" && ajaxURL.length) {
-				var $spinner = $("<i style='margin-left:0.5em;' class='fa fa-spin fa-spinner'></i>");
-				$li.children(".InputfieldHeader").append($spinner);
-				$.get(ajaxURL, function(data) {
-					$li.children(".InputfieldContent").html(data);
-					$li.trigger('reloaded');
-					setTimeout(function() {
-						$spinner.fadeOut();
-						$t.click();
-					}, 500); 
-				});
-				return;
-			}
+		if($li.hasClass('InputfieldAjaxLoading')) return false;
+
+		if(isCollapsed && ($li.hasClass('collapsed10') || $li.hasClass('collapsed11'))) {
+			if(InputfieldStateAjaxClick($li)) return false;
 		}
 			
 		if(isCollapsed || wasCollapsed || isIcon) {

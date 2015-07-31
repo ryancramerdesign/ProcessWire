@@ -141,7 +141,7 @@ function pwModalWindow(href, options, size) {
 		pwModalWindows[n] = null;
 	}
 
-	if(href.indexOf('modal=')) {
+	if(href.indexOf('modal=') > 0) {
 		var url = href; 
 	} else {
 		var url = href + (href.indexOf('?') > -1 ? '&' : '?') + 'modal=1';

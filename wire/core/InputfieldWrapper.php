@@ -298,6 +298,8 @@ class InputfieldWrapper extends Inputfield implements Countable, IteratorAggrega
 		$_markup = array_merge(self::$defaultMarkup, self::$markup);
 		$_classes = array_merge(self::$defaultClasses, self::$classes);
 		$useColumnWidth = true;
+		$renderAjaxInputfield = $this->wire('config')->ajax ? $this->wire('input')->get('renderInputfieldAjax') : null;
+		
 		if(isset($_classes['form']) && strpos($_classes['form'], 'InputfieldFormNoWidths') !== false) {
 			$useColumnWidth = false;
 		}
@@ -309,6 +311,16 @@ class InputfieldWrapper extends Inputfield implements Countable, IteratorAggrega
 		}
 		
 		foreach($children as $inputfield) {
+			
+			if($renderAjaxInputfield && $inputfield->attr('id') != $renderAjaxInputfield 
+				&& !$inputfield instanceof InputfieldWrapper) {
+				
+				$skip = true;
+				foreach($inputfield->getParents() as $parent) {
+					if($parent->attr('id') == $renderAjaxInputfield) $skip = false;
+				}
+				if($skip && !empty($parents)) continue;
+			}
 			
 			$inputfieldClass = $inputfield->className();
 			$markup = isset($_markup[$inputfieldClass]) ? array_merge($_markup, $_markup[$inputfieldClass]) : $_markup; 
@@ -399,7 +411,9 @@ class InputfieldWrapper extends Inputfield implements Countable, IteratorAggrega
 					$collapsed === Inputfield::collapsedYes ||
 					$collapsed === Inputfield::collapsedYesLocked ||
 					$collapsed === true || 
+					$collapsed === Inputfield::collapsedYesAjax ||
 					($isEmpty && $collapsed === Inputfield::collapsedBlank) ||
+					($isEmpty && $collapsed === Inputfield::collapsedBlankAjax) ||
 					($isEmpty && $collapsed === Inputfield::collapsedNoLocked) || // collapsedNoLocked assumed to be like a collapsedBlankLocked
 					(!$isEmpty && $collapsed === Inputfield::collapsedPopulated)) {
 						$ffAttrs['class'] .= ' ' . $classes['item_collapsed'];
@@ -509,27 +523,60 @@ class InputfieldWrapper extends Inputfield implements Countable, IteratorAggrega
 	 * 
 	 */
 	public function ___renderInputfield(Inputfield $inputfield, $renderValueMode = false) {
+
+		$collapsed = $inputfield->getSetting('collapsed');
+		$ajaxInputfield = $collapsed == Inputfield::collapsedYesAjax ||
+			($collapsed == Inputfield::collapsedBlankAjax && $inputfield->isEmpty());
+		$ajaxID = $this->wire('config')->ajax ? $this->wire('input')->get('renderInputfieldAjax') : '';
+		
+		if($ajaxInputfield && (($inputfield->required && $inputfield->isEmpty()) || !$this->wire('user')->isLoggedin())) {
+			// if an ajax field is empty, and is required, then we don't use ajax render mode
+			// plus, we only allow ajax inputfields for logged-in users
+			$ajaxInputfield = false;
+			if($collapsed == Inputfield::collapsedYesAjax) $inputfield->collapsed = Inputfield::collapsedYes;
+			if($collapsed == Inputfield::collapsedBlankAjax) $inputfield->collapsed = Inputfield::collapsedBlank;
+		}
 		
 		$inputfield->renderReady($this, $renderValueMode);
-	
-		if($inputfield->getSetting('collapsed') == Inputfield::collapsedYesAjax) {
+		
+		if($ajaxInputfield) {
+			
 			$inputfieldID = $inputfield->attr('id');
-			if($this->wire('config')->ajax && $this->wire('input')->get('renderInputfieldAjax') == $inputfieldID) {
+			
+			if($ajaxID && $ajaxID == $inputfieldID) {
 				// render ajax inputfield
-				if($renderValueMode) {
+				$editable = $inputfield->editable();
+				if($renderValueMode || !$editable) {
 					echo $inputfield->renderValue();
 				} else {
-					if($inputfield->editable()) echo $inputfield->render();
+					echo $inputfield->render();
+					echo "<input type='hidden' name='processInputfieldAjax[]' value='$inputfieldID' />";
 				}
-				echo "<input type='hidden' name='processInputfieldAjax[]' value='$inputfieldID' />";
 				exit;
+				
+			} else if($ajaxID && $ajaxID != $inputfieldID && $inputfield instanceof InputfieldWrapper && 
+				$inputfield->getChildByName(str_replace('Inputfield_', '', $ajaxID))) {
+				// nested ajax inputfield, within another ajax inputfield
+				$in = $inputfield->getChildByName(str_replace('Inputfield_', '', $ajaxID));
+				return $this->renderInputfield($in, $renderValueMode);
+				
 			} else {
 				// do not render ajax inputfield
 				$url = $this->wire('input')->url();
 				$queryString = $this->wire('input')->queryString();
+				if(strpos($queryString, 'renderInputfieldAjax=') !== false) {
+					// in case nested ajax request 
+					$queryString = preg_replace('/&?renderInputfieldAjax=[^&]+/', '', $queryString);
+				}
 				$url .= $queryString ? "?$queryString&" : "?";
 				$url .= "renderInputfieldAjax=$inputfieldID";
-				$out = "<input type='hidden' class='renderInputfieldAjax' value='$url' />";
+				$out = "<div class='renderInputfieldAjax'><input type='hidden' value='$url' /></div>";
+				if($inputfield instanceof InputfieldWrapper) {
+					// load assets they will need
+					foreach($inputfield->getAll() as $in) {
+						$in->renderReady($inputfield, $renderValueMode);
+					}
+				}
 				return $out; 
 			}
 		}
@@ -601,10 +648,14 @@ class InputfieldWrapper extends Inputfield implements Countable, IteratorAggrega
 			);
 		if(in_array((int) $inputfield->getSetting('collapsed'), $skipTypes)) return false;
 		
-		if($inputfield->collapsed == Inputfield::collapsedYesAjax) {
+		if(in_array($inputfield->collapsed, array(Inputfield::collapsedYesAjax, Inputfield::collapsedBlankAjax))) {
 			$processAjax = $this->wire('input')->post('processInputfieldAjax');
 			if(is_array($processAjax) && in_array($inputfield->attr('id'), $processAjax)) {
-				// field can be processed
+				// field can be processed (convention used by InputfieldWrapper)
+			} else if($inputfield->collapsed == Inputfield::collapsedBlankAjax && !$inputfield->isEmpty()) {
+				// field can be processed because it is only collapsed if blank
+			} else if(isset($_SERVER['HTTP_X_FIELDNAME']) && $_SERVER['HTTP_X_FIELDNAME'] == $inputfield->attr('name')) {
+				// field can be processed (convention used by ajax uploaded file and other ajax types)
 			} else {
 				// field was not rendered via ajax and thus can't be processed
 				return false;

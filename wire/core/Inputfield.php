@@ -86,6 +86,7 @@ abstract class Inputfield extends WireData implements Module {
 	const collapsedLocked = 8; 	// for backwards compatibility
 	const collapsedNever = 9; // input may not be collapsed
 	const collapsedYesAjax = 10; // collapsed and dynamically loaded by ajax when opened
+	const collapsedBlankAjax = 11; // collapsed when blankn and dynamically loaded by ajax when opened
 
 	/**
 	 * Constants for skipLabel setting
@@ -293,6 +294,20 @@ abstract class Inputfield extends WireData implements Module {
 	 */
 	public function getParent() {
 		return $this->parent; 
+	}
+
+	/**
+	 * Get array of all parents
+	 * 
+	 * @return array
+	 * 
+	 */
+	public function getParents() {
+		$parent = $this->getParent();
+		if(!$parent) return array();
+		$parents = array($parent);
+		foreach($parent->getParents() as $p) $parents[] = $p;
+		return $parents; 
 	}
 
 	/**
@@ -697,19 +712,26 @@ abstract class Inputfield extends WireData implements Module {
 		$field->attr('name', 'collapsed'); 
 		$field->label = $this->_('Presentation'); 
 		$field->description = $this->_("How should this field be displayed in the editor?");
-		$field->addOption(self::collapsedNo, $this->_('Always open (default)'));
-		$field->addOption(self::collapsedNever, $this->_('Always open and cannot be collapsed')); 
-		$field->addOption(self::collapsedBlank, $this->_("Collapsed only when blank")); 
-		$field->addOption(self::collapsedPopulated, $this->_("Collapsed only when populated")); 
-		$field->addOption(self::collapsedYes, $this->_("Always collapsed, requiring a click to open")); 
-		$field->addOption(self::collapsedHidden, $this->_("Hidden, not shown in the editor"));
-		$field->addOption(self::collapsedYesLocked, $this->_("Always collapsed and not editable (locked)"));
-		$field->addOption(self::collapsedNoLocked, $this->_("Open when populated and not editable (locked)"));
+		$field->addOption(self::collapsedNo, $this->_('Open'));
+		$field->addOption(self::collapsedNever, $this->_('Open + Cannot be closed'));
+		$field->addOption(self::collapsedBlank, $this->_('Open when populated + Closed when blank'));
+		if($this->hasFieldtype !== false) {
+			$field->addOption(self::collapsedBlankAjax, $this->_('Open when populated + Closed when blank + Load only when opened (AJAX)') . " †");
+		}
+		$field->addOption(self::collapsedNoLocked, $this->_('Open when populated + Closed when blank + Locked (not editable)'));
+		$field->addOption(self::collapsedPopulated, $this->_('Open when blank + Closed when populated')); 
+		$field->addOption(self::collapsedYes, $this->_('Closed')); 
+		$field->addOption(self::collapsedYesLocked, $this->_('Closed + Locked (not editable)'));
+		if($this->hasFieldtype !== false) {
+			$field->addOption(self::collapsedYesAjax, $this->_('Closed + Load only when opened (AJAX)') . " †");
+			$field->notes = sprintf($this->_('Options indicated with %s may not work with all input types or placements, test to ensure compatibility.'), '†');
+		}
+		$field->addOption(self::collapsedHidden, $this->_('Hidden (not shown in the editor)'));
 		$field->attr('value', (int) $this->collapsed); 
 		$fieldset->append($field); 
 
 		$field = $this->modules->get("InputfieldText"); 
-		$field->label = $this->_('Show this field only if...'); 
+		$field->label = $this->_('Show this field only if');
 		$field->description = $this->_('Enter the conditions under which the field will be shown.') . ' ' . $conditionsText; 
 		$field->notes = $conditionsNote; 
 		$field->icon = 'question-circle';
@@ -751,7 +773,7 @@ abstract class Inputfield extends WireData implements Module {
 			$fields->add($field);
 			
 			$field = $this->modules->get('InputfieldText'); 
-			$field->label = $this->_('Required only if...');
+			$field->label = $this->_('Required only if');
 			$field->icon = 'asterisk';
 			$field->description = $this->_('Enter the conditions under which a value will be required for this field.') . ' ' . $conditionsText; 
 			$field->notes = $conditionsNote; 

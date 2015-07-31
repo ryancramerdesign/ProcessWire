@@ -317,14 +317,29 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		$inputfield->attr('name', $this->attr('name')); 
 		$inputfield->attr('id', $this->attr('id')); 
 		$inputfield->label = $this->label;
-		$inputfield->description = $this->description; 
+		$inputfield->description = $this->description;
+
+		if($this->collapsed == Inputfield::collapsedYesAjax || 
+			($this->collapsed == Inputfield::collapsedBlankAjax && $this->isEmpty())) {
+			// quick exit when possible due to ajax field, and not being time to render or process it
+			if($this->getParent()) {
+				// limit only to inputfields that have a parent, to keep out of other form contexts like Lister
+				$renderInputfieldAjax = $this->wire('input')->get('renderInputfieldAjax');
+				$processInputfieldAjax = $this->wire('input')->post('processInputfieldAjax');
+				if(!is_array($processInputfieldAjax)) $processInputfieldAjax = array();
+				if($renderInputfieldAjax != $this->attr('id') && !in_array($this->attr('id'), $processInputfieldAjax)) {
+					$this->inputfieldWidget = $inputfield;
+					return $inputfield;
+				}
+			}
+		}
 
 		if(method_exists($inputfield, 'addOption')) {
-			$children = $this->getSelectablePages($page); 
+			$children = $this->getSelectablePages($page);
 			if($children) foreach($children as $child) {
-				$label = $this->labelFieldName ? $child->get($this->labelFieldName) : $child->name; 
+				$label = $this->labelFieldName ? $child->get($this->labelFieldName) : $child->name;
 				if($child->is(Page::statusUnpublished)) $label .= ' ' . $this->_('(unpublished)');
-				$inputfield->addOption($child->id, $label); 
+				$inputfield->addOption($child->id, $label);
 			}
 		} else {
 			if($this->parent_id) {
@@ -354,22 +369,27 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		$this->inputfieldWidget = $inputfield;
 		return $inputfield; 
 	}
-
+	
+	public function renderReady(Inputfield $parent = null, $renderValueMode = false) {
+		parent::renderReady($parent, $renderValueMode);
+		$inputfield = $this->getInputfield();
+		if(!$inputfield) {
+			$this->error("Not fully configured  / currently nonfunctional");
+			return false;
+		}
+		return $inputfield->renderReady($this, $renderValueMode);
+	}
 
 	public function ___render() {
 
-		if(!$inputfield = $this->getInputfield()) { 
-			$this->error("Not fully configured  / currently nonfunctional");
-			return $this->name;
-		}
-
+		$inputfield = $this->getInputfield();
+		if(!$inputfield) return $this->name;
+		
 		$classes = InputfieldWrapper::getClasses();
 		$class = $inputfield->className();
 		if(isset($classes[$class]['item_content'])) $class .= " " . $classes[$class]['item_content'];
-		foreach($this->classesAdded as $addClass) $inputfield->addClass($addClass); 
-		
-		$inputfield->renderReady($this, false);
-		
+		foreach($this->classesAdded as $addClass) $inputfield->addClass($addClass);
+
 		$out = 	"\n<div class='$class'>";
 		$out .= $inputfield->render();
 		$out .= $this->renderAddable();

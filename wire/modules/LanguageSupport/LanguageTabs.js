@@ -13,6 +13,8 @@ function setupLanguageTabs($form) {
 		var $this = $(this);
 		if($this.hasClass('ui-tabs')) return;
 		var $inputfield = $this.closest('.Inputfield');
+		var $content = $inputfield.children('.InputfieldContent'); 
+		if(!$content.hasClass('langTabsContainer')) $content.addClass('langTabsContainer');
 		$this.tabs({ active: config.LanguageTabs.activeTab });
 		if($inputfield.length) $inputfield.addClass('hasLangTabs');
 		var $parent = $this.parent('.InputfieldContent'); 

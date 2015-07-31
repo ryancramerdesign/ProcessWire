@@ -12,7 +12,7 @@ function InputfieldPageTableDialog() {
 			if(dialogPageID > 0) {
 				var ajaxURL = $container.attr('data-url') + '&InputfieldPageTableAdd=' + dialogPageID;
 				var sort = $container.siblings(".InputfieldPageTableSort").val();
-				if(sort.length) ajaxURL += '&InputfieldPageTableSort=' + sort.replace(/\|/g, ',');
+				if(typeof sort != "undefined" && sort.length) ajaxURL += '&InputfieldPageTableSort=' + sort.replace(/\|/g, ',');
 				$.get(ajaxURL, function(data) {
 					$container.html(data);
 					$container.effect('highlight', 500, function() {
@@ -159,7 +159,11 @@ $(document).ready(function() {
 
 	InputfieldPageTableSortable($(".InputfieldPageTable table"));
 	
-	$(".InputfieldPageTableOrphansAll").click(function() {
+	$(document).on('reloaded', '.InputfieldPageTable', function() {
+		InputfieldPageTableSortable($(this).find("table"));
+	});
+	
+	$(document).on('click', '.InputfieldPageTableOrphansAll', function() {
 		var $checkboxes = $(this).closest('.InputfieldPageTableOrphans').find('input'); 
 		if($checkboxes.eq(0).is(":checked")) $checkboxes.removeAttr('checked'); 
 			else $checkboxes.attr('checked', 'checked'); 

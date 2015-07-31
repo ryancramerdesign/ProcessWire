@@ -311,6 +311,7 @@ $(document).ready(function() {
 	
 	$(document).on('reloaded', '.InputfieldPageAutocomplete, .InputfieldPage', function() {
 		InputfieldPageAutocomplete.initFromInputfield($(this));
+		return false;
 	});
 
 	$(document).on('click', '.InputfieldPageAutocomplete ol a.itemRemove', function() {

@@ -103,7 +103,7 @@ function ckeInlineMouseoverEvent(event) {
 	// them all being active
 
 	var $t = $(this);
-	if($t.is(".InputfieldCKEditorLoaded")) return;
+	if($t.hasClass("InputfieldCKEditorLoaded")) return;
 	$t.effect('highlight', {}, 500);
 	$t.attr('contenteditable', 'true');
 	var configName = $t.attr('data-configName');
@@ -121,8 +121,8 @@ function ckeInitTab(event, ui) {
 	var $a = $t.find('a'); 
 	if($a.hasClass('InputfieldCKEditor_init')) return;
 	var editorID = $a.attr('data-editorID');
-	var cfgName = $a.attr('data-cfgName');
-	var editor = CKEDITOR.replace(editorID, config[cfgName]);
+	var configName = $a.attr('data-configName');
+	var editor = CKEDITOR.replace(editorID, config[configName]);
 	ckeInitEvents(editor);
 	$a.addClass('InputfieldCKEditor_init'); 
 	ui.oldTab.find('a').addClass('InputfieldCKEditor_init'); // in case it was the starting one
@@ -137,20 +137,25 @@ function ckeInitTab(event, ui) {
  * 
  */
 function ckeInitNormal(editorID) {
-	
-	var cfgName = config.InputfieldCKEditor.editors[editorID];
+
 	var $editor = $('#' + editorID);
 	var $parent = $editor.parent();
+	
+	if(typeof config.InputfieldCKEditor.editors[editorID] != "undefined") {
+		var configName = config.InputfieldCKEditor.editors[editorID];
+	} else {
+		var configName = $editor.attr('data-configName');
+	}
 
 	if($parent.hasClass('ui-tabs-panel') && $parent.css('display') == 'none') {
 		// CKEditor in a jQuery UI tab (like langTabs)
 		var parentID = $editor.parent().attr('id');
 		var $a = $parent.closest('.ui-tabs, .langTabs').find('a[href=#' + parentID + ']');
-		$a.attr('data-editorID', editorID).attr('data-cfgName', cfgName);
+		$a.attr('data-editorID', editorID).attr('data-configName', configName);
 		$parent.closest('.ui-tabs, .langTabs').on('tabsactivate', ckeInitTab);
 	} else {
 		// visible CKEditor
-		var editor = CKEDITOR.replace(editorID, config[cfgName]);
+		var editor = CKEDITOR.replace(editorID, config[configName]);
 		ckeInitEvents(editor);
 		$editor.addClass('InputfieldCKEditorLoaded');
 	}
@@ -190,7 +195,7 @@ $(document).ready(function() {
 	 */
 
 	CKEDITOR.disableAutoInline = true; 
-	$(document).on('mouseover', '.InputfieldCKEditorInline[contenteditable=true]', ckeInlineMouseoverEvent); 
+	$(document).on('mouseover', '.InputfieldCKEditorInlineEditor', ckeInlineMouseoverEvent); 
 	$(document).on('submit', 'form.InputfieldForm', function() {
 		ckeSaveReadyInline($(this));
 		// note: not necessary for regular editors since CKE takes care

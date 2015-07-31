@@ -378,6 +378,7 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 					$tabWrap = new InputfieldWrapper();
 					$tabWrap->attr('title', $tabOpen->label);
 					$tabWrap->id = $tabOpen->id; 
+					$tabWrap->collapsed = $tabOpen->collapsed;
 					$contentTab->remove($inputfield); 
 					
 					if($inputfield->modal) {
@@ -687,6 +688,7 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 			} else {
 				$field = $this->modules->get('InputfieldPageListSelect');
 				$field->parent_id = 0;
+				$field->collapsed = Inputfield::collapsedYesAjax;
 			}
 			$field->required = true;
 			$field->label = $this->_('Parent'); // Settings: Parent field label
@@ -852,70 +854,74 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 
 		$field = $this->modules->get("InputfieldMarkup"); 
 		$field->label = $this->_('Who can access this page?'); // Roles information field label
-
-		$roles = $this->page->getAccessRoles();
-		$editRoles = $this->page->getAccessTemplate()->editRoles;
-		$addRoles = $this->page->getAccessTemplate()->addRoles; 
-		$createRoles = $this->page->getAccessTemplate()->createRoles; 
+		$field->attr('id', 'ProcessPageEditRoles');
+		$field->collapsed = Inputfield::collapsedYesAjax;
 
 		$table = $this->modules->get("MarkupAdminDataTable"); 
-		$table->headerRow(array(
-			$this->_('Role'), // Roles table column header: Role
-			$this->_('What they can do') // Roles table colum header: what they can do
-			)); 
-		$table->setEncodeEntities(false);
+		
+		if($this->wire('input')->get('renderInputfieldAjax') == 'ProcessPageEditRoles') {
+			$roles = $this->page->getAccessRoles();
+			$editRoles = $this->page->getAccessTemplate()->editRoles;
+			$addRoles = $this->page->getAccessTemplate()->addRoles;
+			$createRoles = $this->page->getAccessTemplate()->createRoles;
 
-		if(count($roles)) { 
+			$table->headerRow(array(
+				$this->_('Role'), // Roles table column header: Role
+				$this->_('What they can do') // Roles table colum header: what they can do
+			));
+			$table->setEncodeEntities(false);
 
-			$publishPermission = $this->fuel('permissions')->get('page-publish');
+			if(count($roles)) {
 
-			foreach($roles as $role) {
-				$permissions = '';	
-				$roleName = $role->name; 
-				if($roleName == 'guest') $roleName .= " " . $this->_('(everyone)'); // Identifies who guest is (everyone)
-				$permissions .= "page-view\n";
-				
-				$checkEditable = true; 
-				if($publishPermission->id && !$this->page->is(Page::statusUnpublished) && !$role->hasPermission('page-publish', $this->page)) {
-					$checkEditable = false;
-				}
-				
-				if(false !== ($key = array_search($role->id, $addRoles))) {
-					if($role->hasPermission('page-add')) {
-						$permissions .= "page-add\n";
-						unset($addRoles[$key]);
+				$publishPermission = $this->fuel('permissions')->get('page-publish');
+
+				foreach($roles as $role) {
+					$permissions = '';
+					$roleName = $role->name;
+					if($roleName == 'guest') $roleName .= " " . $this->_('(everyone)'); // Identifies who guest is (everyone)
+					$permissions .= "page-view\n";
+
+					$checkEditable = true;
+					if($publishPermission->id && !$this->page->is(Page::statusUnpublished) && !$role->hasPermission('page-publish', $this->page)) {
+						$checkEditable = false;
 					}
-				}
-				$editable = $role->hasPermission('page-edit') && in_array($role->id, $editRoles); 
-				if($checkEditable && $editable) {
-					foreach($role->permissions as $permission) {
-						if(strpos($permission->name, 'page-') !== 0) continue; 
-						if(in_array($permission->name, array('page-view', 'page-publish', 'page-create', 'page-add'))) continue;
-						$permissions .= "{$permission->name}\n"; // only page-context permissions
+
+					if(false !== ($key = array_search($role->id, $addRoles))) {
+						if($role->hasPermission('page-add')) {
+							$permissions .= "page-add\n";
+							unset($addRoles[$key]);
+						}
 					}
-					if($publishPermission->id && $role->hasPermission('page-publish', $this->page)) {
-						$permissions .= "page-publish\n";
+					$editable = $role->hasPermission('page-edit') && in_array($role->id, $editRoles);
+					if($checkEditable && $editable) {
+						foreach($role->permissions as $permission) {
+							if(strpos($permission->name, 'page-') !== 0) continue;
+							if(in_array($permission->name, array('page-view', 'page-publish', 'page-create', 'page-add'))) continue;
+							$permissions .= "{$permission->name}\n"; // only page-context permissions
+						}
+						if($publishPermission->id && $role->hasPermission('page-publish', $this->page)) {
+							$permissions .= "page-publish\n";
+						}
 					}
-				}
-				if(in_array($role->id, $createRoles) && $editable) {
-					$permissions .= "page-create\n";
+					if(in_array($role->id, $createRoles) && $editable) {
+						$permissions .= "page-create\n";
+					}
+
+					$table->row(array($roleName, nl2br($permissions)));
 				}
 
-				$table->row(array($roleName, nl2br($permissions))); 
 			}
 
-		}
-
-		if(count($addRoles)) {
-			foreach($addRoles as $roleID) {
-				$role = $this->fuel('roles')->get($roleID); 
-				if($role->id) $table->row(array($role->name, "page-add")); 
+			if(count($addRoles)) {
+				foreach($addRoles as $roleID) {
+					$role = $this->fuel('roles')->get($roleID);
+					if($role->id) $table->row(array($role->name, "page-add"));
+				}
 			}
+
+			$table->row(array('superuser', '*'));
+			$field->value = $table->render();
 		}
-
-		$table->row(array('superuser', '*')); 
-
-		$field->value = $table->render();
 
 		$accessParent = $this->page->getAccessParent();
 		if($accessParent === $this->page) {

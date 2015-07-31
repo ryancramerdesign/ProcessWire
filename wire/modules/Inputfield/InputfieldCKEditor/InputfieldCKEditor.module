@@ -35,7 +35,7 @@ class InputfieldCKEditor extends InputfieldTextarea {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'CKEditor',
-			'version' => 145, 
+			'version' => 150, // 146
 			'summary' => __('CKEditor textarea rich text editor.', __FILE__),
 			'installs' => array('MarkupHTMLPurifier'), 
 			);
@@ -86,7 +86,7 @@ class InputfieldCKEditor extends InputfieldTextarea {
 	 * Version number for CKEditor directory
 	 *
 	 */
-	const CKEDITOR_VERSION = '4.4.6';
+	const CKEDITOR_VERSION = '4.5.1';
 
 	/**
 	 * Instance of MarkupHTMLPurifier module
@@ -201,51 +201,58 @@ class InputfieldCKEditor extends InputfieldTextarea {
 		return $path;
 	}
 
-	/**
-	 * Render the output code for CKEditor
-	 *
-	 */
-	public function ___render() {
-		$this->wire('modules')->get('JqueryUI')->use('modal');
+	public function renderReady(Inputfield $parent = null, $renderValueMode = false) {
 
-		$this->globalConfig();
+		static $loaded = false;
 		$class = $this->className();
+		$config = $this->wire('config');
+		$baseURL = $config->urls->$class; 
+		$basePath = $baseURL . "ckeditor-" . self::CKEDITOR_VERSION . '/';
 		
+		if(!$loaded) {
+			$config->scripts->add($basePath . "ckeditor.js");
+			$this->wire('modules')->get('JqueryUI')->use('modal');
+			$loaded = true;
+		}
+		
+		$this->globalConfig();
+
 		if($this->contentsCss) {
-			$contentsCss = $this->pathFromRoot($this->contentsCss); 
+			$contentsCss = $this->pathFromRoot($this->contentsCss);
 		} else {
-			$contentsCss = $this->wire('config')->urls->$class . 'contents.css'; 
+			$contentsCss = $baseURL . 'contents.css';
 		}
 
 		// previous versions had a default setting removing the 'link' plugin, but now the Anchor
 		// tool requires it. this code fixes that situation for existing installations. 
 		if(stripos($this->toolbar, 'Anchor') !== false && stripos($this->removePlugins, 'link') !== false) {
-			$this->removePlugins = preg_replace('/\blink,?\b/i','', $this->removePlugins); 
+			$this->removePlugins = preg_replace('/\blink,?\b/i','', $this->removePlugins);
 		}
+		
 
 		$settings = array(
-			'baseHref' => wire('config')->urls->root, 
-			'contentsCss' => $contentsCss, 
-			'extraAllowedContent' => $this->extraAllowedContent, 
+			'baseHref' => $config->urls->root,
+			'contentsCss' => $contentsCss,
+			'extraAllowedContent' => $this->extraAllowedContent,
 			'extraPlugins' => implode(',', $this->extraPlugins),
 			'removePlugins' => $this->removePlugins,
 			'toolbar' => $this->toolbarStringToArray($this->toolbar),
-			'format_tags' => rtrim($this->formatTags, '; '), 
+			'format_tags' => rtrim($this->formatTags, '; '),
 			'language' => $this->_x('en', 'language-pack'), // CKEditor default language pack to use
 			// 'enterMode' => 'CKEDITOR.ENTER_P', // already the default, can be left out
 			'entities' => false,
-			);
+		);
 
 		if(!$this->useACF) $settings['allowedContent'] = true; // disables ACF, per CKEditor docs
 		if($this->rows) $settings['height'] = ($this->rows*2) . 'em'; // set editor height, based on rows value
-	
-		$stylesSet = $this->stylesSet; 
+
+		$stylesSet = $this->stylesSet;
 		if(empty($stylesSet)) $stylesSet = "mystyles:/wire/modules/Inputfield/InputfieldCKEditor/mystyles.js";
 		if(strpos($stylesSet, ':') !== false) {
-			list($k, $v) = explode(':', $stylesSet); 
-			$settings['stylesSet'] = "$k:" . $this->pathFromRoot($v); 
+			list($k, $v) = explode(':', $stylesSet);
+			$settings['stylesSet'] = "$k:" . $this->pathFromRoot($v);
 		}
-		
+
 		foreach($this->findPlugins() as $name => $file) {
 			if(!in_array($name, $this->extraPlugins)) continue;
 			$value = $this->get("plugin_$name");
@@ -254,32 +261,40 @@ class InputfieldCKEditor extends InputfieldTextarea {
 			if($value) $settings[$name] = $value;
 		}
 
-		$configURL = $this->wire('config')->urls->siteModules . $class . '/';
-		$configPath = $this->wire('config')->paths->siteModules . $class . '/';
-		
+		$configURL = $config->urls->siteModules . $class . '/';
+		$configPath = $config->paths->siteModules . $class . '/';
+
 		if(file_exists($configPath . "config-$this->name.js")) {
-			$settings['customConfig'] = $configURL . "config-$this->name.js"; 
+			$settings['customConfig'] = $configURL . "config-$this->name.js";
 		} else if(file_exists($configPath . "config.js")) {
 			$settings['customConfig'] = $configURL . "config.js";
 		} else {
 			// defaults to the one in /wire/modules/Inputfield/InputfieldCKEditor/ckeditor-x.x.x/config.js
 		}
-	
-		$customOptions = $this->get('customOptions'); 
+
+		$customOptions = $this->get('customOptions');
 		if($customOptions) {
 			$value = $this->convertPluginSettingsStr($customOptions);
 			if($value) $settings = array_merge($settings, $value);
 		}
 
 		// optimization to remember the name of our JS config entry to prevent redundancy in multi-lang fields
-		if(!$this->configName) $this->configName = $this->className() . '_' . $this->name; 
+		if(!$this->configName) $this->configName = $this->className() . '_' . $this->name;
 
 		// optimization to prevent redundant configuration code when used in a repeater
-		if(strpos($this->configName, '_repeater')) $this->configName = preg_replace('/_repeater\d+/', '', $this->configName); 
-		if(!in_array($this->configName, self::$configNames)) $this->config->js($this->configName, $settings); 
-		self::$configNames[] = $this->configName; 
+		if(strpos($this->configName, '_repeater')) $this->configName = preg_replace('/_repeater\d+/', '', $this->configName);
+		if(!in_array($this->configName, self::$configNames)) $this->config->js($this->configName, $settings);
+		self::$configNames[] = $this->configName;
 
-		return $this->inlineMode ? $this->renderInline() : $this->renderNormal();
+		return parent::renderReady($parent, $renderValueMode);
+	}
+
+	/**
+	 * Render the output code for CKEditor
+	 *
+	 */
+	public function ___render() {
+		return ($this->inlineMode ? $this->renderInline() : $this->renderNormal());
 	}
 
 	/**
@@ -397,6 +412,7 @@ class InputfieldCKEditor extends InputfieldTextarea {
 	protected function renderNormal() {
 		//$out = parent::___render() . "<script>CKEDITOR.replace('$this->id', config.$this->configName);</script>";
 		$this->addClass('InputfieldCKEditorNormal');
+		$this->attr('data-configName', $this->configName); 
 		$out = parent::___render() . "<script>config.InputfieldCKEditor.editors.$this->id = '$this->configName';</script>";
 		return $out; 
 	}
@@ -407,7 +423,7 @@ class InputfieldCKEditor extends InputfieldTextarea {
 	 */
 	protected function renderInline() {
 
-		if(!wire('modules')->get('MarkupHTMLPurifier')) {
+		if(!$this->wire('modules')->get('MarkupHTMLPurifier')) {
 			$this->error($this->_('CKEditor inline mode requires the MarkupHTMLPurifier module. Using normal mode instead.')); 
 			return $this->renderNormal();
 		}
@@ -417,7 +433,7 @@ class InputfieldCKEditor extends InputfieldTextarea {
 		$value = $this->purifyValue($this->attr('value')); 
 
 		$out = 	
-			"<div id='{$this->id}_ckeditor' class='InputfieldCKEditorInline' contenteditable='true' data-configName='$this->configName'>$value</div>" . 
+			"<div id='{$this->id}_ckeditor' class='InputfieldCKEditorInline InputfieldCKEditorInlineEditor' data-configName='$this->configName'>$value</div>" . 
 			"<input type='hidden' name='$this->name' id='$this->id' value='" . self::PLACEHOLDER_TEXT . "' />";
 
 		return $out; 
@@ -430,22 +446,6 @@ class InputfieldCKEditor extends InputfieldTextarea {
 			$this->wire('sanitizer')->purify($this->attr('value')) . "</div>";
 		return $out; 
 	}
-	
-	/**
-	 * Ensures that ckeditor.js is loaded before our own InputfieldCKEditor.js
-	 *
-	 */
-	public function renderReady(Inputfield $parent = null, $renderValueMode = false) {
-		static $loaded = false;
-		if(!$loaded) {
-			$class = $this->className();
-			$config = $this->wire('config');
-			$config->scripts->add($config->urls->$class . "ckeditor-" . self::CKEDITOR_VERSION . "/ckeditor.js");
-			$loaded = true;
-		}
-		parent::renderReady($parent, $renderValueMode);
-	}
-
 	
 	/**
 	 * Clean up a value that will be sent to/from the editor

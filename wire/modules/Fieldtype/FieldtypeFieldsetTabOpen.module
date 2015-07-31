@@ -30,10 +30,10 @@ class InputfieldFieldsetTabOpen extends InputfieldFieldsetOpen {
 		$inputfields = parent::___getConfigInputfields();
 		$inputfields->remove($inputfields->getChildByName('columnWidth')); 
 		$in = $inputfields->getChildByName('collapsed'); 
-		if($in->parent) $in->parent->set('collapsed', Inputfield::collapsedYes); 
+		//if($in->parent) $in->parent->set('collapsed', Inputfield::collapsedYes); 
 		foreach($in->getOptions() as $key => $value) {
 			// tabs may not be collapsed
-			if($key != Inputfield::collapsedNo) $in->removeOption($key); 
+			if($key != Inputfield::collapsedNo && $key != Inputfield::collapsedYesAjax) $in->removeOption($key); 
 		}
 		// tabs don't support showIf
 		$in = $inputfields->getChildByName('showIf'); 
@@ -58,7 +58,11 @@ class FieldtypeFieldsetTabOpen extends FieldtypeFieldsetOpen {
 	public function getInputfield(Page $page, Field $field) {
 		$inputfield = new InputfieldFieldsetTabOpen();
 		$inputfield->class = $this->className();
-		if($field->modal) $inputfield->modal = true; 
+		if($field->modal) {
+			$inputfield->modal = true;
+		} else if($field->collapsed == Inputfield::collapsedYesAjax) {
+			$inputfield->collapsed = $field->collapsed;
+		}
 		return $inputfield; 
 	}
 	
@@ -68,6 +72,7 @@ class FieldtypeFieldsetTabOpen extends FieldtypeFieldsetOpen {
 		$in->attr('name', 'modal');
 		$in->label = $this->_('Open in modal window?');
 		$in->description = $this->_('Check the box to make this tab open in its own modal window. This can improve performance with large forms.');
+		$in->notes = $this->_('To solve a similar need, you might instead consider the AJAX option, available at: Input (tab) > Visibility > Presentation.');
 		if($field->modal) $in->attr('checked', 'checked');
 		$inputfields->add($in);
 		return $inputfields;
