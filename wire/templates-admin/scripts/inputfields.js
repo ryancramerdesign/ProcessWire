@@ -32,9 +32,13 @@ var InputfieldDependenciesProcessing = false;
  * @constructor
  * 
  */
-function InputfieldDependencies() {
+function InputfieldDependencies($dependencyForm) {
 	
 	if(InputfieldDependenciesProcessing) return;
+	
+	if(typeof $dependencyForm == "undefined") {
+		var $dependencyForm = $(".InputfieldForm:not(.InputfieldFormNoDependencies)");
+	}
 
 	/**
 	 * Trim quotes and spaces from the given value
@@ -604,7 +608,7 @@ function InputfieldDependencies() {
 	/*** Start InputfieldDependencies *************************************************/
 
 	InputfieldDependenciesProcessing = true; 
-	$(".InputfieldForm:not(.InputfieldFormNoDependencies)").each(function() {
+	$($dependencyForm).each(function() {
 		$(this).find(".InputfieldStateShowIf, .InputfieldStateRequiredIf").each(function() {
 			setupDependencyField($(this));
 		});
@@ -899,6 +903,9 @@ function InputfieldStates() {
 			$li.trigger('reloaded');
 			$li.find(".Inputfield:not(.collapsed9) > .InputfieldHeader").addClass("InputfieldStateToggle");
 			$li.find('.Inputfield').trigger('reloaded');
+			if($li.closest('.InputfieldFormNoDependencies').length == 0) {
+				InputfieldDependencies($li.parent());
+			}
 			setTimeout(function() {
 				if($spinner) $spinner.fadeOut('fast', function() {
 					$spinner.remove();
@@ -1106,7 +1113,7 @@ function InputfieldWindowResizeActions2() {
 jQuery(document).ready(function($) {
 
 	InputfieldStates();
-	InputfieldDependencies();
+	InputfieldDependencies($(".InputfieldForm:not(.InputfieldFormNoDependencies)"));
 	InputfieldIntentions();
 	
 	setTimeout(function() { InputfieldColumnWidths(); }, 100);
