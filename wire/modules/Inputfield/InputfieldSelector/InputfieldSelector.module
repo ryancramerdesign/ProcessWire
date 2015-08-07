@@ -443,9 +443,10 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 				'operators' => $this->operatorsByType['text'], 
 				),
 			'parent' => array(
-				'input' => 'number',
+				'input' => 'number', // select
 				'label' => $this->_x('Parent', 'parent-only'), 
-				'operators' => array('=', '!='), 
+				'operators' => array('=', '!='),  // $this->operatorsByType['page']
+				// 'options' => array(id => label)
 				),
 			'parent.' => array(
 				'input' => 'subfields',
@@ -1012,7 +1013,18 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 
 		if(isset($this->systemFields[$fieldName])) {
 			// system field
-			$info = $this->systemFields[$fieldName]; 
+			$info = $this->systemFields[$fieldName];
+			if($fieldName == 'parent' && $this->initTemplate) {
+				// allow for selection of parent, when the template of items is known
+				//$operators = $this->operatorsByType['page'];
+				$info['input'] = 'select';
+				$info['options'] = array();
+				foreach($this->wire('templates')->getParentPages($this->initTemplate) as $p) {
+					if(!$this->wire('user')->hasPermission('page-view', $p)) continue;
+					$info['options'][$p->id] = $p->get('title|path');
+				}
+				asort($info['options']);
+			}
 			$type = $info['input'];
 			if(isset($info['options'])) $options = $info['options'];
 			if(!empty($info['placeholder'])) $placeholder = $info['placeholder'];
@@ -1387,6 +1399,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			'items' => array()
 			);
 		$selector = '';
+		$subfield = '';
 		
 		if(strpos($fieldName, '.') !== false) {
 			list($fieldName, $subfield) = explode('.', $fieldName);
@@ -1394,14 +1407,14 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		
 		$field = $this->wire('fields')->get($fieldName);
 		$selectorInfo = $this->getSelectorInfo($field); 
-		if(isset($selectorInfo['subfields'][$subfield])) {
+		if($subfield && isset($selectorInfo['subfields'][$subfield])) {
 			$selectorInfo = $selectorInfo['subfields'][$subfield];
 			if($selectorInfo['input'] == 'autocomplete' && isset($selectorInfo['selector'])) {
 				$selector = $selectorInfo['selector'];		
 			}
 		}
 		
-		if(!$selector) {
+		if(!$selector && $subfield) {
 			$fieldName = $subfield;
 			$field = $this->wire('fields')->get($fieldName);
 		}

@@ -18,7 +18,7 @@
 if(!defined("PROCESSWIRE")) die();
 
 if(!isset($content)) $content = '';
-$version = $adminTheme->version . 'g';
+$version = $adminTheme->version . 'h';
 $ext = $config->debug ? "js" : "min.js";
 
 // Search form

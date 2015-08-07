@@ -689,7 +689,7 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 
 		// perform a separate find() operation for the subfield
 		$pageFinder = new PageFinder();
-		$value = wire('sanitizer')->selectorValue($value);
+		$value = $this->wire('sanitizer')->selectorValue($value);
 
 		// build a selector to find matching pagerefs 
 		// @todo should $selector include check_access=0 or even include=all?
@@ -698,6 +698,11 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 			// remove the existing include=hidden, only if selector specifies a different include=something
 			if(strpos($field->findPagesSelector, 'include=') !== false) $selector = '';
 			$selector .= $field->findPagesSelector . ", ";
+			if(strpos($selector, 'page.') !== false) {
+				// remove any page.property from selector as it won't be applicable during a getMatchQuery
+				$selector = preg_replace('/\bpage\.[a-zA-Z0-9_]+\s*[=!]+\s*[^,]*,?/', '', $selector);
+				$selector = preg_replace('/[a-zA-Z0-9_.]+\s*[=!]+\s*page\.[a-zA-Z0-9_]+\s*,?/', '', $selector);
+			}
 		}
 		if($field->parent_id) $selector .= "parent_id={$field->parent_id}, ";
 		if(is_array($field->template_id)) {

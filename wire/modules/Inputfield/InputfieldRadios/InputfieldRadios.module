@@ -6,7 +6,7 @@ class InputfieldRadios extends InputfieldSelect {
 		return array(
 			'title' => __('Radio Buttons', __FILE__), // Module Title
 			'summary' => __('Radio buttons for selection of a single item', __FILE__), // Module Summary
-			'version' => 104,
+			'version' => 105,
 			'permanent' => true, 
 			);
 	}
@@ -61,7 +61,7 @@ class InputfieldRadios extends InputfieldSelect {
 				"name='{$this->name}' " . 
 				"id='$id' " .
 				"value='" . htmlspecialchars($key, ENT_QUOTES) . "' />" . 
-				"<span class='$textClass'>" . $this->entityEncode($value) ."</span>" . 
+				"<span class='$textClass'>" . str_replace(' ', ' <wbr>', $this->entityEncode($value)) ."</span>" . 
 				"</label></li>";
 		}
 

@@ -34,7 +34,7 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		return array(
 			'title' => __('Images', __FILE__), // Module Title
 			'summary' => __('One or more image uploads (sortable)', __FILE__), // Module Summary
-			'version' => 115,
+			'version' => 116,
 			'permanent' => true, 
 			);
 	}
@@ -78,7 +78,7 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 	public function renderReady(Inputfield $parent = null, $renderValueMode = false) {
 		$this->wire('modules')->loadModuleFileAssets('InputfieldFile');
 		$this->modules->getInstall("JqueryMagnific");
-		if($this->value && count($this->value)) {
+		if($this->value && count($this->value) && !$renderValueMode) {
 			$this->variations = $this->value->getAllVariations();
 			if(count($this->variations)) $this->wire('modules')->get('JqueryUI')->use('modal');
 		}
@@ -90,21 +90,6 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		$out = parent::___render();
 		if($this->defaultGrid) $out .= "<span class='InputfieldImageDefaultGrid'></span>";
 		return $out; 
-	}
-
-	public function ___renderValue() {
-		$out = '';
-		$value = $this->attr('value'); 
-		if(empty($value)) return '';
-		foreach($value as $pageimage) {
-			$thumbInfo = $this->getAdminThumb($pageimage); 
-			$thumb = $thumbInfo['thumb'];
-			$img = $thumbInfo['markup'];
-			if($thumb !== $pageimage) $img = "<a class='InputfieldFileLink' target='_blank' href='$pageimage->url'>$img</a>";
-			$out .= "<span>$img</span>";
-		}
-
-		return "<div class='InputfieldImageRenderValue'>$out</div>"; 
 	}
 
 	/**
@@ -248,6 +233,7 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		$error = $thumb['error'] ? "<span class='ui-state-error-text'>" . $this->wire('sanitizer')->entities($thumb['error']) . "</span>" : "";
 		
 		$editable = (int) $this->useImageEditor;
+		if($this->renderValueMode) $editable = false;
 		if(strpos($this->name, '_repeater') && preg_match('/_repeater\d+$/', $this->name)) $editable = false;
 		if($pagefile->ext == 'svg') $editable = false;
 
@@ -274,19 +260,21 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		$editTitle = "$pagefile->name ({$pagefile->width}x{$pagefile->height})";
 		$fileStats = str_replace(' ', '&nbsp;', $pagefile->filesizeStr) . ", {$pagefile->width}x{$pagefile->height} ";
 
-		$out = 	
-			"\n\t\t<p class='InputfieldFileInfo InputfieldItemHeader ui-widget ui-widget-header ui-helper-clearfix'>" . 
-			"\n\t\t\t<span class='HideIfSingle InputfieldFileDrag'><i class='fa fa-sort'></i>&nbsp;</span>" . 
+		$out = "\n\t\t<p class='InputfieldFileInfo InputfieldItemHeader ui-widget ui-widget-header ui-helper-clearfix'>";
+		
+		if(!$this->renderValueMode) $out .= 
+			"\n\t\t\t<span class='HideIfSingle InputfieldFileDrag'><i class='fa fa-sort'></i>&nbsp;</span>" .
 			"\n\t\t\t<i class='fa fa-caret-right InputfieldFileDrag HideIfMultiple'></i> ";
-
 		
 		if($this->uploadOnlyMode) {
+			
 			$out .= 
 				"\n\t\t\t<span class='InputfieldFileName'>$pagefile->basename</span> " . 
 				"\n\t\t\t<span class='InputfieldFileStats'>$fileStats</span> ";
 			
 		} else {
-			$out .=
+	
+			if(!$this->renderValueMode) $out .=
 				"\n\t\t\t<label class='InputfieldFileDelete'>" .
 				"<input type='checkbox' name='delete_$id' value='1' title='" . $this->_('Delete') . "' />" .
 				"<i class='fa fa-fw fa-trash'></i></label>" .
@@ -294,7 +282,9 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 				"<i class='fa fa-fw fa-angle-double-down'></i></a> " .
 				"\n\t\t\t<a class='InputfieldFileMove InputfieldFileMoveTop' href='#' title='" . $this->_('Move to top') . "'>" .
 				"<i class='fa fa-fw fa-angle-double-up'></i></a> ";
+			
 			$displayName = $this->getDisplayBasename($pagefile);
+			
 			if($editURL) {
 				$out .=
 					"\n\t\t\t<a class='InputfieldFileName pw-modal $this->modalClass' title='$pagefile->basename: $editTitle' href='$editURL' " .

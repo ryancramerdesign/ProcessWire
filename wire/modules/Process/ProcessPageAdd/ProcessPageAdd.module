@@ -32,9 +32,11 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 		return array(
 			'title' => __('Page Add', __FILE__),          
 			'summary' => __('Add a new page', __FILE__), 
-			'version' => 107, 
+			'version' => 108, 
 			'permanent' => true, 
 			'permission' => 'page-edit',
+			'icon' => 'plus-circle',
+			'useNavJSON' => true, 
 			);
 	}
 	
@@ -53,6 +55,89 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 		if($key == 'parent_id') $this->parent_id = (int) $value;
 			else if($key == 'template' &&  $value instanceof Template) $this->template = $value;
 			else return parent::set($key, $value); 	
+	}
+
+	/**
+	 * Return list of addable templates and links to add them
+	 * 
+	 * Returns JSON by default, specify $options['getArray'] = true; to return an array. 
+	 * 
+	 * @param array $options
+	 * @return array|string 
+	 * 
+	 */
+	public function ___executeNavJSON(array $options = array()) {
+
+		$page = $this->wire('page');
+		$user = $this->wire('user');
+		/** @var Session $session */
+		$session = $this->wire('session');
+		$data = $session->getFor($this, 'nav');
+		
+		if(!empty($data)) {
+			// check that session cache data is still current
+			foreach($this->wire('templates') as $template) {
+				if($template->modified > $data['modified']) {
+					$data = array();
+					break;
+				}
+			}
+		}
+		
+		if(empty($data)) {
+
+			$data = array(
+				'url'   => $this->wire('config')->urls->admin . 'page/add/',
+				'label' => $this->_((string) $page->get('title|name')),
+				'icon'  => 'plus-circle',
+				'add'   => null,
+				'list'  => array(),
+				'modified' => time(),
+			);
+
+			$items = array();
+
+			if(!$user->isGuest() && $user->hasPermission('page-edit')) {
+
+				$items = array();
+
+				foreach($this->wire('templates') as $template) {
+					$parent = $template->getParentPage(true);
+					if(!$parent) continue;
+					if($parent->id) {
+						// one parent possible	
+						if(!$this->isAllowedParent($parent, false, $template)) continue; // double check
+						$qs = "?parent_id=$parent->id";
+					} else {
+						// multiple parents possible
+						$qs = "?template_id=$template->id";
+					}
+					$icon = $template->getIcon();
+					if(!$icon) $icon = "plus-circle";
+					$label = $template->getLabel();
+					$key = strtolower($label);
+					$label = $this->wire('sanitizer')->entities1($label);
+					if(isset($items[$key])) $key .= $template->name;
+					$items[$key] = array(
+						'url'   => $qs,
+						'label' => $label,
+						'icon'  => $icon,
+						'parent_id' => $parent->id, // for internal use only
+						'template_id' => $template->id, // for internal use only
+					);
+				}
+
+				ksort($items);
+			}
+			$data['list'] = array_values($items);
+			$session->setFor($this, 'nav', $data);
+		}
+			
+		unset($data['modified']);
+		if(!empty($options['getArray'])) return $data;
+		if($this->wire('config')->ajax) header("Content-Type: application/json");
+		
+		return json_encode($data);
 	}
 
 	public function ___executeTemplate() {
@@ -113,6 +198,49 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 		return $form->render();
 	}
 	
+	public function renderChooseTemplate() {
+		$data = $this->executeNavJSON(array('getArray' => true)); 
+		$out = '';
+		foreach($data['list'] as $item) {
+			if($item['parent_id']) {
+				$parents = $this->wire('pages')->find("id=$item[parent_id]");
+			} else {
+				$template = $this->wire('templates')->get($item['template_id']);
+				$parentTemplates = implode('|', $template->parentTemplates);
+				if(empty($parentTemplates)) continue;
+				$parents = $this->wire('pages')->find("template=$parentTemplates, include=unpublished, limit=100, sort=-modified");
+			}
+			$out .= 
+				"<dt><a class='label' href='./$item[url]'>" . 
+				"<i class='fa fa-fw fa-$item[icon]'></i> $item[label]</a></dt><dd>";
+			
+			if(count($parents)) {
+				$out .= "<ul>";
+				foreach($parents as $parent) {
+					$url = $item['url'];
+					if(strpos($url, 'parent_id') === false) $url .= "&parent_id=$parent->id";
+					$out .= "<li><i class='fa fa-fw'></i> <a href='./$url'>";
+					foreach($parent->parents()->and($parent) as $p) {
+						if($p->id == 1) continue;
+						$out .= "$p->title<i class='ui-priority-secondary fa fa-fw fa-angle-right'></i>";
+					}
+					$out .= "</a></li>";
+				}
+				$out .= "</ul>";
+			}
+			$out .= "</dd>";
+		}
+		if($out) {
+			$out = "<dl class='nav'>$out</dl>";
+		} else {
+			$out = 
+				"<h2>" . 
+				$this->_('There are currently no templates with defined parent/child relationships needed to show "Add New" shortcuts here. To configure this, edit any template (Setup > Templates) and click on the "Family" tab.') . // Text shown when no templates use family settings
+				"</h2>";
+		}
+		return $out; 
+	}
+	
 	public function executeExists() {
 		$parentID = (int) $this->wire('input')->get('parent_id'); 
 		if(!$parentID) return '';
@@ -154,7 +282,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 			$this->parent_id = $this->predefinedParents->first()->id;
 		}
 		
-		if(!$this->parent_id) throw new Wire404Exception("Invalid Parent ID"); 
+		if(!$this->parent_id) return $this->renderChooseTemplate();
 
 		$this->parent = $this->pages->get((int) $this->parent_id); 
 		if(!$this->parent->id) throw new Wire404Exception("Unable to load parent page $this->parent_id"); 
@@ -203,6 +331,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 	protected function ___getAllowedTemplates($parent = null) {
 
 		if(is_null($parent)) $parent = $this->parent; 
+		if(!$parent) return array();
 		if(is_array($this->allowedTemplates)) return $this->allowedTemplates;
 
 		$user = $this->wire('user');

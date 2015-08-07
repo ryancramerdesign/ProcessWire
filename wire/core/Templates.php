@@ -456,10 +456,11 @@ class Templates extends WireSaveableItems {
 	 *
 	 * @param Template $template
 	 * @param bool $checkAccess Whether or not to check for user access to do this (default=false).
-	 * @return Page|NullPage|null
+	 * @param bool $getAll Specify true to return all possible parents (makes method always return a PageArray)
+	 * @return Page|NullPage|null|PageArray
 	 *
 	 */
-	public function getParentPage(Template $template, $checkAccess = false) {
+	public function getParentPage(Template $template, $checkAccess = false, $getAll = false) {
 
 		if($template->noShortcut || !count($template->parentTemplates)) return null;
 		if($template->noParents == -1) {
@@ -469,6 +470,7 @@ class Templates extends WireSaveableItems {
 			return null;
 		}
 		$foundParent = null;
+		$foundParents = $getAll ? new PageArray() : null;
 
 		foreach($template->parentTemplates as $parentTemplateID) {
 
@@ -481,14 +483,18 @@ class Templates extends WireSaveableItems {
 
 			// sort=status ensures that a non-hidden page is given preference to a hidden page
 			$include = $checkAccess ? "unpublished" : "all";
-			$parentPages = $this->wire('pages')->find("templates_id=$parentTemplate->id, include=$include, sort=status, limit=2");
-
+			$selector = "templates_id=$parentTemplate->id, include=$include, sort=status";
+			if(!$getAll) $selector .= ", limit=2";
+			$parentPages = $this->wire('pages')->find($selector);
 			$numParentPages = count($parentPages);
 
 			// undetermined parent
 			if(!$numParentPages) continue;
 
-			if($numParentPages > 1) {
+			if($getAll) {
+				if($numParentPages) $foundParents->add($parentPages);
+				continue;
+			} else if($numParentPages > 1) {
 				// multiple possible parents
 				$parentPage = new NullPage();
 			} else {
@@ -511,8 +517,29 @@ class Templates extends WireSaveableItems {
 			$foundParent = $parentPage;
 			break;
 		}
-
+		
+		if($checkAccess && $foundParents && $foundParents->count()) {
+			$p = new Page();
+			$p->template = $template; 
+			foreach($foundParents as $parentPage) {
+				if(!$parentPage->addable($p)) $foundParents->remove($parentPage);
+			}
+		}
+		
+		if($getAll) return $foundParents;
 		return $foundParent;
+	}
+
+	/**
+	 * Return all possible parent pages for the given template, if predefined
+	 * 
+	 * @param Template $template
+	 * @param bool $checkAccess Specify true to exclude parent pages that user doesn't have access to add pages to (default=false)
+	 * @return PageArray
+	 * 
+	 */
+	public function getParentPages(Template $template, $checkAccess = false) {
+		return $this->getParentPage($template, $checkAccess, true);
 	}
 
 

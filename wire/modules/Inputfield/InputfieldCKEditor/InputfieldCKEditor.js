@@ -186,7 +186,10 @@ $(document).ready(function() {
 		// reloaded event is sent to .Inputfield when the contents of the .Inputfield 
 		// have been replaced with new markup
 		var $editor = $(this).find('.InputfieldCKEditorNormal:not(.InputfieldCKEditorLoaded)');
-		if($editor.length) ckeInitNormal($editor.attr('id'));	
+		$editor.each(function() {
+			ckeInitNormal($(this).attr('id'));
+		});
+		return false;
 	});
 
 	/**

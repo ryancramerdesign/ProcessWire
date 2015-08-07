@@ -274,7 +274,8 @@ class AdminThemeRenoHelpers extends AdminThemeDefaultHelpers {
 
 					if(!$c->viewable()) continue;
 					$moduleInfo = $c->process ? $modules->getModuleInfo($c->process) : array();
-					$title = $sanitizer->entities1((string) $this->_($c->get('title|name')));
+					$title = $this->getPageTitle($c);
+					if(!strlen($title)) continue;
 					$url = $c->url;
 					// The /page/ and /page/list/ are the same process, so just keep them on /page/ instead. 
 					if(strpos($url, '/page/list/') !== false) $url = str_replace('/page/list/', '/page/', $url);

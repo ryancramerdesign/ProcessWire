@@ -67,6 +67,7 @@ class InputfieldDatetime extends Inputfield {
 	 *
 	 */
 	public function renderReady(Inputfield $parent = null, $renderValueMode = false) {
+		$this->addClass('InputfieldNoFocus', 'wrapClass');
 		if($this->datepicker) {
 			$this->wire('modules')->get('JqueryCore'); // Jquery Core required before Jquery UI
 			$this->wire('modules')->get('JqueryUI'); 

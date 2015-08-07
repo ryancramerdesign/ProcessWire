@@ -164,3 +164,10 @@
 	clear: both;
 	margin-top: 1em;
 }
+
+.InputfieldSelector .selector-preview-disabled + input + .detail,
+.InputfieldSelector .selector-preview-disabled + input + .notes {
+	position: relative;
+	top: 0.5em;
+}
+

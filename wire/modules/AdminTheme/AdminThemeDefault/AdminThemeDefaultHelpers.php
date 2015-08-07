@@ -74,38 +74,19 @@ class AdminThemeDefaultHelpers extends WireData {
 	 *
 	 */
 	public function renderAdminShortcuts() {
-	
+
 		$user = $this->wire('user');
-		$config = $this->wire('config');
-		
-		if($user->isGuest() || !$user->hasPermission('page-edit')) return '';
-		$url = $config->urls->admin . 'page/add/';
-		$out = '';
+		if($this->wire('user')->isGuest() || !$user->hasPermission('page-edit')) return '';
+		$module = $this->wire('modules')->getModule('ProcessPageAdd', array('noInit' => true));
+		$data = $module->executeNavJSON(array('getArray' => true));
 		$items = array();
 	
-		foreach($this->wire('templates') as $template) {
-			$parent = $template->getParentPage(true); 
-			if(!$parent) continue; 
-			if($parent->id) {
-				// one parent possible	
-				$qs = "?parent_id=$parent->id";
-			} else {
-				// multiple parents possible
-				$qs = "?template_id=$template->id";
-			}
-			$icon = $template->getIcon();
-			if(!$icon) $icon = "plus-circle";
-			$label = $template->getLabel();
-			$key = strtolower($label); 
-			$label = $this->wire('sanitizer')->entities1($label); 
-			if(isset($items[$key])) $key .= $template->name;	
-			$items[$key] = "<li><a href='$url$qs'><i class='fa fa-fw fa-$icon'></i>&nbsp;$label</a></li>";
+		foreach($data['list'] as $item) {
+			$items[] = "<li><a href='$data[url]$item[url]'><i class='fa fa-fw fa-$item[icon]'></i>&nbsp;$item[label]</a></li>";
 		}
-		
-		ksort($items); 
-		$out = implode('', $items); 
-		if(empty($out)) return '';
 	
+		if(!count($items)) return '';
+		$out = implode('', $items); 
 		$label = $this->getAddNewLabel();
 	
 		$out =	
@@ -296,10 +277,12 @@ class AdminThemeDefaultHelpers extends WireData {
 					
 				} else if(!empty($moduleInfo['useNavJSON'])) {
 					// has ajax items
+					$title = $this->getPageTitle($c);
+					if(!strlen($title)) continue;
 					$icon = $this->getPageIcon($c);
 					$out .=
 						"<li><a class='has-items has-ajax-items' data-from='topnav-page-$p' data-json='{$c->url}navJSON/' " .
-						"href='$c->url'>$icon" . $this->_($c->title) . "</a><ul></ul></li>";
+						"href='$c->url'>$icon$title</a><ul></ul></li>";
 
 				} else {
 					// regular nav item
@@ -327,6 +310,30 @@ class AdminThemeDefaultHelpers extends WireData {
 		$out .= "</li>";
 	
 		return $out; 
+	}
+
+	/**
+	 * Get navigation title for the given page, return blank if page should not be shown
+	 * 
+	 * @param Page $c
+	 * @return string
+	 * 
+	 */
+	protected function getPageTitle(Page $c) {
+		if($c->name == 'add' && $c->parent->name == 'page') {
+			// ProcessPageAdd: avoid showing this menu item if there are no predefined family settings to use
+			$addData = $this->wire('session')->getFor('ProcessPageAdd', 'nav');
+			if(empty($addData)) {
+				$processPageAdd = $this->wire('modules')->getModule('ProcessPageAdd', array('noInit' => true));
+				if($processPageAdd) $addData = $processPageAdd->executeNavJSON(array("getArray" => true));
+			}
+			if(empty($addData) || empty($addData['list'])) return '';
+			$title = $this->getAddNewLabel();
+		} else {
+			$title = $this->_($c->title);
+		}
+		$title = $this->wire('sanitizer')->entities1($title);
+		return $title;
 	}
 
 	/**
@@ -410,50 +417,6 @@ class AdminThemeDefaultHelpers extends WireData {
 		return $out; 
 	}
 	
-	/**
-	 * Returns editable items of array('url to edit' => 'label) or booean if $checkOnly is true
-	 *
-	 * @param Page $page
-	 * @param bool $checkOnly Specify true to have this method return true/false if items are available.
-	 * 
-	 * @return bool|array
-	 *
-	 */
-	protected function ___getEditableItems(Page $page, $checkOnly = false) {
-
-		$items = array();
-		if(!$this->wire('user')->isSuperuser()) {
-			if($checkOnly) return false; 
-			return array();
-		}
-
-		if($page->id == 11) {
-
-			if($checkOnly) return true;
-			
-			$url = $this->wire('config')->urls->admin . 'setup/template/edit?id=';
-			foreach($this->wire('templates') as $template) {
-				if($template->flags & Template::flagSystem) continue;
-				$items[$url . $template->id] = $template->name;
-			}
-			
-		} else if($page->id == 16) {
-
-			if($checkOnly) return true;
-			
-			$url = $this->wire('config')->urls->admin . 'setup/field/edit?id=';
-			foreach($this->wire('fields') as $field) {
-				if(($field->flags & Field::flagSystem) && $field->name != 'title') continue;
-				$items[$url . $field->id] = $field->name;
-			}
-			
-		} else {
-			if($checkOnly) return false; 
-		}
-
-		return $items;
-	}
-
 	/**
 	 * Render the browser <title>
 	 *

@@ -1,186 +1,105 @@
-
 #ProcessLister {
-	margin-top: -2px; 
-}
+  margin-top: -2px; }
 
 #ProcessListerResultsTab {
-	padding-top: 0.5em; 
-}
+  padding-top: 0.5em; }
 
-.datetime {
-	white-space: nowrap; 
-}
+#ProcessListerResults #ProcessListerTable > table {
+  clear: both;
+  position: relative; }
+  #ProcessListerResults #ProcessListerTable > table td table {
+    width: 100%; }
+  #ProcessListerResults #ProcessListerTable > table > thead th {
+    font-size: 0.857142857142857em; }
+    #ProcessListerResults #ProcessListerTable > table > thead th i {
+      font-size: 14px; }
+  #ProcessListerResults #ProcessListerTable > table > thead th strong {
+    white-space: nowrap; }
+  #ProcessListerResults #ProcessListerTable > table > thead th b,
+  #ProcessListerResults #ProcessListerTable > table > thead .th b {
+    display: none; }
+  #ProcessListerResults #ProcessListerTable > table > thead th:first-child {
+    padding-left: 0;
+    /* reno */ }
+  #ProcessListerResults #ProcessListerTable > table > tbody > tr > td {
+    font-size: 0.928571428571429em; }
+    #ProcessListerResults #ProcessListerTable > table > tbody > tr > td:first-child, #ProcessListerResults #ProcessListerTable > table > tbody > tr > td:first-child > a {
+      padding-left: 0;
+      /* reno */ }
+    #ProcessListerResults #ProcessListerTable > table > tbody > tr > td ul.MarkupFieldtype {
+      margin: 0; }
+      #ProcessListerResults #ProcessListerTable > table > tbody > tr > td ul.MarkupFieldtype > li {
+        list-style: disc;
+        margin: 0; }
+#ProcessListerResults .PageListerActions {
+  display: none;
+  line-height: 1.3em;
+  text-transform: lowercase; }
+  #ProcessListerResults .PageListerActions a.PageExtra {
+    margin-bottom: 3px; }
+  #ProcessListerResults .PageListerActions a.PageExtras i {
+    margin-left: 3px;
+    margin-right: 2px; }
+  #ProcessListerResults .PageListerActions a.PageExtras.open i {
+    margin-left: 2px;
+    margin-right: 3px; }
+#ProcessListerResults .row_message {
+  display: inline; }
+#ProcessListerResults .PageListStatusUnpublished {
+  text-decoration: line-through;
+  opacity: 0.5; }
+#ProcessListerResults .PageListStatusHidden {
+  opacity: 0.5; }
+#ProcessListerResults .MarkupPagerNav {
+  float: right; }
+#ProcessListerResults .nobr {
+  white-space: nowrap; }
+#ProcessListerResults table + .MarkupPagerNav {
+  margin: 0; }
+#ProcessListerResults .datetime {
+  white-space: nowrap; }
+@media only screen and (max-width: 767px) {
+  #ProcessListerResults table.ProcessListerTable + .MarkupPagerNav {
+    margin-bottom: 1em; }
+  #ProcessListerResults .MarkupPagerNav {
+    float: none; } }
 
 .AdminDataTable p {
-	margin: 1em 0;
-}
+  margin: 1em 0; }
 
-#ProcessListerResults table.AdminDataTable {
-	clear: both; 
-}
-
-#ProcessListerResults table td table {
-	width: 100%;
-}
-
-#ProcessListerResults thead th b,
-#ProcessListerResults .th b {
-	display: none; 
-}
-
-#ProcessListerResults td {
-	/*position: relative; */
-	font-size: 0.928571428571429em;
-}
-
-#ProcessListerResults tr > th:first-child,
-#ProcessListerResults tr > td:first-child,
-#ProcessListerResults tr > td:first-child > a {
-	padding-left: 0; /* reno */
-}
-
-#ProcessListerResults td ul.MarkupFieldtype {
-	margin: 0;
-}
-#ProcessListerResults td ul.MarkupFieldtype li {
-	list-style: disc; 
-	margin: 0;
-}
-
-#ProcessListerResults th {
-	font-size: 0.857142857142857em; 
-}
-#ProcessListerResults th i {
-	font-size: 14px; 
-}
-/*
-#ProcessListerResults a.PageEdit {
-	margin-right: 1em; 
-}
-
-#ProcessListerResults a.PageView {
-	display: none; 
-}
-*/
-#ProcessListerResults .PageListerActions {
-	display: none;
-	line-height: 1.3em;
-	text-transform: lowercase;  
-}
-#ProcessListerResults .PageListerActions a.PageExtra {
-	margin-bottom: 3px;
-}
-#ProcessListerResults .PageListerActions a.PageExtras i {
-	margin-left: 3px;
-	margin-right: 2px; 
-}
-#ProcessListerResults .PageListerActions a.PageExtras.open i {
-	margin-left: 2px;
-	margin-right: 3px; 
-}
-
-#ProcessListerResults .row_message {
-	display: inline;
-}
-/*
-#ProcessListerResults tr:hover {
-	background: #ffffdd; 
-}
-*/
-/*
-#ProcessListerResults tr:hover a.PageView,
-#ProcessListerResults tr:hover a.PageEdit {
-	font-size: 14px; 
-	display: inline;
-}
-*/
 #ProcessListerResults + a button {
-	float: left; 
-	margin-right: 0;
-	margin-top: 0;
-}
-
-.PageListStatusUnpublished {
-	text-decoration: line-through; 
-	opacity: 0.5; 
-}
-
-.PageListStatusHidden {
-	opacity: 0.5; 
-}
+  float: left;
+  margin-right: 0;
+  margin-top: 0; }
 
 #ProcessListerSpinner {
-	margin-left: 0.5em; 
-	font-size: 20px; 
-	position: relative;
-}
-#ProcessListerSpinner i {
-	position: absolute;
-	top: -15px;
-	left: 0; 
-}
-
+  margin-left: 0.5em;
+  font-size: 20px;
+  position: relative; }
+  #ProcessListerSpinner i {
+    position: absolute;
+    top: -15px;
+    left: 0; }
 
 #content .lister_headline {
-	float: left; 
-}
+  float: left; }
+  @media only screen and (max-width: 767px) {
+    #content .lister_headline {
+      float: none;
+      clear: both; } }
 
 #lister_open_cnt {
-	display: none; 
-}
-
-#ProcessListerResults .MarkupPagerNav {
-	float: right; 
-}
-
-#ProcessListerResults table + .MarkupPagerNav {
-	margin: 0;
-}
-
-#ProcessListerResults .nobr {
-	white-space: nowrap; 
-}
-
+  display: none; }
 
 #filters_spinner {
-	float: right; 
-	margin-top: 4px; 
-}
+  float: right;
+  margin-top: 4px; }
 
 #ProcessListerRefreshTab {
-	float: right; 
-}
+  float: right; }
 
 p.version {
-	clear: both; 
-	padding-top: 1em; 
-}
+  clear: both;
+  padding-top: 1em; }
 
-#ProcessListerTable {
-	clear: both;
-	position: relative;
-}
-
-
-@media only screen and (max-width: 767px) {
-
-	/*
-	#ProcessListerResults table.AdminDataTable th:not(:first-child),
-	#ProcessListerResults table.AdminDataTable td:not(:first-child) {
-		display: none; 
-	}
-	*/
-
-	#content .lister_headline {
-		float: none;
-		clear: both; 
-	}
-	#content .MarkupPagerNav {
-		float: none; 
-	}
-	#ProcessListerResults table + .MarkupPagerNav {
-		margin-bottom: 1em;
-	}
-}
-
-
+/*# sourceMappingURL=ProcessPageLister.css.map */

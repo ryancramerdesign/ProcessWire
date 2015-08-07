@@ -16,3 +16,9 @@
 	display: inline; 
 }
 
+.content dl.nav dd ul {
+	margin: 0;
+}
+.content dl.nav dd ul li {
+	margin: 0;
+}

@@ -32,14 +32,18 @@ var InputfieldDependenciesProcessing = false;
  * @constructor
  * 
  */
-function InputfieldDependencies($dependencyForm) {
+function InputfieldDependencies($target) {
 	
 	if(InputfieldDependenciesProcessing) return;
 	
-	if(typeof $dependencyForm == "undefined") {
-		var $dependencyForm = $(".InputfieldForm:not(.InputfieldFormNoDependencies)");
+	if(typeof $target == "undefined") {
+		var $target = $(".InputfieldForm:not(.InputfieldFormNoDependencies)");
+	} else if($target.hasClass('InputfieldForm')) {
+		if($target.hasClass('InputfieldFormNoDependencies')) return;
+	} else {
+		if($target.closest('.InputfieldFormNoDependencies').length > 0) return;
 	}
-
+	
 	/**
 	 * Trim quotes and spaces from the given value
 	 * 
@@ -608,7 +612,7 @@ function InputfieldDependencies($dependencyForm) {
 	/*** Start InputfieldDependencies *************************************************/
 
 	InputfieldDependenciesProcessing = true; 
-	$($dependencyForm).each(function() {
+	$target.each(function() {
 		$(this).find(".InputfieldStateShowIf, .InputfieldStateRequiredIf").each(function() {
 			setupDependencyField($(this));
 		});
@@ -622,7 +626,13 @@ function InputfieldDependencies($dependencyForm) {
  *
  */
 
-function InputfieldColumnWidths() {
+function InputfieldColumnWidths($target) {
+
+	var hasTarget = true;
+	if(typeof $target == "undefined") {
+		hasTarget = false;
+		$target = $("form.InputfieldForm");
+	}
 
 	var colspacing = null; 
 	var useHeights = null; 
@@ -802,10 +812,16 @@ function InputfieldColumnWidths() {
 
 	} // updateInputfield
 
-	$("form.InputfieldForm").each(function() {
+	$target.each(function() {
 		
 		var $form = $(this);
-		if($form.hasClass('InputfieldFormNoWidths')) return; // column widths not necessary
+		if(!$form.hasClass('InputfieldForm')) {
+			var $_form = $form.closest('.InputfieldForm');
+			if($_form.length) $form = $_form;
+		}
+		if($form.hasClass('InputfieldFormNoWidths')) {
+			return; // column widths not necessary
+		}
 		
 		colspacing = $form.attr('data-colspacing');
 		if(typeof colspacing == 'undefined') colspacing = 1;
@@ -823,11 +839,14 @@ function InputfieldColumnWidths() {
 		});
 	});
 	
-	$(document).on('change', '.InputfieldColumnWidth :input', function() {
-		var $item = $(this).closest('.InputfieldColumnWidth'); 
-		var $firstItem = $item.is(".InputfieldColumnWidthFirst") ? $item : $item.prev(".InputfieldColumnWidthFirst"); 
-		updateInputfieldRow($firstItem);
-	}); 
+	if(!$('body').hasClass('InputfieldColumnWidthsInit')) {
+		$('body').addClass('InputfieldColumnWidthsInit');
+		$(document).on('change', '.InputfieldColumnWidth :input', function() {
+			var $item = $(this).closest('.InputfieldColumnWidth');
+			var $firstItem = $item.is(".InputfieldColumnWidthFirst") ? $item : $item.prev(".InputfieldColumnWidthFirst");
+			updateInputfieldRow($firstItem);
+		});
+	} 
 }
 
 /**
@@ -860,7 +879,13 @@ function InputfieldFormBeforeUnloadEvent(e) {
  * Setup the toggles for Inputfields and the animations that occur between opening and closing
  * 
  */
-function InputfieldStates() {
+function InputfieldStates($target) {
+
+	var hasTarget = true;
+	if(typeof $target == "undefined") {
+		$target = $("body");
+		hasTarget = false;
+	}
 	
 	function InputfieldStateAjaxClick($li) {
 		
@@ -894,15 +919,20 @@ function InputfieldStates() {
 			$header.append($spinner);
 		}
 
-		$li.removeClass('collapsed10 collapsed11 ').addClass('InputfieldAjaxLoading');
+		$li.removeClass('collapsed10 collapsed11').addClass('InputfieldAjaxLoading');
 		
 		$.get(ajaxURL, function(data) {
 			$li.removeClass('InputfieldAjaxLoading InputfieldStateCollapsed');
 			$parent.replaceWith($(data)).hide();
 			$parent.slideDown();
-			$li.trigger('reloaded');
-			$li.find(".Inputfield:not(.collapsed9) > .InputfieldHeader").addClass("InputfieldStateToggle");
-			$li.find('.Inputfield').trigger('reloaded');
+			var $inputfields = $li.find('.Inputfield');
+			if($inputfields.length) {
+				$inputfields.trigger('reloaded', [ 'InputfieldAjaxLoad' ]);
+				InputfieldStates($li);	
+				InputfieldColumnWidths();
+			} else {
+				$li.trigger('reloaded', [ 'InputfieldAjaxLoad' ]);
+			}
 			if($li.closest('.InputfieldFormNoDependencies').length == 0) {
 				InputfieldDependencies($li.parent());
 			}
@@ -917,8 +947,16 @@ function InputfieldStates() {
 		return true;
 	}
 	
-	$(".Inputfield:not(.collapsed9) > .InputfieldHeader, .Inputfield:not(.collapsed9) > .ui-widget-header").addClass("InputfieldStateToggle");
+	$(".Inputfield:not(.collapsed9) > .InputfieldHeader, .Inputfield:not(.collapsed9) > .ui-widget-header", $target)
+		.addClass("InputfieldStateToggle");
 	
+	// use different icon for open and closed
+	var $icon = $(".Inputfields .InputfieldStateCollapsed > .InputfieldHeader i.toggle-icon, .Inputfields .InputfieldStateCollapsed > .ui-widget-header i.toggle-icon", $target);
+	$icon.toggleClass($icon.attr('data-to'));
+
+	// no need to apply anything further for ajax-loaded inputfields
+	if(hasTarget) return; 
+
 	$(document).on('wiretabclick', function(e, $newTab, $oldTab) {
 		if($newTab.hasClass('collapsed10')) InputfieldStateAjaxClick($newTab);
 	});
@@ -941,7 +979,8 @@ function InputfieldStates() {
 			$li.addClass('InputfieldStateWasCollapsed'); // this class only used here
 			$li.trigger(isCollapsed ? 'openReady' : 'closeReady'); 
 			$li.toggleClass('InputfieldStateCollapsed', 100, function() {
-				$li.trigger(isCollapsed ? 'opened' : 'closed'); 
+				$li.trigger(isCollapsed ? 'opened' : 'closed');
+				if($li.hasClass('InputfieldNoFocus')) return;
 				var $input = $li.find(":input:visible");
 				if($input.length == 1 && !$input.is('button')) { 
 					var t = $input.attr('type'); 
@@ -961,19 +1000,15 @@ function InputfieldStates() {
 					$icon.css('color', color1);
 				});
 			}
-			$li.find(":input:visible:eq(0)").focus();
+			if(!$li.hasClass('InputfieldNoFocus')) $li.find(":input:visible:eq(0)").focus();
 		}
 
 		return false;
 	});
 
-	// use different icon for open and closed
-	var $icon = $(".Inputfields .InputfieldStateCollapsed > .InputfieldHeader i.toggle-icon, .Inputfields .InputfieldStateCollapsed > .ui-widget-header i.toggle-icon");
-	$icon.toggleClass($icon.attr('data-to')); 
-
 	// display a detail with the HTML field name when the toggle icon is hovered
 	if(typeof config !== "undefined" && config.debug) {
-		$('label.InputfieldHeader > i.toggle-icon').hover(function() {
+		$('label.InputfieldHeader > i.toggle-icon', $target).hover(function() {
 			var $label = $(this).parent('label');
 			if($label.length == 0) return;
 			var text = $label.attr('for').replace(/^Inputfield_/, '');
@@ -1108,6 +1143,16 @@ function InputfieldWindowResizeActions2() {
 	InputfieldWindowResizeQueued = false;
 }
 
+/**
+ * Function for external initialization of new Inputfields content (perhaps ajax loaded)
+ * 
+ */
+function InputfieldsInit($target) {
+	InputfieldStates($target);
+	InputfieldDependencies($target);
+	setTimeout(function() { InputfieldColumnWidths(); }, 100);
+}
+
 /***********************************************************************************/
 
 jQuery(document).ready(function($) {
@@ -1146,9 +1191,16 @@ jQuery(document).ready(function($) {
 			var $content = $(data).find("#" + $t.attr('id')).children(".InputfieldContent");
 			$t.children(".InputfieldContent").html($content.html());
 			if(typeof jQuery.ui != 'undefined') $t.effect("highlight", 1000); 
-			$t.trigger('reloaded'); 
+			$t.trigger('reloaded', [ 'reload' ]); 
 		});
 		event.stopPropagation();
 	});
 
+	/*
+	// for testing: 
+	$(document).on('reloaded', '.Inputfield', function(event) {
+		console.log($(this).attr('id'));
+	});
+	*/
+	
 }); 

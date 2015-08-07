@@ -377,6 +377,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 			$this->error("Not fully configured  / currently nonfunctional");
 			return false;
 		}
+		$this->addClass('InputfieldNoFocus', 'wrapClass');
 		return $inputfield->renderReady($this, $renderValueMode);
 	}
 

@@ -5,9 +5,14 @@
 	cursor: move; 
 }
 
+	.content .InputfieldFile.InputfieldItemListCollapse ul.InputfieldFileList > li,
 	.Inputfields > li.InputfieldFile.InputfieldItemListCollapse > .InputfieldContent > ul.InputfieldFileList > li {
 		/* items that have no text inputs */
 		margin-bottom: 0.25em;
+	}
+	
+	.content ul.InputfieldFileList > li:last-child {
+		margin-bottom: 0;
 	}
 
 	.InputfieldItemList .InputfieldContent.ui-state-hover {

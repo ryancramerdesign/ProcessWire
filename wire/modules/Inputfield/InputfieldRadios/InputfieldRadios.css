@@ -13,6 +13,7 @@
 
 .InputfieldRadios ul li label {
 	display: inline-block;
+	white-space: nowrap;
 }
 
 .InputfieldRadios input {

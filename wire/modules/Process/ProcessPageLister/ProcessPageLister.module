@@ -281,7 +281,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		
 		$columns = $this->sessionGet('columns'); 
 		if($columns) $this->columns = $columns; 
-		$ajax = $this->wire('config')->ajax; 
+		$ajax = $this->wire('config')->ajax;
 
 		if(!$this->template) {
 			$selector = $this->initSelector;
@@ -966,6 +966,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		$table = $this->modules->get('MarkupAdminDataTable');
 		$table->setSortable(false);
 		$table->setResizable(true);
+		$table->setClass('ProcessListerTable');
 		$columns = $this->sessionGet('columns'); 
 		if(!$columns) $columns = $this->columns; 
 		$fields = array();
@@ -981,7 +982,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 			$icon = $field ? $field->getIcon(true) : '';
 			if($subname) {
 				$subfield = $this->fields->get($subname);
-				$label .= ".<wbr>";
+				$label .= ".";
 				if($subfield) {
 					$label .= $subfield->getLabel();
 					$subicon = $subfield->getIcon(true);
@@ -990,7 +991,19 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 					$label .= $subname;
 				}
 			}
-			$icon = $icon ? "<i>" . wireIconMarkup($icon) . '&nbsp;</i>' : '';
+			$label = $this->wire('sanitizer')->entities1($label);
+			$label = str_replace('.', '.<wbr>', $label);
+			if($icon) {
+				// the following code ensures the first word of the label and icon don't get split on separate lines
+				$icon = "<strong>" . wireIconMarkup($icon, 'fw');
+				if(strpos($label, ' ')) {
+					$words = explode(' ', $label);
+					$label = array_shift($words) . ' </strong>';
+					$label .= implode(' ', $words);
+				} else {
+					$label .= '</strong>';
+				}
+			}
 			$header[$key] = "$icon$label<b>$name</b>";
 			$fields[$name] = $field; 
 		}
@@ -1048,6 +1061,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		reset($fields); 
 		$isFirstCol = key($fields) == $name; 
 
+		/** @var Field $field */
 		$field = isset($fields[$name]) ? $fields[$name] : $this->wire('fields')->get($name);
 		if(is_null($value)) $value = $p->getUnformatted($name);
 		$delimiter = isset($this->delimiters[$fullname]) ? $this->delimiters[$fullname] : "<br />";
@@ -1087,14 +1101,41 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 				$value = implode($delimiter, $newValue);
 			}
 			
-		} else if($value instanceof WireArray && !$value instanceof Pagefiles) {
+		} else if($value instanceof Pagefiles && (!$subname || $subname == 'data')) {
+		
+			// Pagefiles or Pageimages
+			if($value->count()) {
+				if($value instanceof Pageimages && $this->imageFirst) $value = $value->slice(0, 1);
+				$inputfield = $field->getInputfield(new NullPage());
+				if($value instanceof Pageimages) {
+					if($this->imageWidth || $this->imageHeight) {
+						$inputfield->adminThumbs = true; 
+						$inputfield->adminThumbWidth = $this->imageWidth;
+						$inputfield->adminThumbHeight = $this->imageHeight;
+					}
+				}
+				$inputfield->attr('value', $value);
+				$inputfield->renderReady(null, true);
+				$value = $inputfield->renderValue();
+				if($value) $value = 
+					"<div class='Inputfields'>" . 
+						"<div class='Inputfield $inputfield->className $inputfield->wrapClass'>" . 
+							"<div class='InputfieldHeader'></div>" . 
+							"<div class='InputfieldContent'>" . $inputfield->renderValue() . "</div>" . 
+						"</div>" . 
+					"</div>";
+			} else {
+				$value = '';
+			}
+			
+		} else if($value instanceof WireArray) {
 			// WireArray type unknown to Lister
 			$value = $p->getFormatted($name); // markupValue requires formatted value
-			$value = $field->type->markupValue($p, $field, $value, $subname); 
+			$value = $field->type->markupValue($p, $field, $value, $subname);
 
-		} else if($value instanceof WireArray || is_array($value)) {
-			// Pagefiles or  unknown iterable value
-			if($value instanceof Pageimages && $this->imageFirst) $value = array($value->first());
+		} else if(is_array($value)) {
+			// unknown iterable value
+			//if($value instanceof Pageimages && $this->imageFirst) $value = array($value->first());
 			$values = array();
 			foreach($value as $k => $v) {
 				if(empty($v)) continue; 

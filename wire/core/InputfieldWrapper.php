@@ -536,7 +536,8 @@ class InputfieldWrapper extends Inputfield implements Countable, IteratorAggrega
 			if($collapsed == Inputfield::collapsedYesAjax) $inputfield->collapsed = Inputfield::collapsedYes;
 			if($collapsed == Inputfield::collapsedBlankAjax) $inputfield->collapsed = Inputfield::collapsedBlank;
 		}
-		
+	
+		if($renderValueMode) $inputfield->addClass('InputfieldRenderValue', 'wrapClass');
 		$inputfield->renderReady($this, $renderValueMode);
 		
 		if($ajaxInputfield) {

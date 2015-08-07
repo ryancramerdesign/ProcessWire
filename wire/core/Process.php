@@ -184,7 +184,7 @@ abstract class Process extends WireData implements Module {
 	 *
 	 */
 	public function ___install() {
-		$info = $this->wire('modules')->getModuleInfo($this, array('noCache' => true)); 
+		$info = $this->wire('modules')->getModuleInfoVerbose($this, array('noCache' => true)); 
 		// if a 'page' property is provided in the moduleInfo, we will create a page and assign this process automatically
 		if(!empty($info['page'])) { // bool, array, or string
 			$defaults = array(
@@ -217,7 +217,7 @@ abstract class Process extends WireData implements Module {
 	 *
 	 */
 	public function ___uninstall() {
-		$info = $this->wire('modules')->getModuleInfo($this, array('noCache' => true));
+		$info = $this->wire('modules')->getModuleInfoVerbose($this, array('noCache' => true));
 		// if a 'page' property is provided in the moduleInfo, we will trash pages using this Process automatically
 		if(!empty($info['page'])) $this->uninstallPage();
 	}
@@ -254,7 +254,7 @@ abstract class Process extends WireData implements Module {
 	 *
 	 */
 	protected function ___installPage($name = '', $parent = null, $title = '', $template = 'admin', $extras = array()) {
-		$info = $this->wire('modules')->getModuleInfo($this);
+		$info = $this->wire('modules')->getModuleInfoVerbose($this);
 		$name = $this->wire('sanitizer')->pageName($name);
 		if(!strlen($name)) $name = strtolower(preg_replace('/([A-Z])/', '-$1', str_replace('Process', '', $this->className()))); 
 		$adminPage = $this->wire('pages')->get($this->wire('config')->adminRootPageID); 
@@ -326,6 +326,7 @@ abstract class Process extends WireData implements Module {
 			'iconKey' => 'icon', // property/field containing icon, when applicable
 			'icon' => '', // default icon to use for items
 			'sort' => true, // automatically sort items A-Z?
+			'getArray' => false, // makes this method return an array rather than JSON
 			);
 		
 		$options = array_merge($defaults, $options); 
@@ -383,6 +384,8 @@ abstract class Process extends WireData implements Module {
 		}
 		if($options['sort']) ksort($data['list']); // sort alpha
 		$data['list'] = array_values($data['list']); 
+		
+		if(!empty($options['getArray'])) return $data;
 
 		if($this->wire('config')->ajax) header("Content-Type: application/json");
 		return json_encode($data);

@@ -6,10 +6,12 @@
  * Initializes all the ProcessWire classes and prepares them for API use
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2014 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
+ * 
+ * @todo: get language permissions to work with extra actions
  * 
  */
 
@@ -33,7 +35,7 @@ class ProcessWire extends Wire {
 
 	const versionMajor = 2; 
 	const versionMinor = 6; 
-	const versionRevision = 10; 
+	const versionRevision = 12; 
 	const versionSuffix = 'dev';
 	
 	const indexVersion = 250; // required version for index.php file (represented by PROCESSWIRE define)

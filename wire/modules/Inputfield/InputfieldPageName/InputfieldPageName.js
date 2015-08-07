@@ -65,4 +65,5 @@ jQuery(document).ready(function($) {
 	$(document).on("reloaded", ".InputfieldPageName", function() {
 		$(this).find("input[type=text]").keyup();
 	});
+	$(".InputfieldPageName").find("input[type=text]").keyup();
 }); 

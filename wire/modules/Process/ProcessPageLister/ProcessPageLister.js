@@ -33,7 +33,7 @@ var ProcessLister = {
 		ProcessLister.lister = $("#ProcessLister"); 
 
 		ProcessLister.filters.change(function() { ProcessLister.submit(); }); 
-		ProcessLister.results.on('click', 'th', ProcessLister.columnSort)
+		ProcessLister.results.on('click', '#ProcessListerTable > table > thead th', ProcessLister.columnSort)
 
 		$(document).on('click', 'a.actions_toggle', ProcessLister.pageClick); 
 		$(document).on('click', '.actions a.ajax', ProcessLister.actionClickAjax);
@@ -204,7 +204,7 @@ var ProcessLister = {
 							});
 						}, 1000);
 					}
-					// $newRow.find('.Inputfield').trigger('reloaded'); // PWLP
+					if($newRow.find(".Inputfield").length) InputfieldsInit($newRow);
 				}
 			}
 			ProcessLister.refreshRowPageIDs = [];
@@ -222,7 +222,7 @@ var ProcessLister = {
 		} else {
 			// update entire table
 			var sort = $("#lister_sort").val();
-			ProcessLister.results.html(data).find("th").each(function () {
+			ProcessLister.results.html(data).find("table.ProcessListerTable > thead th").each(function () {
 				var $b = $(this).find('b');
 				var txt = $b.text();
 				$b.remove();
@@ -238,6 +238,9 @@ var ProcessLister = {
 				}
 				if ($icon.length > 0) $(this).prepend($icon);
 			}).end().effect('highlight', 'fast');
+			if(ProcessLister.results.find('.Inputfield').length) {
+				InputfieldsInit(ProcessLister.results);
+			}
 		}
 
 		if(ProcessLister.clickAfterRefresh.length > 0) {

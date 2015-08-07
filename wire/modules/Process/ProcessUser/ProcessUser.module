@@ -196,6 +196,7 @@ class ProcessUser extends ProcessPageType {
 	public function executeViewport() { return $this->getLister()->executeViewport(); }
 	public function executeReset() { return $this->getLister()->executeReset(); }
 	public function executeActions() { return $this->getLister()->executeActions(); }
+	public function executeSave() { return $this->getLister()->executeSave(); }
 
 	public function ___executeEdit() {
 	

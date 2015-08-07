@@ -28,7 +28,7 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 		return array(
 			'title' => __('Files', __FILE__), // Module Title
 			'summary' => __('One or more file uploads (sortable)', __FILE__), // Module Summary
-			'version' => 122,
+			'version' => 123,
 			'permanent' => true, 
 			);
 	}
@@ -66,6 +66,8 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 	 * 
 	 */
 	protected $uploadOnlyMode = false;
+	
+	protected $renderValueMode = false;
 
 	/**
 	 * Initialize the InputfieldFile
@@ -155,6 +157,17 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 		$tabs = '';
 		static $hasLangTabs = null;
 
+		if($this->renderValueMode) {
+			if($this->wire('languages')) {
+				$description = $pagefile->description($this->wire('user')->language);
+			} else {
+				$description = $pagefile->description;
+			}
+			if(strlen($description)) $description = 
+				"<div class='InputfieldFileDescription detail'>" . $this->wire('sanitizer')->entities1($description) . "</div>";
+			return $description;
+		}
+		
 		if($this->descriptionRows > 0) {
 
 			$userLanguage = $this->wire('user')->language;
@@ -261,16 +274,23 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 		$out = 
 			"\n\t\t<p class='InputfieldFileInfo InputfieldItemHeader ui-state-default ui-widget-header'>" . 
 			"\n\t\t\t" . wireIconMarkupFile($pagefile->basename, "fa-fw HideIfEmpty") . 
-			//"\n\t\t\t<i class='fa fa-fw fa-caret-right HideIfMultiple'></i>" . 
 			"\n\t\t\t<a class='InputfieldFileName' title='$pagefile->basename' target='_blank' href='{$pagefile->url}'>$displayName</a> " . 
-			"\n\t\t\t<span class='InputfieldFileStats'>" . str_replace(' ', '&nbsp;', $pagefile->filesizeStr) . "</span> " . 
+			"\n\t\t\t<span class='InputfieldFileStats'>" . str_replace(' ', '&nbsp;', $pagefile->filesizeStr) . "</span> ";
+		
+		if(!$this->renderValueMode) $out .=
 			"\n\t\t\t<label class='InputfieldFileDelete'>" . 
 				"<input type='checkbox' name='delete_$id' value='1' title='" . $this->_('Delete') . "' />" . 
-				"<i class='fa fa-fw fa-trash'></i></label>" . 
+				"<i class='fa fa-fw fa-trash'></i></label>";
+		
+		$out .= 
 			"\n\t\t</p>" . 
 			"\n\t\t<div class='InputfieldFileData description ui-widget-content'>" . 
-			"\n\t\t\t" . $this->renderItemDescriptionField($pagefile, $id, $n) . 
-			"\n\t\t\t<input class='InputfieldFileSort' type='text' name='sort_$id' value='$n' />" . 
+			"\n\t\t\t" . $this->renderItemDescriptionField($pagefile, $id, $n);
+		
+		if(!$this->renderValueMode) $out .= 
+			"\n\t\t\t<input class='InputfieldFileSort' type='text' name='sort_$id' value='$n' />";
+		
+		$out .= 
 			"\n\t\t</div>";
 
 		return $out; 
@@ -281,7 +301,7 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 		// this one and if they implement their own calls to this method or version of this method then 
 		// they will get strict notices from php if we add a new argument here. 
 		$item = $this->currentItem; 
-		$id = $item ? " id='file_$item->hash'" : "";
+		$id = $item && !$this->renderValueMode ? " id='file_$item->hash'" : "";
 		return 	"\n\t<li$id class='{$this->itemClass}'>$out\n\t</li>";
 	}
 
@@ -291,11 +311,14 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 		$out = '';
 		$n = 0; 
 		
-		// if just rendering the files list (as opposed to saving it), delete any temp files that may have accumulated
-		if(!$this->overwrite && !count($_POST) && !$this->config->ajax && !$this->uploadOnlyMode) {
-			// don't delete files when in render single field or fields mode
-			if(!$this->wire('input')->get('field') && !$this->wire('input')->get('fields')) {
-				$value->deleteAllTemp();
+		
+		if(!$this->renderValueMode) {
+			// if just rendering the files list (as opposed to saving it), delete any temp files that may have accumulated
+			if(!$this->overwrite && !count($_POST) && !$this->config->ajax && !$this->uploadOnlyMode) {
+				// don't delete files when in render single field or fields mode
+				if(!$this->wire('input')->get('field') && !$this->wire('input')->get('fields')) {
+					$value->deleteAllTemp();
+				}
 			}
 		}
 
@@ -308,14 +331,14 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 		}
 
 		$class = 'InputfieldFileList ui-helper-clearfix';
-		if($this->overwrite) $class .= " InputfieldFileOverwrite";
+		if($this->overwrite && !$this->renderValueMode) $class .= " InputfieldFileOverwrite";
 		if($out) $out = "\n<ul class='$class'>$out\n</ul>";
 		
 		return $out; 
 	}
 
 	protected function ___renderUpload($value) {
-		if($this->noUpload) return;
+		if($this->noUpload || $this->renderValueMode) return '';
 
 		// enables user to choose more than one file
 		if($this->maxFiles != 1) $this->setAttribute('multiple', 'multiple'); 
@@ -341,9 +364,8 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 		return $out; 
 	}
 
-
-
 	public function renderReady(Inputfield $parent = null, $renderValueMode = false) {
+		$this->addClass('InputfieldNoFocus', 'wrapClass');
 		return parent::renderReady($parent, $renderValueMode); 
 	}
 
@@ -359,6 +381,13 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 			$this->addClass('InputfieldFileMultiple', 'wrapClass');
 		}
 		return $this->renderList($this->value) . $this->renderUpload($this->value);
+	}
+	
+	public function ___renderValue() {
+		$this->renderValueMode = true; 
+		$out = $this->render();
+		$this->renderValueMode = false;
+		return $out; 
 	}
 
 	protected function ___fileAdded(Pagefile $pagefile) {

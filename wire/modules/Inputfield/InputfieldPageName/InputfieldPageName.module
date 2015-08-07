@@ -20,7 +20,7 @@ class InputfieldPageName extends InputfieldName implements ConfigurableModule {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Page Name',
-			'version' => 105,
+			'version' => 106,
 			'summary' => 'Text input validated as a ProcessWire Page name field',
 			'permanent' => true, 
 			);

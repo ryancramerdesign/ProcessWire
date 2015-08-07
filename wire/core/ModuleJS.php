@@ -108,25 +108,35 @@ abstract class ModuleJS extends WireData implements Module {
 	public function init() {
 		
 		$class = $this->className();
-		$info = $this->wire('modules')->getModuleInfo($this, array('verbose' => false));
-		$version = (int) isset($info['version']) ? $info['version'] : 0;
-		
-		if($this->loadStyles && is_file($this->config->paths->$class . "$class.css")) {
-			$this->config->styles->add($this->config->urls->$class . "$class.css?v=$version");
+		$config = $this->wire('config');
+	
+		$file = $config->paths->$class . "$class.css";
+		if($this->loadStyles && is_file($file)) {
+			$mtime = filemtime($file);
+			$this->config->styles->add($config->urls->$class . "$class.css?v=$mtime");
 		}
-		if($this->loadScripts && is_file($this->config->paths->$class . "$class.js")) {
-			if(!$this->wire('config')->debug && is_file($this->config->paths->$class . "$class.min.js")) {
-				$this->config->scripts->add($this->config->urls->$class . "$class.min.js?v=$version");
+		
+		$file = $config->paths->$class . "$class.js"; 
+		$mtime = 0;
+		if($this->loadScripts && is_file($file)) {
+			$minFile = $config->paths->$class . "$class.min.js";
+			if(!$config->debug && is_file($minFile)) {
+				$mtime = filemtime($minFile);
+				$config->scripts->add($config->urls->$class . "$class.min.js?v=$mtime");
 			} else {
-				$this->config->scripts->add($this->config->urls->$class . "$class.js?v=$version");
+				$mtime = filemtime($file);
+				$config->scripts->add($config->urls->$class . "$class.js?v=$mtime");
 			}
 		}
 
 		if(count($this->requested)) {
 			foreach($this->requested as $name) {
 				$url = $this->components[$name]; 
-				if(strpos($url, '/') === false) $url = $this->wire('config')->urls->$class . $url;
-				$url .= "?v=$version";
+				if(strpos($url, '/') === false) {
+					$url = $config->urls->$class . $url;
+					$mtime = filemtime($config->paths->$class . $url);
+				}
+				$url .= "?v=$mtime";
 				$this->wire('config')->scripts->add($url);
 			}
 			$this->requested = array();
@@ -146,6 +156,7 @@ abstract class ModuleJS extends WireData implements Module {
 
 		$name = $this->wire('sanitizer')->name($name);
 		$class = $this->className();
+		$config = $this->wire('config');
 
 		if(!isset($this->components[$name])) {
 			$this->error("Unrecognized $class component requested: $name");
@@ -154,8 +165,13 @@ abstract class ModuleJS extends WireData implements Module {
 
 		if($this->initialized) {
 			$url = $this->components[$name];
-			if(strpos($url, '/') === false) $url = $this->wire('config')->urls->$class . $url;
-			$this->wire('config')->scripts->add($url);
+			$mtime = 0;
+			if(strpos($url, '/') === false) {
+				$file = $config->paths->$class . $url;
+				$url = $config->urls->$class . $url;
+				$mtime = filemtime($file);
+			}
+			$config->scripts->add($url . "?v=$mtime");
 		} else {
 			$this->requested[$name] = $name;
 		}

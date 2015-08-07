@@ -5,11 +5,13 @@ $(document).ready(function() {
 		type: 'image', 
 		closeOnContentClick: true, 
 		closeBtnInside: true,
+		/*
 		image: {
 			titleSrc: function(item) {
 				return item.el.find('img').attr('alt'); 
 			}
 		},
+		*/
 		callbacks: {
 			open: function() {
 				// for firefox, which launches Magnific after a sort
@@ -18,16 +20,26 @@ $(document).ready(function() {
 		}
 	}; 
 
-	$("a.InputfieldFileLink").magnificPopup(magnificOptions);
+	//$("a.InputfieldFileLink").magnificPopup(magnificOptions);
 	
 	$(document).on('reloaded', '.InputfieldImage', function() {
 		var $t = $(this);
-		$t.find("a.InputfieldFileLink").magnificPopup(magnificOptions);
+		// $t.find("a.InputfieldFileLink").magnificPopup(magnificOptions);
 		if($t.is(".InputfieldImageGrid")) {
 			unsetGridMode($t);
 			setGridMode($t);
 		}
 	}); 
+	
+	$(document).on('click', '.InputfieldImage .InputfieldFileLink', function() {
+		var $a = $(this);
+		var options = magnificOptions;
+		options['items'] = { 
+			src: $a.attr('href'), 
+		};
+		$.magnificPopup.open(options, 0);
+		return false;
+	});
 
 	$(document).on('click', '.InputfieldImage .InputfieldFileMove', function() {
 

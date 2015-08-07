@@ -13,11 +13,19 @@
 
 .InputfieldCheckboxes ul li label {
 	display: inline-block;
+	white-space: nowrap;
+	vertical-align: top;
+}
+
+.InputfieldCheckboxes .pw-no-select {
 }
 
 .InputfieldCheckboxes table label input, 
 .InputfieldCheckboxes li input {
 	margin-right: 0.5em;
+}
+
+.InputfieldCheckboxes li input {
 }
 
 .InputfieldCheckboxes table,

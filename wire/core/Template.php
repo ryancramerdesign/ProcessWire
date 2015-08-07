@@ -738,6 +738,17 @@ class Template extends WireData implements Saveable, Exportable {
 	}
 
 	/**
+	 * Return all possible parent pages for this template
+	 * 
+	 * @param bool $checkAccess Specify true to exclude parents that user doesn't have access to add children to (default=false)
+	 * @return PageArray
+	 * 
+	 */
+	public function getParentPages($checkAccess = false) {
+		return $this->wire('templates')->getParentPages($this, $checkAccess);
+	}
+
+	/**
 	 * Return template label for current language, or specified language if provided
 	 * 
 	 * If no template label, return template name.

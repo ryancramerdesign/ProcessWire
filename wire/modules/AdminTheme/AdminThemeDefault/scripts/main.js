@@ -321,8 +321,11 @@ var ProcessWireAdminTheme = {
 						var $li = $("<li class='ui-menu-item'><a href='" + data.url + this.url + "'>" + icon + this.label + "</a></li>");
 						$ul.append($li);
 					}); 
-					
-					$ul.addClass('navJSON').addClass('length' + parseInt(data.list.length)); 
+				
+					if(data.url.indexOf('/page/add/') == -1 || data.list.length > 7) {
+						$ul.addClass('navJSON')
+					}
+					$ul.addClass('length' + parseInt(data.list.length)); 
 
 					// trigger the first call
 					dropdownHover($a);

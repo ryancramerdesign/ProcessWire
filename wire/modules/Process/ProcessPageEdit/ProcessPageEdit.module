@@ -1152,7 +1152,7 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 		//if(!is_array($lastPageList)) $lastPageList = array();
 		
 		$pageListConfig = $this->modules->getModuleConfigData('ProcessPageList'); 
-		$limit = $pageListConfig['limit'];
+		$limit = isset($pageListConfig['limit']) && $pageListConfig['limit'] > 0 ? $pageListConfig['limit'] : 50;
 		
 		foreach($page->parents() as $cnt => $p) {
 			$parent = $p->parent; 
