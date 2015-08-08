@@ -2408,9 +2408,19 @@ class Modules extends WireArray {
 			// should only be necessary for transition period between the 'configurable' property being 
 			// moved from verbose to non-verbose module info (i.e. this line can be deleted after PW 2.7)
 			if($info['configurable'] === null) $info = $this->getModuleInfoVerbose($className);
-			if(!$info['configurable']) return false;
-			if($info['configurable'] === true) return $info['configurable'];
-			return dirname($info['file']) . "/$info[configurable]";
+			if(!$info['configurable']) {
+				if($moduleInstance && $moduleInstance instanceof ConfigurableModule) {
+					// re-try because moduleInfo may be temporarily incorrect for this request because of change in moduleInfo format
+					// this is due to reports of ProcessChangelogHooks not getting config data temporarily between 2.6.11 => 2.6.12
+					$this->error("Configurable module check failed for $className, retrying...", Notice::debug);
+					$useCache = false; 
+				} else {
+					return false;
+				}
+			} else {
+				if($info['configurable'] === true) return $info['configurable'];
+				return dirname($info['file']) . "/$info[configurable]";
+			}
 		}
 		
 		if($useCache !== "interface") {
