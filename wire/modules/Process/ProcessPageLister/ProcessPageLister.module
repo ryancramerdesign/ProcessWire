@@ -1065,6 +1065,11 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		$field = isset($fields[$name]) ? $fields[$name] : $this->wire('fields')->get($name);
 		if(is_null($value)) $value = $p->getUnformatted($name);
 		$delimiter = isset($this->delimiters[$fullname]) ? $this->delimiters[$fullname] : "<br />";
+		
+		if($value instanceof Page || $value instanceof PageArray) {
+			if(!$subname) $subname = $field && $field->labelFieldName ? $field->labelFieldName : 'title';
+			if($subname != 'name' && $this->wire('sanitizer')->fieldName($subname) == $subname) $subname .= "|name"; // fallback
+		}
 
 		if($subname == 'count' && $value instanceof WireArray) {
 			// count
@@ -1079,7 +1084,6 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 			
 		} else if($value instanceof Page) {
 			// page
-			if(!$subname) $subname = 'title|name';
 			if($field && $field->type) {
 				$value = $field->type->markupValue($p, $field, $value, $subname);
 			} else {
@@ -1088,7 +1092,6 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 
 		} else if($value instanceof PageArray) {
 			// pages
-			if(!$subname) $subname = 'title|name';
 			if($delimiter == '<br />') {
 				// default delimiter: let markupValue handle it (default output)
 				$value = $field->type->markupValue($p, $field, $value, $subname);

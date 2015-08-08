@@ -99,13 +99,21 @@ class MarkupFieldtype extends WireData implements Module {
 
 			} else if(is_object($value)) { 
 				// object
+				$valid = false;
 				if($value instanceof WireArray) {
 					// WireArray object: get array of property value from each item
 					$value = $value->explode($property);
+					$valid = true;
+					
+				} else if($value instanceof WireData) {
+					// WireData object
+					$value = $value->get($property);
+					$valid = true;
 					
 				} else if($value instanceof Wire) {
 					// Wire object
 					$value = $value->$property;
+					$valid = true; 
 				}
 			
 				// make sure the property returned is a safe one
@@ -114,6 +122,8 @@ class MarkupFieldtype extends WireData implements Module {
 					$this->warning("Disallowed property: $property", Notice::debug); 
 					$value = null;
 				}
+				
+				if($valid) $property = ''; // already retrieved
 				
 			} else {
 				// something we don't know how to retrieve a property from

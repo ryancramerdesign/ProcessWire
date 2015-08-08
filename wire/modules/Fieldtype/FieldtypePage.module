@@ -290,6 +290,12 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 
 		return $value;
 	}
+	
+	public function ___markupValue(Page $page, Field $field, $value = null, $property = '') {
+		if(is_null($value)) $value = $page->getFormatted($field->name);
+		if(empty($property) && $field->labelFieldName) $property = $field->labelFieldName;
+		return parent::___markupValue($page, $field, $value, $property);
+	}
 
 
 	/**
