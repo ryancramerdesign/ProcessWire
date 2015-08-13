@@ -75,7 +75,7 @@ class ProcessPageList extends Process implements ConfigurableModule {
 		$this->start = isset($_GET['start']) ? (int) $_GET['start'] : 0; 
 		$this->limit = (isset($_GET['limit']) && $_GET['limit'] < $this->limit) ? (int) $_GET['limit'] : $this->limit; 
 		$this->render = isset($_GET['render']) ? strtoupper($this->sanitizer->name($_GET['render'])) : '';
-		if($this->wire('config')->ajax && !$this->render) $this->render = 'JSON';
+		if($this->wire('config')->ajax && !$this->render && !$this->wire('input')->get('renderInputfieldAjax')) $this->render = 'JSON';
 		if($this->render && !isset($this->allowRenderTypes[$this->render])) $this->render = null;
 		
 		$settings = $this->wire('config')->pageList;
@@ -183,13 +183,18 @@ class ProcessPageList extends Process implements ConfigurableModule {
 		$tokenName = $this->session->CSRF->getTokenName();
 		$tokenValue = $this->session->CSRF->getTokenValue();
 		$class = $this->id ? "PageListContainerPage" : "PageListContainerRoot";
+	
+		$script = '';
+		if($this->wire('config')->ajax && $this->wire('input')->get('renderInputfieldAjax')) {
+			$script = "<script>ProcessPageListInit();</script>";
+		}
 		
 		return "\n" . 
 			"<div id='PageListContainer' " .
 				"class='$class' " . 
 				"data-token-name='$tokenName' " . // CSRF tokens
 				"data-token-value='$tokenValue'>" . 
-			"</div>"; 
+			"</div>$script"; 
 	}
 	
 	protected function getPageListRender($limit = null) {

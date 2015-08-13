@@ -1,5 +1,12 @@
 <?php
 
+/**
+ * Class MarkupAdminDataTable
+ * 
+ * @method string render()
+ * 
+ */
+
 class MarkupAdminDataTable extends ModuleJS {
 
 	const responsiveNo = 0;

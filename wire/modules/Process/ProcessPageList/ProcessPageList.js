@@ -11,8 +11,12 @@
  *
  */
 
-$(document).ready(function() {
+function ProcessPageListInit() {
 	if(config.ProcessPageList) $('#' + config.ProcessPageList.containerID).ProcessPageList(config.ProcessPageList); 
+}
+
+$(document).ready(function() {
+	ProcessPageListInit();
 }); 
 
 (function($) {

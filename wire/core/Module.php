@@ -209,7 +209,12 @@ interface Module {
 	 *
 	public function ___uninstall();
 	 */
-
+	
+	/**
+	 * Called when a version change is detected on the module
+	 * 
+	public function ___upgrade($fromVersion, $toVersion);
+	 */ 
 
 	/**
 	 * Is this module intended to be only a single instance?

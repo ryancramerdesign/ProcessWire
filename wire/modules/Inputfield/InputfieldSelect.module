@@ -50,13 +50,13 @@ class InputfieldSelect extends Inputfield {
 	 * Note that optgroups may not be applicable to other Inputfields that descend from InputfieldSelect.
 	 *
 	 * @param string $value Value that the option submits
-	 * @param string $label Optional label associated with the value (if null, value will be used as the label)
+	 * @param string $label|array Optional label associated with the value (if null, value will be used as the label)
 	 * @param array $attributes Optional attributes to be associated with this option (i.e. a 'selected' attribute for an <option> tag)
 	 * @return $this
 	 *
 	 */
 	public function addOption($value, $label = null, array $attributes = null) {
-		if(is_null($label)) $label = $value; 
+		if(is_null($label) || (is_string($label) && !strlen($label))) $label = $value; 
 		$this->options[$value] = $label; 	
 		if(!is_null($attributes)) $this->optionAttributes[$value] = $attributes; 
 		return $this; 

@@ -200,8 +200,11 @@ abstract class Fieldtype extends WireData implements Module {
 		$f->icon = 'globe';
 		$f->description = $this->_("If checked, ALL pages will be required to have this field.  It will be automatically added to any fieldgroups/templates that don't already have it. This does not mean that a value is required in the field, only that the editable field will exist in all pages."); // Global description
 		$f->attr('value', 1);
-		if($field->flags & Field::flagGlobal) $f->attr('checked', 'checked');
-			else $f->collapsed = true; 
+		if($field->flags & Field::flagGlobal) {
+			$f->attr('checked', 'checked');
+		} else {
+			$f->collapsed = true;
+		}
 		$inputfields->append($f);
 
 		if($this->config->advanced) {

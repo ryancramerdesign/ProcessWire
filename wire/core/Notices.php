@@ -20,6 +20,7 @@
  * @property string $class Class of notice
  * @property int $timestamp When the notice was generated
  * @property int $flags Optional flags bitmask of Notice::debug and/or Notice::warning
+ * @property string $icon
  *
  */
 abstract class Notice extends WireData {
@@ -71,6 +72,7 @@ abstract class Notice extends WireData {
 		$this->set('class', ''); 
 		$this->set('timestamp', time()); 
 		$this->set('flags', $flags); 
+		$this->set('icon', '');
 	}
 
 	/**

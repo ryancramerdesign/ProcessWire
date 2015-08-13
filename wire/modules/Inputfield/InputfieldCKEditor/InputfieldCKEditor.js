@@ -58,14 +58,23 @@ function ckeInitEvents(editor) {
  * 
  */
 function ckeSaveReadyInline($inputfield) {
+	if(!$inputfield.length) return;
 	var $inlines = $inputfield.hasClass('.InputfieldCKEditorInline') ? $inputfield : $inputfield.find(".InputfieldCKEditorInline");
-	$inlines.each(function() {
+	if($inlines.length) $inlines.each(function() {
 		var $t = $(this);
 		var value;
 		if($t.hasClass('InputfieldCKEditorLoaded')) {
 			var editor = CKEDITOR.instances[$t.attr('id')];
 			// getData() ensures there are no CKE specific remnants in the markup
-			value = editor.getData();
+			if(typeof editor != "undefined") {
+				if(editor.focusManager.hasFocus) {
+					// TMP: CKEditor 4.5.1 / 4.5.2 has documented bug that causes JS error on editor.getData() here
+					// this section of code can be removed after they fix it (presumably in 4.5.3)
+					editor.focusManager.focus(true);
+					editor.focus();
+				}
+				value = editor.getData();
+			}
 		} else {
 			value = $t.html();
 		}

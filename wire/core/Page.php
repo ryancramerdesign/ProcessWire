@@ -53,6 +53,8 @@
  * @property int $status Page status flags
  * @property string statusStr Returns space-separated string of status names active on this page.
  * @property Fieldgroup $fieldgroup Shorter alias for $page->template->fieldgroup
+ * @property string $editUrl
+ * @property string $editURL
  * 
  * Methods added by PageRender.module: 
  * -----------------------------------
@@ -74,6 +76,10 @@
  * ------------------------------------------------------------------
  * @method Page setLanguageValue($language, $fieldName, $value) Set value for field in language (requires LanguageSupport module). $language may be ID, language name or Language object.
  * @method Page getLanguageValue($language, $fieldName) Get value for field in language (requires LanguageSupport module). $language may be ID, language name or Language object. 
+ * 
+ * Methods added by ProDrafts.module (if installed)
+ * ------------------------------------------------
+ * @method ProDraft|int|string|Page|array draft($key = null, $value = null)
  * 
  * Hookable methods
  * ----------------
@@ -103,10 +109,10 @@ class Page extends WireData implements Countable, WireMatchable {
 	const statusLocked = 4; 		// page locked for changes. Not enforced by the core, but checked by Process modules. 
 	const statusSystemID = 8; 		// page is for the system and may not be deleted or have it's id changed (everything else, okay)
 	const statusSystem = 16; 		// page is for the system and may not be deleted or have it's id, name, template or parent changed
+	const statusDraft = 64; 		// page has pending draft changes
 	const statusTemp = 512;			// page is temporary and 1+ day old unpublished pages with this status may be automatically deleted
 	const statusHidden = 1024;		// page is excluded selector methods like $pages->find() and $page->children() unless status is specified, like "status&1"
 	const statusUnpublished = 2048; // page is not published and is not renderable. 
-	const statusDraft = 4096; 		// page is a draft 
 	const statusTrash = 8192; 		// page is in the trash
 	const statusDeleted = 16384; 	// page is deleted (runtime only)
 	const statusSystemOverride = 32768; // page is in a state where system flags may be overridden
@@ -1705,6 +1711,18 @@ class Page extends WireData implements Countable, WireMatchable {
 	 */
 	public function getInputfields($fieldName = '') {
 		return $this->template ? $this->template->fieldgroup->getPageInputfields($this, '', $fieldName) : null;
+	}
+
+	/**
+	 * Does this page have the given status?
+	 * 
+	 * @param int|string $statusFlag Status number of string representation (hidden, locked, unpublished)
+	 * @return bool
+	 * 
+	 */
+	public function hasStatus($statusFlag) {
+		if(is_string($statusFlag) && isset(self::$statuses[$statusFlag])) $statusFlag = self::$statuses[$statusFlag]; 
+		return (bool) ($this->status & $statusFlag);
 	}
 
 	/**

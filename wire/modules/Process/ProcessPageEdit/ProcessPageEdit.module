@@ -509,10 +509,12 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 	 */
 	protected function ___buildFormChildren() {
 
+		$settings = $this->wire('config')->pageEdit;
 		$page = $this->masterPage ? $this->masterPage : $this->page; 
 		$wrapper = new InputfieldWrapper();
 		$id = $this->className() . 'Children';
-		$wrapper->attr('id', $id);
+		$wrapper->attr('id+name', $id);
+		if(!empty($settings['ajaxChildren'])) $wrapper->collapsed = Inputfield::collapsedYesAjax;
 		$defaultTitle = $this->_('Children'); // Tab Label: Children
 		$title = $this->page->template->getTabLabel('children'); 
 		if(!$title) $title = $defaultTitle;
@@ -520,11 +522,11 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 			else $wrapper->attr('title', $title); 
 		$this->addTab($id, $title);
 		$templateSortfield = $this->page->template->sortfield;
-
+		
 		if(!$this->isPost) { 
 
-			$pageListParent = $page ? $page : $this->parent; 
-			if($pageListParent->numChildren) { 
+			$pageListParent = $page ? $page : $this->parent;
+			if($pageListParent->numChildren) {
 				$pageList = $this->modules->get('ProcessPageList'); 
 				$pageList->set('id', $pageListParent->id); 
 				$pageList->set('showRootPage', false); 
@@ -532,8 +534,11 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 
 			$field = $this->modules->get("InputfieldMarkup"); 
 			$field->label = $title == $defaultTitle ? $this->_("Children / Subpages") : $title; // Children field label
-			if($pageList) $field->value = $pageList->execute();
-				else $field->description = $this->_("There are currently no children/subpages below this page."); 
+			if($pageList) {
+				$field->value = $pageList->execute();
+			} else {
+				$field->description = $this->_("There are currently no children/subpages below this page.");
+			}
 
 			if($templateSortfield && $templateSortfield != 'sort') {
 				$field->notes = sprintf($this->_('Children are sorted by "%s", per the template setting.'), $templateSortfield); 
@@ -680,15 +685,17 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 
 		// parent
 		if($this->page->id > 1 && $this->page->editable('parent', false)) {
+			// @todo also use predefined parents when page is limited to only certain parents (template family settings)
 			if(count($this->predefinedParents)) {
 				$field = $this->modules->get('InputfieldSelect'); 
 				foreach($this->predefinedParents as $p) {
 					$field->addOption($p->id, $p->path); 
 				}
 			} else {
+				$settings = $this->wire('config')->pageEdit; 
 				$field = $this->modules->get('InputfieldPageListSelect');
 				$field->parent_id = 0;
-				$field->collapsed = Inputfield::collapsedYesAjax;
+				if(!empty($settings['ajaxParent'])) $field->collapsed = Inputfield::collapsedYesAjax;
 			}
 			$field->required = true;
 			$field->label = $this->_('Parent'); // Settings: Parent field label
@@ -939,7 +946,7 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 	 * Process the input from a submitted Page Edit form, delegating to other methods where appropriate
  	 *
 	 */
-	protected function ___processInput(Inputfield $form, $level = 0) {
+	protected function ___processInput(Inputfield $form, $level = 0, $formRoot = null) {
 
 		static $skipFields = array(
 			'sortfield_reverse', 
@@ -948,7 +955,10 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 			'delete_page',
 			);
 
-		if(!$level) $form->processInput($this->input->post);
+		if(!$level) {
+			$form->processInput($this->input->post);
+			$formRoot = $form;
+		}
 
 		$languages = $this->fuel('languages'); 
 
@@ -959,7 +969,7 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 			if(in_array($name, $skipFields)) continue; 
 			if(!$this->page->editable($name, false)) continue; 
 			
-			if($name == 'sortfield' && $this->useChildren) {
+			if($name == 'sortfield' && $this->useChildren && $form->isProcessable($inputfield->parent->parent)) {
 				$this->processInputSortfield($inputfield) ;
 				continue;
 			}
@@ -1000,7 +1010,9 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 				}
 			}
 
-			if($inputfield instanceof InputfieldWrapper && count($inputfield->getChildren())) $this->processInput($inputfield, $level + 1); 
+			if($inputfield instanceof InputfieldWrapper && count($inputfield->getChildren())) {
+				$this->processInput($inputfield, $level + 1, $formRoot);
+			}
 		}
 	}
 

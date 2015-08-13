@@ -49,9 +49,13 @@
 			}
 			ul.MarkupFieldtype {
 				margin: 0;
+				padding-left: 0;
 				& > li {
-					list-style: disc;
 					margin: 0;
+					padding-left: 0;
+				}
+				& > li + li {
+					border-top: 1px solid #eee;
 				}
 			}
 		}

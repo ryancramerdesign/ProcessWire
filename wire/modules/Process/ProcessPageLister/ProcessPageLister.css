@@ -27,10 +27,13 @@
       padding-left: 0;
       /* reno */ }
     #ProcessListerResults #ProcessListerTable > table > tbody > tr > td ul.MarkupFieldtype {
-      margin: 0; }
+      margin: 0;
+      padding-left: 0; }
       #ProcessListerResults #ProcessListerTable > table > tbody > tr > td ul.MarkupFieldtype > li {
-        list-style: disc;
-        margin: 0; }
+        margin: 0;
+        padding-left: 0; }
+      #ProcessListerResults #ProcessListerTable > table > tbody > tr > td ul.MarkupFieldtype > li + li {
+        border-top: 1px solid #eee; }
 #ProcessListerResults .PageListerActions {
   display: none;
   line-height: 1.3em;

@@ -57,14 +57,15 @@ class ProcessPageListRenderJSON extends ProcessPageListRender {
 			$note = "&lt; " . $this->_("Trash open: drag pages below here to trash them"); // Message that appears next to the Trash page when open
 			$icons = array('trash-o'); // override any other icons
 		} else {
-			if($page->is(Page::statusTemp)) $icons[] = 'bolt';
-			if($page->is(Page::statusLocked)) $icons[] = 'lock';
+			if($page->hasStatus(Page::statusTemp)) $icons[] = 'bolt';
+			if($page->hasStatus(Page::statusLocked)) $icons[] = 'lock';
+			if($page->hasStatus(Page::statusDraft)) $icons[] = 'paperclip';
 		}
 
 		if(!$label) $label = $this->getPageLabel($page);
 		
 		if(count($icons)) foreach($icons as $n => $icon) {
-			$label .= "&nbsp;<i class='PageListStatusIcon fa fa-$icon'></i>";
+			$label .= "<i class='PageListStatusIcon fa fa-fw fa-$icon'></i>";
 		}
 
 		$a = array(

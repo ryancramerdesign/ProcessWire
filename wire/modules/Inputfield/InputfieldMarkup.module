@@ -15,6 +15,8 @@ class InputfieldMarkup extends InputfieldWrapper {
 			'permanent' => true, 
 			);
 	}
+	
+	protected $renderValueMode = false;
 
 	public function init() {
 		$this->set('markupText', '');
@@ -26,8 +28,9 @@ class InputfieldMarkup extends InputfieldWrapper {
 
 	public function ___render() {
 		$out = '';
-		if(strlen($this->attr('value'))) {
-			$out .= "\n" . $this->attr('value');
+		$value = $this->attr('value');
+		if(strlen($value)) {
+			$out .= "\n" . $value;
 		}
 		if($this->markupFunction !== null & is_callable($this->markupFunction)) {
 			$out .= "\n" . call_user_func($this->markupFunction, $this);
@@ -50,13 +53,20 @@ class InputfieldMarkup extends InputfieldWrapper {
 			$this->description = ''; // prevents it from appearing again at the bottom
 		}
 
+		// prevent possible double render 
+		$v = $this->attr('value');
+		$this->attr('value', '');
 		$out .= parent::___render(); 
+		$this->attr('value', $v);
+		
 		return $out; 
 	}
 
 	public function ___renderValue() {
-		if(count($this->children)) return parent::___renderValue();
-		return null;
+		$this->renderValueMode = true; 
+		$out = $this->render();
+		$this->renderValueMode = false;
+		return $out; 
 	}
 
 	public function ___getConfigInputfields() {

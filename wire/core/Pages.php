@@ -595,7 +595,7 @@ class Pages extends Wire {
 		$itemsAllowed = new PageArray();
 		foreach($items as $item) {
 			if($includeMode === 'unpublished') {
-				$allow = $item->status < Page::statusDraft;
+				$allow = $item->status < Page::statusTrash;
 			} else if($includeMode === 'hidden') {
 				$allow = $item->status < Page::statusUnpublished;
 			} else {

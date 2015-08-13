@@ -171,7 +171,7 @@ class AdminThemeDefaultHelpers extends WireData {
 			$replacements = array(
 				'{class}' => $class, 
 				'{remove}' => $remove, 
-				'{icon}' => $icon,
+				'{icon}' => $notice->icon ? $notice->icon : $icon,
 				'{text}' => $text, 
 				);
 			

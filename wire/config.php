@@ -776,6 +776,8 @@ $config->pageList = array(
  * 
  * #property bool viewNew Specify true to force the "view" link to open pages in a new window. 
  * #property bool confirm Notify user if they attempt to navigate away from unsaved changes?
+ * #property bool ajaxChildren Whether to load the 'children' tab via ajax 
+ * #property bool ajaxParent Whether to load the 'parent' field via ajax
  * 
  * @var array
  * 
@@ -783,6 +785,8 @@ $config->pageList = array(
 $config->pageEdit = array(
 	'viewNew' => false,
 	'confirm' => true, 
+	'ajaxChildren' => true, 
+	'ajaxParent' => true,
 );
 
 

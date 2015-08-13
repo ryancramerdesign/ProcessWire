@@ -67,8 +67,15 @@ interface InputfieldHasArrayValue { }
  * @property null|bool $entityEncodeLabel Set to boolean false to specifically disable entity encoding of field header/label.
  * @property bool|null $useLanguages When multi-language support active, can be set to true to make it provide inputs for each language (where supported).
  * 
- *
- *
+ * @method string render()
+ * @method string renderValue()
+ * @method Inputfield processInput(WireInputData $input)
+ * @method InputfieldWrapper getConfigInputfields()
+ * @method array getConfigArray()
+ * @method array getConfigAllowContext(Field $field)
+ * @method array exportConfigData(array $data)
+ * @method array importConfigData(array $data)
+ * 
  */
 abstract class Inputfield extends WireData implements Module {
 
@@ -230,6 +237,10 @@ abstract class Inputfield extends WireData implements Module {
 	 */
 	public function set($key, $value) {
 		if($key == 'parent' && ($value instanceof InputfieldWrapper)) return $this->setParent($value); 
+		if($key == 'collapsed') {
+			if($value === true) $value = self::collapsedYes; 
+			$value = (int) $value;
+		}
 		if(array_key_exists($key, $this->attributes)) return $this->setAttribute($key, $value); 
 		if($key == 'required' && $value && !is_object($value)) $this->addClass('required'); 
 		if($key == 'columnWidth') {

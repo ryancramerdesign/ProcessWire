@@ -94,18 +94,16 @@ var ProcessWireAdminTheme = {
  	 */
 	setupButtonStates: function() {
 		// jQuery UI button states
-		$(".ui-button").hover(function() {
+		$(document).on('mouseover', '.ui-button', function() {
 			$(this).removeClass("ui-state-default").addClass("ui-state-hover");
-		}, function() {
+		}).on('mouseout', '.ui-button', function() {
 			$(this).removeClass("ui-state-hover").addClass("ui-state-default");
-		}).click(function() {
+		}).on('click', '.ui-button', function() {
 			$(this).removeClass("ui-state-default").addClass("ui-state-active"); // .effect('highlight', {}, 100); 
-		});
-
-		// make buttons with <a> tags click to the href of the <a>
-		$("a > button").click(function() {
+		}).on('click', 'a > button', function() {
+			// make buttons with <a> tags click to the href of the <a>
 			window.location = $(this).parent("a").attr('href'); 
-		}); 
+		});
 	},
 
 	/**

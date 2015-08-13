@@ -11,11 +11,13 @@
  * See the Module interface (Module.php) for details about each method. 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://www.processwire.com
  * http://www.ryancramer.com
+ * 
+ * @method ModuleJS use(string $name)
  *
  */
 

@@ -10,6 +10,17 @@
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
+ * 
+ * @method string|array execute()
+ * @method Process headline(string $headline)
+ * @method Process browserTitle(string $title)
+ * @method Process breadcrumb(string $href, string $label)
+ * @method install()
+ * @method uninstall()
+ * @method upgrade($fromVersion, $toVersion)
+ * @method Page installPage($name = '', $parent = null, $title = '', $template = 'admin', $extras = array())
+ * @method int uninstallPage()
+ * @method string executeNavJSON(array $options = array())
  *
  */
 
@@ -98,7 +109,7 @@ abstract class Process extends WireData implements Module {
 	/**
 	 * Execute this Process and return the output 
 	 *
-	 * @return string
+	 * @return string|array
 	 *
 	 */
 	public function ___execute() { }

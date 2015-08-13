@@ -338,6 +338,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 			$children = $this->getSelectablePages($page);
 			if($children) foreach($children as $child) {
 				$label = $this->labelFieldName ? $child->get($this->labelFieldName) : $child->name;
+				if(!strlen($label)) $label = $child->name;
 				if($child->is(Page::statusUnpublished)) $label .= ' ' . $this->_('(unpublished)');
 				$inputfield->addOption($child->id, $label);
 			}
@@ -457,7 +458,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		$value = $this->attr('value');
 
 		if(is_array($value) || $value instanceof PageArray) { 
-			$out = '<ul>';
+			$out = '<ul class="PageArray">';
 			foreach($value as $p) {
 				$v = $p->get($labelFieldName);
 				$out .= "<li>$v</li>";
@@ -473,7 +474,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 
 		return $out; 
 	}
-	
+
 	public function ___processInput(WireInputData $input) {
 
 		$this->processInputMode = true; 
