@@ -188,8 +188,10 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 		if($locale != '0') setlocale(LC_ALL, $locale); 
 
 		// setup our hooks handled by this class
-		$this->addHookBefore('Inputfield::render', $this, 'hookInputfieldBeforeRender'); 
-		$this->addHookAfter('Inputfield::render', $this, 'hookInputfieldAfterRender'); 
+		$this->addHookBefore('Inputfield::render', $this, 'hookInputfieldBeforeRender');
+		$this->addHookBefore('Inputfield::renderValue', $this, 'hookInputfieldBeforeRender'); 
+		$this->addHookAfter('Inputfield::render', $this, 'hookInputfieldAfterRender');
+		$this->addHookAfter('Inputfield::renderValue', $this, 'hookInputfieldAfterRender'); 
 		$this->addHookAfter('Inputfield::processInput', $this, 'hookInputfieldAfterProcessInput'); 
 		$this->addHookBefore('Inputfield::processInput', $this, 'hookInputfieldBeforeProcessInput'); 
 		$this->addHookAfter('Field::getInputfield', $this, 'hookFieldGetInputfield');
@@ -391,6 +393,8 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 		$inputfield = $event->object;
 		$name = $inputfield->attr('name'); 
 		
+		$renderValueMode = $event->method == 'renderValue'; 
+		
 		/** @var Languages $languages */
 		$languages = $this->wire('languages');
 		if(is_null($numLanguages)) $numLanguages = $languages->count();
@@ -438,7 +442,7 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 				$valueAttr = "value$languageID";
 				$inputfield->required = false;
 				$inputfield->setAttribute('value', $inputfield->$valueAttr); 
-				$o = $inputfield->___render(); 
+				$o = $renderValueMode ? $inputfield->___renderValue() : $inputfield->___render(); 
 			}
 			
 			$out .= $this->wrapInputfieldOutput($o, $newID, $language);

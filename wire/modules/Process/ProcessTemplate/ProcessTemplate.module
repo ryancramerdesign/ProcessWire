@@ -1489,11 +1489,10 @@ class ProcessTemplate extends Process {
 		$field->attr('name', 'noShortcut'); 
 		$field->label = $this->_('Show in the add-page shortcut menu?');
 		$field->description = $this->_('When checked, this template is eligible to appear on the "add new page" shortcut button/menu that appears on the main Pages screen. This assumes all other conditions are met (see below).'); 
+		$field->description .= ' ' . sprintf($this->_('To adjust the order that templates appear in the shortcuts menu, see the [PageAdd module settings](%s).'), '../../module/edit?name=ProcessPageAdd');
 		$field->notes =	$this->_('**Conditions required for this to work**') .  
 			"\n" . 	$this->_('1. You must select a parent template (see: "allowed templates for parents" above). If more than 1 is selected, only the first will be used.') . 
 			"\n" . 	$this->_('2. The selected parent template must have defined this template as one allowed for children.') . 
-			"\n" .	$this->_('3. There may only be one instance of a page using the parent template in your system.') . 
-			"\n" . 	$this->_('4. The admin theme must support this feature.'); 
 		$field->addOption(0, $this->labels['Yes']); 
 		$field->addOption(1, $this->labels['No']); 
 		$field->attr('value', (int) $template->noShortcut); 

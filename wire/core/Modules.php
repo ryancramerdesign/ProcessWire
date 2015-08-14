@@ -2231,6 +2231,11 @@ class Modules extends WireArray {
 			$info['created'] = strtotime($this->createdDates[$moduleID]);
 		}
 		
+		if(!empty($info['file']) && (strpos($info['file'], 'wire') === 0 || strpos($info['file'], 'site') === 0)) {
+			// convert relative (as stored in moduleInfo) to absolute (verbose info only)
+			$info['file'] = $this->wire('config')->paths->root . $info['file'];
+		}
+		
 		// if($this->debug) $this->message("getModuleInfo($moduleName) " . ($fromCache ? "CACHE" : "NO-CACHE")); 
 		
 		return $info;
@@ -2249,7 +2254,8 @@ class Modules extends WireArray {
 	 */
 	public function getModuleInfoVerbose($module, array $options = array()) {
 		$options['verbose'] = true; 
-		return $this->getModuleInfo($module, $options); 
+		$info = $this->getModuleInfo($module, $options); 
+		return $info;
 	}
 
 	/**
@@ -2419,7 +2425,14 @@ class Modules extends WireArray {
 				}
 			} else {
 				if($info['configurable'] === true) return $info['configurable'];
-				return dirname($info['file']) . "/$info[configurable]";
+				if($info['configurable'] === 1 || $info['configurable'] === "1") return true;
+				if(is_int($info['configurable']) || ctype_digit("$info[configurable]")) return (int) $info['configurable'];
+				if(strpos($info['configurable'], $className) === 0) {
+					if(empty($info['file'])) $info['file'] = $this->getModuleFile($className);
+					if($info['file']) {
+						return dirname($info['file']) . "/$info[configurable]";
+					}
+				}
 			}
 		}
 		
@@ -2552,7 +2565,7 @@ class Modules extends WireArray {
 		if(!$configurable) return false;
 		if(!is_array($data)) $data = $this->getModuleConfigData($module);
 		
-		if(is_string($configurable) && is_file($configurable)) {
+		if(is_string($configurable) && is_file($configurable) && strpos(basename($configurable), $module->className()) === 0) {
 			// get defaults from ModuleConfig class if available
 			$className = $module->className() . 'Config';
 			$config = null; // may be overridden by included file
@@ -3399,12 +3412,16 @@ class Modules extends WireArray {
 					$info['configurable'] = $this->isConfigurableModule($moduleName, false);
 				}
 				
-				if($moduleID) $this->updateModuleFlags($moduleID, $info); 
+				if($moduleID) $this->updateModuleFlags($moduleID, $info);
+			
+				// no need to store full path
+				$info['file'] = str_replace($this->wire('config')->paths->root, '', $info['file']);
 		
 				if($installed) { 
 					
 					$verboseKeys = $this->moduleInfoVerboseKeys; 
 					$verboseInfo = array();
+					
 					
 					foreach($verboseKeys as $key) {
 						if(!empty($info[$key])) $verboseInfo[$key] = $info[$key]; 
