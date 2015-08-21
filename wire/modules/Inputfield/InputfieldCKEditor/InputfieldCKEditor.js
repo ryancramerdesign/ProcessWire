@@ -67,12 +67,14 @@ function ckeSaveReadyInline($inputfield) {
 			var editor = CKEDITOR.instances[$t.attr('id')];
 			// getData() ensures there are no CKE specific remnants in the markup
 			if(typeof editor != "undefined") {
+				/*
 				if(editor.focusManager.hasFocus) {
 					// TMP: CKEditor 4.5.1 / 4.5.2 has documented bug that causes JS error on editor.getData() here
 					// this section of code can be removed after they fix it (presumably in 4.5.3)
 					editor.focusManager.focus(true);
 					editor.focus();
 				}
+				*/
 				value = editor.getData();
 			}
 		} else {

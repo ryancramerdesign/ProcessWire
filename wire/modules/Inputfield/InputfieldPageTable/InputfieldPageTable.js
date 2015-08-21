@@ -19,6 +19,16 @@ function InputfieldPageTableDialog() {
 						var $table = $container.find('table');
 						$table.find('tbody').css('overflow', 'visible');
 						InputfieldPageTableSortable($table);
+						
+						// restore appearnace of any items marked for deletion
+						var deleteIDs = $container.siblings("input.InputfieldPageTableDelete").eq(0).val().split('|');
+						if(deleteIDs.length) {
+							for(var n = 0; n < deleteIDs.length; n++) {
+								var deleteID = deleteIDs[n];
+								$table.find("tr[data-id=" + deleteID + "]")
+									.addClass('InputfieldPageTableDelete ui-state-error-text ui-state-disabled');
+							}
+						}
 					});
 				});
 			}
@@ -134,7 +144,7 @@ function InputfieldPageTableSortable($table) {
 }
 
 function InputfieldPageTableDelete() {
-	var $row = $(this).parents('tr'); 
+	var $row = $(this).closest('tr'); 
 	$row.toggleClass('InputfieldPageTableDelete ui-state-error-text ui-state-disabled'); 
 	var ids = '';
 	$row.parents('tbody').children('tr').each(function() {

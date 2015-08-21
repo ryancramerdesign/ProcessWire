@@ -481,31 +481,57 @@ class Pageimage extends Pagefile {
 	}
 
 	/**
-	 * Return width for hidpi/retina use
+	 * Return width for hidpi/retina use, or resize an image for desired hidpi width
 	 * 
-	 * @param float|null $scale Specify a scale or omit (or null) for default of 0.5
-	 * @param int $width Optionally specify width to use (default=pull from image)
-	 * @return int
+	 * If the $width argument is ommitted or provided as a float, hidpi width (int) is returned (default scale=0.5)
+	 * If $width is provided (int) then a new Pageimage is returned at that width x 2 (for hidpi use).
+	 * 
+	 * @param int|float $width Specify int to return resized image for hidpi, or float (or omit) to return current width at hidpi.
+	 * @param array $options Optional options for use when resizing, see size() method for details.
+	 * 	Or you may specify an int as if you want to return a hidpi width and want to calculate with that width rather than current image width.
+	 * @return int|Pageimage
 	 * 
 	 */	
-	public function hidpiWidth($scale = null, $width = 0) {
-		if(is_null($scale)) $scale = 0.5;
-		if(!$width) $width = $this->width();
-		return ceil($width * $scale); 
+	public function hidpiWidth($width = 0, $options = array()) {
+		if(is_float($width) || $width < 1) {
+			// return hidpi width intended: scale omitted or provided in $width argument
+			$scale = $width;
+			if(!$scale || $scale < 0 || $scale > 1) $scale = 0.5;
+			$width = is_array($options) ? 0 : (int) $options;
+			if($width < 1) $width = $this->width();
+			return ceil($width * $scale); 
+		} else if($width) {
+			// resize intended
+			if(!is_array($options)) $options = array();
+			return $this->hidpiSize((int) $width, 0, $options);
+		}
 	}
 
 	/**
-	 * Return height for hidpi/retina use
+	 * Return height for hidpi/retina use, or resize an image for desired hidpi height
 	 *
-	 * @param float|null $scale Specify a scale or omit (or 0) for default of 0.5
-	 * @param int $height Optionally specify width to use (default=pull from image)
-	 * @return int
+	 * If the $height argument is omitted or provided as a float, hidpi height (int) is returned (default scale=0.5)
+	 * If $height is provided (int) then a new Pageimage is returned at that height x 2 (for hidpi use).
+	 *
+	 * @param int|float $height Specify int to return resized image for hidpi, or float (or omit) to return current width at hidpi.
+	 * @param array|int $options Optional options for use when resizing, see size() method for details.
+	 * 	Or you may specify an int as if you want to return a hidpi height and want to calculate with that height rather than current image height.
+	 * @return int|Pageimage
 	 *
 	 */	
-	public function hidpiHeight($scale = null, $height = 0) {
-		if(is_null($scale)) $scale = 0.5;
-		if(!$height) $height = $this->height();
-		return ceil($height * $scale); 
+	public function hidpiHeight($height = 0, $options = array()) {
+		if(is_float($height) || $height < 1) {
+			// return hidpi height intended: scale omitted or provided in $height argument
+			$scale = $height;
+			if(!$scale || $scale < 0 || $scale > 1) $scale = 0.5;
+			$height = is_array($options) ? 0 : (int) $options;
+			if($height < 1) $height = $this->height();
+			return ceil($height * $scale);
+		} else if($height) {
+			// resize intended
+			if(!is_array($options)) $options = array();
+			return $this->hidpiSize(0, (int) $height, $options);
+		}
 	}
 
 	/**

@@ -155,6 +155,8 @@ class FieldtypeOptions extends FieldtypeMulti implements Module {
 				$value = explode("\n", $value); 
 			}
 		}
+		
+		if(empty($value)) return $this->getBlankValue($page, $field); 
 	
 		if($value instanceof SelectableOptionArray) {
 			// fantastic, this is our target

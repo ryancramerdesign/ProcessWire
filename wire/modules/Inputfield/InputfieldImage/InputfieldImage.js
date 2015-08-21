@@ -22,9 +22,17 @@ $(document).ready(function() {
 
 	//$("a.InputfieldFileLink").magnificPopup(magnificOptions);
 	
+	function addImageListToggle($target) {
+		var $listToggle = $("<a class='InputfieldImageListToggle HideIfEmpty' href='#'></a>")
+			.append("<i class='fa fa-th'></i>");
+		if($target.hasClass('.InputfieldImage')) $(this).find('.InputfieldHeader').append($listToggle);
+			else $(".InputfieldImage .InputfieldHeader", $target).append($listToggle); 
+	}
+	
 	$(document).on('reloaded', '.InputfieldImage', function() {
 		var $t = $(this);
 		// $t.find("a.InputfieldFileLink").magnificPopup(magnificOptions);
+		addImageListToggle($t);
 		if($t.is(".InputfieldImageGrid")) {
 			unsetGridMode($t);
 			setGridMode($t);
@@ -89,15 +97,21 @@ $(document).ready(function() {
 		$parent.find("i.fa-list").replaceWith($("<i class='fa fa-th'></i>")); 
 	}
 
-	var $listToggle = $("<a class='InputfieldImageListToggle HideIfEmpty' href='#'></a>")
-		.append("<i class='fa fa-th'></i>"); 
-	$(".InputfieldImage .InputfieldHeader").append($listToggle); 
+	addImageListToggle($('.InputfieldForm'));
+	
 	$(document).on('click', '.InputfieldImageListToggle', function() {
 		var $parent = $(this).parents(".InputfieldImage"); 
 		if($parent.hasClass('InputfieldImageGrid')) unsetGridMode($parent);
 			else setGridMode($parent);
 		return false; 
 	}); 
+
+	/*
+	$(document).on('dblclick', '.InputfieldImage.InputfieldRenderValue .InputfieldContent', function(e) {
+		$(this).closest('.Inputfield').find('.InputfieldImageListToggle').click();
+		return false;
+	});
+	*/
 
 	$(".InputfieldImage").find(".InputfieldImageDefaultGrid").each(function() {
 		setGridMode($(this).parents(".InputfieldImage")); 

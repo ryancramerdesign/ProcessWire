@@ -28,7 +28,7 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 		return array(
 			'title' => __('Files', __FILE__), // Module Title
 			'summary' => __('One or more file uploads (sortable)', __FILE__), // Module Summary
-			'version' => 123,
+			'version' => 124,
 			'permanent' => true, 
 			);
 	}
@@ -68,6 +68,8 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 	protected $uploadOnlyMode = false;
 	
 	protected $renderValueMode = false;
+	
+	protected $isAjax = false;
 
 	/**
 	 * Initialize the InputfieldFile
@@ -97,6 +99,10 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 		$this->set('noCollapseItem', 0);
 		$this->set('noShortName', 0);
 		$this->attr('type', 'file'); 
+		
+		$this->isAjax = $this->wire('input')->get('InputfieldFileAjax') 
+			|| $this->wire('input')->get('reloadInputfieldAjax')
+			|| $this->wire('input')->get('renderInputfieldAjax');
 
 		// get the max filesize
 		$filesize = trim(ini_get('post_max_size'));
@@ -118,7 +124,17 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 	public function isEmpty() {
 		return !count($this->value);
 	}
-
+	
+	public function setAttribute($key, $value) {
+		if($key == 'value') {
+			if($value instanceof Pagefile) {
+				// if given a Pagefile rather than a Pagefiles, use the Pagefiles instead
+				$value = $value->pagefiles; 
+			}
+		}
+		return parent::setAttribute($key, $value);
+	}
+	
 	/**
 	 * Check to ensure that the containing form as an 'enctype' attr needed for uploading files
 	 *
@@ -218,9 +234,8 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 			}
 			
 			if($numLanguages && $hasLangTabs) {
-				$ajax = $this->wire('config')->ajax;
 				$out = "<div class='hasLangTabs langTabsContainer'><div class='langTabs'><ul>$tabs</ul>$out</div></div>";
-				if($ajax) $out .= "<script>setupLanguageTabs($('#wrap_" . $this->attr('id') . "'));</script>";
+				if($this->isAjax) $out .= "<script>setupLanguageTabs($('#wrap_" . $this->attr('id') . "'));</script>";
 			}
 
 		}
@@ -314,7 +329,7 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 		
 		if(!$this->renderValueMode) {
 			// if just rendering the files list (as opposed to saving it), delete any temp files that may have accumulated
-			if(!$this->overwrite && !count($_POST) && !$this->config->ajax && !$this->uploadOnlyMode) {
+			if(!$this->overwrite && !count($_POST) && !$this->isAjax && !$this->uploadOnlyMode) {
 				// don't delete files when in render single field or fields mode
 				if(!$this->wire('input')->get('field') && !$this->wire('input')->get('fields')) {
 					$value->deleteAllTemp();
@@ -409,7 +424,7 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 
 		$message = $this->_('Added file:') . " {$pagefile->basename}"; // Label that precedes an added filename
 
-		if($this->config->ajax && !$this->noAjax) {
+		if($this->isAjax && !$this->noAjax) {
 			$n = count($this->value); 
 			if($n) $n--; // for sorting
 			$this->currentItem = $pagefile; 
@@ -425,7 +440,6 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 		$total = count($this->value); 
 		$description = '';
 		$tags = '';
-		$isAjax = $this->config->ajax; 
 		$rm = null;
 
 		if($this->maxFiles > 1 && $total >= $this->maxFiles) return; 
@@ -479,7 +493,7 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 			if($description) $item->description = $description;
 			if($tags) $item->tags = $tags;
 			// items saved in ajax or uploadOnly mode are temporary till saved in non-ajax/non-uploadOnly
-			if($isAjax && !$this->overwrite) $item->isTemp(true); 
+			if($this->isAjax && !$this->overwrite) $item->isTemp(true); 
 			$this->fileAdded($item); 
 		} catch(Exception $e) {
 			$item->unlink();
@@ -491,9 +505,11 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 	protected function ___processInputDeleteFile(Pagefile $pagefile) {
 		$this->message($this->_("Deleted file:") . " $pagefile"); // Label that precedes a deleted filename
 		$this->value->delete($pagefile); 
+		$this->trackChange('value');
 	}
 
 	protected function ___processInputFile(WireInputData $input, Pagefile $pagefile, $n) {
+		
 
 		$id = $this->name . '_' . $pagefile->hash;
 	
@@ -546,7 +562,7 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 			$this->processInputDeleteFile($pagefile); 
 			$changed = true; 
 			
-		} else if(!$this->config->ajax && !$this->overwrite && $pagefile->isTemp() && $sort !== null) {
+		} else if(!$this->isAjax && !$this->overwrite && $pagefile->isTemp() && $sort !== null) {
 			// if page saved with temporary items when not ajax, those temporary items become non-temp
 			$pagefile->isTemp(false);
 			if($this->maxFiles == 1) while(count($this->value) > 1) {
@@ -598,7 +614,7 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 					$changed = true; 
 				}
 
-				if($this->config->ajax && !$this->noAjax) foreach($ul->getErrors() as $error) { 
+				if($this->isAjax && !$this->noAjax) foreach($ul->getErrors() as $error) { 
 					$this->ajaxResponse(true, $error); 
 				}
 
@@ -620,7 +636,7 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 			$this->trackChange('value'); 
 		}
 
-		if(count($this->ajaxResponses) && $this->config->ajax) {
+		if(count($this->ajaxResponses) && $this->isAjax) {
 			echo json_encode($this->ajaxResponses); 
 		}
 

@@ -58,6 +58,14 @@
 					border-top: 1px solid #eee;
 				}
 			}
+			& > *:first-child,
+			& .col_preview > *:first-child {
+				margin-top: 0;
+			}
+			& > *:last-child,
+			& .col_preview > *:last-child {
+				margin-bottom: 0;
+			}
 		}
 	}
 	
@@ -106,6 +114,18 @@
 	
 	.datetime {
 		white-space: nowrap;
+	}
+	
+	td:not(.col_editing) .InputfieldHasFileList {
+		.InputfieldHeader {
+			display: none;
+		}
+		.InputfieldContent {
+			padding: 5px;
+			border: none;
+			margin-top: 5px;
+			margin-bottom: 5px;
+		}
 	}
 
 	@media only screen and (max-width: 767px) {
@@ -164,5 +184,9 @@
 p.version {
 	clear: both; 
 	padding-top: 1em; 
+}
+
+#ProcessListerScript {
+	display: none;
 }
 

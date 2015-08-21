@@ -23,7 +23,7 @@ class InputfieldPageTable extends Inputfield {
 		return array(
 			'title' => __('ProFields: Page Table', __FILE__), // Module Title
 			'summary' => __('Inputfield to accompany FieldtypePageTable', __FILE__), // Module Summary
-			'version' => 11,
+			'version' => 12,
 			'requires' => 'FieldtypePageTable'
 			);
 	}
@@ -129,7 +129,7 @@ class InputfieldPageTable extends Inputfield {
 			$button->icon = 'plus-circle';
 			$button->value = count($this->rowTemplates) == 1 ? $this->_x('Add New', 'button') : $template->getLabel(); 
 	
-			$url = $this->wire('config')->urls->admin . "page/add/?modal=1&template_id=$template->id&parent_id=$parentID";
+			$url = $this->wire('config')->urls->admin . "page/add/?modal=1&template_id=$template->id&parent_id=$parentID&context=PageTable";
 			if($this->nameFormat) $url .= "&name_format=" . $this->wire('sanitizer')->entities($this->nameFormat);
 			$btn .= "<span class='InputfieldPageTableAdd' data-url='$url'>" . $button->render() . "</span>";
 		}
@@ -290,7 +290,7 @@ class InputfieldPageTable extends Inputfield {
 		foreach($columns as $column => $width) {
 			if(!$n) $column .= "|name"; // in case first/link field was not populated, use name as a backup
 			
-			$url = $n++ ? "" : $this->wire('config')->urls->admin . "page/edit/?id=$item->id&modal=1";
+			$url = $n++ ? "" : $this->wire('config')->urls->admin . "page/edit/?id=$item->id&modal=1&context=PageTable";
 			$out .= $this->renderTableCol($item, $fields, $column, $width, $url); 
 		}
 
@@ -343,18 +343,9 @@ class InputfieldPageTable extends Inputfield {
 		if(isset($fields[$column])) {
 			// custom
 			$field = $fields[$column]; 
-			$v = $item->getUnformatted($fieldName); 
+			$v = $item->getFormatted($fieldName);
+			$value = $field->type->markupValue($item, $field, $v, $subfieldName);
 
-			if(is_object($v) && $subfieldName) {
-				// render it ourselves
-				$value = $this->objectToString($v, $subfieldName); 
-			} else {
-				// let an inputfield's renderValue method handle it
-				$in = $field->getInputfield($item); 
-				$in->attr('value', $v); 
-				$value = $in->renderValue();
-			}
-			
 		} else {
 			// native
 			$value = $item->get($fieldName); 
@@ -367,7 +358,7 @@ class InputfieldPageTable extends Inputfield {
 			}
 		}
 		
-		if(!strlen($value)) $value = "<span class='ui-priority-secondary'>" . $this->_('[blank]') . "</span>";
+		if(!strlen($value)) $value = "<span class='detail'>" . $this->_('[blank]') . "</span>";
 
 		return $value; 
 	}

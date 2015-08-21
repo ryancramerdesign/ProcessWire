@@ -44,6 +44,7 @@ $(document).ready(function() {
 			
 			var $this = $(this);
 			var qty = $this.children("li").length;
+			if($this.closest('.InputfieldRenderValue').length) return;
 			
 			var $inputfield = $this.closest('.Inputfield')
 		
@@ -133,6 +134,7 @@ $(document).ready(function() {
 
 			var $form = $this.parents('form'); 
 			var postUrl = $form.attr('action'); 
+			postUrl += (postUrl.indexOf('?') > -1 ? '&' : '?') + 'InputfieldFileAjax=1';
 
 			// CSRF protection
 			var $postToken = $form.find('input._post_token'); 

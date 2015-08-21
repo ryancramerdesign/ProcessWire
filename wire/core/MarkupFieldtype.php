@@ -213,7 +213,9 @@ class MarkupFieldtype extends WireData implements Module {
 	 * 
 	 */	
 	protected function valueToString($value) {
-		if(WireArray::iterable($value)) {
+		if(is_object($value) && ($value instanceof Pagefiles || $value instanceof Pagefile)) {
+			return $this->objectToString($value);
+		} else if(WireArray::iterable($value)) {
 			return $this->arrayToString($value);
 		} else if(is_object($value)) {
 			return $this->objectToString($value);
@@ -247,14 +249,44 @@ class MarkupFieldtype extends WireData implements Module {
 	 * 
 	 */
 	protected function objectToString($value) {
+		if($value instanceof WireArray && !$value->count()) return '';
 		if($value instanceof Page) return $value->get('title|name');
-		$className = get_class($value); 
-		$out = (string) $value; 
-		if($out === $className) {
-			// just the class name probably isn't useful here, see if we can do do something else with it
-			$this->renderIsUseless = true; 
+		if($value instanceof Pagefiles || $value instanceof Pagefile) {
+			$out = $this->renderInputfieldValue($value);
+		} else {
+			$className = get_class($value);
+			$out = (string) $value;
+			if($out === $className) {
+				// just the class name probably isn't useful here, see if we can do do something else with it
+				$this->renderIsUseless = true;
+			}
 		}
 		return $out; 
+	}
+
+	/**
+	 * Render a value using an Inputfield's renderValue() method
+	 * 
+	 * @param $value
+	 * @return string
+	 * 
+	 */
+	protected function renderInputfieldValue($value) {
+		$field = $this->getField();
+		$page = $this->getPage();
+		if(!$page->id || !$field) return (string) $value;
+		/** @var Inputfield $inputfield */
+		$inputfield = $field->getInputfield($page);	
+		if(!$inputfield) return (string) $value;
+		$inputfield->columnWidth = 100;
+		$inputfield->attr('value', $value);
+		if(method_exists($inputfield, 'setField')) $inputfield->setField($field);
+		if(method_exists($inputfield, 'setPage')) $inputfield->setPage($page);
+		$wrapper = new InputfieldWrapper();
+		$wrapper->quietMode = true; 
+		$wrapper->add($inputfield);
+		$out = $wrapper->renderValue();
+		return $out; 	
 	}
 
 	/**

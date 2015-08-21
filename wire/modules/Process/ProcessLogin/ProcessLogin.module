@@ -309,6 +309,7 @@ class ProcessLogin extends Process {
 
 		// we'll retain an ID field in the GET url, if it was there
 		$this->form->attr('action', "./" . ($this->id ? "?id={$this->id}" : '')); 
+		$this->form->addClass('InputfieldFormFocusFirst');
 
 		$this->form->attr('id', $this->className() . 'Form'); 
 		$this->form->add($this->nameField); 

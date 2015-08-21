@@ -4,14 +4,15 @@
 	position: relative; 
 	cursor: move; 
 }
-
 	.content .InputfieldFile.InputfieldItemListCollapse ul.InputfieldFileList > li,
+	.Inputfields > li.InputfieldHasFileList.InputfieldRenderValue > .InputfieldContent > ul.InputfieldFileList > li,
 	.Inputfields > li.InputfieldFile.InputfieldItemListCollapse > .InputfieldContent > ul.InputfieldFileList > li {
 		/* items that have no text inputs */
+		/* or items that are in render value mode */
 		margin-bottom: 0.25em;
 	}
-	
-	.content ul.InputfieldFileList > li:last-child {
+	.content .Inputfields > .InputfieldItemList > .InputfieldContent > ul.InputfieldFileList > li:last-child {
+		/* last item needs no margin */
 		margin-bottom: 0;
 	}
 
@@ -19,7 +20,6 @@
 		/* ajax upload drag over */
 		background: none;
 	}
-
 
 	ul.InputfieldFileList li .InputfieldFileInfo, 
 	.AjaxUpload .InputfieldFileInfo {
@@ -170,3 +170,4 @@
 	display: block;
 	margin-top: 0.5em;
 }
+

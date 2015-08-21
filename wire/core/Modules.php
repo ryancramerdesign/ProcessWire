@@ -3228,7 +3228,7 @@ class Modules extends WireArray {
 					count($versionChanges)), count($versionChanges)) . 
 				' (' . $this->_('will be applied the next time each module is loaded') . '):' . 
 				'<pre>' . implode("\n", $versionChanges) . '</pre>', 
-				Notice::allowMarkup);
+				Notice::allowMarkup | Notice::debug);
 		}
 		
 		$this->updateModuleVersionsCache();
@@ -3254,7 +3254,7 @@ class Modules extends WireArray {
 	 * Check the module version to make sure it is consistent with our moduleInfo
 	 * 
 	 * When not consistent, this triggers the moduleVersionChanged hook, which in turn
-	 * triggeres the $module->___upgrade($fromVersion, $toVersion) method. 
+	 * triggers the $module->___upgrade($fromVersion, $toVersion) method. 
 	 * 
 	 * @param Module $module
 	 * 

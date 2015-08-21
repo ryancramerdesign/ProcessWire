@@ -34,6 +34,10 @@
         padding-left: 0; }
       #ProcessListerResults #ProcessListerTable > table > tbody > tr > td ul.MarkupFieldtype > li + li {
         border-top: 1px solid #eee; }
+    #ProcessListerResults #ProcessListerTable > table > tbody > tr > td > *:first-child, #ProcessListerResults #ProcessListerTable > table > tbody > tr > td .col_preview > *:first-child {
+      margin-top: 0; }
+    #ProcessListerResults #ProcessListerTable > table > tbody > tr > td > *:last-child, #ProcessListerResults #ProcessListerTable > table > tbody > tr > td .col_preview > *:last-child {
+      margin-bottom: 0; }
 #ProcessListerResults .PageListerActions {
   display: none;
   line-height: 1.3em;
@@ -61,6 +65,13 @@
   margin: 0; }
 #ProcessListerResults .datetime {
   white-space: nowrap; }
+#ProcessListerResults td:not(.col_editing) .InputfieldHasFileList .InputfieldHeader {
+  display: none; }
+#ProcessListerResults td:not(.col_editing) .InputfieldHasFileList .InputfieldContent {
+  padding: 5px;
+  border: none;
+  margin-top: 5px;
+  margin-bottom: 5px; }
 @media only screen and (max-width: 767px) {
   #ProcessListerResults table.ProcessListerTable + .MarkupPagerNav {
     margin-bottom: 1em; }
@@ -104,5 +115,8 @@
 p.version {
   clear: both;
   padding-top: 1em; }
+
+#ProcessListerScript {
+  display: none; }
 
 /*# sourceMappingURL=ProcessPageLister.css.map */

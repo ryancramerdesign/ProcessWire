@@ -1127,15 +1127,10 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 					}
 				}
 				$inputfield->attr('value', $value);
-				$inputfield->renderReady(null, true);
-				$value = $inputfield->renderValue();
-				if($value) $value = 
-					"<div class='Inputfields'>" . 
-						"<div class='Inputfield $inputfield->className $inputfield->wrapClass'>" . 
-							"<div class='InputfieldHeader'></div>" . 
-							"<div class='InputfieldContent'>" . $inputfield->renderValue() . "</div>" . 
-						"</div>" . 
-					"</div>";
+				$inputfield->skipLabel = Inputfield::skipLabelHeader;
+				$wrapper = new InputfieldWrapper();
+				$wrapper->add($inputfield);
+				$value = $wrapper->renderValue();
 			} else {
 				$value = '';
 			}
@@ -1504,6 +1499,9 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 			$out .= "<p id='ProcessListerSelector' class='notes'>" . $this->wire('sanitizer')->entities($this->finalSelector) . "</p>";
 			//$out .= "<p id='ProcessListerSelector' class='notes'>" . $this->wire('sanitizer')->entities($findSelector) . "</p>";
 		}
+		
+		$out .= $this->renderExternalAssets();
+		
 		return $out; 
 	}
 
@@ -1564,7 +1562,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		if($this->wire('config')->ajax) {
 			return $this->renderResults();
 		}
-
+		
 		if($this->wire('input')->get('reset')) {
 			return $this->executeReset();
 		}
@@ -1593,6 +1591,8 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 
 		if(!in_array('noButtons', $this->toggles)) $out .= $this->renderButtons();
 		$out .= $this->renderFooter();
+		
+		$this->prepareExternalAssets();
 		
 		return "<div id='ProcessLister'>$out</div>"; 
 	}
@@ -1649,6 +1649,102 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		$out = "<div id='ProcessListerRefreshTab' title='$refreshLabel' class='WireTab WireTabTip'></div>";
 		$out .= "<div id='ProcessListerResetTab' title='$resetLabel' class='WireTab WireTabTip'></div>";
 		return $out; 
+	}
+
+	/**
+	 * Prepare the session values for external assets
+	 * 
+	 * To be called during NON-ajax request only.
+	 *
+	 */
+	public function prepareExternalAssets() {
+		$config = $this->wire('config');
+		$loadedFiles = array();
+		$loadedJSConfig = array();
+		$regex = '!(Inputfield|Language|Fieldtype|Process|Markup|Jquery)!';
+		foreach($config->scripts as $file) {
+			if(!preg_match($regex, $file)) continue;
+			$loadedFiles[] = $file;
+		}
+		foreach($config->styles as $file) {
+			if(!preg_match($regex, $file)) continue;
+			$loadedFiles[] = $file;
+		}
+		foreach($config->js() as $key => $value) {
+			$loadedJSConfig[] = $key;
+		}
+		$this->sessionSet('loadedFiles', $loadedFiles);
+		$this->sessionSet('loadedJSConfig', $loadedJSConfig);
+	}
+
+	/**
+	 * Return a markup string with scripts that load external assets for an ajax request
+	 * 
+	 * To be used with ajax request only.
+	 *
+	 * @return string
+	 *
+	 */
+	public function renderExternalAssets() {
+
+		$script = '';
+		$regex = '!(Inputfield|Language|Fieldtype|Process|Markup|Jquery)!';
+		$scriptClose = '';
+		$loadedFiles = $this->sessionGet('loadedFiles');
+		$loadedFilesAdd = array();
+		$loadedJSConfig = $this->sessionGet('loadedJSConfig');
+		$config = $this->wire('config');
+		$out = '';
+
+		foreach($config->scripts as $file) {
+			if(strpos($file, 'ProcessPageLister')) continue;
+			if(!preg_match($regex, $file)) continue;
+			if(in_array($file, $loadedFiles)) {
+				// script was already loaded and can be skipped
+				// if($this->wire('config')->debug) $script .= "\nconsole.log('skip: $file');";
+			} else {
+				// new script that needs loading
+				//$script .= "\n<script src='$file'></script>";
+				if($script) $script .= "\n";
+				$script .= "$.getScript('$file', function(data, textStatus, jqxhr){";
+				// "console.log(textStatus); ";
+				$scriptClose .= "})";
+				$loadedFilesAdd[] = $file;
+			}
+		}
+		$script .= $scriptClose;
+
+		foreach($config->styles as $file) {
+			if(strpos($file, 'ProcessPageLister')) continue;
+			if(!preg_match($regex, $file)) continue;
+			if(!in_array($file, $loadedFiles)) {
+				$script .= "\n$('<link rel=\"stylesheet\" type=\"text/css\" href=\"$file\">').appendTo('head');"; // console.log('$file');</script>";
+				$loadedFilesAdd[] = $file;
+			}
+		}
+
+		if(count($loadedFilesAdd)) {
+			$loadedFiles = array_merge($loadedFiles, $loadedFilesAdd);
+			$this->sessionSet('loadedFiles', $loadedFiles);
+		}
+
+		$jsConfig = array();
+		foreach($this->wire('config')->js() as $property => $value) {
+			if(!in_array($property, $loadedJSConfig)) {
+				$loadedJSConfig[] = $property;
+				$jsConfig[$property] = $value;
+			}
+		}
+
+		if(count($jsConfig)) {
+			$script .= "\n\n" . 'var configAdd=';
+			$script .= json_encode($jsConfig) . ';';
+			$script .= "\n\n" . '$.extend(config, configAdd);';
+			//$script .= "console.log(configAdd);";
+			$this->sessionSet('loadedJSConfig', $loadedJSConfig);
+		}
+
+		return "<div id='ProcessListerScript'>$script</div>";
 	}
 
 	/**

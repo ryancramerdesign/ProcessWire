@@ -104,6 +104,7 @@
 	background: none; 
 }
 
+.PageList .PageListStatusUnpublished a.PageListPage > span, 
 .PageList .PageListStatusUnpublished a.PageListPage {
 	text-decoration: line-through; 
 }

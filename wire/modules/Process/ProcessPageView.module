@@ -413,24 +413,41 @@ class ProcessPageView extends Process {
 		if($pageNum > 1 || count($urlSegments)) {
 			$hasTrailingSlash = substr($this->requestURL, -1) == '/';
 			// $url=URL with urlSegments and no trailing slash
-			$url = rtrim(rtrim($page->url, '/') . '/' . $this->input->urlSegmentStr, '/');
+			// $url = rtrim(rtrim($page->url, '/') . '/' . $this->input->urlSegmentStr, '/');
+			$redirectPath = null;
 			if($pageNum > 1 && $page->template->slashPageNum) {
 				if($page->template->slashPageNum == 1 && !$hasTrailingSlash) {
 					// enforce trailing slash on page numbers
-					$this->redirectURL = "$url/$this->pageNumPrefix$pageNum/";
+					//$this->redirectURL = "$url/$this->pageNumPrefix$pageNum/";
+					$redirectPath = "/$this->pageNumPrefix$pageNum/";
 				} else if($page->template->slashPageNum == -1 && $hasTrailingSlash) {
 					// enforce NO trailing slash on page numbers
-					$this->redirectURL =  "$url/$this->pageNumPrefix$pageNum";
+					// $this->redirectURL =  "$url/$this->pageNumPrefix$pageNum";
+					$redirectPath = "/$this->pageNumPrefix$pageNum";
 				}
 				
 			} else if(count($urlSegments) && $page->template->slashUrlSegments) {
 				if($page->template->slashUrlSegments == 1 && !$hasTrailingSlash) {
 					// enforce trailing slash with URL segments
-					$this->redirectURL = "$url/";
+					// $this->redirectURL = "$url/";
+					$redirectPath = "/";
+					
 				} else if($page->template->slashUrlSegments == -1 && $hasTrailingSlash) {
 					// enforce no trailing slash with URL segments
-					$this->redirectURL = $url;
+					// $this->redirectURL = $url;
+					$redirectPath = "";
 				}
+			}
+			
+			if($redirectPath !== null) {
+				// redirect will occur to a proper slash format
+				if($this->wire('modules')->isInstalled('LanguageSupportPageNames')) {
+					// ensure that LanguageSupportPageNames reaches a ready() state, since 
+					// it can modify the output of $page->url (if installed)
+					$this->wire('page', $page);
+					$this->wire('modules')->get('LanguageSupportPageNames')->ready();
+				}
+				$this->redirectURL = rtrim(rtrim($page->url, '/') . '/' . $this->input->urlSegmentStr, '/') . $redirectPath;
 			}
 		}
 

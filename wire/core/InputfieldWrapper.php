@@ -18,6 +18,7 @@
  * containing content that will be rendered before the wrapper.
  *
  * @property bool $renderValueMode True when only rendering values, i.e. no inputs (default=false)
+ * @property bool $quietMode True to suppress label, description and notes, often combined with renderValueMode (default=false)
  * @property int $columnWidthSpacing Percentage spacing between columns or 0 for none. Default pulled from $config->inputfieldColumnWidthSpacing.
  * @property bool $useDependencies Whether or not to consider dependencies during processing (default=true)
  * @property bool|null $InputfieldWrapper_isPreRendered Whether or not children have been pre-rendered (internal use only)
@@ -107,6 +108,7 @@ class InputfieldWrapper extends Inputfield implements Countable, IteratorAggrega
 		$settings = $this->wire('config')->InputfieldWrapper; 
 		if(is_array($settings)) foreach($settings as $key => $value) $this->set($key, $value);
 		$this->set('renderValueMode', false); 
+		$this->set('quietMode', false); // suppress label, description and notes
 	}
 
 	/**
@@ -235,11 +237,17 @@ class InputfieldWrapper extends Inputfield implements Countable, IteratorAggrega
 	/**
 	 * Remove an Inputfield from this Inputfield's children
 	 * 
-	 * @param Inputfield $item
+	 * @param Inputfield|string $item Inputfield or inputfield name
 	 * @return this
 	 *
 	 */
 	public function remove($item) {
+		if(!$item) return $this;
+		if(!$item instanceof Inputfield) {
+			if(!is_string($item)) return $this;
+			$item = $this->getChildByName($item);	
+			if(!$item) return $this;
+		}
 		if($this->children->has($item)) {
 			$this->children->remove($item);
 		} if($this->getChildByName($item->attr('name')) && $item->parent) {
@@ -305,7 +313,7 @@ class InputfieldWrapper extends Inputfield implements Countable, IteratorAggrega
 		}
 	
 		// show description for tabs
-		$description = $this->getSetting('description'); 
+		$description = $this->quietMode ? '' : $this->getSetting('description'); 
 		if($description && class_exists("InputfieldFieldsetTabOpen") && $this instanceof InputfieldFieldsetTabOpen) {
 			$out .= str_replace('{out}', nl2br($this->entityEncode($description, true)), $_markup['item_head']);
 		}
@@ -349,10 +357,12 @@ class InputfieldWrapper extends Inputfield implements Countable, IteratorAggrega
 		
 			foreach(array('error', 'description', 'head', 'notes') as $property) {
 				$text = $property == 'error' ? $errorsOut : $inputfield->getSetting($property); 
-				if(!empty($text)) {
+				if(!empty($text) && !$this->quietMode) {
 					$text = nl2br($this->entityEncode($text, true));
 					$text = str_replace('{out}', $text, $markup["item_$property"]);
-				} else $text = '';
+				} else {
+					$text = '';
+				}
 				$_property = '{' . $property . '}';
 				if(strpos($markup['item_content'], $_property) !== false) {
 					$markup['item_content'] = str_replace($_property, $text, $markup['item_content']);
@@ -434,13 +444,13 @@ class InputfieldWrapper extends Inputfield implements Countable, IteratorAggrega
 				$attrs = '';
 				$label = $inputfield->getSetting('label');
 				if(!strlen($label) && $inputfield->skipLabel != Inputfield::skipLabelBlank) $label = $inputfield->attr('name');
-				if($label) {
-					$for = $inputfield->skipLabel ? '' : $inputfield->attr('id');
+				if($label || $this->quietMode) {
+					$for = $inputfield->skipLabel || $this->quietMode ? '' : $inputfield->attr('id');
 					// if $inputfield has a property of entityEncodeLabel with a value of boolean FALSE, we don't entity encode
 					if($inputfield->entityEncodeLabel !== false) $label = $this->entityEncode($label);
 					$icon = $inputfield->icon ? str_replace('{name}', $this->sanitizer->name(str_replace(array('icon-', 'fa-'), '', $inputfield->icon)), $markup['item_icon']) : ''; 
 					$toggle = $collapsed == Inputfield::collapsedNever ? '' : $markup['item_toggle']; 
-					if($inputfield->skipLabel === Inputfield::skipLabelHeader) {
+					if($inputfield->skipLabel === Inputfield::skipLabelHeader || $this->quietMode) {
 						// label only shows when field is collapsed
 						$label = str_replace('{out}', $icon . $label . $toggle, $markup['item_label_hidden']); 
 					} else {

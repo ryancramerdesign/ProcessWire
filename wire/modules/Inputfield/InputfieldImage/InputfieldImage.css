@@ -105,6 +105,8 @@
 	padding-right: 1em; 
 	position: relative;
 }
+
+.InputfieldImage.InputfieldRenderValue .InputfieldHeader .InputfieldImageListToggle,
 .InputfieldStateCollapsed .InputfieldHeader .InputfieldImageListToggle {
 	display: none; 
 }

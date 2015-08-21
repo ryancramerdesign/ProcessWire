@@ -58,7 +58,7 @@ jQuery(document).ready(function($) {
 		var email = $form.find(".CommentFormEmail input").val();
 		var $website = $form.find(".CommentFormWebsite input");
 		var website = $website.length > 0 ? $website.val() : '';
-		var $notify = $form.find(".CommentFormNotify :input");
+		var $notify = $form.find(".CommentFormNotify :checked");
 		var notify = $notify.length > 0 ? $notify.val() : '';
 		if(cite.indexOf('|') > -1) cite = '';
 		if(email.indexOf('|') > -1) email = '';
@@ -75,7 +75,7 @@ jQuery(document).ready(function($) {
 		$form.find(".CommentFormCite input").val(values[0]);
 		$form.find(".CommentFormEmail input").val(values[1]);
 		$form.find(".CommentFormWebsite input").val(values[2]);
-		$form.find(".CommentFormNotify :input").val(values[3]);
+		$form.find(".CommentFormNotify :input[value=" + values[3] + "]").attr('checked', 'checked');
 	}
 
 	// upvoting and downvoting

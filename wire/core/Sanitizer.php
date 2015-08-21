@@ -15,6 +15,8 @@
  * http://processwire.com
  *
  * @link http://processwire.com/api/variables/sanitizer/ Offical $sanitizer API variable Documentation
+ * 
+ * @method array($value, $sanitizer = null, array $options = array())
  *
  */
 
@@ -48,6 +50,11 @@ class Sanitizer extends Wire {
 		$this->allowedASCII = str_split('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789');
 	}
 
+	/*************************************************************************************************************
+	 * STRING SANITIZERS
+	 * 
+	 */
+
 	/**
 	 * Internal filter used by other name filtering methods in this class
 	 *
@@ -63,8 +70,7 @@ class Sanitizer extends Wire {
 		
 		static $replacements = array();
 
-		if(!is_string($value)) $value = (string) $value;
-		
+		if(!is_string($value)) $value = $this->string($value);
 		$allowed = array_merge($this->allowedASCII, $allowedExtras); 
 		$needsWork = strlen(str_replace($allowed, '', $value));
 		$extras = implode('', $allowedExtras);
@@ -95,11 +101,12 @@ class Sanitizer extends Wire {
 		if($needsWork) {
 			$value = str_replace(array("'", '"'), '', $value); // blank out any quotes
 			$value = filter_var($value, FILTER_SANITIZE_STRING, FILTER_FLAG_STRIP_LOW | FILTER_FLAG_STRIP_HIGH | FILTER_FLAG_NO_ENCODE_QUOTES);
-			$chars = $extras . 'a-zA-Z0-9';
-			if(in_array('-', $allowedExtras) && strpos($chars, '-') !== 0) {
-				// if hyphen present, ensure its first (per PCRE requirements)
-				$chars = '-' . str_replace('-', '', $chars);
+			$hyphenPos = strpos($extras, '-');
+			if($hyphenPos !== false && $hyphenPos !== 0) {
+				// if hyphen present, ensure it's first (per PCRE requirements)
+				$extras = '-' . str_replace('-', '', $extras);
 			}
+			$chars = $extras . 'a-zA-Z0-9';
 			$value = preg_replace('{[^' . $chars . ']}', $replacementChar, $value);
 		}
 
@@ -283,12 +290,6 @@ class Sanitizer extends Wire {
 	 */
 	public function username($value) {
 		return $this->pageName($value); 
-		/*
-		$value = trim($value); 
-		if(strlen($value) > 128) $value = substr($value, 0, 128); 
-		if(ctype_alnum(str_replace(array('-', '_', '.', '@'), '', $value))) return $value; 
-		return preg_replace('/[^-_.@a-zA-Z0-9]/', '_', trim($value)); 
-		*/
 	}
 
 	/**
@@ -304,6 +305,7 @@ class Sanitizer extends Wire {
 	 */
 	public function filename($value, $beautify = false, $maxLength = 128) {
 
+		if(!is_string($value)) return '';
 		$value = basename($value); 
 		
 		if(strlen($value) > $maxLength) {
@@ -346,6 +348,7 @@ class Sanitizer extends Wire {
 	 *
 	 */
 	public function path($value, $options = array()) {
+		if(!is_string($value)) return false;
 		if(is_int($options)) $options = array('maxLength' => $options); 
 		$defaults = array(
 			'allowDotDot' => false,
@@ -406,6 +409,7 @@ class Sanitizer extends Wire {
 	 *
 	 */ 
 	public function emailHeader($value) {
+		if(!is_string($value)) return '';
 		$a = array("\n", "\r", "<CR>", "<LF>", "0x0A", "0x0D", "%0A", "%0D", 'content-type:', 'bcc:', 'cc:', 'to:', 'reply-to:'); 
 		return trim(str_ireplace($a, ' ', $value));
 	}
@@ -431,6 +435,8 @@ class Sanitizer extends Wire {
 			);
 
 		$options = array_merge($defaultOptions, $options); 
+		
+		if(!is_string($value)) $value = $this->string($value);
 
 		if(!$options['multiLine']) $value = str_replace(array("\r", "\n"), " ", $value); 
 
@@ -470,6 +476,8 @@ class Sanitizer extends Wire {
 	 *
 	 */
 	public function textarea($value, $options = array()) {
+		
+		if(!is_string($value)) $value = $this->string($value);
 
 		if(!isset($options['multiLine'])) $options['multiLine'] = true; 	
 		if(!isset($options['maxLength'])) $options['maxLength'] = 16384; 
@@ -523,6 +531,7 @@ class Sanitizer extends Wire {
 
 		$options = array_merge($defaultOptions, $options);
 
+		if(!is_string($value)) $value = $this->string($value);
 		if(!strlen($value)) return '';
 		
 		$scheme = parse_url($value, PHP_URL_SCHEME); 
@@ -615,6 +624,7 @@ class Sanitizer extends Wire {
 	 */
 	public function selectorValue($value, $maxLength = 100) {
 
+		if(!is_string($value)) $value = $this->string($value);
 		$value = trim($value); 
 		$quoteChar = '"';
 		$needsQuotes = false; 
@@ -699,6 +709,7 @@ class Sanitizer extends Wire {
 	 *
 	 */
 	public function entities($str, $flags = ENT_QUOTES, $encoding = 'UTF-8', $doubleEncode = true) {
+		if(!is_string($str)) $str = $this->string($str);
 		return htmlentities($str, $flags, $encoding, $doubleEncode); 
 	}
 	
@@ -712,6 +723,7 @@ class Sanitizer extends Wire {
 	 *
 	 */
 	public function entities1($str, $flags = ENT_QUOTES, $encoding = 'UTF-8') {
+		if(!is_string($str)) $str = $this->string($str);
 		return htmlentities($str, $flags, $encoding, false);
 	}
 	
@@ -799,6 +811,7 @@ class Sanitizer extends Wire {
 	 *
 	 */
 	public function unentities($str, $flags = ENT_QUOTES, $encoding = 'UTF-8') {
+		if(!is_string($str)) $str = $this->string($str);
 		return html_entity_decode($str, $flags, $encoding); 
 	}
 
@@ -818,9 +831,9 @@ class Sanitizer extends Wire {
 
 	/**
 	 * Purify HTML markup using HTML Purifier
-	 * 
+	 *
 	 * See: http://htmlpurifier.org
-	 * 
+	 *
 	 * @param string $str String to purify
 	 * @param array $options See config options at: http://htmlpurifier.org/live/configdoc/plain.html
 	 * @return string
@@ -830,34 +843,519 @@ class Sanitizer extends Wire {
 	public function purify($str, array $options = array()) {
 		static $purifier = null;
 		static $_options = array();
-		if(!is_string($str)) throw new WireException("Sanitizer::purify requires a string"); 
+		if(!is_string($str)) $str = $this->string($str);
 		if(is_null($purifier) || print_r($options, true) != print_r($_options, true)) {
 			$purifier = $this->purifier($options);
-			$_options = $options; 
+			$_options = $options;
 		}
-		return $purifier->purify($str); 
+		return $purifier->purify($str);
 	}
 
 	/**
+	 * Return a new HTML Purifier instance
+	 *
+	 * See: http://htmlpurifier.org
+	 *
+	 * @param array $options See config options at: http://htmlpurifier.org/live/configdoc/plain.html
+	 * @return MarkupHTMLPurifier
+	 *
+	 */
+	public function purifier(array $options = array()) {
+		$purifier = $this->wire('modules')->get('MarkupHTMLPurifier');
+		foreach($options as $key => $value) $purifier->set($key, $value);
+		return $purifier;
+	}
+
+	/**
+	 * Sanitize value to string
+	 *
+	 * Note that this makes no assumptions about what is a "safe" string, so you should always apply another
+	 * sanitizer to it.
+	 *
+	 * @param string|int|array|object|bool|float $value
+	 * @param string|null Optional sanitizer method (from this class) to apply to the string before returning
+	 * @return string
+	 *
+	 */
+	public function string($value, $sanitizer = null) {
+		if(is_object($value)) {
+			if(method_exists($value, '__toString')) {
+				$value = (string) $value;
+			} else {
+				$value = get_class($value);
+			}
+		} else if(is_null($value)) {
+			$value = "";
+		} else if(is_bool($value)) {
+			$value = $value ? "1" : "";
+		}
+		if(is_array($value)) $value = "array-" . count($value);
+		if(!is_string($value)) $value = (string) $value;
+		if(!is_null($sanitizer)) {
+			$value = $this->$sanitizer($value);
+			if(!is_string($value)) $value = (string) $value;
+		}
+		return $value;
+	}
+
+	/**
+	 * Sanitize a date or date/time string, making sure it is valid, and return it
+	 *
+	 * If no dateFormat is specified, date will be returned as a unix timestamp.
+	 * If given date is invalid or empty, NULL will be returned.
+	 * If $value is an integer or string of all numbers, it is always assumed to be a unix timestamp.
+	 *
+	 * @param string|int $value Date string or unix timestamp
+	 * @param string|null $dateFormat Format of date string ($value) in any wireDate(), date() or strftime() format.
+	 * @param array $options Options to modify behavior:
+	 * 	- returnFormat: wireDate() format to return date in. If not specified, then the $format argument is used.
+	 * 	- min: Minimum allowed date in $format or unix timestamp format. Null is returned when date is less than this.
+	 * 	- max: Maximum allowed date in $format or unix timestamp format. Null is returned when date is more than this.
+	 * 	- default: Default value to return if no value specified.
+	 * @return string|int|null
+	 *
+	 */
+	public function date($value, $format = null, array $options = array()) {
+		$defaults = array(
+			'returnFormat' => $format, // date format to return in, if different from $dateFormat
+			'min' => '', // Minimum date allowed (in $dateFormat format, or a unix timestamp) 
+			'max' => '', // Maximum date allowed (in $dateFormat format, or a unix timestamp)
+			'default' => null, // Default value, if date didn't resolve
+		);
+		$options = array_merge($defaults, $options);
+		if(empty($value)) return $options['default'];
+		if(!is_string($value) && !is_int($value)) $value = $this->string($value);
+		if(ctype_digit("$value")) {
+			// value is in unix timestamp format
+			$ts = (int) $value;
+			// make sure it resolves to a valid date
+			$value = date('Y-m-d H:i:s', $ts);
+			$value = strtotime($ts);
+		} else {
+			if(!is_string($value)) $value = $this->string($value);
+		}
+		// value is now a unix timestamp
+		if(empty($value)) return null;
+		if(!empty($options['min'])) {
+			// if value is less than minimum required, return null/error
+			$min = ctype_digit("$options[min]") ? (int) $options['min'] : (int) wireDate('ts', $options['min']);
+			if($value < $min) return null;
+		}
+		if(!empty($options['max'])) {
+			// if value is more than max allowed, return null/error
+			$min = ctype_digit("$options[max]") ? (int) $options['max'] : (int) wireDate('ts', $options['max']);
+			if($value > $max) return null;
+		}
+		if(!empty($options['returnFormat'])) $value = wireDate($options['returnFormat'], $value);
+		return empty($value) ? null : $value;
+	}
+
+	/**
+	 * Validate that $value matches regex pattern. If it does, value is returned. If not, blank is returned.
+	 * 
+	 * @param string $value
+	 * @param string $pattern PCRE regex pattern (same as you would provide to preg_match)
+	 * @return string
+	 * 
+	 */
+	public function match($value, $regex) {
+		if(!is_string($value)) $value = $this->string($value);
+		return preg_match($regex, $value) ? $value : '';
+	}
+
+	/*************************************************************************************************************************
+	 * NUMBER SANITIZERS
+	 * 
+	 */
+
+	/**
+	 * Sanitized an integer (unsigned, unless you specify a negative minimum value)
+	 * 
+	 * @param mixed $value
+	 * @param array $options Optionally specify any one or more of the following to modify behavior: 
+	 * 	- min (int|null) Minimum allowed value (default=0)
+	 *  - max (int|null) Maximum allowed value (default=PHP_INT_MAX)
+	 * 	- blankValue (mixed) Value that you want to use when provided value is null or blank string (default=0)
+	 * @return int Returns integer, or specified blankValue (which doesn't necessarily have to be an integer)
+	 * 
+	 */	
+	public function int($value, array $options = array()) {
+		$defaults = array(
+			'min' => 0, 
+			'max' => PHP_INT_MAX,
+			'blankValue' => 0,
+		);
+		$options = array_merge($defaults, $options);
+		if(is_null($value) || $value === "") return $options['blankValue'];
+		if(is_object($value)) $value = 1;
+		$value = (int) $value; 
+		if(!is_null($options['min']) && $value < $options['min']) {
+			$value = (int) $options['min'];
+		} else if(!is_null($options['max']) && $value > $options['max']) {
+			$value = (int) $max;
+		}
+		return $value;
+	}
+
+	/**
+	 * Sanitize to unsigned (0 or positive) integer
+	 * 
+	 * This is an alias to the int() method with default min/max arguments
+	 * 
+	 * @param mixed $value
+	 * @param array $options Optionally specify any one or more of the following to modify behavior:
+	 * 	- min (int|null) Minimum allowed value (default=0)
+	 *  - max (int|null) Maximum allowed value (default=PHP_INT_MAX)
+	 * 	- blankValue (mixed) Value that you want to use when provided value is null or blank string (default=0)
+	 * @return int Returns integer, or specified blankValue (which doesn't necessarily have to be an integer)
+	 * @return int
+	 * 
+	 */
+	public function intUnsigned($value, array $options = array()) {
+		return $this->int($value, $options);
+	}
+
+	/**
+	 * Sanitize to signed integer (negative or positive)
+	 *
+	 * @param mixed $value
+	 * @param int|null $min Minimum allowed value (default=PHP_INT_MAX * -1)
+	 * @param int|null $max Maximum allowed value (default=PHP_INT_MAX)
+	 * @param array $options Optionally specify any one or more of the following to modify behavior:
+	 * 	- min (int|null) Minimum allowed value (default=negative PHP_INT_MAX)
+	 *  - max (int|null) Maximum allowed value (default=PHP_INT_MAX)
+	 * 	- blankValue (mixed) Value that you want to use when provided value is null or blank string (default=0)
+	 * @return int
+	 *
+	 */
+	public function intSigned($value, array $options = array()) {
+		if(!isset($options['min'])) $options['min'] = PHP_INT_MAX * -1;
+		return $this->int($value, $options);
+	}
+
+	/**
+	 * Sanitize to floating point value
+	 * 
+	 * @param float|string|int $value
+	 * @param array $options Optionally specify one or more options in an associative array:
+	 * 	- precision (int|null): Optional number of digits to round to (default=null)
+	 * 	- mode (int): Mode to use for rounding precision (default=PHP_ROUND_HALF_UP);
+	 * 	- blankValue (null|int|string|float): Value to return (whether float or non-float) if provided $value is an empty non-float (default=0.0)
+	 * 	- min (float|null): Minimum allowed value, excluding blankValue (default=null)
+	 * 	- max (float|null): Maximum allowed value, excluding blankValue (default=null)
+	 * @return float
+	 * 
+	 */
+	public function float($value, array $options = array()) {
+		
+		$defaults = array(
+			'precision' => null, // Optional number of digits to round to 
+			'mode' => PHP_ROUND_HALF_UP, // Mode to use for rounding precision (default=PHP_ROUND_HALF_UP)
+			'blankValue' => 0.0, // Value to return (whether float or non-float) if provided $value is an empty non-float (default=0.0)
+			'min' => null, // Minimum allowed value (excluding blankValue)
+			'max' => null, // Maximum allowed value (excluding blankValue)
+		);
+		
+		$options = array_merge($defaults, $options);
+	
+		if($value === null || $value === false) return $options['blankValue'];
+		if(!is_float($value) && !is_string($value)) $value = $this->string($value);
+
+		if(is_string($value)) {
+			
+			$str = trim($value);
+			$prepend = '';
+			if(strpos($str, '-') === 0) {
+				$prepend = '-';
+				$str = ltrim($str, '-');
+			}
+		
+			if(!strlen($str)) return $options['blankValue'];
+
+			$dotPos = strrpos($str, '.');
+			$commaPos = strrpos($str, ',');
+			$decimalType = substr(floatval("9.9"), 1, 1);
+			$pos = null;
+
+			if($dotPos === 0 || ($commaPos === 0 && $decimalType == ',')) {
+				// .123 or ,123
+				$value = "0." . ltrim($str, ',.');
+
+			} else if($dotPos > $commaPos) {
+				// 123123.123
+				// 123,123.123
+				// dot assumed to be decimal
+				$pos = $dotPos;
+
+			} else if($commaPos > $dotPos) {
+				// 123,123
+				// 123123,123
+				// 123.123,123
+				if($dotPos === false && $decimalType === '.' && preg_match('/^\d+(,\d{3})+([^,]|$)/', $str)) {
+					// US or GB style thousands separator with commas separating 3 digit sequences
+					$pos = strlen($str);
+				} else {
+					// the rest of the world 
+					$pos = $commaPos;
+				}
+
+			} else {
+				$value = preg_replace('/[^0-9]/', '', $str);
+			}
+
+			if($pos !== null) {
+				$value =
+					// part before dot
+					preg_replace('/[^0-9]/', '', substr($str, 0, $pos)) . '.' .
+					// part after dot
+					preg_replace('/[^0-9]/', '', substr($str, $pos + 1));
+			}
+
+			$value = floatval($prepend . $value);
+		}
+		
+		if(!is_float($value)) $value = (float) $value;
+		if(!is_null($options['min']) && $value < $options['min']) $value = $options['min'];
+		if(!is_null($options['max']) && $value > $options['max']) $value = $options['max'];
+		if(!is_null($options['precision'])) $value = round($value, (int) $options['precision'], (int) $options['mode']);
+		
+		return $value;
+	}
+
+	/***********************************************************************************************************************
+	 * ARRAY SANITIZERS
+	 * 
+	 */
+
+	/**
+	 * Sanitize array or CSV string to array of strings
+	 *
+	 * If string specified, string delimiter may be pipe ("|"), or comma (","), unless overridden with the 'delimiter'
+	 * or 'delimiters' option. 
+	 *
+	 * @param array|string|mixed $value Accepts an array or CSV string. If given something else, it becomes first item in array.
+	 * @param string $sanitizer Optional Sanitizer method to apply to items in the array (default=null, aka none)
+	 * @param array $options Optional modifications to default behavior:
+	 * 	- maxItems (int): Maximum items allowed in array (default=0, which means no limit)
+	 * 	The following options are only used if the provided $value is a string: 
+	 * 	- delimiter (string): Single delimiter to use to identify CSV strings. Overrides the 'delimiters' option when specified (default=null)
+	 * 	- delimiters (array): Delimiters to identify CSV strings. First found delimiter will be used, default=array("|", ",")
+	 * 	- enclosure (string): Enclosure to use for CSV strings (default=double quote, i.e. ")
+	 * @return array
+	 * @throws WireException if an unknown $sanitizer method is given
+	 *
+	 */
+	public function ___array($value, $sanitizer = null, array $options = array()) {
+		$defaults = array(
+			'delimiter' => null, 
+			'delimiters' => array('|', ','),
+			'enclosure' => '"', 
+			'maxItems' => 0, 
+		);
+		$options = array_merge($defaults, $options);
+		if(!is_array($value)) {
+			if(is_object($value)) {
+				// value is object: convert to string or array
+				if(method_exists($value, '__toString')) {
+					$value = (string) $value;
+				} else {
+					$value = array(get_class($value));
+				}
+			}
+			if(is_string($value)) {
+				// value is string
+				$hasDelimiter = null;
+				$delimiters = is_null($options['delimiter']) ? $options['delimiters'] : array($options['delimiter']);
+				foreach($delimiters as $delimiter) {
+					if(strpos($value, $delimiter)) {
+						$hasDelimiter = $delimiter;
+						break;
+					}
+				}
+				if($hasDelimiter !== null) {
+					$value = str_getcsv($value, $hasDelimiter, $options['enclosure']);
+				} else {
+					$value = array($value);
+				}
+			}
+			if(!is_array($value)) $value = array($value);
+		}
+		if($options['maxItems']) {
+			if(count($value) > $options['maxItems']) $value = array_slice($value, 0, abs($options['maxItems']));	
+		}
+		$clean = array();
+		if(!is_null($sanitizer)) {
+			if(!method_exists($this, $sanitizer) && !method_exists($this, "___$sanitizer")) {
+				throw new WireException("Unknown sanitizer method: $sanitizer");
+			}
+			foreach($value as $k => $v) {
+				$clean[$k] = $this->$sanitizer($v);
+			}
+		} else {
+			$clean = $value;
+		}
+		return array_values($clean);
+	}
+	
+	/**
+	 * Sanitize array or CSV string to array of unsigned integers (or signed if specified $min is less than 0)
+	 *
+	 * If string specified, string delimiter may be comma (","), or pipe ("|"), or you may override with the 'delimiter' option.
+	 *
+	 * @param array|string|mixed $value Accepts an array or CSV string. If given something else, it becomes first value in array.
+	 * @param array $options Optional options (see ___array() and int() methods for options), plus these two: 
+	 * 	- min (int) Minimum allowed value (default=0)
+	 * 	- max (int) Maximum allowed value (default=PHP_INT_MAX)
+	 * @return array
+	 *
+	 */
+	public function intArray($value, array $options = array()) {
+		if(!is_array($value)) {
+			$value = $this->___array($value, null, $options);
+		}
+		$clean = array();
+		foreach($value as $k => $v) {
+			$clean[$k] = $this->int($v, $options);
+		}
+		return array_values($clean);
+	}
+
+	/**
+	 * Return $value if it exists in $allowedValues, or null if it doesn't
+	 *
+	 * @param string|int $value
+	 * @param array $allowedValues Whitelist of option values that are allowed
+	 * @return string|int|null
+	 *
+	 */
+	public function option($value, array $allowedValues) {
+		$key = array_search($value, $allowedValues);
+		if($key === false) return null;
+		return $options[$key];
+	}
+
+	/**
+	 * Return given values that that also exist in $allowedValues whitelist
+	 *
+	 * @param array $values
+	 * @param array $allowedValues Whitelist of option values that are allowed
+	 * @return array
+	 *
+	 */
+	public function options(array $values, array $allowedValues) {
+		$a = array();
+		foreach($values as $value) {
+			$key = array_search($value, $allowedValues);
+			if($key !== false) $a[] = $allowedValues[$key];
+		}
+		return $a;
+	}
+
+	/****************************************************************************************************************************
+	 * OTHER SANITIZERS
+	 * 
+	 */
+
+	/**
+	 * Convert the given value to a boolean
+	 * 
+	 * @param $value
+	 * @return bool
+	 * 
+	 */
+	public function bool($value) {
+		if(is_string($value)) {
+			$value = trim(strtolower($value));
+			$length = strlen($value);
+			if(!$length) return false;
+			if($value === "0") return false;
+			if($value === "1") return true; 
+			if($value === "false") return false;
+			if($value === "true") return true;
+			if($length) return true; 
+		} else if(is_object($value)) {
+			$value = $this->string($value);
+		} else if(is_array($value)) {
+			$value = count($value) ? true : false;
+		}
+		return (bool) $value;
+	}
+
+	/**
+	 * Run value through all sanitizers, return array indexed by sanitizer name and resulting value
+	 * 
+	 * Used for debugging and testing purposes. 
+	 * 
+	 * @param $value
+	 * @return array
+	 * 
+	 */
+	public function testAll($value) {
+		$sanitizers = array(
+			'name',
+			'names',
+			'varName',
+			'fieldName',
+			'templateName',
+			'pageName',
+			'pageNameTranslate',
+			'filename',
+			'path', 
+			'pagePathName',
+			'email',
+			'emailHeader',
+			'text',
+			'textarea',
+			'url',
+			'selectorField',
+			'selectorValue',
+			'entities',
+			'entities1',
+			'unentities',
+			'entitiesMarkdown',
+			'purify',
+			'string',
+			'date',
+			'int',
+			'intUnsigned',
+			'intSigned',
+			'float',
+			'array',
+			'intArray',
+			'bool',
+		);
+		$results = array();
+		foreach($sanitizers as $method) {
+			$results[$method] = $this->$method($value);	
+		}
+		return $results;
+	}
+
+	/**********************************************************************************************************************
+	 * FILE VALIDATORS
+	 *
+	 */
+
+	/**
 	 * Validate a file using FileValidator modules
-	 * 
-	 * Note that this is intended for validating file data, not file names. 
-	 * 
-	 * IMPORTANT: This method returns NULL if it can't find a validator for the file. This does 
-	 * not mean the file is invalid, just that it didn't have the tools to validate it. 
-	 * 
+	 *
+	 * Note that this is intended for validating file data, not file names.
+	 *
+	 * IMPORTANT: This method returns NULL if it can't find a validator for the file. This does
+	 * not mean the file is invalid, just that it didn't have the tools to validate it.
+	 *
 	 * @param $filename Full path and filename to validate
 	 * @param array $options If available, provide array with any one or all of the following:
 	 * 	'page' => Page object associated with $filename
 	 * 	'field' => Field object associated with $filename
 	 * 	'pagefile' => Pagefile object associated with $filename
 	 * @return bool|null Returns TRUE if valid, FALSE if not, or NULL if no validator available for given file type.
-	 * 
+	 *
 	 */
 	public function validateFile($filename, array $options = array()) {
 		$defaults = array(
 			'page' => null,
-			'field' => null, 
+			'field' => null,
 			'pagefile' => null,
 		);
 		$options = array_merge($defaults, $options);
@@ -869,7 +1367,7 @@ class Sanitizer extends Wire {
 			if(empty($info) || empty($info['validates'])) continue;
 			foreach($info['validates'] as $ext) {
 				if($ext[0] == '/') {
-					if(!preg_match($ext, $extension)) continue;		
+					if(!preg_match($ext, $extension)) continue;
 				} else if($ext !== $extension) {
 					continue;
 				}
@@ -889,23 +1387,9 @@ class Sanitizer extends Wire {
 				}
 			}
 		}
-		return $isValid;	
+		return $isValid;
 	}
 
-	/**
-	 * Return a new HTML Purifier instance
-	 *
-	 * See: http://htmlpurifier.org
-	 *
-	 * @param array $options See config options at: http://htmlpurifier.org/live/configdoc/plain.html
-	 * @return MarkupHTMLPurifier
-	 *
-	 */
-	public function purifier(array $options = array()) {
-		$purifier = $this->wire('modules')->get('MarkupHTMLPurifier');
-		foreach($options as $key => $value) $purifier->set($key, $value); 
-		return $purifier;
-	}
 
 	public function __toString() {
 		return "Sanitizer";

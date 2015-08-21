@@ -461,16 +461,17 @@ class Templates extends WireSaveableItems {
 	 *
 	 */
 	public function getParentPage(Template $template, $checkAccess = false, $getAll = false) {
-
-		if($template->noShortcut || !count($template->parentTemplates)) return null;
-		if($template->noParents == -1) {
-			// only 1 page of this type allowed 
-			if($this->getNumPages($template) > 0) return null;
-		} else if($template->noParents == 1) {
-			return null;
-		}
+		
 		$foundParent = null;
 		$foundParents = $getAll ? new PageArray() : null;
+
+		if($template->noShortcut || !count($template->parentTemplates)) return $foundParents;
+		if($template->noParents == -1) {
+			// only 1 page of this type allowed 
+			if($this->getNumPages($template) > 0) return $foundParents;
+		} else if($template->noParents == 1) {
+			return $foundParents; 
+		}
 
 		foreach($template->parentTemplates as $parentTemplateID) {
 

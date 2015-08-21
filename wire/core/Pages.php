@@ -28,6 +28,7 @@
  * @property bool cloning Whether or not a clone() operation is currently active
  * @property bool outputFormatting Current default output formatting mode. 
  *
+ * @todo Add a getCopy method that does a getById($id, array('cache' => false) ?
  * @todo Some methods here (find, save, etc.) need their own dedicated classes. 
  * @todo Update saveField to accept array of field names as an option. 
  *
@@ -342,6 +343,7 @@ class Pages extends Wire {
 	 * 
 	 * LOAD OPTIONS (argument 2 array): 
 	 * - cache: boolean, default=true. place loaded pages in memory cache?
+	 * - getFromCache: boolean, default=true. Allow use of previously cached pages in memory (rather than re-loading it from DB)?
 	 * - template: instance of Template (see $template argument)
 	 * - parent_id: integer (see $parent_id argument)
 	 * - getNumChildren: boolean, default=true. Specify false to disable retrieval and population of 'numChildren' Page property. 
@@ -376,6 +378,7 @@ class Pages extends Wire {
 		
 		$options = array(
 			'cache' => true, 
+			'getFromCache' => true, 
 			'template' => null,
 			'parent_id' => null, 
 			'getNumChildren' => true,
@@ -413,6 +416,8 @@ class Pages extends Wire {
 			// convert string of IDs to array
 			if(strpos($_ids, '|') !== false) $_ids = explode('|', $_ids); 
 				else $_ids = explode(",", $_ids);
+		} else if(is_int($_ids)) {
+			$_ids = array($_ids);
 		}
 		
 		if(!WireArray::iterable($_ids) || !count($_ids)) {
@@ -431,7 +436,7 @@ class Pages extends Wire {
 			$id = (int) $id; 
 			if($id < 1) continue; 
 
-			if($page = $this->getCache($id)) {
+			if($options['getFromCache'] && $page = $this->getCache($id)) {
 				// page is already available in the cache	
 				$loaded[$id] = $page; 
 			

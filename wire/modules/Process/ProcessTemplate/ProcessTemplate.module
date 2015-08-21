@@ -1972,15 +1972,16 @@ class ProcessTemplate extends Process {
 			$this->template->noChildren = 0;
 		}
 
+		$a = array();
+		if(is_array($this->input->post->parentTemplates)) foreach($this->input->post->parentTemplates as $id) $a[] = (int) $id;
+		$this->template->parentTemplates = $a; 
+		
 		if($this->input->post->noParents == -1) {
 			$this->template->noParents = -1;
 		} else if($this->input->post->noParents == 1) {
 			$this->template->noParents = 1;
 			$this->template->parentTemplates = array();
 		} else {
-			$a = array();
-			if(is_array($this->input->post->parentTemplates)) foreach($this->input->post->parentTemplates as $id) $a[] = (int) $id;	
-			$this->template->parentTemplates = $a; 
 			$this->template->noParents = 0;
 		}
 

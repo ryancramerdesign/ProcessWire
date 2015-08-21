@@ -32,6 +32,9 @@
  * bool $config->sessionChallenge True if a separate challenge cookie should be used for validating sessions
  * bool $config->sessionFingerprint True if a fingerprint should be kept of the user's IP & user agent to validate sessions
  * bool $config->sessionCookieSecure Use secure cookies or session? (default=true)
+ * 
+ * @todo enable login/forceLogin to recognize non-HTTP use of login, when no session needs to be maintained
+ * @todo add a default $config->apiUser to be used when non-HTTP/bootstrap usage
  *
  */
 

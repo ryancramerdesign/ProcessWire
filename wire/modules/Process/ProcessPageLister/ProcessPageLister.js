@@ -209,16 +209,6 @@ var ProcessLister = {
 			}
 			ProcessLister.refreshRowPageIDs = [];
 			
-			var pos = data.indexOf('ProcessListerScript');
-			if(pos) {
-				var js = data.substring(pos+21);
-				if(js != '</div>') {
-					js = js.substring(0, js.length-6);
-					// if(config.debug) console.log(js);
-					$("body").append('<script>' + js + '</script>');
-				}
-			}
-
 		} else {
 			// update entire table
 			var sort = $("#lister_sort").val();
@@ -262,10 +252,22 @@ var ProcessLister = {
 		
 		setTimeout(function() {
 			ProcessLister.results.trigger('loaded');
+			ProcessLister.results.find('.Inputfield:not(.reloaded)').addClass('reloaded').trigger('reloaded', [ 'ProcessPageLister' ]);
 			$("a.actions_toggle.open").click().removeClass('open'); // auto open items corresponding to "open" get var
 			AdminDataTable.init();
-		}, 250); 
-		
+		}, 250);
+
+		var pos = data.indexOf('ProcessListerScript');
+		if(pos) {
+			var js = data.substring(pos+21);
+			if(js != '</div>') {
+				pos = js.indexOf('</div>');
+				js = js.substring(0, pos);
+				// if(config.debug) console.log(js);
+				$("body").append('<script>' + js + '</script>');
+			}
+		}
+
 		// ProcessLister.results.find(".InputfieldForm").trigger('reloaded');
 		
 	},

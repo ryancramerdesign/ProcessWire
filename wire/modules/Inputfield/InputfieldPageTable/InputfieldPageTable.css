@@ -38,3 +38,10 @@
 	background: none;
 }
 
+.Inputfields .InputfieldPageTable td > *:first-child {
+	margin-top: 0;
+}
+.Inputfields .InputfieldPageTable td > *:last-child {
+	margin-bottom: 0;
+}
+

@@ -1185,7 +1185,7 @@ jQuery(document).ready(function($) {
 		var $t = $(this);
 		var $form = $t.closest('form');
 		var fieldName = $t.attr('id').replace('wrap_Inputfield_', ''); 
-		var url = $form.attr('action') + '&field=' + fieldName;
+		var url = $form.attr('action') + '&field=' + fieldName + '&reloadInputfieldAjax=' + fieldName;
 		consoleLog('Inputfield reload: ' + fieldName); 
 		$.get(url, function(data) {
 			var $content = $(data).find("#" + $t.attr('id')).children(".InputfieldContent");

@@ -38,6 +38,18 @@ var InputfieldPageAutocomplete = {
 			// icon is not visible (in a tab or collapsed field), we'll leave it alone
 		}	
 		
+		function hasDisableChar(str) {
+			if(!disableChars || !disableChars.length) return false;
+			var disable = false;
+			for(var n = 0; n < disableChars.length; n++) {
+				if(str.indexOf(disableChars[n]) > -1) {
+					disable = true;
+					break;
+				}
+			}
+			return disable;
+		}
+		
 		if($input.hasClass('no_list')) {
 			// specific to single-item autocompletes, where there is no separate "selected" list
 			
@@ -58,7 +70,10 @@ var InputfieldPageAutocomplete = {
 			});
 			
 			$input.focus(function() {
-				if($value.val().length) $(this).attr('placeholder', $(this).attr('data-selectedLabel'));	
+				var val = $value.val();
+				if(!val.length) return;
+				if(hasDisableChar(val)) return;
+				$(this).attr('placeholder', $(this).attr('data-selectedLabel'));
 				$(this).val('');
 			}).blur(function() {
 				setTimeout(function() {
@@ -77,25 +92,15 @@ var InputfieldPageAutocomplete = {
 		$input.autocomplete({
 			minLength: 2,
 			source: function(request, response) {
-				
-				if(disableChars && disableChars.length) {
-					var disable = false;
-					var term = request.term;
-					for(var n = 0; n < disableChars.length; n++) {
-						if(term.indexOf(disableChars[n]) > -1) {
-							disable = true;
-							break;
-						}
-					}
-					if(disable) {
-						response([]); 
-						return;
-					}
+				var term = request.term;
+		
+				if(hasDisableChar(term)) {
+					response([]);
+					return;
 				}
 				
 				$icon.attr('class', 'fa fa-fw fa-spin fa-spinner'); 
 				
-				var term = request.term;
 				if($input.hasClass('and_words') && term.indexOf(' ') > 0) {
 					// AND words mode
 					term = term.replace(/\s+/, ',');

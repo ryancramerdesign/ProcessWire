@@ -324,8 +324,16 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 	 */
 	protected function ___buildForm(InputfieldForm $form) {
 
+		$action = "./?id=$this->id";
+		$modal = (int) $this->wire('input')->get('modal');
+		if($modal) $action .= "&modal=$modal";
+		$context = $this->wire('input')->get('context');
+		if($context !== null) {
+			$context = $this->wire('sanitizer')->name($context);
+			$action .= "&context=$context";
+		}
 		$form->attr('id+name', 'ProcessPageEdit'); 
-		$form->attr('action', './?id=' . $this->id . ($this->input->get->modal ? "&modal=1" : '')); 
+		$form->attr('action', $action);
 		$form->attr('method', 'post'); 
 		$form->attr('enctype', 'multipart/form-data'); 
 		$form->attr('class', 'ui-helper-clearfix template_' . $this->page->template . ' class_' . $this->page->className); 
@@ -370,23 +378,27 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 			$tabs = array();
 			$tabWrap = null;
 			$tabOpen = null;
+			$tabViewable = null;
 			
 			foreach($contentTab as $inputfield) {
-				if($inputfield->className == 'InputfieldFieldsetTabOpen' && !$tabOpen) {
+				if(!$tabOpen && $inputfield->className == 'InputfieldFieldsetTabOpen') {
 					// open new tab
 					$tabOpen = $inputfield; 
+					$tabViewable = $this->page->viewable($inputfield->name);
 					$tabWrap = new InputfieldWrapper();
 					$tabWrap->attr('title', $tabOpen->label);
-					$tabWrap->id = $tabOpen->id; 
+					$tabWrap->id = $tabOpen->id;
 					$tabWrap->collapsed = $tabOpen->collapsed;
 					$contentTab->remove($inputfield); 
+					if(!$tabViewable) continue;
 					
 					if($inputfield->modal) {
+						$context = $this->wire('sanitizer')->name($this->wire('input')->get('context'));
 						$this->addTab($tabOpen->id, "<a class='pw-modal' " .
 							"title='" . $this->wire('sanitizer')->entities($tabOpen->label) . "' " . 
 							"data-buttons='#ProcessPageEdit button[type=submit]' " . 
 							"data-autoclose='1' " . 
-							"href='./?id={$this->page->id}&field=$inputfield->name&modal=1'>" . 
+							"href='./?id={$this->page->id}&field=$inputfield->name&modal=1&context=$context'>" . 
 							$this->wire('sanitizer')->entities1($tabOpen->label) . "</a>");
 						$this->wire('modules')->get('JqueryUI')->use('modal');
 						$tabOpen = null;
@@ -398,9 +410,9 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 					// already have a tab open
 					if($inputfield->attr('name') == $tabOpen->attr('name') . '_END') {
 						// close tab
-						$tabs[] = $tabWrap; 
+						if($tabViewable) $tabs[] = $tabWrap; 
 						$tabOpen = null;
-					} else {
+					} else if($tabViewable) {
 						// add to already open tab
 						$tabWrap->add($inputfield); 
 					}
@@ -737,8 +749,8 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 		$dateFormat = $this->config->dateFormat;
 		$unknown = '[?]';
 		$field = $this->modules->get("InputfieldMarkup"); 
-		$createdName = $page->createdUser->name; 
-		$modifiedName = $page->modifiedUser->name; 
+		$createdName = $page->createdUser ? $page->createdUser->name : ''; 
+		$modifiedName = $page->modifiedUser ? $page->modifiedUser->name : ''; 
 		if(empty($createdName)) $createdName = $unknown;
 		if(empty($modifiedName)) $modifiedName = $unknown;
 		if($this->wire('user')->isSuperuser()) {

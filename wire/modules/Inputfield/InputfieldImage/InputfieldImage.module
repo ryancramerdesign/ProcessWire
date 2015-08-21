@@ -86,7 +86,7 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 	}
 
 	public function ___render() {
-		if($this->wire('config')->ajax) clearstatcache();
+		if($this->isAjax) clearstatcache();
 		$out = parent::___render();
 		if($this->defaultGrid) $out .= "<span class='InputfieldImageDefaultGrid'></span>";
 		return $out; 
@@ -263,7 +263,7 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		$out = "\n\t\t<p class='InputfieldFileInfo InputfieldItemHeader ui-widget ui-widget-header ui-helper-clearfix'>";
 		
 		if(!$this->renderValueMode) $out .= 
-			"\n\t\t\t<span class='HideIfSingle InputfieldFileDrag'><i class='fa fa-sort'></i>&nbsp;</span>" .
+			"\n\t\t\t<span class='HideIfSingle HideIfEmpty InputfieldFileDrag'><i class='fa fa-sort'></i>&nbsp;</span>" .
 			"\n\t\t\t<i class='fa fa-caret-right InputfieldFileDrag HideIfMultiple'></i> ";
 		
 		if($this->uploadOnlyMode) {
@@ -303,8 +303,14 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		
 		$out .= "\n\t\t</p>" . // .InputfieldFileInfo.InputfieldItemHeader
 				"\n\t\t<div class='InputfieldFileData ui-widget ui-widget-content'>" .
-				"\n\t\t\t<div class='InputfieldImagePreview'>" .
-				"\n\t\t\t\t<a class='InputfieldFileLink' target='_blank' href='{$pagefile->URL}'>$thumb[markup]</a>";
+				"\n\t\t\t<div class='InputfieldImagePreview'>";
+		
+		if(!file_exists($pagefile->filename()) || !$pagefile->filesize()) {
+			$out .= "<span class='ui-state-error-text'><i class='fa fa-exclamation-triangle'></i> " . 
+				$this->_('File cannot be displayed') . "</span>";
+		} else {
+			$out .= "\n\t\t\t\t<a class='InputfieldFileLink' target='_blank' href='{$pagefile->URL}'>$thumb[markup]</a>";
+		}
 			
 		if(!$this->uploadOnlyMode && $editable) {
 			$out .= 

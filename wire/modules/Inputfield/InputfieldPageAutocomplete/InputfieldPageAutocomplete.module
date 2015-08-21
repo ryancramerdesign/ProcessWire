@@ -18,7 +18,7 @@ class InputfieldPageAutocomplete extends Inputfield implements InputfieldHasArra
 		return array(
 			'title' => __('Page Auto Complete', __FILE__), // Module Title
 			'summary' => __('Multiple Page selection using auto completion and sorting capability. Intended for use as an input field for Page reference fields.', __FILE__), // Module Summary
-			'version' => 109,
+			'version' => 110,
 			);
 	}
 
