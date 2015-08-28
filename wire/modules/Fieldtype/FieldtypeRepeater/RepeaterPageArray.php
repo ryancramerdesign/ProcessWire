@@ -65,7 +65,7 @@ class RepeaterPageArray extends PageArray {
 
 		// first try to get a ready item, if available
 		foreach($this as $item) {
-			if($item->is(Page::statusUnpublished) && $item->is(Page::statusHidden)) {
+			if($item->hasStatus(Page::statusUnpublished) && $item->hasStatus(Page::statusHidden)) {
 				$page = $item;
 				break;
 			}

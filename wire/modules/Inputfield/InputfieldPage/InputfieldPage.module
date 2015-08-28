@@ -339,7 +339,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 			if($children) foreach($children as $child) {
 				$label = $this->labelFieldName ? $child->get($this->labelFieldName) : $child->name;
 				if(!strlen($label)) $label = $child->name;
-				if($child->is(Page::statusUnpublished)) $label .= ' ' . $this->_('(unpublished)');
+				if($child->hasStatus(Page::statusUnpublished)) $label .= ' ' . $this->_('(unpublished)');
 				$inputfield->addOption($child->id, $label);
 			}
 		} else {
@@ -495,7 +495,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 				if($id > 0) {	
 					// existing page
 					$page = $this->wire('pages')->get($id); 
-					if($page->is(Page::statusUnpublished) && !$this->allowUnpub) continue; // disallow unpublished
+					if($page->hasStatus(Page::statusUnpublished) && !$this->allowUnpub) continue; // disallow unpublished
 				} else {
 					// placeholder for new page, to be sorted later
 					$page = new NullPage(); 
@@ -505,7 +505,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 
 		} else if($value) {
 			$newValue = $this->wire('pages')->get((int) $value); 
-			if($newValue->is(Page::statusUnpublished) && !$this->allowUnpub) $newValue = null; // disallow unpublished
+			if($newValue->hasStatus(Page::statusUnpublished) && !$this->allowUnpub) $newValue = null; // disallow unpublished
 		}
 
 		$this->setAttribute('value', $newValue); 

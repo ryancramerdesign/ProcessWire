@@ -122,7 +122,7 @@ class Languages extends PagesType {
 		if($this->languages && count($this->languages)) return $this->languages; 
 		$languages = new PageArray();
 		foreach($this->getAll() as $language) { 
-			if($language->is(Page::statusUnpublished) || $language->is(Page::statusHidden)) continue; 
+			if($language->hasStatus(Page::statusUnpublished) || $language->hasStatus(Page::statusHidden)) continue; 
 			$languages->add($language); 
 		}
 		if(count($languages)) $this->languages = $languages;

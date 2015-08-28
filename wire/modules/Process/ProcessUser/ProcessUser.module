@@ -20,42 +20,34 @@ class ProcessUser extends ProcessPageType {
 
 	static public function getModuleInfo() {
 		return array(
-			'title' => __('Users', __FILE__), // getModuleInfo title
-			'version' => 106, 
-			'summary' => __('Manage system users', __FILE__), // getModuleInfo summary
-			'permanent' => true, 
+			'title'      => __('Users', __FILE__), // getModuleInfo title
+			'version'    => 107,
+			'summary'    => __('Manage system users', __FILE__), // getModuleInfo summary
+			'permanent'  => true,
 			'permission' => 'user-admin',
-			'icon' => 'group', 
+			'icon'       => 'group',
 			'useNavJSON' => true,
-			); 
+		);
 	}
-	
-	protected $lister = null;
-	
+
 	public function __construct() {
-		$this->set("maxAjaxQty", 25); 
+		$this->set("maxAjaxQty", 25);
 		return parent::__construct();
 	}
-	
+
 	public function init() {
-		$this->wire('pages')->addHookBefore('save', $this, 'hookPageSave');	
+		$this->wire('pages')->addHookBefore('save', $this, 'hookPageSave');
 		parent::init();
-		
-		// init lister, but only if executing an action that will use it
-		$segment = $this->wire('input')->urlSegment1;
-		$user = $this->wire('user'); 
-		if(!in_array($segment, array('edit', 'add', 'navJSON')) && $user->hasPermission('page-lister')) {
-			if($this->wire('modules')->isInstalled('ProcessPageListerPro')) {
-				$this->lister = $this->wire('modules')->get('ProcessPageListerPro');
-			}
-			if((!$this->lister || !$this->lister->isValid()) && $this->wire('modules')->isInstalled('ProcessPageLister')) {
-				$this->lister = $this->wire('modules')->get('ProcessPageLister'); 
-			}
-		}
+		if($this->lister) $this->lister->addHookBefore('execute', $this, 'hookListerExecute');
+
 		// make this field translatable
-		$roles = $this->wire('fields')->get('roles'); 
-		$roles->label = $this->_('Roles'); 
+		$roles = $this->wire('fields')->get('roles');
+		$roles->label = $this->_('Roles');
 		$roles->description = $this->_("User will inherit the permissions assigned to each role. You may assign multiple roles to a user. When accessing a page, the user will only inherit permissions from the roles that are also assigned to the page's template."); // Roles description
+	}
+	
+	protected function useLister() {
+		return true;
 	}
 
 	/**
@@ -64,8 +56,8 @@ class ProcessUser extends ProcessPageType {
 	 */
 	public function ___executeNavJSON(array $options = array()) {
 
-		$max = $this->maxAjaxQty > 0 && $this->maxAjaxQty <= 100 ? (int) $this->maxAjaxQty : 50; 
-		
+		$max = $this->maxAjaxQty > 0 && $this->maxAjaxQty <= 100 ? (int) $this->maxAjaxQty : 50;
+
 		if(empty($options) && $this->pages->count("id>0") > $max) {
 			$user = $this->wire('user');
 			$userAdminAll = $user->isSuperuser() ? new NullPage() : $this->wire('permissions')->get('user-admin-all');
@@ -74,11 +66,11 @@ class ProcessUser extends ProcessPageType {
 			$items = array();
 			foreach($this->wire('roles') as $role) {
 				if($userAdminAll->id && !$pagePermissions->userCanAssignRole($role)) continue;
-				$cnt = $this->pages->count("roles=$role"); 
+				$cnt = $this->pages->count("roles=$role");
 				$item = array(
-					'id' => $role->id, 
-					'name' => $role->name, 
-					'cnt' => sprintf($this->_n('%d user', '%d users', $cnt), $cnt)
+					'id'   => $role->id,
+					'name' => $role->name,
+					'cnt'  => sprintf($this->_n('%d user', '%d users', $cnt), $cnt)
 				);
 				$items[] = $item;
 			}
@@ -93,8 +85,10 @@ class ProcessUser extends ProcessPageType {
 	}
 
 	public function hookListerExecute($event) {
+		
 		$role = (int) $this->wire('session')->get($this, 'listerRole');
 		if(!$role) return;
+	
 		$lister = $event->object;
 		$defaultSelector = $lister->defaultSelector;
 		if(strpos($defaultSelector, 'roles=') !== false) {
@@ -104,19 +98,16 @@ class ProcessUser extends ProcessPageType {
 		}
 		$lister->defaultSelector = $defaultSelector;
 	}
-	
-	protected function getLister($selector = '') {
+
+	protected function getListerSettings(ProcessPageLister $lister, $selector) {
 		
-		$lister = $this->lister;
-		if(!$lister) return null;
-		if($lister->className() == 'ProcessPageLister') $lister->editMode = ProcessPageLister::windowModeDirect;
-		
-		$templates = $this->pages->getTemplates();
-		$selector = "template=" . implode('|', array_keys($templates)) . ", include=all, check_access=0, $selector";
+		$settings = parent::getListerSettings($lister, $selector);
+		$selector = '';
 		$role = (int) $this->wire('input')->get('roles');
+		$user = $this->wire('user');
 		$session = $this->wire('session');
 		$ajax = $this->wire('config')->ajax;
-		
+
 		if($role) {
 			$lister->resetLister();
 			$session->set($this, 'listerRole', $role);
@@ -129,7 +120,6 @@ class ProcessUser extends ProcessPageType {
 			$role = $session->get($this, 'listerRole');
 		}
 
-		$user = $this->wire('user');
 		if(!$role && !$user->isSuperuser()) {
 			$userAdminAll = $this->wire('permissions')->get('user-admin-all');
 			if($userAdminAll->id && !$user->hasPermission($userAdminAll)) {
@@ -151,53 +141,14 @@ class ProcessUser extends ProcessPageType {
 				}
 			}
 		}
-		
-		$this->lister->addHookBefore('execute', $this, 'hookListerExecute');
 
-		$properties = array(
-			'initSelector' => $selector,
-			'columns' => $this->showFields,
-			'defaultSelector' => "name%=, roles=" . ($role ? $role : ''),
-			'defaultSort' => 'name',
-			'parent' => $this->page,
-			'editURL' => './edit/',
-			'addURL' => './add/',
-			'delimiters' => array('roles' => ', '),
-			'allowSystem' => true,
-			'allowIncludeAll' => true, 
-			'showIncludeWarnings' => false, 
-			);
-		
-		if(count($templates) == 1) $properties['template'] = reset($templates);
-		
-		foreach($properties as $name => $value) {
-			$lister->$name = $value; 
-		}
-		
-		if($lister->className() == 'ProcessPageListerPro') {
-			$data = $this->wire('modules')->getModuleConfigData('ProcessPageListerPro'); 
-			if(isset($data['settings'][$this->page->name])) {
-				foreach($data['settings'][$this->page->name] as $key => $value) {
-					$lister->$key = $value; 
-				}
-			}
-		} 
-		
-		return $lister;
-	}
+		$settings['initSelector'] .= $selector;
+		$settings['defaultSelector'] = "name%=, roles=" . ($role ? $role : '');
+		$settings['delimiters'] = array('roles' => ', ');
 
-	protected function renderList($selector = '', $pagerOptions = array()) {
-		$lister = $this->getLister($selector);
-		if(!$lister) return parent::renderList($selector, $pagerOptions); 
-		return $lister->execute();
+		return $settings;
 	}
 	
-	public function executeConfig() { return $this->getLister()->executeConfig(); }
-	public function executeViewport() { return $this->getLister()->executeViewport(); }
-	public function executeReset() { return $this->getLister()->executeReset(); }
-	public function executeActions() { return $this->getLister()->executeActions(); }
-	public function executeSave() { return $this->getLister()->executeSave(); }
-
 	public function ___executeEdit() {
 	
 		$user = $this->wire('user');

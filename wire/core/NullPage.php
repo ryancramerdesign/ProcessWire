@@ -26,9 +26,9 @@ class NullPage extends Page {
 	public function ___rootParent() { return new NullPage(); }
 	public function siblings($selector = '', $options = array()) { return new PageArray(); }
 	public function children($selector = '', $options = array()) { return new PageArray(); }
-	public function getAccessParent() { return new NullPage(); }
-	public function getAccessRoles() { return new PageArray(); }
-	public function hasAccessRole($role) { return false; }
+	public function getAccessParent($type = 'view') { return new NullPage(); }
+	public function getAccessRoles($type = 'view') { return new PageArray(); }
+	public function hasAccessRole($role, $type = 'view') { return false; }
 	public function isChanged($what = '') { return false; }
 }
 

@@ -6,11 +6,12 @@
  * A type of Page used for storing an individual User
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2011 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * https://processwire.com
+ * 
+ * @todo PW3 move permissions to use Page hierarchy or Page reference for parent/child relationships between permissions
  *
  */
 
@@ -26,8 +27,15 @@ class Permission extends Page {
 	 */
 	static protected $parentPermissions = array(
 		'page-view' => 'none',
+		'page-lister' => 'none',
 		'page-edit' => 'none', 
 		'user-admin' => 'page-edit',
+		'page-lock' => 'page-edit',
+		'page-hide' => 'page-edit',
+		'page-clone' => 'page-edit',
+		'page-move' => 'page-edit',
+		'page-template' => 'page-edit',
+		'page-sort' => 'page-edit',
 		'page' => 'page-edit', // all page-* permissions
 		);
 
@@ -77,6 +85,33 @@ class Permission extends Page {
 		if(is_null($permission)) $permission = new NullPage();
 		
 		return $permission;
+	}
+	
+	public function getRootParentPermission() {
+		if(isset(self::$parentPermissions[$this->name])) {
+			$name = self::$parentPermissions[$this->name]; 
+			if($name == 'none') return new NullPage();
+		}
+		$parts = explode('-', $this->name);	
+		if(count($parts) < 2) return new NullPage();
+		$name = "$parts[0]-$parts[1]";
+		if(isset(self::$parentPermissions[$name])) {
+			$name = self::$parentPermissions[$name];
+			if($name == 'none') return new NullPage();
+			return $this->wire('permissions')->get($name);
+		}
+		if($parts[0] == 'page') $name = 'page-edit';
+		return $this->wire('permissions')->get($name);
+	}
+
+	/**
+	 * Return the API variable used for managing pages of this type
+	 *
+	 * @return Pages|PagesType
+	 *
+	 */
+	public function getPagesManager() {
+		return $this->wire('permissions');
 	}
 }
 

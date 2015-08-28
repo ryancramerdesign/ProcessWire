@@ -1,53 +1,79 @@
+
+function ProcessRoleUpdatePermissions(init, $checkbox) {
+	
+	var $inputfield = $("#wrap_Inputfield_permissions");
+	var $checkboxes = $checkbox == null ? $inputfield.find(".permission > input[type=checkbox]") : $checkbox;
+
+	if(init) {
+		// update row classes to be the same as the label classes
+		$checkboxes.each(function() {
+			var $input = $(this);
+			var $label = $input.closest('label');
+			var $row = $input.closest('tr');
+			$row.addClass($label.attr('class'));
+		});
+	}
+		
+	$checkboxes.each(function() {
+		
+		var $input = $(this);
+		var $label = $input.closest('label');
+		var $row = $input.closest('tr');
+		var $parent = $('#' + $label.attr('data-parent'));
+		var name = $label.text();
+		var level = parseInt($label.attr('data-level'));
+		var $children = $row.nextAll(".parent-" + $label.attr('id'));
+		
+		$row.addClass($label.attr('id'));
+
+		if($input.is(":checked")) {
+			$children = $children.filter(".level" + (level+1));
+			init ? $children.show() : $children.fadeIn();
+			$row.addClass('permission-checked');
+			
+		} else {
+			$children.find("input:not(:disabled)").removeAttr('checked');
+			init ? $children.hide() : $children.fadeOut();
+			$row.removeClass('permission-checked');
+		}
+	});
+}
+
 $(document).ready(function() {
 
 	var $pageView = $("#Inputfield_permissions_36"); 
-
 	if(!$pageView.is(":checked")) $pageView.attr('checked', 'checked'); 
-	
-	$pageView.click(function() {
-		if(!$(this).is(":checked")) {
-			$(this).attr('checked', 'checked');
-			alert('page-view is a required permission'); 
-		}
-	});
 
-	var section = '';
-	var lastSection = 'none';
-	var lastWasGroup = false;
-	var group = '';
-	var $section = null;
-	var $group = null;
-	var $inputfield = $("#wrap_Inputfield_permissions");
+	ProcessRoleUpdatePermissions(true, null);
 	
-	$inputfield.find("input[type=checkbox]").each(function() {
-		
-		var $label = $(this).closest('label');
-		var name = $label.text();
-		var pos = name.indexOf(' ');
-		
-		if(pos > 0) name = name.substring(0, pos);
-		
-		pos = name.indexOf('-');
-		section = pos > 0 ? name.substring(0, pos) : '';
-		
-		if(group.length && name.indexOf(group) == 0) {
-			$label.prepend('<i class="fa fa-fw"></i>');
-			$label.find('.pw-no-select').addClass('detail');
-			$group.addClass('AdminDataListSeparator'); //.find('.pw-no-select').wrap("<strong></strong>");
-			var isGroup = true;
+	$("#wrap_Inputfield_permissions").on("click", "input[type=checkbox], label.checkbox-disabled", function(e) {
+	
+		if($(this).is("label")) {
+			var $label = $(this);
+			var $checkbox = $label.children("input");
 		} else {
-			group = name;
-			$group = $(this).closest('tr');
-			isGroup = false;
+			var $checkbox = $(this);
+			var $label = $checkbox.parent();
 		}
 		
-		if(section != lastSection || (lastWasGroup && !isGroup)) {
-			$group.addClass('AdminDataListSeparator');
+		var alertText = $label.attr('data-alert');
+		var confirmText = $label.attr('data-confirm');
+		
+		if(typeof alertText != "undefined" && alertText.length) {
+			alert(alertText);
+			return false;
+		} else if(typeof confirmText != "undefined" && confirmText.length) {
+			if($checkbox.is(":checked")) {
+				if(!confirm(confirmText)) return false;
+			}
 		}
 	
-		lastWasGroup = isGroup;
-		lastSection = section;
+		if($(this).is("input")) {
+			var $checkbox = $(this);
+			setTimeout(function() {
+				ProcessRoleUpdatePermissions(false, $checkbox);
+			}, 100);
+		}
 	});
-	$inputfield.find('thead').children('tr').addClass('AdminDataListSeparator');
-
+	
 }); 

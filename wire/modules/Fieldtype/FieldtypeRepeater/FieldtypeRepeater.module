@@ -387,7 +387,7 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 		// determine how many ready items there are
 		foreach($pageArray as $p) {
 			// note statusHidden + statusUnpublished identifies a repeater page as being a readyPage
-			if($p->is(Page::statusUnpublished) && $p->is(Page::statusHidden)) $numReady++;
+			if($p->hasStatus(Page::statusUnpublished) && $p->hasStatus(Page::statusHidden)) $numReady++;
 		}
 
 		// determine how many more ready items need to be created				
@@ -490,7 +490,7 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 
 		if($outputFormatting) { 
 			// if an unpublished page is being previewed, let unpublished items be shown (ready items will be removed afterwards)
-			if($page->is(Page::statusUnpublished) && $page->editable($field->name)) $selector .= ", include=all"; 
+			if($page->hasStatus(Page::statusUnpublished) && $page->editable($field->name)) $selector .= ", include=all"; 
 		} else {
 			// if the page is an edit state, then make it include the hidden/unpublished ready pages
 			if($page->editable($field->name)) $selector .= ", include=all";
@@ -532,7 +532,7 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 
 		// iterate through the array and count how many published we have
 		foreach($value as $p) {
-			if(!$p->id || $p->is(Page::statusHidden) || $p->is(Page::statusUnpublished)) continue; 
+			if(!$p->id || $p->hasStatus(Page::statusHidden) || $p->hasStatus(Page::statusUnpublished)) continue; 
 			$ids[] = $p->id;
 			$count++;
 		}
@@ -821,10 +821,10 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 			if($p->status < Page::statusHidden) continue; 
 			$remove = false; 
 
-			if($p->is(Page::statusHidden)) {
+			if($p->hasStatus(Page::statusHidden)) {
 				// hidden pages (assumed to be a ready page) should never be included when page is being viewed (outputFormatting)
 				$remove = true; 
-			} else if($p->is(Page::statusUnpublished) && !$page->is(Page::statusUnpublished)) {
+			} else if($p->hasStatus(Page::statusUnpublished) && !$page->hasStatus(Page::statusUnpublished)) {
 				// unpublished items may only be included if the page is also unpublished (and presumably being previewed)
 				$remove = true; 
 			}
@@ -1003,7 +1003,7 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 				// if the page has changed or is new, then we will queue it to be saved
 				$savePages[] = $p; 
 
-			} else if($p->id && $p->is(Page::statusUnpublished) && !$p->is(Page::statusHidden)) {
+			} else if($p->id && $p->hasStatus(Page::statusUnpublished) && !$p->hasStatus(Page::statusHidden)) {
 				// if the page has an ID, but is still unpublished, though not hidden, then we queue it to be saved (and published)
 				$savePages[] = $p; 
 			}
@@ -1014,13 +1014,13 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 
 			if($p->id) {
 				// existing page
-				if($p->is(Page::statusHidden) && $p->is(Page::statusUnpublished)) continue; // this is a 'ready' page, we can ignore
+				if($p->hasStatus(Page::statusHidden) && $p->hasStatus(Page::statusUnpublished)) continue; // this is a 'ready' page, we can ignore
 				$changes = implode(', ', $p->getChanges());
 				$this->message("Saved Repeater {$p->path} " . ($changes ? "($changes)" : ''), Notice::debug); 
 
 				// if the repeater is unpublished and the $page isn't, then remove the unpublished status from the repeater
 				// if($p->is(Page::statusUnpublished) && !$page->is(Page::statusUnpublished)) $p->removeStatus(Page::statusUnpublished); 
-				if($p->is(Page::statusUnpublished)) $p->removeStatus(Page::statusUnpublished); 
+				if($p->hasStatus(Page::statusUnpublished)) $p->removeStatus(Page::statusUnpublished); 
 
 			} else {
 				$this->message("Added New Repeater", Notice::debug); 

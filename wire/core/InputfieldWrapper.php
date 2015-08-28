@@ -329,7 +329,7 @@ class InputfieldWrapper extends Inputfield implements Countable, IteratorAggrega
 				}
 				if($skip && !empty($parents)) continue;
 			}
-			
+				
 			$inputfieldClass = $inputfield->className();
 			$markup = isset($_markup[$inputfieldClass]) ? array_merge($_markup, $_markup[$inputfieldClass]) : $_markup; 
 			$classes = isset($_classes[$inputfieldClass]) ? array_merge($_classes, $_classes[$inputfieldClass]) : $_classes; 
@@ -344,7 +344,8 @@ class InputfieldWrapper extends Inputfield implements Countable, IteratorAggrega
 			if($collapsed == Inputfield::collapsedNoLocked || $collapsed == Inputfield::collapsedYesLocked) $renderValueMode = true;
 
 			$ffOut = $this->renderInputfield($inputfield, $renderValueMode); 	
-			if(!strlen($ffOut)) continue; 
+			if(!strlen($ffOut)) continue;
+			$entityEncodeText = $inputfield->getSetting('entityEncodeText') === false ? false : true;
 
 			$errorsOut = '';
 			if(!$inputfield instanceof InputfieldWrapper) {
@@ -358,7 +359,7 @@ class InputfieldWrapper extends Inputfield implements Countable, IteratorAggrega
 			foreach(array('error', 'description', 'head', 'notes') as $property) {
 				$text = $property == 'error' ? $errorsOut : $inputfield->getSetting($property); 
 				if(!empty($text) && !$this->quietMode) {
-					$text = nl2br($this->entityEncode($text, true));
+					$text = nl2br($entityEncodeText ? $this->entityEncode($text, true) : $text);
 					$text = str_replace('{out}', $text, $markup["item_$property"]);
 				} else {
 					$text = '';
@@ -374,6 +375,14 @@ class InputfieldWrapper extends Inputfield implements Countable, IteratorAggrega
 					$ffOut = $text . $ffOut;
 				}
 			}
+			
+			if(!$this->quietMode) {
+				$prependMarkup = $inputfield->getSetting('prependMarkup');
+				if($prependMarkup) $ffOut = $prependMarkup . $ffOut;
+				$appendMarkup = $inputfield->getSetting('appendMarkup');
+				if($appendMarkup) $ffOut .= $appendMarkup;
+			}
+			
 			/*
 			if($inputfield->getSetting('head')) {
 				$text = str_replace('{out}', $this->entityEncode($inputfield->getSetting('head'), true), $markup['item_head']);

@@ -111,6 +111,12 @@ function pwModalWindowSettings(name) {
 			if(options.hideOverflow) {
 				parent.jQuery('body').css('overflow', 'hidden');
 			}
+			// replace the jQuery ui close icon with a font-awesome equivalent (for hipdi support)
+			var $widget = $(this).dialog("widget");
+			$(".ui-dialog-titlebar-close", $widget)
+				.css('padding-top', 0)
+				.prepend("<i class='fa fa-times'></i>")
+				.find('.ui-icon').remove();
 		},
 		beforeClose: function(event, ui) {
 			if(options.hideOverflow) {

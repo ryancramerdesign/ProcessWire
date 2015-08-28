@@ -1796,7 +1796,7 @@ class Page extends WireData implements Countable, WireMatchable {
 	 *
 	 */
 	public function isHidden() {
-		return $this->is(self::statusHidden); 
+		return $this->hasStatus(self::statusHidden); 
 	}
 
 	/**
@@ -1806,7 +1806,7 @@ class Page extends WireData implements Countable, WireMatchable {
 	 *
 	 */
 	public function isUnpublished() {
-		return $this->is(self::statusUnpublished);
+		return $this->hasStatus(self::statusUnpublished);
 	}
 	
 	/**
@@ -1816,7 +1816,7 @@ class Page extends WireData implements Countable, WireMatchable {
 	 *
 	 */
 	public function isLocked() {
-		return $this->is(self::statusLocked);
+		return $this->hasStatus(self::statusLocked);
 	}
 	
 	/**
@@ -1842,7 +1842,7 @@ class Page extends WireData implements Countable, WireMatchable {
 	 *
  	 */ 
 	public function isTrash() {
-		if($this->is(self::statusTrash)) return true; 
+		if($this->hasStatus(self::statusTrash)) return true; 
 		$trashPageID = $this->wire('config')->trashPageID; 
 		if($this->id == $trashPageID) return true; 
 		// this is so that isTrash() still returns the correct result, even if the page was just trashed and not yet saved
@@ -2023,7 +2023,7 @@ class Page extends WireData implements Countable, WireMatchable {
 	 *
 	 */
 	public function filesManager() {
-		if($this->is(Page::statusDeleted)) return null;
+		if($this->hasStatus(Page::statusDeleted)) return null;
 		if(is_null($this->filesManager)) $this->filesManager = new PagefilesManager($this); 
 		return $this->filesManager; 
 	}
@@ -2069,21 +2069,23 @@ class Page extends WireData implements Countable, WireMatchable {
 	/**
 	 * Returns the parent page that has the template from which we get our role/access settings from
 	 *
+	 * @param string $type Specify one of 'view', 'edit', 'add', or 'create' (default='view')
 	 * @return Page|NullPage Returns NullPage if none found
 	 *
 	 */
-	public function getAccessParent() {
-		return $this->access()->getAccessParent($this);
+	public function getAccessParent($type = 'view') {
+		return $this->access()->getAccessParent($this, $type);
 	}
 
 	/**
 	 * Returns the template from which we get our role/access settings from
 	 *
+	 * @param string $type Specify one of 'view', 'edit', 'add', or 'create' (default='view')
 	 * @return Template|null Returns null if none	
 	 *
 	 */
-	public function getAccessTemplate() {
-		return $this->access()->getAccessTemplate($this);
+	public function getAccessTemplate($type = 'view') {
+		return $this->access()->getAccessTemplate($this, $type);
 	}
 	
 	/**
@@ -2092,11 +2094,12 @@ class Page extends WireData implements Countable, WireMatchable {
 	 * This is determined from the page's template. If the page's template has roles turned off, 
 	 * then it will go down the tree till it finds usable roles to use. 
 	 *
+	 * @param string $type May be 'view', 'edit', 'create' or 'add' (default='view')
 	 * @return PageArray
 	 *
 	 */
-	public function getAccessRoles() {
-		return $this->access()->getAccessRoles($this);
+	public function getAccessRoles($type = 'view') {
+		return $this->access()->getAccessRoles($this, $type);
 	}
 
 	/**
@@ -2105,11 +2108,12 @@ class Page extends WireData implements Countable, WireMatchable {
 	 * Given access role may be a role name, role ID or Role object
 	 *
 	 * @param string|int|Role $role 
+	 * @param string $type May be 'view', 'edit', 'create' or 'add' (default is 'view')
 	 * @return bool
 	 *
 	 */
-	public function hasAccessRole($role) {
-		return $this->access()->hasAccessRole($this, $role); 
+	public function hasAccessRole($role, $type = 'view') {
+		return $this->access()->hasAccessRole($this, $role, $type); 
 	}
 
 	/**
@@ -2232,6 +2236,16 @@ class Page extends WireData implements Countable, WireMatchable {
 			}
 		}
 		return $this->template->getIcon();
+	}
+
+	/**
+	 * Return the API variable used for managing pages of this type
+	 * 
+	 * @return Pages|PagesType
+	 * 
+	 */
+	public function getPagesManager() {
+		return $this->wire('pages');
 	}
 }
 

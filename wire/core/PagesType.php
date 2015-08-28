@@ -420,4 +420,55 @@ class PagesType extends Wire implements IteratorAggregate, Countable {
 		return array();
 	}
 
+	/*********************************************************************************************
+	 * HOOKS
+	 * 
+	 */
+
+	/**
+	 * Hook called just before a page is saved
+	 *
+	 * @param Page $page The page about to be saved
+	 * @return array Optional extra data to add to pages save query.
+	 *
+	 */
+	public function ___saveReady(Page $page) { return array(); }
+
+	/**
+	 * Hook called after a page is successfully saved
+	 *
+	 * This is the same as Pages::save, except that it occurs before other save-related hooks (below),
+	 * Whereas Pages::save occurs after. In most cases, the distinction does not matter.
+	 *
+	 * @param Page $page The page that was saved
+	 * @param array $changes Array of field names that changed
+	 * @param array $values Array of values that changed, if values were being recorded, see Wire::getChanges(true) for details.
+	 *
+	 */
+	public function ___saved(Page $page, array $changes = array(), $values = array()) { }
+
+	/**
+	 * Hook called when a new page has been added
+	 *
+	 * @param Page $page
+	 *
+	 */
+	public function ___added(Page $page) { }
+
+	/**
+	 * Hook called when a page is about to be deleted, but before data has been touched
+	 *
+	 * @param Page $page
+	 *
+	 */
+	public function ___deleteReady(Page $page) { }
+
+	/**
+	 * Hook called when a page and it's data have been deleted
+	 *
+	 * @param Page $page
+	 *
+	 */
+	public function ___deleted(Page $page) { }
+
 }

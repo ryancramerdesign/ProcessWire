@@ -163,7 +163,7 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 
 		if($this->config->ajax && (isset($_SERVER['HTTP_X_FIELDNAME']) || count($_POST))) return $this->ajaxSave($this->page);
 
-		if($this->page->is(Page::statusTemp) && $this->page->parent->template->childNameFormat == 'title') {
+		if($this->page->hasStatus(Page::statusTemp) && $this->page->parent->template->childNameFormat == 'title') {
 			// make it set page name from page title
 			$this->page->name = '';
 		}
@@ -176,9 +176,9 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 
 		if($this->isPost && count($_POST)) $this->processSave();
 
-		if($this->page->is(Page::statusLocked)) {
+		if($this->page->hasStatus(Page::statusLocked)) {
 			if($this->user->hasPermission('page-lock', $this->page)) {
-				$this->message($this->noticeLocked); // Page locked message
+				$this->warning($this->noticeLocked); // Page locked message
 			} else {
 				$this->error($this->noticeLocked); // Page locked error
 			}
@@ -233,7 +233,7 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 	 */
 	protected function processSave() {
 
-		if($this->page->is(Page::statusLocked)) {
+		if($this->page->hasStatus(Page::statusLocked)) {
 			if(!$this->user->hasPermission('page-lock', $this->page) || (!empty($_POST['status']) && in_array(Page::statusLocked, $_POST['status']))) {
 				$this->error($this->noticeLocked); 
 				$this->processSaveRedirect($this->redirectUrl);
@@ -242,7 +242,7 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 		}
 
 		// remove temporary status that may have been assigned by ProcessPageAdd quick add mode
-		if($this->page->is(Page::statusTemp)) $this->page->removeStatus(Page::statusTemp); 
+		if($this->page->hasStatus(Page::statusTemp)) $this->page->removeStatus(Page::statusTemp); 
 
 		if($this->input->post->submit_delete) {
 
@@ -263,7 +263,7 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 				if($notice instanceof NoticeError) $formErrors++; 
 			}
 
-			$isUnpublished = $this->page->is(Page::statusUnpublished); 
+			$isUnpublished = $this->page->hasStatus(Page::statusUnpublished); 
 
 			if($this->input->post->submit_publish || $this->input->post->submit_save) {
 
@@ -429,7 +429,7 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 			if($this->page->deleteable()) $form->append($this->buildFormDelete());
 			if($this->page->viewable() && !$this->input->get->modal) $this->buildFormView($this->page->httpUrl); 
 	
-			if($this->page->is(Page::statusUnpublished)) {
+			if($this->page->hasStatus(Page::statusUnpublished)) {
 	
 				if(get_class($this->page) == 'Page') {
 					//if(!$form->description) $form->description = $this->_("This page is currently unpublished");
@@ -784,7 +784,7 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 		$field = $this->modules->get('InputfieldCheckboxes');
 		$field->attr('name', 'status');
 		$statuses = array(); 
-		$statuses[Page::statusHidden] = $this->_('Hidden: Excluded from lists and searches'); // Settings: Hidden status checkbox label
+		if($this->user->hasPermission('page-hide', $this->page)) $statuses[Page::statusHidden] = $this->_('Hidden: Excluded from lists and searches'); // Settings: Hidden status checkbox label
 		if($this->user->hasPermission('page-lock', $this->page)) $statuses[Page::statusLocked] = $this->_('Locked: Not editable'); // Settings: Locked status checkbox label
 		if(!$this->page->template->noUnpublish && $this->page->publishable()) $statuses[Page::statusUnpublished] = $this->_('Unpublished: Not visible on site'); // Settings: Unpublished status checkbox label
 			
@@ -880,65 +880,81 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 		
 		if($this->wire('input')->get('renderInputfieldAjax') == 'ProcessPageEditRoles') {
 			$roles = $this->page->getAccessRoles();
-			$editRoles = $this->page->getAccessTemplate()->editRoles;
-			$addRoles = $this->page->getAccessTemplate()->addRoles;
-			$createRoles = $this->page->getAccessTemplate()->createRoles;
+			$accessTemplate = $this->page->getAccessTemplate('edit');
+			if($accessTemplate) {
+				$editRoles = $accessTemplate->editRoles;
+				$addRoles = $accessTemplate->addRoles;
+				$createRoles = $accessTemplate->createRoles;
+			} else {
+				$editRoles = array();
+				$addRoles = array();
+				$createRoles = array();
+			}
 
 			$table->headerRow(array(
 				$this->_('Role'), // Roles table column header: Role
 				$this->_('What they can do') // Roles table colum header: what they can do
 			));
 			$table->setEncodeEntities(false);
+			$addLabel = 'add';
 
 			if(count($roles)) {
 
-				$publishPermission = $this->fuel('permissions')->get('page-publish');
+				$hasPublishPermission = $this->wire('permissions')->has('page-publish');
 
 				foreach($roles as $role) {
-					$permissions = '';
+					
+					$permissions = array();
 					$roleName = $role->name;
 					if($roleName == 'guest') $roleName .= " " . $this->_('(everyone)'); // Identifies who guest is (everyone)
-					$permissions .= "page-view\n";
+					$permissions["page-view"] = 'view';
 
 					$checkEditable = true;
-					if($publishPermission->id && !$this->page->is(Page::statusUnpublished) && !$role->hasPermission('page-publish', $this->page)) {
+					if($hasPublishPermission && !$this->page->hasStatus(Page::statusUnpublished) 
+						&& !$role->hasPermission('page-publish', $this->page)) {
 						$checkEditable = false;
 					}
 
-					if(false !== ($key = array_search($role->id, $addRoles))) {
-						if($role->hasPermission('page-add')) {
-							$permissions .= "page-add\n";
-							unset($addRoles[$key]);
-						}
+					$key = array_search($role->id, $addRoles);
+					if($key !== false && $role->hasPermission('page-add', $this->page)) {
+						$permissions["page-add"] = 'add';
+						unset($addRoles[$key]);
 					}
-					$editable = $role->hasPermission('page-edit') && in_array($role->id, $editRoles);
+					
+					$editable = $role->hasPermission('page-edit', $this->page) && in_array($role->id, $editRoles);
+					
 					if($checkEditable && $editable) {
+						
 						foreach($role->permissions as $permission) {
 							if(strpos($permission->name, 'page-') !== 0) continue;
 							if(in_array($permission->name, array('page-view', 'page-publish', 'page-create', 'page-add'))) continue;
-							$permissions .= "{$permission->name}\n"; // only page-context permissions
+							if(!$role->hasPermission($permission, $this->page)) continue;
+							$permissions[$permission->name] = str_replace('page-', '', $permission->name); // only page-context permissions
 						}
-						if($publishPermission->id && $role->hasPermission('page-publish', $this->page)) {
-							$permissions .= "page-publish\n";
+						
+						if($hasPublishPermission && $role->hasPermission('page-publish', $this->page)) {
+							$permissions["page-publish"] = 'publish';
 						}
 					}
+					
 					if(in_array($role->id, $createRoles) && $editable) {
-						$permissions .= "page-create\n";
+						$permissions["page-create"] = 'create';
 					}
-
-					$table->row(array($roleName, nl2br($permissions)));
+					
+					$table->row(array($roleName, implode(', ', $permissions)));
 				}
 
 			}
 
 			if(count($addRoles)) {
 				foreach($addRoles as $roleID) {
-					$role = $this->fuel('roles')->get($roleID);
-					if($role->id) $table->row(array($role->name, "page-add"));
+					$role = $this->wire('roles')->get($roleID);
+					if(!$role->hasPermission("page-add", $this->page)) continue;
+					if($role->id) $table->row(array($role->name, $addLabel));
 				}
 			}
 
-			$table->row(array('superuser', '*'));
+			$table->row(array('superuser', $this->_x('all', 'all permissions')));
 			$field->value = $table->render();
 		}
 
@@ -1075,7 +1091,8 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 
 		if(!is_array($status)) $status = array();
 
-		$statusFlags = array(Page::statusHidden); 
+		$statusFlags = array();
+		if($this->user->hasPermission('page-hide', $this->page)) $statusFlags[] = Page::statusHidden; 
 		if($this->page->publishable()) $statusFlags[] = Page::statusUnpublished; 
 		if($this->user->hasPermission('page-lock', $this->page)) $statusFlags[] = Page::statusLocked;
 
@@ -1391,7 +1408,7 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 	protected function ___ajaxSave(Page $page) {
 
 		if($this->config->demo) throw new WireException("Ajax save is disabled in demo mode"); 
-		if($page->is(Page::statusLocked)) throw new WireException($this->noticeLocked); 
+		if($page->hasStatus(Page::statusLocked)) throw new WireException($this->noticeLocked); 
 		if(!$this->ajaxEditable($page)) throw new WirePermissionException($this->noticeNoAccess); 
 		$this->session->CSRF->validate(); // throws exception when invalid
 

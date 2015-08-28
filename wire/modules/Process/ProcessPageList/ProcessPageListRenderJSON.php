@@ -42,14 +42,19 @@ class ProcessPageListRenderJSON extends ProcessPageListRender {
 		}
 
 		if($page->getAccessParent() === $page && $page->parent->id) {
-			if($page->getAccessTemplate()->hasRole('guest')) {
-				if(!$page->parent->getAccessTemplate()->hasRole('guest') && !$page->isTrash()) {
+			$accessTemplate = $page->getAccessTemplate();
+			if($accessTemplate && $accessTemplate->hasRole('guest')) {
+				$accessTemplate = $page->parent->getAccessTemplate();
+				if($accessTemplate && !$accessTemplate->hasRole('guest') && !$page->isTrash()) {
 					$class .= ' PageListAccessOn';
 					$icons[] = 'key fa-flip-horizontal';
 				}
-			} else if($page->parent->getAccessTemplate()->hasRole('guest')) {
-				$class .= ' PageListAccessOff';
-				$icons[] = 'key';
+			} else {
+				$accessTemplate = $page->parent->getAccessTemplate();
+				if($accessTemplate && $accessTemplate->hasRole('guest')) {
+					$class .= ' PageListAccessOff';
+					$icons[] = 'key';
+				}
 			}
 		}
 

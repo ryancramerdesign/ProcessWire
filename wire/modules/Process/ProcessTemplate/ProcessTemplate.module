@@ -29,7 +29,7 @@ class ProcessTemplate extends Process {
 		return array(
 			'title' => __('Templates', __FILE__),
 			'summary' => __('List and edit the templates that control page output', __FILE__),
-			'version' => 113,
+			'version' => 114,
 			'permanent' => true, 
 			'icon' => 'cubes', 
 			'useNavJSON' => true, 
@@ -576,9 +576,12 @@ class ProcessTemplate extends Process {
 		
 		$t = new InputfieldWrapper();
 		$t->attr('title', $this->_x('Access', 'tab'));
+		$t->attr('id', 'tab_access');
 		// $t->head = $this->_('Manage template access');
 		$t->attr('class', 'WireTab'); 
 		$t->add($this->buildEditFormAccess($template)); 
+		$overrides = $this->buildEditFormAccessOverrides($template);
+		if($overrides) $t->add($overrides);
 		$form->add($t); 
 
 		$t = new InputfieldWrapper();
@@ -691,8 +694,8 @@ class ProcessTemplate extends Process {
 				$inputfield->wire('modules')->includeModule('ProcessPageLister');
 				$windowMode = ProcessPageLister::windowModeBlank;
 				$bookmark = array(
-					'initSelector' => "template=$inputfield->template, include=all",
-					'defaultSelector' => 'sort=-modified',
+					'initSelector' => '', 
+					'defaultSelector' => "template=$inputfield->template, include=all", 
 					'columns' => array('title', 'path', 'modified', 'modified_users_id'),
 					'toggles' => array('noButtons'),
 					'viewMode' => $windowMode,
@@ -1727,6 +1730,7 @@ class ProcessTemplate extends Process {
 		$field->addOption(1, $this->labels['Yes']);
 		$field->addOption(0, $this->labels['No']); 
 		$field->attr('value', (int) $template->useRoles); 
+		$field->optionColumns = 1; 
 		$field->collapsed = Inputfield::collapsedNo;
 		$form->add($field); 
 
@@ -1739,7 +1743,7 @@ class ProcessTemplate extends Process {
 		// --------------------
 
 		$fieldset->add($this->buildEditFormAccessRoles($template)); 
-
+		
 		// --------------------
 
 		$field = $this->modules->get('InputfieldRadios'); 
@@ -1775,7 +1779,18 @@ class ProcessTemplate extends Process {
 		$field->notes = $this->_('API Note: This setting affects the results returned by $pages->find(), $page->children() and other functions that return PageArrays.'); // Guest searchable, notes
 		$fieldset->add($field); 
 
-		// --------------------
+		// noInherit ---------------
+
+		$field = $this->modules->get('InputfieldRadios');
+		$field->attr('id+name', 'noInherit');
+		$field->label = $this->_('Allow edit-related access to inherit to children?');
+		$field->description = $this->_('By default, all access settings on this template inherit through the page tree until a page using another access controlled template overrides it.') . ' '; // Description 2 for the noInherit option
+		$field->description .= $this->_('Choose the "No" option here if you want to prevent edit-related access from being inherited beyond pages using this template. View access will continue to inherit either way.'); // Description 2 for the noInherit option
+		$field->addOption(0, $this->labels['Yes'] . " - " . $this->_('Allow edit-related access to inherit to children that are not access controlled'));
+		$field->addOption(1, $this->labels['No'] . " - " . $this->_('Limit edit-related access to pages using this template only'));
+		$field->attr('value', $template->noInherit ? 1 : 0);
+		$fieldset->add($field);
+
 
 		return $form; 
 	}
@@ -1791,6 +1806,8 @@ class ProcessTemplate extends Process {
 		$field->thead = "Role";
 		$field->attr('id', 'roles_editor'); 
 		$field->label = $this->_('What roles can access pages using this template (and those inheriting from it)?');
+		$field->notes = $this->_('Note: the edit/create/add options are disabled for roles that do not currently have page-edit permission.');
+		$field->icon = 'gears';
 
 		$table = $this->modules->get("MarkupAdminDataTable"); 
 		$table->setEncodeEntities(false);
@@ -1828,6 +1845,113 @@ class ProcessTemplate extends Process {
 		$field->value = $table->render();
 
 		return $field; 
+	}
+	
+	protected function buildEditFormAccessOverrides(Template $template) {
+	
+		$isUsable = false;
+		$rolesPermissions = $template->rolesPermissions;
+		$ignorePermissions = array(
+			'page-view',
+			'page-lister',
+			'page-edit',
+		);
+		
+		$fieldset = $this->wire('modules')->get('InputfieldFieldset');
+		$fieldset->attr('id', 'accessOverrides');
+		$fieldset->label = $this->_('Additional edit permissions and overrides');
+		$fieldset->description = $this->_('Optionally add or revoke permissions assigned to each role when requested for a page using this template (or inheriting access from it).');
+		$fieldset->description .= ' ' . $this->_('The options available here are determined by your choices for "Edit Pages" above. As a result, you should save this template and come back here after making changes to roles with "Edit Pages" access above.');
+		$fieldset->notes = sprintf($this->_('Options are shown in the format "role: permission". For a description of what each permission does, see the [permissions reference](%s).'), 'https://processwire.com/api/user-access/permissions/');
+		$fieldset->collapsed = Inputfield::collapsedBlank;
+		$fieldset->icon = 'gear';
+		
+		// add -------------
+		
+		$f = $this->wire('modules')->get('InputfieldAsmSelect');
+		$f->attr('name', 'rolesPermissionsAdd');
+		$f->label = $this->_('Add permissions by role');
+		$f->icon = 'plus-circle';
+		$value = array();
+		$options = array();
+		
+		foreach($template->editRoles as $roleID) {
+			$role = $this->wire('roles')->get((int) $roleID);
+			if(!$role->id) continue;
+			foreach($this->wire('permissions') as $permission) {
+				if(strpos($permission->name, 'page-') !== 0) continue;
+				$ignore = false;
+				foreach($ignorePermissions as $name) {
+					if($permission->name == $name) $ignore = true; 
+					if(strpos($permission->name, 'page-lister') === 0) $ignore = true; 
+				}
+				if($ignore) continue;
+				if($role->hasPermission($permission)) continue;
+				$options["$roleID:$permission->id"] = "$role->name\n$permission->name\n$permission->title";
+			}
+			if(isset($rolesPermissions["$roleID"])) {
+				foreach($rolesPermissions["$roleID"] as $permissionID) {
+					if(strpos($permissionID, "-") === 0) continue;
+					$v = "$roleID:$permissionID";
+					if(!isset($options[$v])) continue;
+					$value[] = $v;
+				}
+			}
+		}
+
+		if(count($options)) {
+			asort($options);
+			foreach($options as $k => $v) {
+				list($roleName, $permissionName, $permissionTitle) = explode("\n", $v);
+				$f->addOption($k, "$roleName: $permissionName", array('data-desc' => $permissionTitle));
+			}
+			$f->attr('value', $value);
+			$fieldset->add($f);
+			$isUsable = true;
+		}
+		
+		// revoke -------------
+
+		$f = $this->wire('modules')->get('InputfieldAsmSelect');
+		$f->attr('name', 'rolesPermissionsRevoke');
+		$f->label = $this->_('Revoke permissions by role');
+		$f->icon = 'minus-circle';
+		$value = array();
+		$options = array();
+
+		foreach($template->editRoles as $roleID) {
+			$role = $this->wire('roles')->get((int) $roleID);
+			if(!$role->id) continue;
+			foreach($role->permissions as $permission) {
+				if(strpos($permission->name, 'page-') !== 0) continue;
+				$ignore = false;
+				foreach($ignorePermissions as $name) {
+					if(strpos($permission->name, $name) === 0) $ignore = true;
+				}
+				if($ignore) continue;
+				$options["$roleID:-$permission->id"] = "$role->name\n$permission->name\n$permission->title";
+			}
+			if(isset($rolesPermissions["$roleID"])) {
+				foreach($rolesPermissions["$roleID"] as $permissionID) {
+					if(strpos($permissionID, "-") !== 0) continue;
+					$v = "$roleID:$permissionID";
+					if(!isset($options[$v])) continue;
+					$value[] = $v;
+				}
+			}
+		}
+
+		if(count($options)) {
+			foreach($options as $k => $v) {
+				list($roleName, $permissionName, $permissionTitle) = explode("\n", $v);
+				$f->addOption($k, "$roleName: $permissionName", array('data-desc' => $permissionTitle));
+			}
+			$f->attr('value', $value);
+			$fieldset->add($f);
+			$isUsable = true;
+		}
+		
+		return $isUsable ? $fieldset : null;
 	}
 
 	/**
@@ -1875,7 +1999,8 @@ class ProcessTemplate extends Process {
 		$this->template->slashUrlSegments = (int) $form->get('slashUrlSegments')->attr('value');
 		$this->template->slashPageNum = (int) $form->get('slashPageNum')->attr('value');
 		$this->template->altFilename = basename($form->get('altFilename')->attr('value'), "." . $this->config->templateExtension);
-		$this->template->guestSearchable = (int) $form->get('guestSearchable')->attr('value'); 
+		$this->template->guestSearchable = (int) $form->get('guestSearchable')->attr('value');
+		$this->template->noInherit = (int) $form->get('noInherit')->attr('value') ? 1 : 0; 
 		
 		$pageLabelField = $form->get('pageLabelField')->attr('value');
 		if(strpos($pageLabelField, '{') !== false && strpos($pageLabelField, '}')) {
@@ -2014,6 +2139,20 @@ class ProcessTemplate extends Process {
 			foreach($value as $k => $v) $value[(int)$k] = (int) $v;
 			$this->template->set($key, $value); 
 		}
+
+		$rolesPermissions = array();
+		foreach(array('rolesPermissionsAdd', 'rolesPermissionsRevoke') as $key) {
+			$value = $this->input->post->$key;
+			if(!is_array($value)) $value = array();
+			foreach($value as $v) {
+				list($roleID, $permissionID) = explode(':', $v);
+				$roleID = (int) $roleID;
+				$permissionID = (int) $permissionID;
+				if(!isset($rolesPermissions["$roleID"])) $rolesPermissions["$roleID"] = array();
+				$rolesPermissions["$roleID"][] = "$permissionID";
+			}
+		}
+		$this->template->set('rolesPermissions', $rolesPermissions);
 
 		// remove deprecated property childrenTemplatesID
 		if(!$this->template->childrenTemplatesID) $this->template->remove("childrenTemplatesID"); 

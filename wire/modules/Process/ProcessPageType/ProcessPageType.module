@@ -44,27 +44,95 @@ class ProcessPageType extends Process implements ConfigurableModule, WirePageEdi
 	 */
 	protected $editor = null;
 
+	/**
+	 * Instance of ProcessPageLister
+	 * 
+	 * @var null|ProcessPageLister|ProcessPageListerPro
+	 * 
+	 */
+	protected $lister = null;
+
+	/**
+	 * Construct
+	 * 
+	 */
 	public function __construct() {
 		$this->set('showFields', array('name')); 
 		$this->set('addLabel', $this->_('Add New')); 
 		$this->set('jsonListLabel', 'name'); // what to use for 'label' property in JSON nav data
 	}
 
+	/**
+	 * Init
+	 * 
+	 */
 	public function init() {
+		
 		$this->config->scripts->add($this->config->urls->ProcessPageType . 'ProcessPageType.js'); 
 		$this->config->styles->add($this->config->urls->ProcessPageType . 'ProcessPageType.css');
 
 		$this->pages = $this->wire($this->page->name); 
+		
 		if(is_null($this->pages) || !$this->pages instanceof PagesType) {
 			// $this->error("Unable to find API variable named '{$this->page->name}' (of type: PagesType)", Notice::debug); 
 			$this->pages = $this->wire('pages'); 
 		}
+		
 		if($this->pages instanceof PagesType) {
 			$this->template = $this->pages->getTemplate();
 		}
+		
+		$this->initLister();
 
 		parent::init();
 	}
+
+	/**
+	 * Return true or false as to whether use of Lister should be attempted (template method)
+	 * 
+	 * @return bool
+	 * 
+	 */
+	protected function useLister() {
+		return false;
+	}
+
+
+	/**
+	 * Initialize the $this->lister variable, if Lister is in use
+	 * 
+	 */
+	protected function initLister() {
+		
+		if(!$this->useLister()) return;
+		
+		// init lister, but only if executing an action that will use it
+		$segment = $this->wire('input')->urlSegment1;
+		$user = $this->wire('user');
+		$listerSegments = array(
+			'list',
+			'config',
+			'viewport',
+			'reset',
+			'actions',
+			'save'
+		);
+		if(empty($segment) || in_array($segment, $listerSegments) && $user->hasPermission('page-lister')) {
+			if($this->wire('modules')->isInstalled('ProcessPageListerPro')) {
+				$this->lister = $this->wire('modules')->get('ProcessPageListerPro');
+			}
+			if((!$this->lister || !$this->lister->isValid()) && $this->wire('modules')->isInstalled('ProcessPageLister')) {
+				$this->lister = $this->wire('modules')->get('ProcessPageLister');
+			}
+		}
+	}
+	
+	// Lister-specific methods
+	public function ___executeConfig() { return $this->getLister()->executeConfig(); }
+	public function ___executeViewport() { return $this->getLister()->executeViewport(); }
+	public function ___executeReset() { return $this->getLister()->executeReset(); }
+	public function ___executeActions() { return $this->getLister()->executeActions(); }
+	public function ___executeSave() { return $this->getLister()->executeSave(); }
 
 	public function ___execute() {
 		return $this->executeList();
@@ -95,7 +163,63 @@ class ProcessPageType extends Process implements ConfigurableModule, WirePageEdi
 		if(!isset($options['itemLabel'])) $options['itemLabel'] = $this->jsonListLabel;
 		
 		return parent::___executeNavJSON($options); 
-	}	
+	}
+
+	/**
+	 * Get an instanceof ProcessPageLister or null if not applicable
+	 * 
+	 * @param string $selector
+	 * @return ProcessPageLister|ProcessPageListerPro|null
+	 * 
+	 */
+	public function getLister($selector = '') {
+
+		$lister = $this->lister;
+		if(!$lister) return null;
+
+		$settings = $this->getListerSettings($lister, $selector);
+
+		foreach($settings as $name => $value) {
+			$lister->$name = $value;
+		}
+		
+		return $lister;
+	}
+
+	/**
+	 * Return an array of Lister settings, ready to be populated to Lister
+	 * 
+	 * @param ProcessPageLister $lister
+	 * @param string $selector
+	 * @return array
+	 * 
+	 */
+	protected function getListerSettings(ProcessPageLister $lister, $selector) {
+		
+		$templates = $this->pages->getTemplates();
+		$selector = "template=" . implode('|', array_keys($templates)) . ", include=unpublished, check_access=0, $selector";
+		
+		$settings = array(
+			'initSelector' => $selector,
+			'columns' => $this->showFields,
+			'defaultSelector' => "name%=",
+			'defaultSort' => 'name',
+			'parent' => $this->page,
+			'editURL' => './edit/',
+			'addURL' => './add/',
+			'delimiters' => array(),
+			'allowSystem' => true,
+			'allowIncludeAll' => true,
+			'showIncludeWarnings' => false,
+			'toggles' => array('collapseFilters'),
+		);
+		
+		if($lister->className() == 'ProcessPageLister') $settings['editMode'] = ProcessPageLister::windowModeDirect;
+		
+		if(count($templates) == 1) $settings['template'] = reset($templates);
+		
+		return $settings;
+	}
 	
 	protected function getEditor($moduleName) {
 		if($this->editor && $this->editor->className() == $moduleName) return $this->editor;
@@ -109,6 +233,7 @@ class ProcessPageType extends Process implements ConfigurableModule, WirePageEdi
 		}
 		return $this->editor;
 	}
+
 
 	public function ___executeEdit() {
 		$this->wire('breadcrumbs')->add(new Breadcrumb('../', $this->page->get('title|name'))); 
@@ -144,7 +269,23 @@ class ProcessPageType extends Process implements ConfigurableModule, WirePageEdi
 		return $editor->executeSaveTemplate();
 	}
 
+	protected function renderLister($selector = '', $pagerOptions = array()) {
+		$lister = $this->getLister($selector);
+		if(!$lister) throw new WireException("Lister not available");
+		if($lister->className() == 'ProcessPageListerPro') {
+			$data = $this->wire('modules')->getModuleConfigData('ProcessPageListerPro');
+			if(isset($data['settings'][$this->page->name])) {
+				foreach($data['settings'][$this->page->name] as $key => $value) {
+					$lister->$key = $value;
+				}
+			}
+		}
+		return $lister->execute();
+	}
+
 	protected function renderList($selector = '', $pagerOptions = array()) {
+		
+		if($this->lister && $this->useLister()) return $this->renderLister($selector, $pagerOptions);
 		$out = '';
 
 		if(!$this->pages instanceof PagesType || count($this->pages->getTemplates()) != 1) {
@@ -181,8 +322,8 @@ class ProcessPageType extends Process implements ConfigurableModule, WirePageEdi
 				if(!$n) {
 					$value = htmlentities($page->getUnformatted($name), ENT_QUOTES, 'UTF-8') . ' ';
 					$status = '';
-					if($page->is(Page::statusUnpublished)) $status .= 'PageListStatusUnpublished ';
-					if($page->is(Page::statusHidden)) $status .= 'PageListStatusHidden ';
+					if($page->hasStatus(Page::statusUnpublished)) $status .= 'PageListStatusUnpublished ';
+					if($page->hasStatus(Page::statusHidden)) $status .= 'PageListStatusHidden ';
 					if($status) $value = "<span class='" . trim($status) . "'>$value</span>";
 					$row[$value] = "edit/?id={$page->id}";
 				} else {

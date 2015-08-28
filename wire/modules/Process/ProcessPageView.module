@@ -514,7 +514,8 @@ class ProcessPageView extends Process {
 			if($page->status < Page::statusUnpublished && wire('user')->hasPermission('page-view', $page)) return $page;
 		}
 
-		$redirectLogin = $page->getAccessTemplate()->redirectLogin;
+		$accessTemplate = $page->getAccessTemplate();
+		$redirectLogin = $accessTemplate ? $accessTemplate->redirectLogin : false;
 
 		if($redirectLogin) {
 			$config = $this->wire('config');

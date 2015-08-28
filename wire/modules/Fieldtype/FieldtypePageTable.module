@@ -157,7 +157,7 @@ class FieldtypePageTable extends FieldtypeMulti implements Module {
 			$value = $page->getUnformatted($field->name);
 			if(!count($value)) continue;
 			foreach($value as $item) {
-				if(!$item->is(Page::statusHidden)) continue; 
+				if(!$item->hasStatus(Page::statusHidden)) continue; 
 				$of = $item->of();
 				$item->of(false);
 				$this->wire('pages')->message("Auto Un-hide PageTable Item: $item->url", Notice::debug);

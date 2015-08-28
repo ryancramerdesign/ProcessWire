@@ -151,59 +151,71 @@ class User extends Page {
 		// convert $name to a Permission object (if it isn't already)
 		if($name instanceof Page) {
 			$permission = $name;
+		} else if(ctype_digit("$name")) {
+			$permission = $permissions->get((int) $name);
 		} else if($name == 'page-rename') {
 			// optional permission that, if not installed, page-edit is substituted for
-			$permission = $permissions->get('page-rename');
-			if(!$permission->id) $permission = $permissions->get('page-edit');
+			if($this->wire('permissions')->has('page-rename')) {
+				$permission = $permissions->get('page-rename');
+			} else {
+				$permission = $permissions->get('page-edit');
+			}
 		} else {
-			$p = $name; 
-			// page-add and page-create don't actually exist in the DB, so we substitute page-edit for them 
-			// code later on will make sure they exist in the template's addRoles/createRoles
-			if(in_array($name, array('page-add', 'page-create'))) $p = 'page-edit';
+			if($name == 'page-add' || $name == 'page-create') {
+				// page-add and page-create don't actually exist in the DB, so we substitute page-edit for them 
+				// code later on will make sure they exist in the template's addRoles/createRoles
+				$p = 'page-edit';
+			} else if(!$permissions->has($name)) {
+				$delegated = $permissions->getDelegatedPermissions();
+				$p = isset($delegated[$name]) ? $delegated[$name] : $name;
+			} else {
+				$p = $name;
+			}
 			$permission = $permissions->get($p); 
 		}
 
 		if(!$permission || !$permission->id) return false;
 
 		$roles = $this->get('roles'); 
-		if(empty($roles)) return false; 
+		if(empty($roles) || !$roles instanceof PageArray) return false; 
 		$has = false; 
-		$accessTemplate = is_null($page) ? null : $page->getAccessTemplate();
+		$accessTemplate = is_null($page) ? false : $page->getAccessTemplate($permission->name);
+		if(is_null($accessTemplate)) return false;
 
 		foreach($roles as $key => $role) {
 
 			if(!$role || !$role->id) continue; 
+			$context = null;
 
 			if(!is_null($page)) {
+				// @todo some of this logic has been duplicated in Role::hasPermission, so code within this if() may be partially redundant
 				if(!$page->id) continue;  
 
 				// if page doesn't have the 'view' role, then no access
-				if(!$page->hasAccessRole($role)) continue; 
-
-				// if permission is page-edit, we also check against the template's editRoles
-				// if($name == 'page-edit' && !in_array($role->id, $page->getAccessTemplate()->editRoles)) continue; 
+				if(!$page->hasAccessRole($role, $name)) continue; 
 
 				// all page- permissions except page-view and page-add require page-edit access on $page, so check against that
-				if(strpos($name, 'page-') === 0 
-					&& $name != 'page-view' 
-					&& $name != 'page-add' 
-					&& !in_array($role->id, $accessTemplate->editRoles)) continue;
+				if(strpos($name, 'page-') === 0 && $name != 'page-view' && $name != 'page-add') {
+					if($accessTemplate && !in_array($role->id, $accessTemplate->editRoles)) continue; 
+				}
 
 				// check against addRoles, createRoles if the permission requires it
-				if($name == 'page-add' && !in_array($role->id, $accessTemplate->addRoles)) {
-					continue;
-				} else if($name == 'page-create' && !in_array($role->id, $accessTemplate->createRoles)) {
-					continue;
+				if($name == 'page-add') {
+					if($accessTemplate && !in_array($role->id, $accessTemplate->addRoles)) continue;
+				} else if($name == 'page-create') {
+					if($accessTemplate && !in_array($role->id, $accessTemplate->createRoles)) continue;
+				} else {
+					// some other page-* permission, check against context of access template
+					$context = $accessTemplate ? $accessTemplate : $page;
 				}
-				//else if($name == 'page-delete' && !in_array($role->id, $accessTemplate->deleteRoles)) continue;
 			}
 
-			if($role->hasPermission($permission)) { 
+			if($role->hasPermission($permission, $context)) { 
 				$has = true;
 				break;
 			}
 		}
-
+	
 		return $has; 
 	}
 
@@ -218,7 +230,7 @@ class User extends Page {
 	 *
 	 */
 	protected function ___hasTemplatePermission($name, $template) {
-
+		
 		if($name instanceof Template) $name = $name->name; 
 		if(is_object($name)) throw new WireException("Invalid type"); 
 
@@ -227,7 +239,7 @@ class User extends Page {
 		if($template instanceof Template) {
 			// fantastic then
 		} else if(is_string($template) || is_int($template)) {
-			$template = $this->templates->get($this->sanitizer->name($template)); 
+			$template = $this->templates->get($this->wire('sanitizer')->name($template)); 
 			if(!$template) return false;
 		} else {
 			return false;
@@ -242,6 +254,7 @@ class User extends Page {
 		$has = false;
 
 		foreach($roles as $role) {
+			// @todo much of this logic has been duplicated in Role::hasPermission, so code within this foreach() may be partially redundant
 
 			if(!$template->hasRole($role)) continue; 
 
@@ -250,14 +263,21 @@ class User extends Page {
 				$name = 'page-edit'; // swap permission to page-edit since create managed at template and requires page-edit
 			}
 			
-			if($name == 'page-edit' && !in_array($role->id, $template->editRoles)) continue;
+			if($name == 'page-edit' && !in_array($role->id, $template->editRoles)) {
+				continue;
+			}
 
 			if($name == 'page-add') {
 				if(!in_array($role->id, $template->addRoles)) continue;
 				$name = 'page-edit';
 			}
 
-			if($role->hasPermission($name)) {
+			$context = null;
+			if($name != 'page-edit' && $name != 'page-add' && $name != 'page-create' && $name != 'page-view') {
+				if(strpos($name, "page-") === 0) $context = $template;
+			}
+
+			if($role->hasPermission($name, $context)) {
 				$has = true;
 				break;
 			}
@@ -276,14 +296,18 @@ class User extends Page {
 	 *
 	 */
 	public function getPermissions(Page $page = null) {
-		if($this->isSuperuser()) return $this->fuel('permissions'); 
+		if($this->isSuperuser()) return $this->wire('permissions')->getIterator(); // all permissions
 		$permissions = new PageArray();
 		$roles = $this->get('roles'); 
 		if(empty($roles)) return $permissions; 
 		foreach($roles as $key => $role) {
 			if($page && !$page->hasAccessRole($role)) continue; 
 			foreach($role->permissions as $permission) { 
-				if($page && $permission->name == 'page-edit' && !in_array($role->id, $page->getAccessTemplate()->editRoles)) continue; 
+				if($page && $permission->name == 'page-edit') {
+					$accessTemplate = $page->getAccessTemplate('edit');
+					if(!$accessTemplate) continue;
+					if(!in_array($role->id, $accessTemplate->editRoles)) continue; 
+				}
 				$permissions->add($permission); 
 			}
 		}
@@ -373,6 +397,16 @@ class User extends Page {
 	public function ___setEditor(WirePageEditor $editor) {
 		parent::___setEditor($editor); 
 		if(!$editor instanceof ProcessUser) $this->wire('session')->redirect($this->editUrl());
+	}
+
+	/**
+	 * Return the API variable used for managing pages of this type
+	 *
+	 * @return Pages|PagesType
+	 *
+	 */
+	public function getPagesManager() {
+		return $this->wire('users');
 	}
 
 }

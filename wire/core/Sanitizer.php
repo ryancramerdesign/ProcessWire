@@ -891,7 +891,7 @@ class Sanitizer extends Wire {
 		}
 		if(is_array($value)) $value = "array-" . count($value);
 		if(!is_string($value)) $value = (string) $value;
-		if(!is_null($sanitizer)) {
+		if(!is_null($sanitizer) && is_string($sanitizer) && (method_exists($this, $sanitizer) || method_exists($this, "___$sanitizer"))) {
 			$value = $this->$sanitizer($value);
 			if(!is_string($value)) $value = (string) $value;
 		}

@@ -166,7 +166,7 @@ class PagePermissions extends WireData implements Module {
 
 		// If page is locked and user doesn't have permission to unlock, don't let them edit
 		if($page->status & Page::statusLocked) {
-			if(!$user->hasPermission("page-lock")) return false; 
+			if(!$user->hasPermission("page-lock", $page)) return false; 
 		}
 			
 		// special conditions apply if the page is a User
@@ -179,10 +179,10 @@ class PagePermissions extends WireData implements Module {
 
 		// check if the system has a page-edit-created permission installed
 		if(is_null($this->hasPageEditCreated)) {
-			$this->hasPageEditCreated = $this->wire('permissions')->get('page-edit-created')->id > 0;
+			$this->hasPageEditCreated = $this->wire('permissions')->has('page-edit-created');
 		}
 		
-		if($this->hasPageEditCreated) {
+		if($this->hasPageEditCreated && $user->hasPermission('page-edit-created', $page)) {
 			// page-edit-created permission is installed, so we have to account for it 
 			// if user is not the one that created this page, don't allow them to edit it
 			if($page->created_users_id != $user->id) return false;
@@ -199,7 +199,7 @@ class PagePermissions extends WireData implements Module {
 			if($user->hasPermission('page-publish', $page)) return true;
 
 			// if the page is unpublished then we're fine too
-			if($page->is(Page::statusUnpublished)) return true;
+			if($page->hasStatus(Page::statusUnpublished)) return true;
 
 			// otherwise user cannot edit this page
 			return false;
@@ -326,8 +326,7 @@ class PagePermissions extends WireData implements Module {
 	 */
 	public function fieldViewable(Page $page, $name, $checkPageViewable = true) {
 		if(empty($name)) return false;
-		if($checkPageViewable && !$page->viewable()) {
-			// @todo account for non-template page, which we still want fieldViewable to return true for
+		if($checkPageViewable && !$page->viewable(false)) {
 			return false; 
 		}
 		if(is_object($name)) {
@@ -478,6 +477,7 @@ class PagePermissions extends WireData implements Module {
 				// field name, Field object or language name specified
 				// @todo: prevent possible collision of field name and language name
 				$field = $arg0;
+				$checkFile = false;
 			} 
 		} 
 		if($arg0 === false || $arg1 === false) {
@@ -493,7 +493,7 @@ class PagePermissions extends WireData implements Module {
 			else if($page->isTrash()) $viewable = false; 
 
 		// if the page is editable by the current user, force it to be viewable
-		if(!$viewable && !$user->isGuest() && $page->is(Page::statusUnpublished)) {
+		if(!$viewable && !$user->isGuest() && $page->hasStatus(Page::statusUnpublished)) {
 			if($page->editable() && (!$checkFile || $page->template->filenameExists())) $viewable = true; 
 		}
 		
@@ -543,10 +543,10 @@ class PagePermissions extends WireData implements Module {
 
 		if($user->isSuperuser()) $listable = true; 
 			else if($page instanceof User && $user->hasPermission('user-admin')) $listable = true; 
-			else if($page->is(Page::statusUnpublished) && !$page->editable()) $listable = false;
+			else if($page->hasStatus(Page::statusUnpublished) && !$page->editable()) $listable = false;
 			else if($page->process && !$this->processViewable($page)) $listable = false;
 			else if($page->isTrash()) $listable = false; 
-			else if($page->getAccessTemplate()->guestSearchable) $listable = true; 
+			else if(($accessTemplate = $page->getAccessTemplate()) && $accessTemplate->guestSearchable) $listable = true; 
 			else if(!$user->hasPermission("page-view", $page)) $listable = false;
 
 		$event->return = $listable; 
@@ -593,7 +593,7 @@ class PagePermissions extends WireData implements Module {
 	public function trashable($event) {
 		/** @var Page $page */
 		$page = $event->object;
-		if($page->is(Page::statusTrash) || $page->template->noTrash) {
+		if($page->hasStatus(Page::statusTrash) || $page->template->noTrash) {
 			// if page is already in trash, or template doesn't allow placement in trash, we return false
 			$event->return = false;
 			return;
@@ -679,9 +679,8 @@ class PagePermissions extends WireData implements Module {
 
 			foreach($page->template->childTemplates as $id) {
 				$template = $this->wire('templates')->get($id);
-				if(!$template->useRoles) $template = $page->getAccessTemplate();
-				//if($user->hasPermission('page-edit', $template)) $has = true;           
-				if($user->hasPermission('page-create', $template)) $has = true;           
+				if(!$template->useRoles) $template = $page->getAccessTemplate('edit');
+				if($template && $user->hasPermission('page-create', $template)) $has = true;           
 				if($has) break;
 			}
 			
@@ -764,8 +763,8 @@ class PagePermissions extends WireData implements Module {
 		}
 
 		// if there is no page-publish permission, then it's publishable
-		$perm = $this->wire('permissions')->get('page-publish'); 
-		if(!$perm->id) return;
+		$hasPublish = $this->wire('permissions')->has('page-publish'); 
+		if(!$hasPublish) return;
 	
 		// if Page is a user, and user has user-admin permission, they can also publish the user
 		if($page instanceof User && $user->hasPermission('user-admin')) return;

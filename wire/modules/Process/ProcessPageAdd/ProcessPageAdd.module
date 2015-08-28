@@ -359,7 +359,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 		$usersPageIDs = $this->wire('config')->usersPageIDs;
 		$userTemplateIDs = $this->wire('config')->userTemplateIDs; 
 
-		if($parent->is(Page::statusUnpublished)) {
+		if($parent->hasStatus(Page::statusUnpublished)) {
 			$parentEditable = $parent->editable();
 		} else {
 			// temporarily put the parent in an unpublished status so that we can check it from 
@@ -730,8 +730,8 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 
 		foreach($items as $item) {
 			$this->message("Checking temporary item: $item->path", Notice::debug); 
-			if(!$item->is(Page::statusUnpublished)) continue; 
-			if(!$item->is(Page::statusTemp)) continue; 
+			if(!$item->hasStatus(Page::statusUnpublished)) continue; 
+			if(!$item->hasStatus(Page::statusTemp)) continue; 
 			if($item->modified > $old) continue; 
 			if($item->numChildren > 0) continue; 
 

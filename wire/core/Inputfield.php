@@ -65,7 +65,10 @@ interface InputfieldHasArrayValue { }
  * @property InputfieldWrapper|null $parent The parent InputfieldWrapper for this Inputfield or null if not set. 
  * @property null|Fieldtype $hasFieldtype Set to the Fieldtype using this Inputfield (by Field), when applicable, null when not.
  * @property null|bool $entityEncodeLabel Set to boolean false to specifically disable entity encoding of field header/label.
+ * @property null|bool $entityEncodeText Set to boolean false to specifically disable entity encoding for other text (description, notes, etc.)
  * @property bool|null $useLanguages When multi-language support active, can be set to true to make it provide inputs for each language (where supported).
+ * @property string|null $prependMarkup Optional markup to prepend to the inputfield content container. 
+ * @property string|null $appendMarkup Optional markup to append to the inputfield content container. 
  * 
  * @method string render()
  * @method string renderValue()
@@ -148,7 +151,7 @@ abstract class Inputfield extends WireData implements Module {
 	 * @var bool
 	 * 
 	 */
-	protected $editable = true; 
+	protected $editable = true;
 
 	/**
 	 * Construct the Inputfield, setting defaults for all properties

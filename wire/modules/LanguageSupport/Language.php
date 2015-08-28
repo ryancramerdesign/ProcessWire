@@ -62,5 +62,15 @@ class Language extends Page {
 	public function isDefault() {
 		return $this->isDefaultLanguage || $this->name == 'default'; 
 	}
+
+	/**
+	 * Return the API variable used for managing pages of this type
+	 *
+	 * @return Pages|PagesType
+	 *
+	 */
+	public function getPagesManager() {
+		return $this->wire('languages');
+	}
 }
 

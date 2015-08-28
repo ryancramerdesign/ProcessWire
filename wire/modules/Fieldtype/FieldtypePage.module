@@ -280,11 +280,11 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 
 		// remove unpublished pages for front-end formatted output
 		if($value instanceof Page) {
-			if($value->is(Page::statusUnpublished)) $value = $this->getBlankValue($page, $field); 
+			if($value->hasStatus(Page::statusUnpublished)) $value = $this->getBlankValue($page, $field); 
 
 		} else if($value instanceof PageArray) {
 			foreach($value as $item) {
-				if($item->is(Page::statusUnpublished)) $value->remove($item); 
+				if($item->hasStatus(Page::statusUnpublished)) $value->remove($item); 
 			}
 		}
 

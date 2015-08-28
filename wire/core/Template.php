@@ -31,6 +31,8 @@
  * @property array $editRoles Array of Role IDs representing roles that may edit pages using this template.
  * @property array $addRoles Array of Role IDs representing roles that may add pages using this template.
  * @property array $createRoles Array of Role IDs representing roles that may create pages using this template.
+ * @property array $rolesPermissions Override permissions: Array indexed by role ID with values as permission ID (add) or negative permission ID (revoke)
+ * @property int $noInherit Specify 1 to prevent edit/create/add access from inheriting to children, or 0 for default inherit behavior.
  * @property int $childrenTemplatesID Template ID for child pages, or -1 if no children allowed. DEPRECATED
  * @property string $sortfield Field that children of templates using this page should sort by. blank=page decides or sort=manual drag-n-drop
  * @property int $noChildren Set to 1 to cancel use of childTemplates
@@ -172,6 +174,8 @@ class Template extends WireData implements Saveable, Exportable {
 		'editRoles' => array(),		// IDs of roles that may edit pages using this template
 		'addRoles' => array(),		// IDs of roles that may add children to pages using this template
 		'createRoles' => array(),	// IDs of roles that may create pages using this template
+		'rolesPermissions' => array(), 	// Permission overrides by role: Array keys are role IDs, values are permission ID (add) or negative permission ID (revoke)
+		'noInherit' => 0, 			// Specify 1 to prevent edit/add/create access from inheriting to non-access controlled children, or 0 for default inherit behavior.
 		'childrenTemplatesID' => 0, 	// template ID for child pages, or -1 if no children allowed. DEPRECATED
 		'sortfield' => '',		// Field that children of templates using this page should sort by. blank=page decides or 'sort'=manual drag-n-drop
 		'noChildren' => '', 		// set to 1 to cancel use of childTemplates
@@ -247,11 +251,28 @@ class Template extends WireData implements Saveable, Exportable {
 	 * This method returns a blank PageArray if roles haven't yet been loaded into the template. 
 	 * If the roles have previously been loaded as an array, then this method converts that array to a PageArray and returns it. 
 	 *
+	 * @param string $type Default is 'view', but you may also specify 'edit', 'create' or 'add' to retrieve those
 	 * @return PageArray
+	 * @throws WireException if given an unknown roles type
 	 *
 	 */
-	public function getRoles() {
+	public function getRoles($type = 'view') {
 
+		if(strpos($type, 'page-') === 0) $type = str_replace('page-', '', $type);
+		
+		if($type != 'view') {
+			$roles = new PageArray();
+			$roleIDs = null;
+			if($type == 'edit') $roleIDs = $this->editRoles;	
+				else if($type == 'create') $roleIDs = $this->createRoles;
+				else if($type == 'add') $roleIDs = $this->addRoles;
+				else throw new WireException("Unknown roles type: $type"); 
+			if(empty($roleIDs)) return $roles;
+			return $this->wire('pages')->getById($roleIDs);
+		}
+
+		// type=view assumed from this point forward
+		
 		if(is_null($this->_roles)) {
 			return new PageArray();
 
@@ -289,25 +310,66 @@ class Template extends WireData implements Saveable, Exportable {
 	 * Does this template have the given role name or page?
 	 *
 	 * @param string|Page $role Name of role or page object representing it. 
+	 * @param string|Permission Which permission to check: 'page-view', 'page-edit', 'page-create' or 'page-add' (default is 'page-view')
 	 * @return bool
 	 *
 	 */
-	public function hasRole($role) {
+	public function hasRole($role, $type = 'view') {
+		$has = false;
 		$roles = $this->getRoles();
-		if(is_string($role)) return $roles->has("name=$role"); 
-		if($role instanceof Page) return $roles->has($role); 
-		return false;
+		$rolePage = null;
+		if(is_object($type) && $type instanceof Page) $type = $type->name;
+		if(strpos($type, 'page-') === 0) $type = str_replace('page-', '', $type);
+		if(is_string($role)) {
+			$has = $roles->has("name=$role");
+		} else if(is_int($role)) {
+			$has = $roles->has("id=$role");
+			$rolePage = $this->wire('roles')->get($role);
+		} else if($role instanceof Page) {
+			$has = $roles->has($role);
+			$rolePage = $role;
+		}
+		if($type == 'view') return $has;
+		if(!$has) return false; // page-view is a pre-requisite
+		if(!$rolePage || !$rolePage->id) $rolePage = $this->wire('roles')->get($role);
+		if(!$rolePage->id) return false;
+		if($type === 'edit') {
+			$has = in_array($rolePage->id, $this->editRoles);
+		} else if($type === 'create') {
+			$has = in_array($rolePage->id, $this->createRoles);
+		} else if($tye == 'add') {
+			$has = in_array($rolePage->id, $this->addRoles);
+		}
+		return $has;
 	}
 
 	/**
 	 * Given an array of page IDs or a PageArray, sets the roles for this template
 	 *
 	 * @param array|PageArray $value
+	 * @param string Default is 'view', but you may also specify 'edit', 'create', or 'add' to set that type
 	 *
 	 */
-	protected function setRoles($value) {
-		if(is_array($value) || $value instanceof PageArray) {
-			$this->_roles = $value;		
+	public function setRoles($value, $type = 'view') {
+		if(strpos($type, 'page-') === 0) $type = str_replace('page-', '', $type);
+		
+		if($type == 'view') {
+			if(is_array($value) || $value instanceof PageArray) {
+				$this->_roles = $value;
+			}
+			
+		} else if(WireArray::iterable($value)) {
+			$roleIDs = array();
+			foreach($value as $v) {
+				if(is_int($v)) $id = $v;
+					else if(is_string($v) && ctype_digit($v)) $id = (int) $v;
+					else if($v instanceof Page) $id = $v->id;
+					else continue;
+				$roleIDs[] = $id;	
+			}
+			if($type == 'edit') $this->set('editRoles', $roleIDs);
+				else if($type == 'create') $this->set('createRoles', $roleIDs);
+				else if($type == 'add') $this->set('addRoles', $roleIDs);
 		}
 	}
 
@@ -388,16 +450,39 @@ class Template extends WireData implements Saveable, Exportable {
 			foreach($value as $k => $v) {
 				if(!is_int($v)) {
 					if(is_object($v)) {
-						$v = $v->id; 
+						$v = $v->id;
 					} else if(is_string($v) && !ctype_digit("$v")) {
-						$role = $this->wire('roles')->get($v); 
-						if(!$role->id && $this->_importMode && $this->useRoles) $this->error("Unable to load role: $v"); 
-						$v = $role->id; 
+						$role = $this->wire('roles')->get($v);
+						if(!$role->id && $this->_importMode && $this->useRoles) $this->error("Unable to load role: $v");
+						$v = $role->id;
 					}
 				}
-				if($v) $value[(int)$k] = (int) $v;
+				if($v) $value[(int) $k] = (int) $v;
 			}
-			parent::set($key, $value); 
+			parent::set($key, $value);
+
+		} else if($key == 'rolesPermissions') {
+			if(!is_array($value)) $value = array();
+			$_value = array();
+			foreach($value as $roleID => $permissionIDs) {
+				// if any one of these happend to be a role name or permission name, convert to IDs
+				if(!ctype_digit("$roleID")) $roleID = $this->wire('roles')->get("name=$roleID")->id;
+				if(!$roleID) continue;
+				foreach($permissionIDs as $permissionID) {
+					if(!ctype_digit(ltrim($permissionID, '-'))) {
+						$revoke = strpos($permissionID, '-') === 0;
+						$permissionID = $this->wire('permissions')->get("name=" . ltrim($permissionID, '-'))->id;
+						if(!$permissionID) continue;
+						if($revoke) $permissionID = "-$permissionID";
+					}
+					// we force these as strings so that they can portable in JSON
+					$roleID = (string) ((int) $roleID);
+					$permissionID = (string) ((int) $permissionID);
+					if(!isset($_value[$roleID])) $_value[$roleID] = array();
+					$_value[$roleID][] = $permissionID;
+				}
+			}
+			parent::set($key, $_value);
 			
 		} else if(in_array($key, array('childTemplates', 'parentTemplates'))) {
 			if(!is_array($value)) $value = array();
@@ -665,7 +750,7 @@ class Template extends WireData implements Saveable, Exportable {
 				$a['roles'][] = $role->id;
 			}
 		} else {
-			unset($a['roles'], $a['editRoles'], $a['addRoles'], $a['createRoles']); 
+			unset($a['roles'], $a['editRoles'], $a['addRoles'], $a['createRoles'], $a['rolesPermissions']); 
 		}
 
 		return $a;

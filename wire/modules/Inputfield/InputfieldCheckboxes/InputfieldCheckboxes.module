@@ -37,6 +37,7 @@ class InputfieldCheckboxes extends InputfieldSelectMultiple implements Inputfiel
 		$inline = $columns === 1 || $columns > 10; 
 		$liAttr = '';
 		$ulClass = '';
+		$entityEncode = $this->getSetting('entityEncodeText') === false ? false : true;
 
 		if($this->table) {
 			$table = $this->modules->get("MarkupAdminDataTable"); 
@@ -75,7 +76,7 @@ class InputfieldCheckboxes extends InputfieldSelectMultiple implements Inputfiel
 			$attrs = $this->getOptionAttributesString($attrs);
 			if($attrs) $attrs = ' ' . $attrs; 
 
-			$value = $this->entityEncode($value, true); 
+			if($entityEncode) $value = $this->entityEncode($value, true); 
 
 			$input = 
 				"<label$attrs>" . 

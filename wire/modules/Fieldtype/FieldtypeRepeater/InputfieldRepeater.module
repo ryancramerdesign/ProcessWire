@@ -120,7 +120,7 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 		// locate and remove any unpublished+hidden items so we can ensure they are at the end
 		$appendItems = array();
 		foreach($value as $key => $page) {
-			if($page->is(Page::statusUnpublished) && $page->is(Page::statusHidden)) {
+			if($page->hasStatus(Page::statusUnpublished) && $page->hasStatus(Page::statusHidden)) {
 				$value->remove($page); 
 				$appendItems[] = $page; 
 			}
@@ -172,10 +172,10 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 			$f = wire('modules')->get('InputfieldHidden');
 			$f->attr('name', "publish_repeater{$page->id}"); 
 			$f->attr('class', 'InputfieldRepeaterPublish'); 
-			$f->attr('value', $page->is(Page::statusHidden) ? 0 : 1); 
+			$f->attr('value', $page->hasStatus(Page::statusHidden) ? 0 : 1); 
 			$wrap->add($f); 
 
-			if($page->is(Page::statusHidden)) {
+			if($page->hasStatus(Page::statusHidden)) {
 				$wrap->addClass('InputfieldRepeaterReady');
 				$wrap->label .= ' - ' . $this->_('New');
 
@@ -188,7 +188,7 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 				$wrap->add($f); 
 
 
-			} else if($page->is(Page::statusUnpublished)) {
+			} else if($page->hasStatus(Page::statusUnpublished)) {
 				$wrap->label .= ' - ' . $this->_('Unpublished');
 			}
 
@@ -262,7 +262,7 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 				continue; 
 			}
 
-			if($input->$publishName > 0 && $page->is(Page::statusHidden)) {
+			if($input->$publishName > 0 && $page->hasStatus(Page::statusHidden)) {
 				$page->removeStatus(Page::statusHidden | Page::statusUnpublished); 
 			}
 
@@ -341,7 +341,7 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 
 				if($page->isChanged($name)) {
 					// if a 'ready' page was changed, then we may now consider it a regular repeater page
-					if($page->is(Page::statusHidden)) $page->removeStatus(Page::statusHidden); 
+					if($page->hasStatus(Page::statusHidden)) $page->removeStatus(Page::statusHidden); 
 				}
 			}
 
@@ -359,7 +359,7 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 		if(count($this->attr('value')) == 0) return true; 
 		$cnt = 0;
 		foreach($this->attr('value') as $item) {
-			if($item->is(Page::statusHidden) && $item->is(Page::statusUnpublished)) continue;
+			if($item->hasStatus(Page::statusHidden) && $item->hasStatus(Page::statusUnpublished)) continue;
 			$cnt++;
 		}
 		return $cnt === 0; 

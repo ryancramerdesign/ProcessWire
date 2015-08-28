@@ -59,6 +59,7 @@
  * @property string $nativeDateFormat wireDate() format for created and modified dates
  * @property bool $showIncludeWarnings Whether or not to show warnings about what pages were excluded to to max "include=" mode [true]
  * @property string $blankLabel Label when a field is blank (default=Blank)
+ * @property int $editOption Edit option setting, used only by ListerPro
  * 
  *
  */
@@ -1182,7 +1183,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		} else if($name == 'status') {
 			// status
 			$value = array();
-			foreach($this->statusLabels as $status => $label) if($p->is($status)) $value[] = $label;
+			foreach($this->statusLabels as $status => $label) if($p->hasStatus($status)) $value[] = $label;
 			$value = implode(', ', $value);
 
 		} else if($field && $field->type) {
@@ -1220,26 +1221,31 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		$statusIcon = '';
 		$isTrash = false; 
 		if(!strlen($value)) $value = $this->blankLabel;
-		if($p->is(Page::statusHidden)) $class .= " PageListStatusHidden";
-		if($p->is(Page::statusUnpublished)) $class .= " PageListStatusUnpublished";
-		if($p->is(Page::statusLocked)) {
+		if($p->hasStatus(Page::statusHidden)) $class .= " PageListStatusHidden";
+		if($p->hasStatus(Page::statusUnpublished)) $class .= " PageListStatusUnpublished";
+		if($p->hasStatus(Page::statusLocked)) {
 			$class .= " PageListStatusLocked";
 			$statusIcon .= wireIconMarkup('lock', 'fw ui-priority-secondary');
 		}
-		if($p->is(Page::statusTrash)) {
+		if($p->hasStatus(Page::statusTrash)) {
 			$isTrash = true; 	
 			$class .= " PageListStatusTrash PageListStatusUnpublished";
 			$statusIcon .= wireIconMarkup('trash-o', 'fw ui-priority-secondary'); 
 		}
 		if($p->getAccessParent() === $p && $p->parent->id) {
-			if($p->getAccessTemplate()->hasRole('guest')) {
-				if(!$p->parent->getAccessTemplate()->hasRole('guest') && !$p->isTrash()) {
+			$accessTemplate = $p->getAccessTemplate();
+			if($accessTemplate && $accessTemplate->hasRole('guest')) {
+				$accessTemplate = $p->parent->getAccessTemplate();
+				if($accessTemplate && !$accessTemplate->hasRole('guest') && !$p->isTrash()) {
 					$class .= ' PageListAccessOn';
 					$statusIcon .= wireIconMarkup('key', 'fw fa-flip-horizontal ui-priority-secondary');
 				}
-			} else if($p->parent->getAccessTemplate()->hasRole('guest')) {
-				$class .= ' PageListAccessOff';
-				$statusIcon .= wireIconMarkup('key', 'fw ui-priority-secondary');
+			} else {
+				$accessTemplate = $p->parent->getAccessTemplate();
+				if($accessTemplate && $accessTemplate->hasRole('guest')) {
+					$class .= ' PageListAccessOff';
+					$statusIcon .= wireIconMarkup('key', 'fw ui-priority-secondary');
+				}
 			}
 		}
 		$icon = $p->template->getIcon();
@@ -1366,7 +1372,14 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 			$pageListRender = new ProcessPageListRenderJSON($this->wire('page'), new PageArray()); 
 		}
 		
-		return $pageListRender->getPageActions($p);
+		$actions = $pageListRender->getPageActions($p);
+		
+		if(isset($actions['edit']) && $this->editURL && strpos($actions['edit'], '/page/edit/') !== false) {
+			list($path, $queryString) = explode('?', $actions['edit']['url']);
+			$actions['edit']['url'] = $this->editURL . '?' . $queryString;
+		}
+		
+		return $actions;
 	}
 
 	/**
@@ -1474,7 +1487,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 			} else {
 				$pagerOut = '';
 			}
-
+			
 		} else {
 			$headline = $this->_('No results.');
 			$tableOut = "<div class='ui-helper-clearfix'></div>";
@@ -1499,6 +1512,14 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 			$out .= "<p id='ProcessListerSelector' class='notes'>" . $this->wire('sanitizer')->entities($this->finalSelector) . "</p>";
 			//$out .= "<p id='ProcessListerSelector' class='notes'>" . $this->wire('sanitizer')->entities($findSelector) . "</p>";
 		}
+		
+		if(!$this->editOption) {
+			$out =
+				"<form action='./' method='post' class='Inputfield InputfieldWrapper InputfieldForm InputfieldFormNoDependencies'>" .
+					$out . $this->wire('session')->CSRF->renderInput() .
+				"</form>";
+		}
+
 		
 		$out .= $this->renderExternalAssets();
 		

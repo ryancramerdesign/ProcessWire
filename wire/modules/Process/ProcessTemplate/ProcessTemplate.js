@@ -43,6 +43,7 @@ $(document).ready(function() {
 			}); 
 			redirectLoginClick();
 		}
+		
 	}; 
 
 	$("#wrap_useRoles input").click(function() {
@@ -53,12 +54,16 @@ $(document).ready(function() {
 			$("#wrap_useRoles > label").click();
 			$("input.viewRoles").attr('checked', 'checked'); 
 		} else {
-			$("#useRolesYes").slideUp(); 
+			$("#useRolesYes").slideUp();
+			$("#accessOverrides:visible").slideUp(); 
 		}
 	});
 
-
-	if($("#useRoles_0:checked").size() > 0) $("#useRolesYes").hide();
+	if($("#useRoles_0:checked").size() > 0) {
+		$("#useRolesYes").hide();
+		$("#accessOverrides").hide();
+	}
+	
 
 	$("#roles_37").click(adjustAccessFields);
 	$("input.viewRoles:not(#roles_37)").click(function() {
@@ -71,8 +76,9 @@ $(document).ready(function() {
 	// when edit checked or unchecked, update the createRoles to match since they are dependent
 	var editRolesClick = function() { 
 
-		var $editRoles = $("#roles_editor input.editRoles"); 
-
+		var $editRoles = $("#roles_editor input.editRoles");
+		var numChecked = 0;
+		
 		$editRoles.each(function() { 
 			var $t = $(this); 
 			if($t.is(":disabled")) return false; 
@@ -80,19 +86,40 @@ $(document).ready(function() {
 			var $createRoles = $("input.createRoles[value=" + $t.attr('value') + "]"); 
 
 			if($t.is(":checked")) {
+				numChecked++;
 				$createRoles.removeAttr('disabled'); 
 			} else {
 				$createRoles.removeAttr('checked').attr('disabled', 'disabled'); 
 			}
-		}); 
+		});
+		
+		if(numChecked) {
+			$("#accessOverrides").slideDown();
+		} else {
+			$("#accessOverrides").hide();
+		}
+
 		return true; 
 	}; 
-	$("#roles_editor input.editRoles").click(editRolesClick); 
+	
+	var editOrAddClick = function() {
+		var numChecked = 0;
+		$("#roles_editor input.editRoles").each(function() {
+			if(!$(this).is(":disabled") && $(this).is(":checked")) numChecked++;
+		});
+		$("#roles_editor input.addRoles").each(function() {
+			if(!$(this).is(":disabled") && $(this).is(":checked")) numChecked++;
+		});
+		numChecked > 0 ? $("#wrap_noInherit").slideDown() : $("#wrap_noInherit").hide();
+	}; 
+	
+	$("#roles_editor input.editRoles").click(editRolesClick);
+	$("#roles_editor input.editRoles, #roles_editor input.addRoles").click(editOrAddClick); 
+		
 	editRolesClick();
-
+	editOrAddClick();
 
 	$("#wrap_redirectLogin input").click(redirectLoginClick); 
-
 
 	// -----------------
 	// asmSelect fieldgroup indentation

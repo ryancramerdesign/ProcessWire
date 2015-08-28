@@ -299,8 +299,8 @@ class InputfieldPageTable extends Inputfield {
 
 		// wrap the row in a <tr>
 		$class = '';
-		if($item->is(Page::statusUnpublished)) $class .= 'PageListStatusUnpublished ';
-		if($item->is(Page::statusHidden)) $class .= 'PageListStatusHidden ';
+		if($item->hasStatus(Page::statusUnpublished)) $class .= 'PageListStatusUnpublished ';
+		if($item->hasStatus(Page::statusHidden)) $class .= 'PageListStatusHidden ';
 		if($item->isTrash()) $class .= 'PageListStatusTrash';
 		if($class) $class = " class='" . trim($class) . "'";
 

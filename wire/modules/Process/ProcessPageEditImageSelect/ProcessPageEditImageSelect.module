@@ -929,7 +929,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		
 		if(!$this->field) throw new WireException("Field is not defined"); 
 		if(!$this->original) throw new WireException("Original is not set");
-		if($this->page->is(Page::statusLocked)) throw new WireException("Page is locked for edits"); 
+		if($this->page->hasStatus(Page::statusLocked)) throw new WireException("Page is locked for edits"); 
 		
 		$image = $this->getPageimage(false);
 		if($this->input->get('file') != "$this->page,$image->name") $image = $this->getPageimage(true); 

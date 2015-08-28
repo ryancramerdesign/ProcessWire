@@ -764,7 +764,7 @@ class Pages extends Wire {
 		$corrupted = array(); 
 		if($fieldName && is_object($fieldName)) $fieldName = $fieldName->name;
 		
-		if($page->is(Page::statusCorrupted)) {
+		if($page->hasStatus(Page::statusCorrupted)) {
 			$corruptedFields = $page->_statusCorruptedFields; 
 			foreach($page->getChanges() as $change) {
 				if(isset($corruptedFields[$change])) $corrupted[] = $change;
@@ -809,7 +809,7 @@ class Pages extends Wire {
 		// check for a parent change and whether it is allowed
 		if($saveable && $page->parentPrevious && $page->parentPrevious->id != $page->parent->id && empty($options['ignoreFamily'])) {
 			// page was moved
-			if($page->template->noMove && ($page->is(Page::statusSystem) || $page->is(Page::statusSystemID) || !$page->isTrash())) {
+			if($page->template->noMove && ($page->hasStatus(Page::statusSystem) || $page->hasStatus(Page::statusSystemID) || !$page->isTrash())) {
 				// make sure the page's template allows moves. only move laways allowed is to the trash, unless page has system status
 				$saveable = false;
 				$reason = "Pages using template '{$page->template}' are not moveable (template::noMove)";
@@ -1045,7 +1045,7 @@ class Pages extends Wire {
 			throw new WireException("Can't save page {$page->id}: {$page->path}: $reason"); 
 		}
 
-		if($page->is(Page::statusUnpublished) && $page->template->noUnpublish) $page->removeStatus(Page::statusUnpublished); 
+		if($page->hasStatus(Page::statusUnpublished) && $page->template->noUnpublish) $page->removeStatus(Page::statusUnpublished); 
 
 		if($page->parentPrevious) {
 			if($page->isTrash() && !$page->parentPrevious->isTrash()) $this->trash($page, false); 
@@ -1233,7 +1233,7 @@ class Pages extends Wire {
 		$page->of(false);
 	
 		// when a page is statusCorrupted, it records what fields are corrupted in _statusCorruptedFields array
-		$corruptedFields = $page->is(Page::statusCorrupted) ? $page->_statusCorruptedFields : array();
+		$corruptedFields = $page->hasStatus(Page::statusCorrupted) ? $page->_statusCorruptedFields : array();
 
 		// save each individual Fieldtype data in the fields_* tables
 		foreach($page->fieldgroup as $field) {
@@ -2112,6 +2112,10 @@ class Pages extends Wire {
 		if(count($changes)) $str .= " (Changes: " . implode(', ', $changes) . ")";
 		$this->log($str, $page);
 		$this->wire('cache')->maintenance($page);
+		if($page->className() != 'Page') {
+			$manager = $page->getPagesManager();
+			if($manager instanceof PagesType) $manager->saved($page, $changes, $values);
+		}
 	}
 
 	/**
@@ -2121,7 +2125,11 @@ class Pages extends Wire {
 	 *
 	 */
 	public function ___added(Page $page) { 
-		$this->log("Added page", $page); 
+		$this->log("Added page", $page);
+		if($page->className() != 'Page') {
+			$manager = $page->getPagesManager();
+			if($manager instanceof PagesType) $manager->added($page);
+		}
 	}
 
 	/**
@@ -2187,7 +2195,14 @@ class Pages extends Wire {
 	 * @return array Optional extra data to add to pages save query.
 	 *
 	 */
-	public function ___saveReady(Page $page) { return array(); }
+	public function ___saveReady(Page $page) {
+		$data = array();
+		if($page->className() != 'Page') {
+			$manager = $page->getPagesManager();
+			if($manager instanceof PagesType) $data = $manager->saveReady($page);
+		}
+		return $data;
+	}
 
 	/**
 	 * Hook called when a page is about to be deleted, but before data has been touched
@@ -2198,7 +2213,12 @@ class Pages extends Wire {
 	 * @param Page $page
 	 *
 	 */
-	public function ___deleteReady(Page $page) { }
+	public function ___deleteReady(Page $page) {
+		if($page->className() != 'Page') {
+			$manager = $page->getPagesManager();
+			if($manager instanceof PagesType) $manager->deleteReady($page);
+		}
+	}
 
 	/**
 	 * Hook called when a page and it's data have been deleted
@@ -2209,6 +2229,10 @@ class Pages extends Wire {
 	public function ___deleted(Page $page) { 
 		$this->log("Deleted page", $page); 
 		$this->wire('cache')->maintenance($page);
+		if($page->className() != 'Page') {
+			$manager = $page->getPagesManager();
+			if($manager instanceof PagesType) $manager->deleted($page);
+		}
 	}
 
 	/**

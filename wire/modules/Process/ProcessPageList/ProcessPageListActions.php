@@ -100,6 +100,7 @@ class ProcessPageListActions extends Wire {
 		$adminUrl = $this->wire('config')->urls->admin . 'page/';
 		$locked = $page->isLocked();
 		$trash = $page->isTrash();
+		$user = $this->wire('user');
 
 		if(!$locked && !$trash) {
 			if($page->publishable()) {
@@ -120,20 +121,22 @@ class ProcessPageListActions extends Wire {
 				}
 			}
 
-			if($page->isHidden()) {
-				$extras['unhide'] = array(
-					'cn'   => 'Unhide',
-					'name' => $this->actionLabels['unhide'],
-					'url'  => "$adminUrl?action=unhide&id=$page->id",
-					'ajax' => true,
-				);
-			} else {
-				$extras['hide'] = array(
-					'cn'   => 'Hide',
-					'name' => $this->actionLabels['hide'],
-					'url'  => "$adminUrl?action=hide&id=$page->id",
-					'ajax' => true,
-				);
+			if($user->hasPermission('page-hide', $page)) {
+				if($page->isHidden()) {
+					$extras['unhide'] = array(
+						'cn'   => 'Unhide',
+						'name' => $this->actionLabels['unhide'],
+						'url'  => "$adminUrl?action=unhide&id=$page->id",
+						'ajax' => true,
+					);
+				} else {
+					$extras['hide'] = array(
+						'cn'   => 'Hide',
+						'name' => $this->actionLabels['hide'],
+						'url'  => "$adminUrl?action=hide&id=$page->id",
+						'ajax' => true,
+					);
+				}
 			}
 		}
 

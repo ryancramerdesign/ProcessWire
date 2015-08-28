@@ -108,7 +108,7 @@ class RepeaterPage extends Page {
 	 *
 	 */
 	public function isPublic() {
-		if($this->is(Page::statusUnpublished)) return false;
+		if($this->hasStatus(Page::statusUnpublished)) return false;
 		return $this->getForPage()->isPublic();
 	}
 }
