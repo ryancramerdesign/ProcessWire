@@ -229,7 +229,13 @@ class PagesType extends Wire implements IteratorAggregate, Countable {
 		if(!isset($options['loadOptions'])) $options['loadOptions'] = array();
 		$options['loadOptions'] = $this->getLoadOptions($options['loadOptions']); 
 		$pages = $this->wire('pages')->find($this->selectorString($selectorString), $options);
-		foreach($pages as $page) $this->loaded($page); 
+		foreach($pages as $page) {
+			if(!$this->isValid($page)) {
+				$pages->remove($page);
+			} else {
+				$this->loaded($page);
+			}
+		}
 		return $pages; 
 	}
 
@@ -274,6 +280,7 @@ class PagesType extends Wire implements IteratorAggregate, Countable {
 		}
 
 		$page = $this->pages->findOne($this->selectorString($selectorString), array('loadOptions' => $options)); 
+		if($page->id && !$this->isValid($page)) $page = new NullPage();
 		if($page->id) $this->loaded($page);
 		
 		return $page; 

@@ -11,17 +11,22 @@ class InputfieldAsmSelect extends InputfieldSelectMultiple implements Inputfield
 	public static function getModuleInfo() {
 		return array(
 			'title' => __('asmSelect', __FILE__),
-			'version' => 118,
+			'version' => 119,
 			'summary' => __('Multiple selection, progressive enhancement to select multiple', __FILE__), // Module Summary
 			'permanent' => true, 
 			);
+	}
+	
+	public function __construct() {
+		$this->set('usePageEdit', 0);
+		parent::__construct();
 	}
 
 	public function init() {
 
 		// asmSelect requires jQuery UI, so we enforce it being loaded here
-		wire('modules')->get('JqueryCore'); // required by jQuery UI
-		wire('modules')->get('JqueryUI'); 
+		$this->wire('modules')->get('JqueryCore'); // required by jQuery UI
+		$this->wire('modules')->get('JqueryUI'); 
 
 		parent::init(); 
 
@@ -54,6 +59,12 @@ class InputfieldAsmSelect extends InputfieldSelectMultiple implements Inputfield
 		if(!empty($this->asmOptions['editLink'])) {
 			$this->wire('modules')->get('JqueryUI')->use('modal');
 		}
+	
+		if($this->hasFieldtype == 'FieldtypePage' && $this->usePageEdit && !$this->editLink) {
+			$this->setAsmSelectOption('editLink', $this->wire('config')->urls->admin . 'page/edit/?id={value}');
+			$this->setAsmSelectOption('editLinkOnlySelected', false);
+			$this->setAsmSelectOption('editLinkModal', true);
+		}
 
 		// require javascript and css
 		$class = $this->className(); 
@@ -77,6 +88,20 @@ class InputfieldAsmSelect extends InputfieldSelectMultiple implements Inputfield
 		$this->config->js($this->id, $this->asmOptions); 
 
 		return parent::___render();
-		
+	}
+
+	public function ___getConfigInputfields() {
+		$inputfields = parent::___getConfigInputfields();
+		if($this->hasFieldtype != 'FieldtypePage') return $inputfields;
+		$f = $this->wire('modules')->get('InputfieldRadios');
+		$f->attr('name', 'usePageEdit');
+		$f->label = $this->_('Link selected pages to page editor?');
+		$f->description = $this->_('When enabled, the selected label(s) will link to edit the selected page.');
+		$f->addOption(0, $this->_('No'));
+		$f->addOption(1, $this->_('Yes (in modal window)'));
+		$f->attr('value', $this->usePageEdit);
+		$f->optionColumns = 1;
+		$inputfields->add($f);
+		return $inputfields;
 	}
 }

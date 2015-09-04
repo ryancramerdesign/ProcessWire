@@ -14,7 +14,8 @@ var InputfieldPageListSelect = {
 			selectSelectLabel: $inputfield.attr('data-select'),
 			selectUnselectLabel: $inputfield.attr('data-unselect'),
 			moreLabel: $inputfield.attr('data-more'),
-			selectCancelLabel: $inputfield.attr('data-cancel')
+			selectCancelLabel: $inputfield.attr('data-cancel'),
+			labelName: $inputfield.attr('data-labelName')
 		}).hide().addClass('InputfieldPageListSelectInit');
 	}
 };

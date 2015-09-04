@@ -122,6 +122,7 @@ class InputfieldPageName extends InputfieldName implements ConfigurableModule {
 	public function init() {
 		parent::init();
 		$this->label = $this->_('Name'); // Field label for 'Name'
+		$this->icon = 'angle-double-right';
 		$this->set('parentPage', null); 
 		$this->set('sanitizeMethod', 'pageName');
 		$this->set('languageSupportLabel', ''); 

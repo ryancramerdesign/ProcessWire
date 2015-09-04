@@ -10,6 +10,19 @@
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * https://processwire.com
+ * 
+ * @property int $parent_id Limit results to this parent, or if combined with findPagesSelector, the search is performed as $pages->get($parent_id)->find() rather than $pages->find().
+ * @property int $template_id Limit results to pages using this template.
+ * @property string $labelFieldName Field to display in the results. (default=title)
+ * @property string $labelFieldFormat Format string to display in the results, overrides labelFieldName when used (default=blank).
+ * @property string $searchFields Field(s) to search for text. Separate multiple by a space. (default=title)
+ * @property string $operator Selector operator to use in performing the search (default: %=)
+ * @property string $findPagesSelector Optional selector to use for finding pages (default=blank)
+ * @property int $maxSelectedItems Maximum number of items that may be selected (0=unlimited, default).
+ * @property bool $useList Whether or not to use a separate selected list. If false specified, selected item will be populated directly to the input. (default=true)
+ * @property bool $allowAnyValue Allow any value to stay in the input, even if not selectable? (default=false)
+ * @property string $disableChars Autocomplete won't be triggered if input contains any of the characters in this string. (default=blank)
+ * @property bool $useAndWords When true, each word will be isolated to a separate searchFields=searchValue, which enables it to duplicate ~= operator behavior while using a %= operator (default=false).
  *
  */
 class InputfieldPageAutocomplete extends Inputfield implements InputfieldHasArrayValue {
@@ -33,11 +46,14 @@ class InputfieldPageAutocomplete extends Inputfield implements InputfieldHasArra
 		// the search is performed as $pages->get($parent_id)->find() rather than $pages->find()
 		$this->set('parent_id', 0); 
 
-		// limit results to pagse using this template
+		// limit results to pages using this template
 		$this->set('template_id', 0); 
 
 		// field to display in the results
 		$this->set('labelFieldName', 'title'); 
+		
+		// format string to display in the results (instead of labelFieldName, when used)
+		$this->set('labelFieldFormat', '');
 
 		// field(s) to search for text, separate multiple by a space
 		$this->set('searchFields', 'title'); 
@@ -55,6 +71,11 @@ class InputfieldPageAutocomplete extends Inputfield implements InputfieldHasArra
 		// if not used, selected value will be populated directly to input
 		$this->set('useList', true); 
 	
+		// allow a non-selectable value to stay in the autocomplete input? 
+		// useful for situations where autocomplete might be used for collection of other values
+		// like when used with ProcessPageEditLink
+		$this->set('allowAnyValue', false);
+	
 		// autocomplete won't be triggered if input contains any characters present in this string
 		$this->set('disableChars', ''); 
 	
@@ -69,6 +90,8 @@ class InputfieldPageAutocomplete extends Inputfield implements InputfieldHasArra
 	 */
 	protected function ___renderListItem($label, $value, $class = '') {
 		if($class) $class = " $class";
+		if(strpos($label, '&') !== false) $label = $this->wire('sanitizer')->unentities($label);
+		$label = $this->wire('sanitizer')->entities($label);
 		$out = 	
 			"\n<li class='ui-state-default$class'>" . 
 			"<i class='fa fa-sort fa-fw'></i> " . 
@@ -86,12 +109,15 @@ class InputfieldPageAutocomplete extends Inputfield implements InputfieldHasArra
 	protected function ___renderList() { 
 
 		$out = "\n<ol id='{$this->id}_items' data-id='{$this->id}' data-name='{$this->name}'>" . $this->renderListItem("Label", "1", "itemTemplate"); 
-
+		
 		foreach($this->value as $page_id) {
 			if(!$page_id) continue; 
 			$page = $this->pages->get((int) $page_id); 
 			if(!$page || !$page->id) continue; 
-			$out .= $this->renderListItem($page->get($this->labelFieldName), $page->id); 
+			$value = $this->labelFieldFormat ? $page->getMarkup($this->labelFieldFormat) : $page->get($this->labelFieldName); 
+			$value = strip_tags($value);
+			if(!strlen($value)) $value = $page->get('title|name');
+			$out .= $this->renderListItem($value, $page->id); 
 		}
 
 		$out .= "\n</ol>";
@@ -130,12 +156,13 @@ class InputfieldPageAutocomplete extends Inputfield implements InputfieldHasArra
 		if(!$searchField) $searchField = 'title';
 		$addNote = $this->_('Hit enter to add as new item'); 
 		
-		$labelField = $this->labelFieldName; 
+		$labelField = $this->labelFieldFormat ? "autocomplete_$this->name" : $this->labelFieldName; 
 		$operator = $this->operator; 
 		$id = $this->id; 
 		$max = (int) $this->maxSelectedItems; 
 		$class = $this->useList ? 'has_list' : 'no_list';
 		if($this->useAndWords) $class .= " and_words";
+		if($this->allowAnyValue) $class .= " allow_any";
 		
 		$disableChars = $this->disableChars; 
 		if($disableChars) {
@@ -152,7 +179,7 @@ class InputfieldPageAutocomplete extends Inputfield implements InputfieldHasArra
 		$attrs =
 			"data-max='$max' " . 
 			"data-url='$url' " . 
-			"data-label='$labelField' " . 
+			"data-label='" . $this->wire('sanitizer')->entities($labelField) . "' " . 
 			"data-search='$searchField' " . 
 			"data-operator='$operator' ";
 		
@@ -162,12 +189,14 @@ class InputfieldPageAutocomplete extends Inputfield implements InputfieldHasArra
 			if(count($this->value)) {
 				$item = $this->wire('pages')->getById($this->value)->first();
 				if($item && $item->id) {
-					$textValue = $item->get($labelField);
-					if(!strlen($textValue)) $textValue = $item->get('name');
+					$textValue = $this->labelFieldFormat ? $item->getMarkup($this->labelFieldFormat) : $item->get($labelField);
+					if(!strlen($textValue)) $textValue = $item->get('title|name');
+					$textValue = strip_tags($textValue);
+					if(strpos($textValue, '&') !== false) $textValue = $this->wire('sanitizer')->unentities($textValue);
+					$textValue = $this->wire('sanitizer')->entities($textValue);
 				}
 			}
 			$remove = "<i class='fa fa-fw fa-times-circle InputfieldPageAutocompleteRemove'></i>";
-			
 		}
 		
 		$out .= <<< _OUT
@@ -257,7 +286,12 @@ _OUT;
 		}
 
 		// specify what label field we want to retrieve
-		$selector .= "&get={$this->labelFieldName}";
+		if($this->labelFieldFormat) {
+			$name = "autocomplete_" . $this->attr('name');
+			$this->wire('modules')->get('ProcessPageSearch')->setDisplayFormat($name, $this->labelFieldFormat);
+			$selector .= "&format_name=$name";
+		}
+		$selector .= "&get=" . $this->labelFieldName;
 
 		return $this->config->urls->admin . "page/search/for?" . $selector;
 	}

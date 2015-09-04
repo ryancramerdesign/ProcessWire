@@ -1621,10 +1621,48 @@ class Modules extends WireArray {
 			// throw new WireException("$class - Can't Uninstall - $reason"); 
 			return false;
 		}
+		
+		// check if there are any modules still installed that this one says it is responsible for installing
+		foreach($this->getUninstalls($class) as $name) {
+
+			// catch uninstall exceptions at this point since original module has already been uninstalled
+			$label = $this->_('Module Auto Uninstall');
+			try {
+				$this->uninstall($name);
+				$this->message("$label: $name");
+
+			} catch(Exception $e) {
+				$error = "$label: $name - " . $e->getMessage();
+				$this->trackException($e, false, $error);
+			}
+		}
 
 		$info = $this->getModuleInfoVerbose($class); 
-		$module = $this->getModule($class, array('noPermissionCheck' => true, 'noInstall' => true)); 
+		$module = $this->getModule($class, array(
+			'noPermissionCheck' => true, 
+			'noInstall' => true,
+			// 'noInit' => true
+		)); 
 		if(!$module) return false;
+		
+		// remove all hooks attached to this module
+		$hooks = $module instanceof Wire ? $module->getHooks() : array();
+		foreach($hooks as $hook) {
+			if($hook['method'] == 'uninstall') continue;
+			$this->message("Removed hook $class => " . $hook['options']['fromClass'] . " $hook[method]", Notice::debug);
+			$module->removeHook($hook['id']);
+		}
+
+		// remove all hooks attached to other ProcessWire objects
+		$hooks = array_merge(wire()->getHooks('*'), Wire::$allLocalHooks);
+		foreach($hooks as $hook) {
+			$toClass = get_class($hook['toObject']);
+			$toMethod = $hook['toMethod'];
+			if($class === $toClass && $toMethod != 'uninstall') {
+				$hook['toObject']->removeHook($hook['id']);
+				$this->message("Removed hook $class => " . $hook['options']['fromClass'] . " $hook[method]", Notice::debug);
+			}
+		}
 		
 		if(method_exists($module, '___uninstall') || method_exists($module, 'uninstall')) {
 			// note module's uninstall method may throw an exception to abort the uninstall
@@ -1634,38 +1672,6 @@ class Modules extends WireArray {
 		$query = $database->prepare('DELETE FROM modules WHERE class=:class LIMIT 1'); // QA
 		$query->bindValue(":class", $class, PDO::PARAM_STR); 
 		$query->execute();
-	
-		// remove all hooks attached to this module
-		$hooks = $module instanceof Wire ? $module->getHooks() : array();
-		foreach($hooks as $hook) {
-			$this->message("Removed hook $class => " . $hook['options']['fromClass'] . " $hook[method]", Notice::debug); 
-			$module->removeHook($hook['id']); 
-		}
-	
-		// remove all hooks attached to other ProcessWire objects
-		$hooks = array_merge(wire()->getHooks('*'), Wire::$allLocalHooks);
-		foreach($hooks as $hook) {
-			$toClass = get_class($hook['toObject']); 
-			if($class === $toClass) {
-				$hook['toObject']->removeHook($hook['id']);
-				$this->message("Removed hook $class => " . $hook['options']['fromClass'] . " $hook[method]", Notice::debug); 
-			}
-		}
-
-		// check if there are any modules still installed that this one says it is responsible for installing
-		foreach($this->getUninstalls($class) as $name) {
-
-			// catch uninstall exceptions at this point since original module has already been uninstalled
-			$label = $this->_('Module Auto Uninstall');
-			try { 
-				$this->uninstall($name); 
-				$this->message("$label: $name"); 
-
-			} catch(Exception $e) {
-				$error = "$label: $name - " . $e->getMessage(); 
-				$this->trackException($e, false, $error);
-			}
-		}
 	
 		// add back to the installable list
 		if(class_exists("ReflectionClass")) {

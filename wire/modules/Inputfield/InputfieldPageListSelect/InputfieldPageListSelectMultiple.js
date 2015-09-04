@@ -19,6 +19,7 @@ var InputfieldPageListSelectMultiple = {
 			selectSelectLabel: $t.attr('data-select'),
 			selectUnselectLabel: $t.attr('data-unselect'),
 			moreLabel: $t.attr('data-more'),
+			labelName: $t.attr('data-labelName')
 		}).hide().addClass('InputfieldPageListSelectMultipleInit');
 		$t.bind('pageSelected', $t, InputfieldPageListSelectMultiple.pageSelected);
 		InputfieldPageListSelectMultiple.initList($('#' + $t.attr('id') + '_items'));

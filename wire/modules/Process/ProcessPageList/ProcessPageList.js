@@ -114,7 +114,10 @@ $(document).ready(function() {
 			hoverActionFade: 150,
 		
 			// markup for the spinner used when ajax calls are made
-			spinnerMarkup: "<i class='ui-priority-secondary fa fa-fw fa-spin fa-spinner'></i>"
+			spinnerMarkup: "<i class='ui-priority-secondary fa fa-fw fa-spin fa-spinner'></i>",
+		
+			// session field name that holds page label format, when used
+			labelName: '',
 		};
 			
 
@@ -262,7 +265,12 @@ $(document).ready(function() {
 				$root.append($("<div></div>").addClass('PageListSelectHeader').append($pageLabel).append($actions)); 
 
 				if(options.selectShowPageHeader) { 
-					$.getJSON(options.ajaxURL + "?id=" + options.selectedPageID + "&render=JSON&start=0&limit=0&lang=" + options.langID + "&mode=" + options.mode, function(data) {
+					var ajaxURL = options.ajaxURL + 
+						"?id=" + options.selectedPageID + 
+						"&render=JSON&start=0&limit=0&lang=" + options.langID + 
+						"&mode=" + options.mode;
+					if(options.labelName.length) ajaxURL += '&labelName=' + options.labelName;
+					$.getJSON(ajaxURL, function(data) {
 						var parentPath = '';
 						if(options.selectShowPath) {
 							parentPath = data.page.path;
@@ -503,9 +511,15 @@ $(document).ready(function() {
 
 				if(!replace) $target.append($loading.fadeIn('fast')); 
 				
-				// $.getJSON(options.ajaxURL + "?id=" + id + "&render=JSON&start=" + start + "&lang=" + options.langID + "&open=" + options.openPageIDs[0] + "&mode=" + options.mode, processChildren);
 				// @teppokoivula PR #1052
-				$.getJSON(options.ajaxURL + "?id=" + id + "&render=JSON&start=" + start + "&lang=" + options.langID + "&open=" + options.openPageIDs[0] + "&mode=" + options.mode)
+				var ajaxURL = options.ajaxURL + 
+					"?id=" + id + 
+					"&render=JSON&start=" + start + 
+					"&lang=" + options.langID + 
+					"&open=" + options.openPageIDs[0] + 
+					"&mode=" + options.mode;
+				if(options.labelName.length) ajaxURL += '&labelName=' + options.labelName;
+				$.getJSON(ajaxURL)
 					.done(function(data, textStatus, jqXHR) {
 						processChildren(data);
 					})

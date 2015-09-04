@@ -766,7 +766,7 @@ $config->substituteModules = array(
 $config->pageList = array(
 	'limit' => 50, 
 	'speed' => 200, 
-	'useHoverActions' => false,
+	'useHoverActions' => true,
 	'hoverActionDelay' => 100, 
 	'hoverActionFade' => 100
 );

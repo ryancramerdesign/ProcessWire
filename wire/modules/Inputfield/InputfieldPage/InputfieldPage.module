@@ -13,14 +13,13 @@
  * @property int $template_id
  * @property int $parent_id
  * @property string $inputfield
- * @property string $labelFieldName
+ * @property string $labelFieldName Field name to use for label (note: this will be "." if $labelFieldFormat is in use).
+ * @property string $labelFieldFormat Formatting string for $page->getMarkup() as alternative to $labelFieldName
  * @property string $findPagesCode
  * @property string $findPagesSelector
  * @property int|bool $addable
  * @property int|bool $allowUnpub
  * 
- * @todo update labelFieldName to support "title|name" and "{title}, {id}", format. 
- *
  */
 class InputfieldPage extends Inputfield implements ConfigurableModule {
 
@@ -42,6 +41,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		'template_id' => 0,
 		'inputfield' => '', 
 		'labelFieldName' => '',
+		'labelFieldFormat' => '',
 		'findPagesCode' => '',
 		'findPagesSelector' => '',
 		'addable' => 0,
@@ -337,8 +337,15 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		if(method_exists($inputfield, 'addOption')) {
 			$children = $this->getSelectablePages($page);
 			if($children) foreach($children as $child) {
-				$label = $this->labelFieldName ? $child->get($this->labelFieldName) : $child->name;
-				if(!strlen($label)) $label = $child->name;
+				$label = '';
+				if(strlen($this->labelFieldFormat) && $this->labelFieldName == '.') {
+					$label = $child->getMarkup($this->labelFieldFormat);
+				} else if($this->labelFieldName === '.') {
+					// skip
+				} else if($this->labelFieldName) {
+					$label = $child->get($this->labelFieldName);
+				}
+				if(!strlen($label)) $label = $child->name; 
 				if($child->hasStatus(Page::statusUnpublished)) $label .= ' ' . $this->_('(unpublished)');
 				$inputfield->addOption($child->id, $label);
 			}
@@ -352,7 +359,13 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 			}
 			if($this->template_id) $inputfield->template_id = $this->template_id; 
 			if($this->findPagesSelector) $inputfield->findPagesSelector = $this->findPagesSelector; 
-			$inputfield->labelFieldName = $this->labelFieldName; 
+			if(strlen($this->labelFieldFormat) && $this->labelFieldName === '.') {
+				$inputfield->labelFieldName = $this->labelFieldFormat;
+				$inputfield->labelFieldFormat = $this->labelFieldFormat;
+			} else {
+				$inputfield->labelFieldName = $this->labelFieldName == '.' ? 'name' : $this->labelFieldName;
+				$inputfield->labelFieldFormat = '';
+			}				
 		}
 
 		$ids = array();
@@ -398,7 +411,20 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		
 		if($this->findPagesSelector) {
 			$selector = $this->wire('sanitizer')->entities($this->findPagesSelector); 
-			$out .= "<input type='hidden' class='findPagesSelector' data-label='$this->labelFieldName' value='$selector' />";
+			$formatName = '';
+			if(strlen($this->labelFieldFormat) && $this->labelFieldName === '.') {
+				/** @var ProcessPageSearch $pps */
+				$formatName = "page_$this->name";
+				$pps = $this->wire('modules')->get('ProcessPageSearch');
+				$pps->setDisplayFormat($formatName, $this->labelFieldFormat);
+			}
+			$labelFieldName = $this->labelFieldName == '.' ? 'name' : $this->labelFieldName;	
+			$out .= "<input " . 
+				"type='hidden' " . 
+				"class='findPagesSelector' " . 
+				"data-formatname='$formatName' " . 
+				"data-label='$labelFieldName' " . 
+				"value='$selector' />";
 		}
 		
 		$out .= "\n</div>";
@@ -412,7 +438,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 
 		if($this->labelFieldName && $this->labelFieldName != 'title') return '';
 
-		$parent = wire('pages')->get($this->parent_id); 
+		$parent = $this->wire('pages')->get($this->parent_id); 
 
 		$test = new Page();
 		$test->template = wire('templates')->get($this->template_id); 
@@ -453,20 +479,35 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 
 	public function ___renderValue() {
 
-		$labelFieldName = $this->labelFieldName ? $this->labelFieldName : 'title';
-		$labelFieldName .= "|name";
+		if($labelFieldName == '.') {
+			$labelFieldFormat = $this->labelFieldFormat;
+			$labelFieldName = 'title|name';
+		} else {
+			$labelFieldFormat = '';
+			$labelFieldName = $this->labelFieldName ? $this->labelFieldName : 'title';
+			$labelFieldName .= "|name";
+		}
+		
 		$value = $this->attr('value');
 
 		if(is_array($value) || $value instanceof PageArray) { 
 			$out = '<ul class="PageArray">';
 			foreach($value as $p) {
-				$v = $p->get($labelFieldName);
+				$of = $p->of();
+				$p->of(true);
+				$v = $labelFieldFormat ? $p->getMarkup($labelFieldFormat) : $p->get($labelFieldName);
+				if(!strlen($v)) $v = $p->get('name');
 				$out .= "<li>$v</li>";
+				$p->of($of);
 			}
 			$out .= "</ul>";
 
 		} else if($value instanceof Page) {
-			$out = $value->get($labelFieldName);
+			$of = $value->of();
+			$value->of(true);
+			$out = $labelFieldFormat ? $value->getMarkup($labelFieldFormat) : $value->get($labelFieldName);
+			if(!strlen($out)) $out = $value->get('name');
+			$value->of($of);
 
 		} else {
 			$out = $value; 
@@ -683,9 +724,12 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		$field = $this->modules->get('InputfieldSelect');
 		$field->setAttribute('name', 'labelFieldName');
 		$field->setAttribute('value', $this->labelFieldName); 
-		$field->label = $this->_('Label Field');
+		$field->label = $this->_('Label field');
 		$field->required = true; 
 		$field->description = $this->_('Select the page field that you want to be used in generating the labels for each selectable page.'); // Description for Label Field
+		$field->notes = $this->_('Select "Custom format" if you want to specify multiple fields, or other fields you do not see above.');
+		$field->addOption('.', $this->_('Custom format (multiple fields)' . ' ...'));
+		$field->columnWidth = 50;
 
 		if($this->fuel('fields')->get('title')) {
 			$field->addOption('title', 'title' . $defaultLabel);
@@ -704,6 +748,18 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 			$field->addOption($f->name);
 		}
 		$inputfields->append($field); 
+		
+		$field = $this->modules->get('InputfieldText');
+		$field->attr('name', 'labelFieldFormat');
+		$field->attr('value', $this->labelFieldFormat);
+		$field->label = $this->_('Custom page label format');
+		$field->description = $this->_('Specify one or more field names surrounded by curly {brackets} along with any additional characters, spacing or punctuation.'); // Description for custom page label format
+		$field->notes = $this->_('Example: {parent.title} - {title}, {date}'); 
+		$field->columnWidth = 50;
+		$field->showIf = 'labelFieldName=.';
+		$field->required = true;
+		$field->requiredIf = 'labelFieldName=.';
+		$inputfields->add($field);
 
 		if(!$this->inputfield) $this->inputfield = 'InputfieldSelect'; 
 		$field = $this->modules->get('InputfieldSelect');
@@ -711,6 +767,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		$field->setAttribute('value', $this->inputfield); 
 		$field->label = $this->_('Input field type');
 		$field->description = $this->_('The type of field that will be used to select a page. Select one that is consistent with the single page vs. multi-page needs you chose in the "details" tab of this field.'); // Description for Inputfield field type
+		$field->description .= ' ' . $this->_('Some input types may provide additional configuration options. After selecting an input field type, and then saving your changes, additional configuration options may appear below this section.'); // Description 2 for Inputfield field type
 		$field->required = true; 
 		$field->notes = '* ' . $this->_('Types indicated with an asterisk are for multiple page selection.') . "\n" . 
 				'+ ' . $this->_('Types indicated with a plus assume a "parent" to be the root of a tree, rather than an immediate parent.'); 

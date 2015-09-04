@@ -33,7 +33,7 @@ class ProcessPageList extends Process implements ConfigurableModule {
 	protected $trashLabel;
 	protected $render; 
 	protected $allowRenderTypes = array('JSON' => 'ProcessPageListRenderJSON');
-
+	
 	/**
 	 * Default max pages to show before pagination (configurable in the module editor)
 	 *
@@ -215,10 +215,25 @@ class ProcessPageList extends Process implements ConfigurableModule {
 		$renderer = new $class($this->page, $children);
 		$renderer->setStart($this->start);
 		$renderer->setLimit($this->limit);
-		$renderer->setPageLabelField($this->pageLabelField);
+		$renderer->setPageLabelField($this->getPageLabelField());
 		$renderer->setLabel('trash', $this->trashLabel);
 		
 		return $renderer;
+	}
+	
+	public function setPageLabelField($name, $pageLabelField) {
+		$this->wire('session')->setFor($this, $name, $pageLabelField);	
+	}
+	
+	protected function getPageLabelField() {
+		$pageLabelField = '';
+		if(isset($_GET['labelName'])) {
+			$name = $this->wire('sanitizer')->fieldName($_GET['labelName']);
+			if($name) $pageLabelField = $this->wire('session')->getFor($this, $name);
+			if($pageLabelField) $pageLabelField = '!' . $pageLabelField; // "!" means it may not be overridden by template
+		}
+		if(empty($pageLabelField)) $pageLabelField = $this->pageLabelField;
+		return $pageLabelField;
 	}
 	
 	public function ___ajaxAction($action) {

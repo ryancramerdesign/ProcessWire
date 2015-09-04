@@ -1074,7 +1074,9 @@ class Pages extends Wire {
 		$isNew = $page->isNew();		
 		$database = $this->wire('database');
 		$user = $this->wire('user');
-		$userID = $user ? $user->id : $this->config->superUserPageID;
+		$config = $this->wire('config');
+		$userID = $user ? $user->id : $config->superUserPageID;
+		$systemVersion = $config->systemVersion;
 		if(!$page->created_users_id) $page->created_users_id = $userID;
 		if($page->isChanged('status')) $this->statusChangeReady($page); 
 		$extraData = $this->saveReady($page);
@@ -1112,7 +1114,7 @@ class Pages extends Wire {
 		} else {
 			// quiet option, use existing values already populated to page, when present
 			$data['modified_users_id'] = (int) ($page->modified_users_id ? $page->modified_users_id : $userID); 
-			$data['created_users_id'] = (int) ($page->created_users_id ? $page->created_users_id : $userID); 
+			$data['created_users_id'] = (int) ($page->created_users_id ? $page->created_users_id : $userID);
 			if($page->modified > 0) $data['modified'] = date('Y-m-d H:i:s', $page->modified); 
 				else if($isNew) $sql = 'modified=NOW()';
 			if(!$isNew && $page->created > 0) $data['created'] = date('Y-m-d H:i:s', $page->created); 
@@ -1120,6 +1122,13 @@ class Pages extends Wire {
 		
 		if(isset($data['modified_users_id'])) $page->modified_users_id = $data['modified_users_id'];
 		if(isset($data['created_users_id'])) $page->created_users_id = $data['created_users_id']; 
+		
+		if(!$page->isUnpublished() && ($isNew || ($page->statusPrevious && ($page->statusPrevious & Page::statusUnpublished)))) {
+			// page is being published
+			if($systemVersion >= 12) {
+				$sql .= ($sql ? ', ' : '') . 'published=NOW()';
+			}
+		}
 		
 		foreach($data as $column => $value) {
 			$sql .= ", $column=" . (is_null($value) ? "NULL" : ":$column");

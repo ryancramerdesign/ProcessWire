@@ -156,7 +156,11 @@ var InputfieldPageAutocomplete = {
 			$note.hide();
 			if($input.hasClass('no_list')) {
 				if($value.val().length) {
-					$input.val($input.attr('data-selectedLabel')).attr('placeholder', '');
+					if($input.hasClass('allow_any')) {
+						// allow value to remain
+					} else {
+						$input.val($input.attr('data-selectedLabel')).attr('placeholder', '');
+					}
 				} else {
 					$input.val('').attr('placeholder', '').attr('data-selectedLabel', '');
 				}

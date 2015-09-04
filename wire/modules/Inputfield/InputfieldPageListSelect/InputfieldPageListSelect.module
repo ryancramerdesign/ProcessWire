@@ -23,14 +23,16 @@ class InputfieldPageListSelect extends Inputfield implements InputfieldPageListS
 		$this->set('selectLabel', $this->_('Select'));
 		$this->set('unselectLabel', $this->_('Unselect'));
 		$this->set('moreLabel', $this->_('More')); 
-		$this->set('showPath', true); 
+		$this->set('showPath', false); 
 		parent::init();
 	}
 	
 	public function renderReady(Inputfield $parent = null, $renderValueMode = false) {
 		static $process = null;
 		if(is_null($process)) {
+			/** @var ProcessPageList $process */
 			$process = $this->wire('modules')->get('ProcessPageList'); // prerequisite module
+			$process->setPageLabelField($this->attr('name'), $this->labelFieldName);
 		}
 		return parent::renderReady($parent, $renderValueMode);
 	}
@@ -51,6 +53,7 @@ class InputfieldPageListSelect extends Inputfield implements InputfieldPageListS
 		$attrs['data-unselect'] = $this->unselectLabel;
 		$attrs['data-more'] = $this->moreLabel;
 		$attrs['data-cancel'] = $this->cancelLabel;
+		$attrs['data-labelName'] = $this->attr('name');
 
 		$out = "\n<input type='text' " . $this->getAttributesString($attrs) . " />";
 

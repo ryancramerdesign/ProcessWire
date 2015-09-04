@@ -85,8 +85,13 @@ abstract class ProcessPageListRender extends Wire {
 		$value = '';
 		$icon = $page->getIcon();
 
-		// if the page's template specifies a pageLabelField, use that 
-		$pageLabelField = trim($page->template->pageLabelField);
+		if(strpos($this->pageLabelField, '!') === 0) {
+			// exclamation forces this one to be used, rather than template-specific one
+			$pageLabelField = ltrim($this->pageLabelField, '!');
+		} else {
+			// if the page's template specifies a pageLabelField, use that, if pageLabelField doesn't start with "!" as override
+			$pageLabelField = trim($page->template->pageLabelField);
+		}
 
 		// otherwise use the one specified with this instance
 		if(!strlen($pageLabelField)) $pageLabelField = $this->pageLabelField;
@@ -157,7 +162,7 @@ abstract class ProcessPageListRender extends Wire {
 			$icon = "<i class='icon fa fa-fw fa-$icon'></i>";
 		}
 
-		if(!strlen($value)) $value = $page->get("name");
+		if(!strlen($value)) $value = $page->get("title|name");
 
 		return $icon . trim($value);
 	}

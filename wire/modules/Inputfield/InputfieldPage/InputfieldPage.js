@@ -15,6 +15,8 @@ function initInputfieldPage($this) {
 		// if there is no "=page." present in the selector, then this can't be a dependent select
 		if(selector.indexOf('=page.') == -1) return;
 		var labelFieldName = $t.attr('data-label');
+		var formatName = $t.attr('data-formatname');
+		if(!labelFieldName.length) $labelFieldName = 'name';
 		// if it doesn't contain a dynamic request from the page, then stop now
 
 		var $wrap = $t.parents(".InputfieldPage");
@@ -47,6 +49,7 @@ function initInputfieldPage($this) {
 				s = s.replace(/,\s*/g, '&');
 				if(s.indexOf('_LPID')) s = s.replace(/_LPID[0-9]+/g, '');
 				var url = config.urls.admin + 'page/search/for?' + s + '&limit=999&get=' + labelFieldName;
+				if(formatName.length) url += '&format_name=' + formatName;
 				$.getJSON(url, {}, function(data) {
 					//$select.children().remove();
 					$select.children().addClass('option-tbd'); // mark existing options as to-be-deleted
@@ -58,7 +61,11 @@ function initInputfieldPage($this) {
 						var selected = false;
 						if($option.size() > 0) selected = $option.is(":checked");
 						$option.remove();
-						var $option = $("<option value='" + page.id + "'>" + page[labelFieldName] + "</option>");
+						var label = '';
+						if(formatName.length) label = page[formatName];
+						if(!label.length) label = page[labelFieldName];
+						if(!label.length) label = page.name;
+						var $option = $("<option value='" + page.id + "'>" + label + "</option>");
 						if(selected) $option.attr('selected', 'selected');
 						// add the <option> to the <select>
 						$select.append($option);

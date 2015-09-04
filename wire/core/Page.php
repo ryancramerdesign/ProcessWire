@@ -36,8 +36,9 @@
  * @property PageArray $siblings All the sibling pages of this page. Returns a PageArray. See also $page->siblings($selector).
  * @property Page $next This page's next sibling page, or NullPage if it is the last sibling. See also $page->next($pageArray).
  * @property Page $prev This page's previous sibling page, or NullPage if it is the first sibling. See also $page->prev($pageArray).
- * @property string $created Unix timestamp of when the page was created
- * @property string $modified Unix timestamp of when the page was last modified
+ * @property int $created Unix timestamp of when the page was created
+ * @property int $modified Unix timestamp of when the page was last modified
+ * @property int $published Unix timestamp of when the page was last published
  * @property int $created_users_id ID of created user
  * @property User $createdUser The user that created this page. Returns a User or a NullUser.
  * @property int $modified_users_id ID of last modified user
@@ -110,6 +111,7 @@ class Page extends WireData implements Countable, WireMatchable {
 	const statusSystemID = 8; 		// page is for the system and may not be deleted or have it's id changed (everything else, okay)
 	const statusSystem = 16; 		// page is for the system and may not be deleted or have it's id, name, template or parent changed
 	const statusDraft = 64; 		// page has pending draft changes
+	const statusVersions = 128;		// page has version data available
 	const statusTemp = 512;			// page is temporary and 1+ day old unpublished pages with this status may be automatically deleted
 	const statusHidden = 1024;		// page is excluded selector methods like $pages->find() and $page->children() unless status is specified, like "status&1"
 	const statusUnpublished = 2048; // page is not published and is not renderable. 
@@ -131,10 +133,11 @@ class Page extends WireData implements Countable, WireMatchable {
 		'locked' => self::statusLocked,
 		'systemID' => self::statusSystemID,
 		'system' => self::statusSystem,
-		'temp' => self::statusTemp, 
+		'draft' => self::statusDraft,
+		'versions' => self::statusVersions,
+		'temp' => self::statusTemp,
 		'hidden' => self::statusHidden,
 		'unpublished' => self::statusUnpublished,
-		'draft' => self::statusDraft,
 		'trash' => self::statusTrash,
 		'deleted' => self::statusDeleted,
 		'systemOverride' => self::statusSystemOverride, 
@@ -362,6 +365,7 @@ class Page extends WireData implements Countable, WireMatchable {
 		'created_users_id' => 0,
 		'created' => 0,
 		'modified' => 0,
+		'published' => 0,
 		); 
 
 	/**
@@ -482,20 +486,22 @@ class Page extends WireData implements Countable, WireMatchable {
 				break;
 			case 'created': 
 			case 'modified':
+			case 'published':
+				if(is_null($value)) $value = 0;
 				if(!ctype_digit("$value")) $value = strtotime($value); 
 				$value = (int) $value; 
 				if($this->settings[$key] !== $value) $this->trackChange($key, $this->settings[$key], $value); 
 				$this->settings[$key] = $value;
 				break;
 			case 'created_users_id':
-			case 'modified_users_id': 
+			case 'modified_users_id':
 				$value = (int) $value;
 				if($this->settings[$key] !== $value) $this->trackChange($key, $this->settings[$key], $value); 
 				$this->settings[$key] = $value; 
 				break;
 			case 'createdUser':
 			case 'modifiedUser':
-				$this->setUser($value, strpos($key, 'created') === 0 ? 'created' : 'modified'); 
+				$this->setUser($value, str_replace('User', '', $key));
 				break;
 			case 'sortfield':
 				if($this->template && $this->template->sortfield) break;
@@ -715,19 +721,18 @@ class Page extends WireData implements Countable, WireMatchable {
 				$value = (int) $this->settings['created_users_id'];
 				break;
 			case 'modifiedUser':
-				if(!$this->modifiedUser) {
-					if($this->settings['modified_users_id'] == $this->wire('user')->id) $this->modifiedUser = $this->wire('user'); // prevent possible recursion loop
-						else $this->modifiedUser = $this->wire('users')->get((int) $this->settings['modified_users_id']);
-				}
-				$value = $this->modifiedUser; 
-				if($value) $value->of($this->of());
-				break;
 			case 'createdUser':
-				if(!$this->createdUser) {
-					if($this->settings['created_users_id'] == $this->wire('user')->id) $this->createdUser = $this->wire('user'); // prevent recursion
-						else $this->createdUser = $this->wire('users')->get((int) $this->settings['created_users_id']); 
+				if(!$this->$key) {
+					$_key = str_replace('User', '', $key) . '_users_id';
+					$u = $this->wire('user');
+					if($this->settings[$_key] == $u->id) {
+						$this->set($key, $u); // prevent possible recursion loop
+					} else {
+						$u = $this->wire('users')->get((int) $this->settings[$_key]);
+						$this->set($key, $u);
+					}
 				}
-				$value = $this->createdUser; 
+				$value = $this->$key; 
 				if($value) $value->of($this->of());
 				break;
 			case 'urlSegment':
@@ -753,10 +758,10 @@ class Page extends WireData implements Countable, WireMatchable {
 				$value = implode(' ', $this->status(true)); 
 				break;
 			case 'modifiedStr':
-				$value = wireDate($this->wire('config')->dateFormat, $this->settings['modified']);
-				break;
 			case 'createdStr':
-				$value = wireDate($this->wire('config')->dateFormat, $this->settings['created']);
+			case 'publishedStr':
+				$value = $this->settings[str_replace('Str', '', $key)];
+				$value = $value ? wireDate($this->wire('config')->dateFormat, $value) : '';
 				break;
 			default:
 				if($key && isset($this->settings[(string)$key])) return $this->settings[$key];
@@ -1175,17 +1180,25 @@ class Page extends WireData implements Countable, WireMatchable {
 	 */
 	protected function setUser($user, $userType) {
 
-		if(!$user instanceof User) $user = $this->wire('users')->get($user); 
+		if(!$user instanceof User) {
+			if(is_object($user)) {
+				$user = null;
+			} else {
+				$user = $this->wire('users')->get($user);
+			}
+		}
 
 		// if they are setting an invalid user or unknown user, then the Page defaults to the super user
-		if(!$user || !$user->id) $user = $this->wire('users')->get(wire('config')->superUserPageID); 
+		if(!$user || !$user->id || !$user instanceof User) {
+			$user = $this->wire('users')->get($this->wire('config')->superUserPageID);
+		}
 
 		if($userType == 'created') {
 			$field = 'created_users_id';
 			$this->createdUser = $user; 
 		} else if($userType == 'modified') {
 			$field = 'modified_users_id';
-			$this->modifiedUser = $user; 
+			$this->modifiedUser = $user;
 		} else {
 			throw new WireException("Unknown user type in Page::setUser(user, type)"); 
 		}

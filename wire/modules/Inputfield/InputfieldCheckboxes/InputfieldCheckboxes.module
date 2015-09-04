@@ -91,7 +91,7 @@ class InputfieldCheckboxes extends InputfieldSelectMultiple implements Inputfiel
 				$value[0] = "$input<span class='pw-no-select'>$value[0]</span></label>";
 				$table->row($value); 
 			} else {
-				$value = str_replace(' ', ' <wbr>', $value);
+				//$value = str_replace(' ', ' <wbr>', $value);
 				$out .= "\n\t<li$liAttr>$input<span class='pw-no-select'>$value</span></label></li>";
 			}
 			

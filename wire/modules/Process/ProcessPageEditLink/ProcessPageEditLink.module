@@ -124,6 +124,7 @@ class ProcessPageEditLink extends Process implements ConfigurableModule {
 		}
 		$field->maxSelectedItems = 1; 
 		$field->useList = false; 
+		$field->allowAnyValue = true; 
 		$field->disableChars = '/:.#';
 		$field->useAndWords = true; 
 		$field->findPagesSelector = 

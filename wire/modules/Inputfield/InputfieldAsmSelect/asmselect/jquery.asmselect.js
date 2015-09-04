@@ -535,7 +535,7 @@
 					var buttons = [];
 					var buttonCnt = 0;
 
-					$icontents.find('form button.ui-button').each(function(n) {
+					$icontents.find('form button.ui-button:visible').each(function(n) {
 
 						var $button = $(this);
 						var label = $button.text();

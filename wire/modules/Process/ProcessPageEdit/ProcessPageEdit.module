@@ -693,6 +693,7 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 			$field->attr('value', "<p>" . $this->page->template->getLabel() . "</p>"); 
 		}
 		$field->label = $this->_('Template'); // Settings: Template field label
+		$field->icon = 'cubes';
 		$wrapper->add($field); 
 
 		// parent
@@ -711,6 +712,7 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 			}
 			$field->required = true;
 			$field->label = $this->_('Parent'); // Settings: Parent field label
+			$field->icon = 'folder-open-o';
 			$field->attr('id+name', 'parent_id');
 			$field->attr('value', $this->page->parent_id);
 			$wrapper->add($field); 
@@ -759,16 +761,22 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 			if($modifiedName != $unknown && $page->modifiedUser instanceof User) $modifiedName = "<a href='$url{$page->modifiedUser->id}'>$modifiedName</a>";
 		}
 		$lowestDate = strtotime('1974-10-10');
-		$createdDate = $page->created > $lowestDate ? date($dateFormat, $page->created) . " (" . wireRelativeTimeStr($page->created) . ")" : $unknown;
-		$modifiedDate = $page->modified > $lowestDate ? date($dateFormat, $page->modified) . " (" . wireRelativeTimeStr($page->modified) . ")" : $unknown; 
+		$createdDate = $page->created > $lowestDate ? date($dateFormat, $page->created) . " " . 
+			"<span class='detail'>(" . wireRelativeTimeStr($page->created) . ")</span>" : $unknown;
+		$modifiedDate = $page->modified > $lowestDate ? date($dateFormat, $page->modified) . " " . 
+			"<span class='detail'>(" . wireRelativeTimeStr($page->modified) . ")</span>" : $unknown; 
+		$publishedDate = $page->published > $lowestDate ? date($dateFormat, $page->published) . " " . 
+			"<span class='detail'>(" . wireRelativeTimeStr($page->published) . ")</span>" : $unknown;
 
 		$info =	"\n<p>" . 
 				sprintf($this->_('Created by %1$s on %2$s'), $createdName, $createdDate) . "<br />" . // Settings: created user/date information line
-				sprintf($this->_('Last modified by %1$s on %2$s'), $modifiedName, $modifiedDate) . // Settings: modified user/date information line
+				sprintf($this->_('Last modified by %1$s on %2$s'), $modifiedName, $modifiedDate) . "<br />" . // Settings: modified user/date information line
+				sprintf($this->_('Published on %s'), $publishedDate) . // Settings: published information line
 				"</p>"; 
 		
 		$field->attr('id+name', 'ProcessPageEditInfo'); 
 		$field->label = $this->_('Info'); // Settings: Info field label
+		$field->icon = 'info-circle';
 		if($this->wire('config')->advanced) $field->notes = "Object type: " . $page->className();
 		$field->value = $info; 
 		//$field->collapsed = Inputfield::collapsedYes; 
@@ -783,6 +791,7 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 		$status = (int) $this->page->status; 
 		$field = $this->modules->get('InputfieldCheckboxes');
 		$field->attr('name', 'status');
+		$field->icon = 'sliders';
 		$statuses = array(); 
 		if($this->user->hasPermission('page-hide', $this->page)) $statuses[Page::statusHidden] = $this->_('Hidden: Excluded from lists and searches'); // Settings: Hidden status checkbox label
 		if($this->user->hasPermission('page-lock', $this->page)) $statuses[Page::statusLocked] = $this->_('Locked: Not editable'); // Settings: Locked status checkbox label
@@ -873,6 +882,7 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 
 		$field = $this->modules->get("InputfieldMarkup"); 
 		$field->label = $this->_('Who can access this page?'); // Roles information field label
+		$field->icon = 'users';
 		$field->attr('id', 'ProcessPageEditRoles');
 		$field->collapsed = Inputfield::collapsedYesAjax;
 
@@ -1242,6 +1252,7 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 		$form->description = sprintf($this->_('Change template from "%1$s" to "%2$s"'), $this->page->template, $template); // Change template A to B headline
 
 		$f = $this->modules->get("InputfieldMarkup"); 	
+		$f->icon = 'cubes';
 		$f->label = $this->_('Confirm template change'); // Change template confirmation subhead
 		$list = '';
 		foreach($this->page->template->fieldgroup as $field) {

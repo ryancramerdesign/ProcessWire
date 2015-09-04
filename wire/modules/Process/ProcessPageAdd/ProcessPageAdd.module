@@ -651,6 +651,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 		
 		$field->label = $this->_('Template'); // Template field label
 		$field->attr('id+name', 'template');
+		$field->icon = 'cubes';
 		$field->required = true; 
 		$form->append($field);
 
@@ -659,6 +660,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 			$field->attr('name', 'parent_id');
 			$field->label = $this->_('Parent');
 			$field->required = true; 
+			$field->icon = 'folder-open-o';
 			$value = 0;
 			foreach($this->predefinedParents as $parent) {
 				$field->addOption($parent->id, $parent->path);

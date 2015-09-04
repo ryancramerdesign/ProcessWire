@@ -166,7 +166,7 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 		
 		foreach($this->input->get as $name => $value) {
 			
-			if($name == 'get') continue; 
+			if($name == 'get' || $name == 'display' || $name == 'format_name') continue; 
 
 			// operator has no '=', so we'll get the value from the name
 			// so that you can do something like: bedrooms>5 rather than bedrooms>=5
@@ -291,10 +291,13 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 	 *
 	 */
 	protected function getDisplayFields() {
+		
 		$display = $this->input->get('display');
+		
 		if(!strlen($display)) $display = $this->input->get('get'); // as required by ProcessPageSearch API 
 		if(!strlen($display)) $display = $this->displayField;
 		if(!strlen($display)) $display = 'title path';
+		
 		$display = str_replace(',', ' ', $display);
 		$display = explode(' ', $display); // convert to array
 
@@ -305,7 +308,41 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 			if(in_array($name, array('url', 'path', 'httpUrl'))) continue;
 			unset($display[$key]);
 		}
-		return $display;
+		
+		return array_values($display);
+	}
+
+	/**
+	 * As an alternative to getting specific fields, return a format string
+	 * 
+	 * This format string must be pre-populated to session variable:
+	 * ProcessPageSearch.[format_name] = '{title} - {path}'; // format string
+	 * 
+	 * The name the session variable must be provided as a GET var: format_name=[name]
+	 * 
+	 * @return mixed|string
+	 * 
+	 */
+	protected function getDisplayFormat() {
+		$name = $this->input->get('format_name');
+		if(empty($name)) return '';
+		$format = $this->wire('session')->getFor($this, "format_" . $name);
+		if(empty($format)) return '';
+		return array(
+			'name' => $name,
+			'format' => $format
+		);
+	}
+
+	/**
+	 * Set a display format
+	 * 
+	 * @param $name Session var name that will be used, output will be returned in JSON results indexed by $name as well.
+	 * @param $format Format string to pass to $page->getMarkup(str)
+	 * 
+	 */
+	public function setDisplayFormat($name, $format) {
+		$this->wire('session')->setFor($this, "format_" . $name, $format);
 	}
 
 	/**
@@ -318,8 +355,12 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 		if($displaySelector) $this->message(sprintf($this->_n('Found %1$d page using selector: %2$s', 'Found %1$d pages using selector: %2$s', $matches->getTotal()), $matches->getTotal(), $displaySelector));
 
 		// determine what fields will be displayed
-		$display = $this->getDisplayFields();
-		$this->input->whitelist('display', implode(',', $display)); 
+		$display = array();
+		if($this->config->ajax) $display = $this->getDisplayFormat();
+		if(empty($display)) {
+			$display = $this->getDisplayFields();
+			$this->input->whitelist('display', implode(',', $display));
+		}
 
 		if($this->config->ajax) {
 			// ajax json output
@@ -780,9 +821,13 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 
 	/**
 	 * Render the provided matches as a JSON string for AJAX use
+	 * 
+	 * @param PageArray $matches
+	 * @param array Array of fields to display, or display format associative array
+	 * @param string $selector
 	 *
 	 */
-	protected function renderMatchesAjax(PageArray $matches, array $display, $selector) {
+	protected function renderMatchesAjax(PageArray $matches, $display, $selector) {
 
 		$a = array(
 			'selector' => $selector, 
@@ -794,7 +839,7 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 
 		// determine which template label we'll be asking for (for multi-language support)
 		$templateLabel = 'label';
-		if(wire('languages')) {
+		if($this->wire('languages')) {
 			$language = $this->user->language; 
 			if($language && !$language->isDefault()) $templateLabel = "label$language";
 		}
@@ -807,6 +852,7 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 		}
 
 		foreach($matches as $page) {
+			/** @var Page $page */
 
 			$p = array(
 				'id' => $page->id, 
@@ -826,23 +872,32 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 				$p['type'] = $this->_x('Pages', 'match-type');
 				$p['editUrl'] = $page->editable() ? $this->config->urls->admin . 'page/edit/?id=' . $page->id : '';
 			}
-		
-			foreach($display as $key) {
+			
+			if(isset($display['name']) && isset($display['format'])) {
+				// use display format, returning a 'value' property containing the formatted value
+				$value = $page->getMarkup($display['format']);
+				$p[$display['name']] = $value; 
 				
-				if($key == 'template_label') {
-					$p['template_label'] = $page->template->$templateLabel ? $page->template->$templateLabel : $page->template->label;
-					if(empty($p['template_label'])) $p['template_label'] = $page->template->name; 
-					continue; 
+			} else {
+				// use display fields
+				foreach($display as $k => $key) {
+
+					if($key == 'template_label') {
+						$p['template_label'] = $page->template->$templateLabel ? $page->template->$templateLabel : $page->template->label;
+						if(empty($p['template_label'])) $p['template_label'] = $page->template->name;
+						continue;
+					}
+
+					$value = $page->get($key);
+					if(empty($value) && $this->adminSearchMode) {
+						if($key == 'title') $value = $page->name; // prevent empty title
+					}
+
+					if(is_object($value)) $value = $this->setupObjectMatch($value);
+					if(is_array($value)) $value = $this->setupArrayMatch($value);
+
+					$p[$key] = $value;
 				}
-				
-				$value = $page->get($key);
-				if(empty($value) && $this->adminSearchMode) {
-					if($key == 'title') $value = $page->name; // prevent empty title
-				}
-				
-				if(is_object($value)) $value = $this->setupObjectMatch($value); 
-				if(is_array($value)) $value = $this->setupArrayMatch($value);
-				$p[$key] = $value;
 			}
 
 			$a['matches'][] = $p;

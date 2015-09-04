@@ -232,6 +232,10 @@ class ProcessLogin extends Process {
 			}
 		}
 		
+		if($this->wire('fields')->get('published')) {
+			$this->error("Warning: you have a field named 'published' that conflicts with the page 'published' property. Please rename your field field to something else and update any templates referencing it.");
+		}
+		
 		$this->wire('session')->set($this, 'beforeLoginChecks', 1); 
 	}
 
