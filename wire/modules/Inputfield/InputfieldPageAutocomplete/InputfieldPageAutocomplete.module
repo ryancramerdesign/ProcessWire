@@ -360,7 +360,7 @@ _OUT;
 			if(!$f->type instanceof FieldtypeText) continue; 
 			$notes .= ' ' . $f->name . ','; 
 		}
-		$field->notes = rtrim($notes, ','); 
+		$field->notes = rtrim($notes, ',') . '; Example: parent.title title'; 
 		$fieldset->add($field); 
 
 		$inputfields->add($fieldset); 
