@@ -23,11 +23,11 @@ $(document).ready(function() {
 		if($t.is(":checked")) {
 			// not an error, but we want to highlight it in the same manner
 			$t.parents(".InputfieldFileInfo").addClass("ui-state-error")
-				.siblings(".InputfieldFileData").slideUp("fast");
+				.siblings(".InputfieldFileData").slideUp("fast", InputfieldColumnWidths);
 
 		} else {
 			$t.parents(".InputfieldFileInfo").removeClass("ui-state-error")
-				.siblings(".InputfieldFileData").slideDown("fast");
+				.siblings(".InputfieldFileData").slideDown("fast", InputfieldColumnWidths);
 		}	
 	}
 
