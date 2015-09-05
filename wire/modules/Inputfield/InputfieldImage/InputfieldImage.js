@@ -98,6 +98,7 @@ $(document).ready(function() {
 			unsetGridMode($parent);
 			setGridMode($parent);
 		}
+		InputfieldColumnWidths();
 	}); 
 
 });
