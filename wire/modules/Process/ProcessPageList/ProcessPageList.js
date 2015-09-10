@@ -807,7 +807,9 @@ $(document).ready(function() {
 				
 				if($lastItem) $actions.append($lastItem);
 				
-				$actions.find(".PageListActionExtra a").fadeIn(50);
+				$actions.find(".PageListActionExtra a").fadeIn(50, function() {
+					$(this).css('display', 'inline-block');
+				});
 				
 				return false;
 			}

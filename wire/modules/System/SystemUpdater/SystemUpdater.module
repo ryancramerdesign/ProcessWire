@@ -1,6 +1,8 @@
 <?php
 
 /**
+ * Class SystemUpdater
+ * 
  * ProcessWire System Helper Module
  *
  * ProcessWire 2.x 
@@ -9,57 +11,8 @@
  * 
  * https://processwire.com
  *
- * Update 1: Applied database changes to fieldgroups
- * Update 2: Force modules refresh since files moved
- * Update 3: Force modules refresh since files moved
- * 
- * @todo auto-refresh modules when PW version changes
- *
  */
 
-abstract class SystemUpdate extends Wire {
-	
-	protected $updater; 
-	
-	public function __construct(SystemUpdater $updater) {
-		$this->updater = $updater; 
-	}
-
-	/**
-	 * Execute a system update
-	 * 
-	 * @return int|bool True if successful, false if not.
-	 * 		Or return integer 0 if SystemUpdate[n].php will handle updating the system version when it is ready.
-	 * 		When false or 0 is returned, updates will stop being applied for that request.
-	 *
-	 */
-	abstract public function execute();
-	
-	public function getName() {
-		$name = get_class($this); 
-		$name = str_replace('SystemUpdate', '', $name); 
-		$name = "Update #$name";
-		return $name; 
-	}
-	
-	public function message($text, $flags = 0) {
-		$text = $this->getName() . ": $text";
-		$this->updater->message($text, $flags); 
-		return $this; 
-	}
-	
-	public function error($text, $flags = 0) {
-		$text = $this->getName() . " ERROR: $text";
-		$this->updater->error($text, $flags);
-		return $this;
-	}
-	
-}
-
-/**
- * SystemUpdater module
- * 
- */
 class SystemUpdater extends WireData implements Module, ConfigurableModule {
 
 	public static function getModuleInfo() {
@@ -74,7 +27,7 @@ class SystemUpdater extends WireData implements Module, ConfigurableModule {
 			 * This version number is important, as this updater keeps the systemVersion up with this version
 			 *
 			 */
-			'version' => 12, 
+			'version' => 13, 
 			);
 	}
 
@@ -203,6 +156,8 @@ class SystemUpdater extends WireData implements Module, ConfigurableModule {
 	 *
 	 */ 
 	protected function update($version) {
+		
+		require_once(dirname(__FILE__) . '/SystemUpdate.php');
 		
 		$className = 'SystemUpdate' . $version;
 		$filename = $this->config->paths->SystemUpdater . $className . '.php';

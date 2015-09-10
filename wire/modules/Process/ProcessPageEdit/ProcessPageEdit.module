@@ -16,7 +16,7 @@
  * 
  */
 
-class ProcessPageEdit extends Process implements WirePageEditor {
+class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableModule {
 
 	protected $form; 
 	protected $page; 
@@ -47,6 +47,8 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 			'version' => 108, 
 			'permanent' => true, 
 			'permission' => 'page-edit',
+			'icon' => 'edit',
+			'useNavJSON' => true
 			);
 	}
 
@@ -55,6 +57,9 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 	 *
 	 */
 	public function init() {
+	
+		if(in_array($this->wire('input')->urlSegment1, array('navJSON', 'bookmarks'))) return;
+		if(isset($_GET['id']) && $_GET['id'] == 'bookmark') return $this->wire('session')->redirect('./bookmarks/');
 
 		// predefined messages that maybe used in multiple places
 		$this->noticeUnknown = $this->_("Unknown page"); // Init error: Unknown page
@@ -64,7 +69,10 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 		$id = (int) $this->input->post('id');
 		if(!$id) $id = (int) $this->input->get('id');
 
-		if(!$id) throw new Wire404Exception($this->noticeUnknown); // Init error: no page provided
+		if(!$id) {
+			$this->wire('session')->redirect('./bookmarks/');
+			throw new Wire404Exception($this->noticeUnknown); // Init error: no page provided
+		}
 
 		$this->user = $this->wire('user');
 		$this->page = $this->loadPage($id); 
@@ -1193,6 +1201,7 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 	 *
 	 */
 	public function setupBreadcrumbs() {
+		if($this->wire('input')->urlSegment1) return;
 		if($this->wire('page')->process != $this->className()) return;
 		$this->wire('breadcrumbs')->shift(); // shift off the 'Admin' breadcrumb
 		if($this->page && $this->page->id != 1) $this->wire('breadcrumbs')->shift(); // shift off the 'Pages' breadcrumb
@@ -1564,6 +1573,30 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 	 */
 	public function ___getTabs() {
 		return $this->tabs; 
+	}
+	
+	protected function getPageBookmarks() {
+		require_once(dirname(__FILE__) . '/PageBookmarks.php');
+		return new PageBookmarks($this);
+	}
+
+	public function ___executeNavJSON(array $options = array()) {
+		$bookmarks = $this->getPageBookmarks();
+		$options['edit'] = $this->wire('config')->urls->admin . 'page/edit/?id={id}';
+		$options['defaultIcon'] = 'pencil';
+		$options = $bookmarks->initNavJSON($options);
+		return parent::___executeNavJSON($options); 
+	}
+
+	public function ___executeBookmarks() {
+		$bookmarks = $this->getPageBookmarks();
+		return $bookmarks->editBookmarks();
+	}
+	
+	public static function getModuleConfigInputfields(array $data) {
+		// @todo does saving this empty form delete all the bookmarks?
+		$inputfields = new InputfieldWrapper();
+		return $inputfields;
 	}
 
 }

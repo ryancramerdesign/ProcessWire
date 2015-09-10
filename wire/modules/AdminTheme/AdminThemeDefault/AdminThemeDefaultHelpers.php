@@ -75,6 +75,8 @@ class AdminThemeDefaultHelpers extends WireData {
 	 */
 	public function renderAdminShortcuts() {
 
+		$page = $this->wire('page');
+		if($page->name != 'page' || $this->wire('input')->urlSegment1) return '';
 		$user = $this->wire('user');
 		if($this->wire('user')->isGuest() || !$user->hasPermission('page-edit')) return '';
 		$module = $this->wire('modules')->getModule('ProcessPageAdd', array('noInit' => true));
@@ -231,11 +233,13 @@ class AdminThemeDefaultHelpers extends WireData {
 		
 		if(!$showItem) return '';
 
+		/*
 		if($numChildren && $p->name == 'page') {
 			// don't bother with a drop-down for "Pages" if user will only see 1 "tree" item, duplicating the tab
 			if($numChildren == 2 && !$isSuperuser && !$this->wire('user')->hasPermission('page-lister')) $children = array();
 			if($numChildren == 1) $children = array();
 		}
+		*/
 
 		$class = strpos($this->wire('page')->path, $p->path) === 0 ? 'on' : '';
 		$title = strip_tags((string) $p->title); 
@@ -451,6 +455,7 @@ class AdminThemeDefaultHelpers extends WireData {
 		if($modal == 'inline') $bodyClass .= 'modal-inline ';
 		$bodyClass .= "id-{$page->id} template-{$page->template->name} pw-init";
 		if($this->wire('config')->js('JqueryWireTabs')) $bodyClass .= " hasWireTabs";
+		if($this->wire('input')->urlSegment1) $bodyClass .= " hasUrlSegments";
 		$bodyClass .= ' ' . $this->wire('adminTheme')->getBodyClass(); 
 		return trim($bodyClass); 
 	}

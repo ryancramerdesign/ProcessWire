@@ -115,7 +115,8 @@ class ProcessPageType extends Process implements ConfigurableModule, WirePageEdi
 			'viewport',
 			'reset',
 			'actions',
-			'save'
+			'save',
+			'edit-bookmark',
 		);
 		if(empty($segment) || in_array($segment, $listerSegments) && $user->hasPermission('page-lister')) {
 			if($this->wire('modules')->isInstalled('ProcessPageListerPro')) {
@@ -133,6 +134,7 @@ class ProcessPageType extends Process implements ConfigurableModule, WirePageEdi
 	public function ___executeReset() { return $this->getLister()->executeReset(); }
 	public function ___executeActions() { return $this->getLister()->executeActions(); }
 	public function ___executeSave() { return $this->getLister()->executeSave(); }
+	public function ___executeEditBookmark() { return $this->getLister()->executeEditBookmark(); }
 
 	public function ___execute() {
 		return $this->executeList();
@@ -183,6 +185,15 @@ class ProcessPageType extends Process implements ConfigurableModule, WirePageEdi
 			$lister->$name = $value;
 		}
 		
+		if($lister->className() == 'ProcessPageListerPro') {
+			$data = $this->wire('modules')->getModuleConfigData('ProcessPageListerPro');
+			if(isset($data['settings'][$this->page->name])) {
+				foreach($data['settings'][$this->page->name] as $key => $value) {
+					$lister->$key = $value;
+				}
+			}
+		}
+		
 		return $lister;
 	}
 
@@ -197,7 +208,11 @@ class ProcessPageType extends Process implements ConfigurableModule, WirePageEdi
 	protected function getListerSettings(ProcessPageLister $lister, $selector) {
 		
 		$templates = $this->pages->getTemplates();
-		$selector = "template=" . implode('|', array_keys($templates)) . ", include=unpublished, check_access=0, $selector";
+		$parents = $this->pages->getParents();
+		$_selector = "template=" . implode('|', array_keys($templates)) . ", ";
+		if(count($parents)) $_selector .= "parent=$parents, ";
+		$_selector .= "include=all, $selector";
+		$selector = rtrim($_selector, ", ");
 		
 		$settings = array(
 			'initSelector' => $selector,
@@ -210,6 +225,7 @@ class ProcessPageType extends Process implements ConfigurableModule, WirePageEdi
 			'delimiters' => array(),
 			'allowSystem' => true,
 			'allowIncludeAll' => true,
+			'allowBookmarks' => false, 
 			'showIncludeWarnings' => false,
 			'toggles' => array('collapseFilters'),
 		);
@@ -272,14 +288,6 @@ class ProcessPageType extends Process implements ConfigurableModule, WirePageEdi
 	protected function renderLister($selector = '', $pagerOptions = array()) {
 		$lister = $this->getLister($selector);
 		if(!$lister) throw new WireException("Lister not available");
-		if($lister->className() == 'ProcessPageListerPro') {
-			$data = $this->wire('modules')->getModuleConfigData('ProcessPageListerPro');
-			if(isset($data['settings'][$this->page->name])) {
-				foreach($data['settings'][$this->page->name] as $key => $value) {
-					$lister->$key = $value;
-				}
-			}
-		}
 		return $lister->execute();
 	}
 

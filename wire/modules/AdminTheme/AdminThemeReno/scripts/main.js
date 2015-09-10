@@ -193,14 +193,16 @@ var ProcessWireAdminTheme = {
 				$spinner.removeClass(spinnerSavedClass).addClass('fa fa-fw fa-spin fa-spinner'); 
 				$.getJSON(jsonURL, function(data) {
 					if(data.add) {
-						var $li = $("<li class='add'><a href='" + data.url + data.add.url + "'><i class='fa fa-fw fa-plus-circle'></i>" + data.add.label + "</a></li>");
+						var $li = $("<li class='add'><a href='" + data.url + data.add.url + "'><i class='fa fa-fw fa-" + data.add.icon + "'></i>" + data.add.label + "</a></li>");
 						$ul.append($li);
 					}
 					// populate the retrieved items
 					$.each(data.list, function(n) {
 						var icon = '';
 						// if(this.icon) icon = "<i class='fa fa-fw fa-" + this.icon + "'></i>";
-						var $li = $("<li><a style='white-space:nowrap' href='" + data.url + this.url + "'>" + icon + this.label + "</a></li>");
+						var url = this.url.indexOf('/') === 0 ? this.url : data.url + this.url;
+						var $li = $("<li><a style='white-space:nowrap' href='" + url + "'>" + icon + this.label + "</a></li>");
+						if(typeof this.className != "undefined" && this.className && this.className.length) $li.addClass(this.className);
 						$ul.append($li);
 					});
 					$spinner.removeClass('fa-spin fa-spinner').addClass(spinnerSavedClass);

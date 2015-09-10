@@ -1154,6 +1154,7 @@ class Sanitizer extends Wire {
 		);
 		$options = array_merge($defaults, $options);
 		if(!is_array($value)) {
+			if(is_null($value)) return array();
 			if(is_object($value)) {
 				// value is object: convert to string or array
 				if(method_exists($value, '__toString')) {

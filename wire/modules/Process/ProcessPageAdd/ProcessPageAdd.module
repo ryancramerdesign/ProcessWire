@@ -152,7 +152,31 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 		}
 			
 		unset($data['modified']);
+
+		// get additional from PageBookmarks
+		$bookmarks = $this->getPageBookmarks($this);
+		$options2 = $bookmarks->initNavJSON(array('add' => 'ignore-me'));	
+		$lastItem = null;
+		$n = 0;
+		foreach(array_values($options2['items']) as $p) {
+			if($p->id == 'bookmark' && !$user->isSuperuser()) continue;
+			$item = array(
+				'url' => ($p->id == 'bookmark' ? 'bookmarks/?role=0' : "?parent_id=$p->id"),
+				'label' => $p->get('title|name') . ($p instanceof Page ? ' &hellip;' : ''),  
+				'icon' => $p->get('_icon') ? $p->get('_icon') : 'arrow-circle-right', 
+				'className' => $p->get('_class') . (!$n ? ' separator' : '')
+			);
+			if($p->id == 'bookmark') {
+				$lastItem = $item;
+			} else {
+				$n++;
+				$data['list'][] = $item;
+			}
+		}
+		if($lastItem) $data['list'][] = $lastItem;
+		
 		if(!empty($options['getArray'])) return $data;
+
 		if($this->wire('config')->ajax) header("Content-Type: application/json");
 		
 		return json_encode($data);
@@ -219,14 +243,21 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 	public function renderChooseTemplate() {
 		$data = $this->executeNavJSON(array('getArray' => true)); 
 		$out = '';
+		$bookmarkItem = null;
 		foreach($data['list'] as $item) {
-			if($item['parent_id']) {
+			if(strpos($item['url'], '?role=0') !== false) {
+				$bookmarkItem = $item;
+				continue;
+			}
+			if(!empty($item['parent_id'])) {
 				$parents = $this->wire('pages')->find("id=$item[parent_id]");
-			} else {
+			} else if(!empty($item['template_id'])) {
 				$template = $this->wire('templates')->get($item['template_id']);
 				$parentTemplates = implode('|', $template->parentTemplates);
 				if(empty($parentTemplates)) continue;
 				$parents = $this->wire('pages')->find("template=$parentTemplates, include=unpublished, limit=100, sort=-modified");
+			} else {
+				$parents = array();
 			}
 			$out .= 
 				"<dt><a class='label' href='./$item[url]'>" . 
@@ -255,6 +286,14 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 				"<h2>" . 
 				$this->_('There are currently no templates with defined parent/child relationships needed to show "Add New" shortcuts here. To configure this, edit any template (Setup > Templates) and click on the "Family" tab.') . // Text shown when no templates use family settings
 				"</h2>";
+		}
+		if($bookmarkItem) {
+			$button = $this->wire('modules')->get('InputfieldButton');
+			$button->href = $bookmarkItem['url'];
+			$button->value = $bookmarkItem['label'];
+			$button->addClass('head_button_clone');
+			$button->icon = $bookmarkItem['icon'];
+			$out .= $button->render();
 		}
 		return $out; 
 	}
@@ -948,32 +987,86 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 	public function setPredefinedParents(PageArray $parents) {
 		$this->predefinedParents = $parents; 
 	}
+
+	/**
+	 * Get an instance of PageBookmarks
+	 *
+	 * @return PageBookmarks
+	 *
+	 */
+	protected function getPageBookmarks() {
+		require_once($this->wire('config')->paths->ProcessPageEdit . 'PageBookmarks.php');
+		return new PageBookmarks($this);
+	}
+
+	/**
+	 * Execute the Page Bookmarks
+	 *
+	 * @return string
+	 * @throws WireException
+	 * @throws WirePermissionException
+	 *
+	 */
+	public function ___executeBookmarks() {
+		
+		if($this->wire('input')->post('shortcutSort') && $this->wire('user')->isSuperuser()) {
+			$data = $this->wire('modules')->getModuleConfigData($this);	
+			$data['shortcutSort'] = $this->wire('input')->post->intArray('shortcutSort'); 
+			$this->wire('modules')->saveModuleConfigData($this, $data);
+		}
+	
+		$bookmarks = $this->getPageBookmarks();
+		$form = $bookmarks->editBookmarksForm();
+
+		$roleID = $this->wire('input')->get('role');
+		
+		if(!is_null($roleID) && $roleID == 0 && $this->wire('user')->isSuperuser()) {
+			$f = $this->getShortcutSortField();
+			$form->insertBefore($f, $form->getChildByName('submit_save_bookmarks'));
+		}
+		
+		$f = $form->getChildByName('bookmarks');
+		if($f->notes) $f->notes .= "\n\n";
+		$f->notes .= $this->_('The pages you select above represent bookmarks to the parent pages where you want children added. Note that if a user does not have permission to add a page to a given parent page (whether due to access control or template family settings), the bookmark will not appear.'); // Notes for bookmarks
+		
+		return $form->render();
+	}
+	
+	public function getShortcutSortField() {
+		
+		$f = $this->wire('modules')->get('InputfieldAsmSelect');
+		$f->label = __('Template shortcut sort order');
+		$f->description = __('To change the order of the "Add New" page-template shortcuts, drag and drop the options to the order you want them in.');
+		$f->notes = __('To add or remove templates from these shortcuts, see the Template editor Family tab.');
+		$f->attr('name', 'shortcutSort');
+		$f->icon = 'sort';
+		$f->setAsmSelectOption('removeLabel', '');
+
+		$this->wire('session')->remove($this, 'nav');
+		$data = $this->executeNavJSON(array('getArray' => true));
+		$out = '';
+		$value = array();
+
+		foreach($data['list'] as $item) {
+			if(empty($item['template_id'])) continue;
+			$template = $this->wire('templates')->get($item['template_id']);
+			if(!$template) continue;
+			$f->addOption($template->id, $template->getLabel());
+			$value[] = $template->id;
+		}
+
+		$f->attr('value', $value);
+		$f->collapsed = Inputfield::collapsedBlank;	
+		
+		return $f;
+	}
 	
 	public static function getModuleConfigInputfields(array $data) {
 		
 		$form = new InputfieldWrapper();
 		
-		$f = wire('modules')->get('InputfieldAsmSelect');
-		$f->label = __('Template shortcut sort order');
-		$f->description = __('To change the order of the "Add New" shortcuts, drag and drop the options to the order you want them in.');
-		$f->notes = __('To add or remove templates from these shortcuts, see the Template editor Family tab.');
-		$f->attr('name', 'shortcutSort');
-		$f->icon = 'sort';	
-		
 		$process = wire('modules')->get('ProcessPageAdd');
-		wire('session')->remove($process, 'nav');
-		
-		$data = $process->executeNavJSON(array('getArray' => true));
-		$out = '';
-		$value = array();
-		foreach($data['list'] as $item) {
-			$template = wire('templates')->get($item['template_id']);
-			if(!$template) continue;
-			$f->addOption($template->id, $template->getLabel());
-			$value[] = $template->id;
-		}
-		$f->attr('value', $value);
-		$form->add($f);
+		$form->add($process->getShortcutSortField());
 		
 		$f = wire('modules')->get('InputfieldCheckbox');
 		$f->label = __('Disable automatic publishing');

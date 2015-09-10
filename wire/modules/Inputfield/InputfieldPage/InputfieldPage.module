@@ -479,7 +479,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 
 	public function ___renderValue() {
 
-		if($labelFieldName == '.') {
+		if($this->labelFieldName == '.') {
 			$labelFieldFormat = $this->labelFieldFormat;
 			$labelFieldName = 'title|name';
 		} else {

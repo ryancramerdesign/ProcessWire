@@ -24,6 +24,7 @@ var ProcessLister = {
 	init: function() {
 		if(ProcessLister.initialized) return;
 		ProcessLister.initialized = true;
+		if($("#ProcessLister").length == 0) return;
 
 		ProcessLister.spinner = $("<li class='title' id='ProcessListerSpinner'><i class='fa fa-lg fa-spin fa-spinner'></i></li>"); 
 		$("#breadcrumbs ul.nav").append(ProcessLister.spinner); 
@@ -254,7 +255,7 @@ var ProcessLister = {
 			ProcessLister.results.trigger('loaded');
 			ProcessLister.results.find('.Inputfield:not(.reloaded)').addClass('reloaded').trigger('reloaded', [ 'ProcessPageLister' ]);
 			$("a.actions_toggle.open").click().removeClass('open'); // auto open items corresponding to "open" get var
-			AdminDataTable.init();
+			if(typeof AdminDataTable != "undefined") AdminDataTable.init();
 		}, 250);
 
 		var pos = data.indexOf('ProcessListerScript');

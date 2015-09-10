@@ -52,6 +52,7 @@
 		border: $action-link-border !important;
 		font-weight: $bold-weight;
 	}
+	.actions a.ui-state-active, 
 	li.action a:hover, .actions a:hover,
 	.PageList .actions a:hover,
 	.PageListMoveNote a:hover {

@@ -309,20 +309,22 @@ var ProcessWireAdminTheme = {
 					}
 	
 					if(data.add) {				
-						var $li = $("<li class='ui-menu-item add'><a href='" + data.url + data.add.url + "'><i class='fa fa-fw fa-plus-circle'></i>" + data.add.label + "</a></li>");
+						var $li = $("<li class='ui-menu-item add'><a href='" + data.url + data.add.url + "'><i class='fa fa-fw fa-" + data.add.icon + "'></i>" + data.add.label + "</a></li>");
 						$ul.append($li);
 					}
 					// populate the retrieved items
 					$.each(data.list, function(n) {
 						var icon = '';
 						if(this.icon) icon = "<i class='ui-priority-secondary fa fa-fw fa-" + this.icon + "'></i>";
-						var $li = $("<li class='ui-menu-item'><a href='" + data.url + this.url + "'>" + icon + this.label + "</a></li>");
+						var url = this.url.indexOf('/') === 0 ? this.url : data.url + this.url;
+						var $li = $("<li class='ui-menu-item'><a href='" + url + "'>" + icon + this.label + "</a></li>");
+						if(typeof this.className != "undefined" && this.className && this.className.length) {
+							$li.addClass(this.className);
+						}
 						$ul.append($li);
-					}); 
-				
-					if(data.url.indexOf('/page/add/') == -1 || data.list.length > 7) {
-						$ul.addClass('navJSON')
-					}
+					});
+
+					$ul.addClass('navJSON')
 					$ul.addClass('length' + parseInt(data.list.length)); 
 
 					// trigger the first call

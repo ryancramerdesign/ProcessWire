@@ -50,10 +50,11 @@ class ProcessPageList extends Process implements ConfigurableModule {
 		return array(
 			'title' => 'Page List',          
 			'summary' => 'List pages in a hierarchal tree structure', 
-			'version' => 117, 
+			'version' => 118, 
 			'permanent' => true, 
 			'permission' => 'page-edit',
 			'icon' => 'sitemap',
+			'useNavJSON' => true,
 			);
 	}
 
@@ -63,6 +64,7 @@ class ProcessPageList extends Process implements ConfigurableModule {
 		$this->pageLabelField = 'title';
 		$this->limit = self::defaultLimit;
 		$this->set('useHoverActions', false);
+		$this->set('bookmarks', array());
 		
 	}
 
@@ -87,6 +89,7 @@ class ProcessPageList extends Process implements ConfigurableModule {
 			if($this->limit == self::defaultLimit) $this->set('limit', isset($settings['limit']) ? (int) $settings['limit'] : self::defaultLimit);
 		}
 	}
+	
 
 	/**
 	 * Execute the Page List
@@ -99,6 +102,7 @@ class ProcessPageList extends Process implements ConfigurableModule {
 		
 		$this->trashLabel = $this->_('Trash'); // Label for 'Trash' page in PageList // Overrides page title if used
 
+		if(isset($_GET['id']) && $_GET['id'] == 'bookmark') $this->wire('session')->redirect('./bookmarks/');
 		if(!$this->id) $this->id = isset($_GET['id']) ? (int) $_GET['id'] : 0; 
 		$this->openPage = $this->input->get->open ? $this->pages->get((int) $this->input->get->open) : new NullPage();
 		if($this->openPage->id && $this->speed > 50) $this->speed = floor($this->speed / 2);
@@ -280,10 +284,47 @@ class ProcessPageList extends Process implements ConfigurableModule {
 	 *
 	 */
 	public function setupBreadcrumbs() {
-		if($this->fuel->process != $this || !$this->fuel->breadcrumbs) return; 
+		if($this->wire('process') != $this || !$this->wire('breadcrumbs')) return; 
+		if($this->wire('input')->urlSegment1) return;
+		$url = $this->wire('config')->urls->admin . 'page/list/?id=';
 		foreach($this->page->parents() as $p) {
-			$this->fuel->breadcrumbs->add(new Breadcrumb($this->config->urls->admin . "page/list/?id=" . $p->id, $p->get("title|name"))); 
+			$this->breadcrumb($url . $p->id, $p->get('title|name'));
 		}
+	}
+
+	/**
+	 * Get an instance of PageBookmarks
+	 * 
+	 * @return PageBookmarks
+	 * 
+	 */
+	protected function getPageBookmarks() {
+		require_once($this->wire('config')->paths->ProcessPageEdit . 'PageBookmarks.php');
+		return new PageBookmarks($this);
+	}
+
+	/**
+	 * Output JSON list of navigation items for this module's bookmarks
+	 *
+	 */
+	public function ___executeNavJSON(array $options = array()) {
+		$bookmarks = $this->getPageBookmarks($this);
+		$options['edit'] = $this->wire('config')->urls->admin . 'page/?id={id}';
+		$options = $bookmarks->initNavJSON($options);
+		return parent::___executeNavJSON($options);
+	}
+
+	/**
+	 * Execute the Page Bookmarks 
+	 * 
+	 * @return string
+	 * @throws WireException
+	 * @throws WirePermissionException
+	 * 
+	 */
+	public function ___executeBookmarks() {
+		$bookmarks = $this->getPageBookmarks();
+		return $bookmarks->editBookmarks();
 	}
 
 	/**
@@ -302,8 +343,9 @@ class ProcessPageList extends Process implements ConfigurableModule {
 		$field->description = __('Every page in a PageList is identified by a label, typically a title or headline field. You may specify which field it should use here. To specify multiple fields, separate each field name with a space, or use your own format string with field names surrounded in {brackets}. If the field resolves to an object (like another page), then specify the property with a dot, i.e. {anotherpage.title}. Note that if the format you specify resolves to a blank value then ProcessWire will use the page "name" field.'); // pageLabelField description
 		$field->notes = __('You may optionally override this setting on a per-template basis in each template "advanced" settings.'); // pageLabelField notes
 		$fields->append($field);
-		
+	
 		$settings = wire('config')->pageList;
+		/*
 		if(empty($settings['useHoverActions'])) {
 			$field = $modules->get('InputfieldCheckbox');
 			$field->attr('name', 'useHoverActions');
@@ -313,6 +355,7 @@ class ProcessPageList extends Process implements ConfigurableModule {
 			if(!empty($data['useHoverActions'])) $field->attr('checked', 'checked');
 			$fields->append($field);
 		}
+		*/
 
 		$defaultNote1 = __('Default value is %d.');
 		$defaultNote2 = __('If left at the default value, this setting can also be specified in the $config->pageList array.');

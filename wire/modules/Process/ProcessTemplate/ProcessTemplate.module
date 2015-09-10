@@ -1495,7 +1495,7 @@ class ProcessTemplate extends Process {
 		$field->description .= ' ' . sprintf($this->_('To adjust the order that templates appear in the shortcuts menu, see the [PageAdd module settings](%s).'), '../../module/edit?name=ProcessPageAdd');
 		$field->notes =	$this->_('**Conditions required for this to work**') .  
 			"\n" . 	$this->_('1. You must select a parent template (see: "allowed templates for parents" above). If more than 1 is selected, only the first will be used.') . 
-			"\n" . 	$this->_('2. The selected parent template must have defined this template as one allowed for children.') . 
+			"\n" . 	$this->_('2. The selected parent template must have defined this template as one allowed for children.');
 		$field->addOption(0, $this->labels['Yes']); 
 		$field->addOption(1, $this->labels['No']); 
 		$field->attr('value', (int) $template->noShortcut); 

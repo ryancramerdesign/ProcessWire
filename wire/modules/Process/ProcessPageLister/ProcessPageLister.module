@@ -51,6 +51,7 @@
  * @property bool $useColumnLabels whether to use labels for fields (versus names) in column selection and column labels [true] 
  * @property bool $allowSystem whether or not system templates/fields are allowed for selection. for system fields, it only refers to system custom fields excluding title. [false]
  * @property bool $allowIncludeAll allow include=all or check_access=0 mode when user is non-superuser? [false]
+ * @property bool $allowBookmarks Whether or not to allow bookmarks
  * @property bool $preview whether or not to show the selector string preview in InputfieldSelector [self::debug]
  * @property bool $cacheTotal cache the total, per selector, for increased performance? [true] 
  * @property array $toggles One or more of: collapseFilters, collapseColumns, noNewFilters, disableColumns, noButtons [empty]
@@ -212,6 +213,9 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		// allow include=all or check_access=0 mode when user is non-superuser?
 		$this->set('allowIncludeAll', false); 
 	
+		// allow bookmarks?
+		$this->set('allowBookmarks', true);
+	
 		// whether or not to show the selector string preview in InputfieldSelector
 		$this->set('preview', self::debug); 
 	
@@ -229,6 +233,9 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 	
 		// label when a field is blank
 		$this->set('blankLabel', $this->_('Blank')); 
+	
+		// bookmarked selectors
+		$this->set('bookmarks', array()); 
 		
 		$nameLabel = $this->_('Name'); 
 		$createdLabel = $this->_('Created'); 
@@ -309,9 +316,43 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 
 		parent::init();
 	}
+
+	/**
+	 * Check for a bookmark specified in GET variable $n
+	 * 
+	 * return null|int|bool Returns NULL if not applicable, boolean false if bookmark not found, or integer of bookmark ID if applied
+	 * 
+	 */
+	public function checkBookmark() {
+		$n = (int) $this->wire('input')->get('bookmark');
+		if(!$n) return null;
+		$bookmarks = $this->getBookmarksInstance()->getBookmarks();
+		if(!isset($bookmarks[$n])) return false;
+		$bookmark = $bookmarks[$n];
+		$user = $this->wire('user');
+		if(!$user->isSuperuser() && count($bookmark['roles'])) {
+			$allow = false;
+			foreach($bookmark['roles'] as $roleID) {
+				foreach($user->roles as $role) {
+					if($role->id == $roleID) {
+						$allow = true;
+						break;
+					}
+				}
+			}
+			if(!$allow) return false;
+		}
+		$this->sessionClear();
+		$this->set('defaultSelector', $bookmark['selector']);
+		$this->set('defaultSort', $bookmark['sort']);
+		$this->sessionSet('sort', $bookmark['sort']);
+		$this->set('columns', $bookmark['columns']);
+		
+		return $n;
+	}
 	
 	/**
-	 * Check and process session bookmarks
+	 * Check and process session bookmarks and regular bookmarks
 	 *
 	 * If a session_bookmark GET variable is provided with a number that corresponds to session variable
 	 * PageListerBookmarks[session_bookmark] then this function will pull out and use any settings
@@ -319,7 +360,12 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 	 *
 	 */
 	protected function checkSessionBookmark() {
-		// account for bookmarks specified in session
+	
+		// check for regular bookmarks first: those specified as $_GET['n']
+		$bookmarkID = $this->checkBookmark();
+		if(is_bool($bookmarkID) || is_int($bookmarkID)) return (bool) $bookmarkID;
+	
+		// then check for session bookmarks
 		$id = $this->wire('input')->get('session_bookmark');
 		$clear = $id; 
 		if(!$id) $id = $this->sessionGet('bookmark'); 
@@ -658,7 +704,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 
 		return $form;
 	}
-
+	
 	/**
 	 * Build the Lister filters form
 	 *
@@ -1605,6 +1651,12 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 			if(!in_array('disableColumns', $this->toggles)) {
 				$out .= $this->buildColumnsForm()->render();
 			}
+			if($this->allowBookmarks) {
+				$bookmarks = $this->getBookmarksInstance();
+				if($this->wire('user')->isSuperuser() || count($bookmarks->getBookmarks())) {
+					$out .= $bookmarks->buildBookmarkListForm()->render();
+				}
+			}
 			$out .= $this->renderExtras(); 
 		}
 		
@@ -1769,6 +1821,79 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 	}
 
 	/**
+	 * Get an instance of ProcessPageListerBookmarks
+	 * 
+	 * @return ProcessPageListerBookmarks
+	 * 
+	 */
+	protected function getBookmarksInstance() {
+		static $bookmarks = null;
+		if(is_null($bookmarks)) {
+			require_once(dirname(__FILE__) . '/ProcessPageListerBookmarks.php');
+			$bookmarks = new ProcessPageListerBookmarks($this);
+		}
+		return $bookmarks;
+	}
+
+	/**
+	 * Implementation for ./edit-bookmark/ URL segment
+	 * 
+	 * @return string
+	 * @throws WirePermissionException
+	 * 
+	 */
+	public function ___executeEditBookmark() {
+		if(!$this->allowBookmarks) throw new WireException("Bookmarks are disabled");
+		return $this->getBookmarksInstance()->editBookmark();
+	}
+
+	/**
+	 * Output JSON list of navigation items for this module's bookmarks
+	 *
+	 */
+	public function ___executeNavJSON(array $options = array()) {
+
+		// make the add option a 'home' option, for root of tree
+
+		$bookmarksInstance = $this->getBookmarksInstance();
+		$bookmarks = $bookmarksInstance->getBookmarks();
+	
+		if(count($bookmarks) && $this->allowBookmarks) {
+
+			$items = array();
+			$options['add'] = "#tab_bookmarks";
+			$options['addLabel'] = $this->_('Bookmarks');
+			$options['addIcon'] = 'bookmark-o';
+			$languages = $this->wire('languages');
+			$user = $this->wire('user');
+			$languageID = $languages && !$user->language->isDefault() ? $user->language->id : '';
+
+			foreach($bookmarks as $n => $bookmark) {
+				$name = $bookmark['title'];
+				if($languageID && !empty($bookmark["title$languageID"])) $name = $bookmark["title$languageID"];
+				$item = array(
+					'id'   => $n,
+					'name' => $name,
+					'icon' => 'search',
+				);
+				$items[] = $item;
+			}
+
+			$options['items'] = $items;
+			$options['sort'] = false;
+			$options['edit'] = "?bookmark={id}";
+			$options['classKey'] = '_class';
+		} else {
+			// show nothing
+			$options['add'] = null;
+		}
+		
+		return parent::___executeNavJSON($options);
+	}
+	
+
+
+	/**
 	 * Install Lister
 	 *
 	 */
@@ -1795,7 +1920,8 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 	}
 	
 	public static function getModuleConfigInputfields(array $data) {
-		return new InputfieldWrapper();
+		$inputfields = new InputfieldWrapper();
+		return $inputfields;
 	}
 
 }

@@ -211,6 +211,7 @@
 			background: $quicklinks-hover-bg;
 		}
 
+		& li.highlight a, 
 		& li.add a {
 			color: $quicklinks-addnew-color;
 			i.fa {
@@ -219,6 +220,11 @@
 				margin-top: 0;
 				margin-right: 0;
 			}
+		}
+		& li.separator {
+			margin-top: 0.3em;
+			padding-top: 0.25em;
+			border-top: $quicklinks-border;
 		}
 	}
 

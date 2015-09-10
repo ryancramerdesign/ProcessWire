@@ -416,9 +416,9 @@ body.modal-inline {
  *
  */
 
-body.id-3 #breadcrumbs ul li:not(:first-child):not(:last-child),
+body.id-3:not(.hasUrlSegments) #breadcrumbs ul li:not(:first-child):not(:last-child),
 body.id-23 #breadcrumbs ul li:not(:first-child):not(:last-child),
-body.id-8 #breadcrumbs ul li:not(:first-child):not(:last-child) {
+body.id-8:not(.hasUrlSegments) #breadcrumbs ul li:not(:first-child):not(:last-child) {
 	/* hide extraneous breadcrumbs when in admin root */
 	display: none; 
 }

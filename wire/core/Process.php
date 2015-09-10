@@ -334,8 +334,10 @@ abstract class Process extends WireData implements Module {
 			'edit' => 'edit?id={id}', // URL segment for edit
 			'add' => 'add', // URL segment for add
 			'addLabel' => __('Add New', '/wire/templates-admin/default.php'),
+			'addIcon' => 'plus-circle',
 			'iconKey' => 'icon', // property/field containing icon, when applicable
 			'icon' => '', // default icon to use for items
+			'classKey' => '_class', // property to pull additional class names from. Example class: "separator" or "highlight"
 			'sort' => true, // automatically sort items A-Z?
 			'getArray' => false, // makes this method return an array rather than JSON
 			);
@@ -352,6 +354,7 @@ abstract class Process extends WireData implements Module {
 			'add' => array(
 				'url' => $options['add'],
 				'label' => $options['addLabel'], 
+				'icon' => $options['addIcon'], 
 			),
 			'list' => array(),
 		);
@@ -365,11 +368,13 @@ abstract class Process extends WireData implements Module {
 				$name = $item->name; 
 				$label = (string) $item->{$options['itemLabel']};
 				$icon = str_replace(array('icon-', 'fa-'),'', $item->{$options['iconKey']});
+				$class = $item->{$options['classKey']};
 			} else if(is_array($item)) {
 				$id = $item['id'];
 				$name = $item['name'];
 				$label = $item[$options['itemLabel']];
-				if(isset($item['icon'])) $icon = str_replace(array('icon-', 'fa-'),'', $item[$options['iconKey']]);
+				$class = isset($item[$options['classKey']]) ? $item[$options['classKey']] : '';	
+				if(isset($item[$options['iconKey']])) $icon = str_replace(array('icon-', 'fa-'),'', $item[$options['iconKey']]);
 			} else {
 				$this->error("Item must be object or array: $item"); 
 				continue;
@@ -391,6 +396,7 @@ abstract class Process extends WireData implements Module {
 				'url' => str_replace(array('{id}', '{name}'), array($id, $name), $options['edit']),
 				'label' => $label,
 				'icon' => $icon, 
+				'className' => $class, 
 			);
 		}
 		if($options['sort']) ksort($data['list']); // sort alpha
