@@ -326,10 +326,10 @@ class ProcessLanguageTranslator extends Process {
 				$field->notes = $m[2]; 
 			}
 			$field->label = $comment;
+			$field->description = $untranslated;
 		} else {
 			$field->label = $untranslated; 
 		}
-		$field->description = $untranslated; 
 		return $field;
 	}
 
@@ -371,8 +371,8 @@ class ProcessLanguageTranslator extends Process {
 	public function ___executeEdit() {
 
 		$this->addBreadcrumbs();
-		$this->breadcrumb('../add/', 'Select File(s)'); 
-		$this->headline('Translate File'); 
+		$this->breadcrumb('../add/', __('Select File(s)'));
+		$this->headline(__('Translate File'));
 
 		$textdomain = $this->input->get->textdomain;
 		$file = $this->translator->textdomainToFilename($textdomain); 
@@ -390,8 +390,11 @@ class ProcessLanguageTranslator extends Process {
 		$form = $this->modules->get('InputfieldForm'); 
 		$form->attr('action', "./?textdomain=$textdomain"); 
 		$form->attr('method', 'post'); 
-		$form->description = "Translate " . basename($file, '.module') . " to " . $this->language->title; 
-		$form->value = "<p>Each of the inputs below represents a block of text to translate. <span class='description'>The text shown in this style is the text that should be translated to {$this->language->title}.</span> All inputs are optional: if you leave an input blank, the non-translated text will be used.</p>";
+		$form->description = sprintf(__("Translate %s to %s"), basename($file, '.module'), $this->language->title);
+		$val = "<p>" . __('Each of the inputs below represents a block of text to translate.');
+		$val .= "<span class='description'> " . sprintf(__('The text shown in this style is the text that should be translated to %s.'), $this->language->title) . "</span>";
+		$val .= ' ' . __('All inputs are optional: if you leave an input blank, the non-translated text will be used.') . "</p>";
+		$form->value = $val;
 
 		$translations = $this->translator->getTranslations($textdomain); 
 
@@ -404,7 +407,7 @@ class ProcessLanguageTranslator extends Process {
 
 		$submit = $this->modules->get("InputfieldSubmit"); 
 		$submit->attr('id+name', 'save_translations'); 
-		$submit->value = 'Save';
+		$submit->value = __('Save');
 		$submit->attr('class', $submit->attr('class') . ' head_button_clone'); 
 		$form->add($submit);	
 
