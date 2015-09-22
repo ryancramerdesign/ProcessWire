@@ -953,6 +953,25 @@ function InputfieldStates($target) {
 	// use different icon for open and closed
 	var $icon = $(".Inputfields .InputfieldStateCollapsed > .InputfieldHeader i.toggle-icon, .Inputfields .InputfieldStateCollapsed > .ui-widget-header i.toggle-icon", $target);
 	$icon.toggleClass($icon.attr('data-to'));
+	
+	// display a detail with the HTML field name when the toggle icon is hovered
+	if(typeof config !== "undefined" && config.debug) {
+		$('label.InputfieldHeader > i.toggle-icon', $target).hover(function() {
+			var $label = $(this).parent('label');
+			if($label.length == 0) return;
+			var text = $label.attr('for').replace(/^Inputfield_/, '');
+			if(text.length) {
+				var $tip = $("<small class='InputfieldNameTip ui-priority-secondary'>&nbsp;" + text + "&nbsp;</small>");
+				$tip.css('float', 'right');
+				$label.append($tip);
+			}
+
+		}, function() {
+			var $label = $(this).parent('label');
+			if($label.length == 0) return;
+			$label.find('.InputfieldNameTip').remove();
+		});
+	}
 
 	// no need to apply anything further for ajax-loaded inputfields
 	if(hasTarget) return; 
@@ -1005,25 +1024,6 @@ function InputfieldStates($target) {
 
 		return false;
 	});
-
-	// display a detail with the HTML field name when the toggle icon is hovered
-	if(typeof config !== "undefined" && config.debug) {
-		$('label.InputfieldHeader > i.toggle-icon', $target).hover(function() {
-			var $label = $(this).parent('label');
-			if($label.length == 0) return;
-			var text = $label.attr('for').replace(/^Inputfield_/, '');
-			if(text.length) {
-				var $tip = $("<small class='InputfieldNameTip ui-priority-secondary'>&nbsp;" + text + "&nbsp;</small>");
-				$tip.css('float', 'right');
-				$label.append($tip);
-			}
-			
-		}, function() {
-			var $label = $(this).parent('label');
-			if($label.length == 0) return;
-			$label.find('.InputfieldNameTip').remove();
-		}); 
-	}
 
 	 // Make the first field in any form have focus, if it is a text field that is blank
 	// $('#content .InputfieldForm:not(.InputfieldNoFocus):not(.InputfieldFormNoFocus)')
