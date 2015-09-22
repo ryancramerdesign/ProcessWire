@@ -56,6 +56,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 		if($key == 'parent_id') $this->parent_id = (int) $value;
 			else if($key == 'template' &&  $value instanceof Template) $this->template = $value;
 			else return parent::set($key, $value); 	
+		return $this; 
 	}
 
 	/**
@@ -128,8 +129,9 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 					);
 				}
 				ksort($items);
-		
-				$shortcutSort = $this->shortcutSort;
+	
+				$configData = $this->wire('modules')->getModuleConfigData($this); // because admin theme calls with noInit option
+				$shortcutSort = isset($configData['shortcutSort']) ? $configData['shortcutSort'] : array(); 
 				if(!empty($shortcutSort)) {
 					$sorted = array();
 					foreach($shortcutSort as $templateID) {
@@ -145,7 +147,6 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 					}
 					$items = $sorted; 
 				} 
-
 			}
 			$data['list'] = array_values($items);
 			$session->setFor($this, 'nav', $data);
