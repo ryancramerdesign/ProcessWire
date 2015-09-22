@@ -1398,12 +1398,19 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 * Given the current item, get the next in the array
 	 *
 	 * @param Wire $item
+	 * @param bool $strict If false, string comparison will be used rather than exact instance comparison.
 	 * @return Wire|null
 	 *
 	 */
-	public function getNext($item) {
+	public function getNext($item, $strict = true) {
 		if(!$this->isValidItem($item)) return null;
 		$key = $this->getItemKey($item); 
+		$useStr = false;
+		if($key === null) {
+			if($strict) return null;
+			$key = (string) $item;	
+			$useStr = true;
+		}
 		$getNext = false; 
 		$nextItem = null;
 		foreach($this->data as $k => $v) {
@@ -1411,8 +1418,8 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 				$nextItem = $v; 	
 				break;
 			}
+			if($useStr) $k = (string) $v;
 			if($k === $key) $getNext = true; 
-			
 		}
 		return $nextItem; 
 	}
@@ -1421,21 +1428,28 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 * Given the current item, get the previous item in the array
 	 *
 	 * @param Wire $item
+	 * @param bool $strict If false, string comparison will be used rather than exact instance comparison.
 	 * @return Wire|null
 	 *
 	 */
-	public function getPrev($item) {
+	public function getPrev($item, $strict = true) {
 		if(!$this->isValidItem($item)) return null;
-		$key = $this->getItemKey($item); 
+		$key = $this->getItemKey($item);
+		$useStr = false;
+		if($key === null) {
+			if($strict) return null;
+			$key = (string) $item;
+			$useStr = true;
+		}
 		$prevItem = null; 
 		$lastItem = null;
 		foreach($this->data as $k => $v) {
+			if($useStr) $k = (string) $v;
 			if($k === $key) {
 				$prevItem = $lastItem; 
 				break;
 			}
 			$lastItem = $v; 
-			
 		}
 		return $prevItem; 
 	}

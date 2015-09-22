@@ -221,7 +221,7 @@ class PageTraversal {
 
 		$next = $page;
 		do {
-			$next = $siblings->getNext($next); 
+			$next = $siblings->getNext($next, false); 
 			if(!strlen($selector) || !$next || $next->matches($selector)) break;
 		} while($next && $next->id); 
 		if(is_null($next)) $next = new NullPage();
@@ -257,7 +257,7 @@ class PageTraversal {
 
 		$prev = $page;
 		do {
-			$prev = $siblings->getPrev($prev); 
+			$prev = $siblings->getPrev($prev, false); 
 			if(!strlen($selector) || !$prev || $prev->matches($selector)) break;
 		} while($prev && $prev->id); 
 		if(is_null($prev)) $prev = new NullPage();

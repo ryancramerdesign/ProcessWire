@@ -146,8 +146,8 @@ class Fieldtypes extends WireArray {
 	public function makeCopy() { $this->preload(); return parent::makeCopy(); }
 	public function makeNew() { $this->preload(); return parent::makeNew(); }
 	public function getIterator() { $this->preload(); return parent::getIterator(); }
-	public function getNext($item) { $this->preload(); return parent::getNext($item); }
-	public function getPrev($item) { $this->preload(); return parent::getPrev($item); }
+	public function getNext($item, $strict = true) { $this->preload(); return parent::getNext($item, $strict); }
+	public function getPrev($item, $strict = true) { $this->preload(); return parent::getPrev($item, $strict); }
 	
 	
 	
