@@ -27,6 +27,7 @@ var InputfieldPageAutocomplete = {
 		var numAdded = 0; // counter that keeps track of quantity items added
 		var numFound = 0; // indicating number of pages matching during last ajax request
 		var disableChars = $input.attr('data-disablechars'); 
+		var noList = $input.hasClass('no_list');
 	
 		var iconHeight = $icon.height();
 		if(iconHeight) {
@@ -50,7 +51,7 @@ var InputfieldPageAutocomplete = {
 			return disable;
 		}
 		
-		if($input.hasClass('no_list')) {
+		if(noList) {
 			// specific to single-item autocompletes, where there is no separate "selected" list
 			
 			$input.attr('data-selectedLabel', $input.val());
@@ -59,6 +60,7 @@ var InputfieldPageAutocomplete = {
 			$remove.click(function() {
 				$value.val('').change();
 				$input.val('').attr('placeholder', '').attr('data-selectedLabel', '').change().focus();
+				$input.trigger('keydown');
 			});
 			
 			$input.change(function() {
@@ -73,6 +75,7 @@ var InputfieldPageAutocomplete = {
 				var val = $value.val();
 				if(!val.length) return;
 				if(hasDisableChar(val)) return;
+				if($(this).hasClass('added_item')) return;
 				$(this).attr('placeholder', $(this).attr('data-selectedLabel'));
 				$(this).val('');
 			}).blur(function() {
@@ -86,7 +89,8 @@ var InputfieldPageAutocomplete = {
 		$icon.attr('data-class', $icon.attr('class')); 
 
 		function isAddAllowed() {
-			return $('#_' + $ol.attr('data-name') + '_add_items').size() > 0; 
+			var allowed = $('#_' + id.replace('Inputfield_', '') + '_add_items').size() > 0;
+			return allowed;
 		}
 
 		$input.autocomplete({
@@ -156,7 +160,7 @@ var InputfieldPageAutocomplete = {
 			$note.hide();
 			if($input.hasClass('no_list')) {
 				if($value.val().length) {
-					if($input.hasClass('allow_any')) {
+					if($input.hasClass('allow_any') || $input.hasClass('added_item')) {
 						// allow value to remain
 					} else {
 						$input.val($input.attr('data-selectedLabel')).attr('placeholder', '');
@@ -183,15 +187,45 @@ var InputfieldPageAutocomplete = {
 					}
 					numAdded++;
 					// new items have a negative page_id
-					var page = { page_id: (-1 * numAdded), label: $input.val() }; 
+					var page = { page_id: (-1 * numAdded), label: $input.val() };
 					// add it to the list
-					InputfieldPageAutocomplete.pageSelected($ol, page); 
-					$input.val('').blur().focus();
+					if(noList) {
+						// adding new item while using input as the label
+						$value.val(page.page_id);
+						$("#_" + id.replace('Inputfield_', '') + '_add_items').val(page.label);
+						$input.addClass('added_item').blur();
+						var $addNote = $note.siblings(".InputfieldPageAutocompleteNoteAdd");
+						if(!$addNote.length) {
+							var $addNote = $("<div class='notes InputfieldPageAutocompleteNote InputfieldPageAutocompleteNoteAdd'></div>");
+							$note.after($addNote);
+						}
+						$addNote.text($note.attr('data-adding') + ' ' + page.label);
+						$addNote.show();
+						
+					} else {
+						// adding new item to list
+						InputfieldPageAutocomplete.pageSelected($ol, page); 
+						$input.val('').blur().focus();
+					}
 					$note.hide();
 				} else {
 					$(this).blur();
 				}
 				return false;
+			}
+			
+			if(numAdded && noList) {
+				// some other key after an item already added, so remove added item info for potential new one
+				var $addNote = $note.siblings(".InputfieldPageAutocompleteNoteAdd");
+				var $addText = $("#_" + id.replace('Inputfield_', '') + '_add_items');
+				if($addNote.length && $addText.val() != $(this).val()) {
+					// added value has changed
+					$addNote.remove();
+					$value.val('');
+					$addText.val('');
+					$("#_" + id.replace('Inputfield_', '') + '_add_items').val('');
+					numAdded--;
+				}
 			}
 		}); 
 

@@ -31,7 +31,7 @@ class InputfieldPageAutocomplete extends Inputfield implements InputfieldHasArra
 		return array(
 			'title' => __('Page Auto Complete', __FILE__), // Module Title
 			'summary' => __('Multiple Page selection using auto completion and sorting capability. Intended for use as an input field for Page reference fields.', __FILE__), // Module Summary
-			'version' => 110,
+			'version' => 111,
 			);
 	}
 
@@ -181,7 +181,7 @@ class InputfieldPageAutocomplete extends Inputfield implements InputfieldHasArra
 			"data-url='$url' " . 
 			"data-label='" . $this->wire('sanitizer')->entities($labelField) . "' " . 
 			"data-search='$searchField' " . 
-			"data-operator='$operator' ";
+			"data-operator='$operator'";
 		
 		$textValue = '';
 		$remove = '';
@@ -199,6 +199,8 @@ class InputfieldPageAutocomplete extends Inputfield implements InputfieldHasArra
 			$remove = "<i class='fa fa-fw fa-times-circle InputfieldPageAutocompleteRemove'></i>";
 		}
 		
+		$addingLabel = $this->wire('sanitizer')->entities1($this->_('New item:'));
+		
 		$out .= <<< _OUT
 
 		<p>
@@ -206,7 +208,7 @@ class InputfieldPageAutocomplete extends Inputfield implements InputfieldHasArra
 		<input type='text' data-parent-input='$id' id='{$id}_input' class='$class' value='$textValue' $disableChars/>
 		<i class='fa fa-fw fa-angle-double-right InputfieldPageAutocompleteStatus'></i>
 		$remove
-		<span class='notes InputfieldPageAutocompleteNote'><br />$addNote</span>
+		<span class='notes InputfieldPageAutocompleteNote' data-adding='$addingLabel'><br />$addNote</span>
 		</p>
 		
 _OUT;
