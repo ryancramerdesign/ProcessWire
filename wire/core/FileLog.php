@@ -440,11 +440,11 @@ class FileLog extends Wire {
 		if(!$fpr || !$fpw) return false;
 
 		fseek($fpr, ($bytes * -1), SEEK_END); 
-		fgets($fpr, self::maxLineLength); // first line likely just a partial line, so skip it
+		fgets($fpr, $this->maxLineLength); // first line likely just a partial line, so skip it
 		$cnt = 0;
 
 		while(!feof($fpr)) {
-			$line = fgets($fpr, self::maxLineLength); 
+			$line = fgets($fpr, $this->maxLineLength); 
 			fwrite($fpw, $line); 
 			$cnt++;
 		}
