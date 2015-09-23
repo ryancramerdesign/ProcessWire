@@ -143,7 +143,7 @@ abstract class ProcessPageListRender extends Wire {
 						$v = (string) $v;
 					}
 
-				} else if(($field == 'created' || $field == 'modified') && ctype_digit("$v")) {
+				} else if(($field == 'created' || $field == 'modified' || $field == 'published') && ctype_digit("$v")) {
 					$v = date($this->wire('config')->dateFormat, (int) $v);
 				}
 

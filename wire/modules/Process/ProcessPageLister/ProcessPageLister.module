@@ -239,7 +239,8 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		
 		$nameLabel = $this->_('Name'); 
 		$createdLabel = $this->_('Created'); 
-		$modifiedLabel = $this->_('Modified'); 
+		$modifiedLabel = $this->_('Modified');
+		$publishedLabel = $this->_('Published'); 
 		$modifiedUserLabel = $this->_('Mod By'); 
 		$createdUserLabel = $this->_('Created By'); 
 		$templateLabel = $this->_('Template'); 
@@ -253,7 +254,8 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 			'template' => $templateLabel,
 			'templates_id' => $templateLabel . " ID",
 			'modified' => $modifiedLabel,	
-			'created' => $createdLabel, 
+			'created' => $createdLabel,
+			'published' => $publishedLabel, 
 			'modified_users_id' => $modifiedUserLabel, 
 			'created_users_id' => $createdUserLabel,
 			'parent' => $parentLabel,
@@ -1208,7 +1210,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 			}
 			$value = implode($delimiter, $values); 
 
-		} else if(in_array($name, array('created', 'modified'))) {
+		} else if(in_array($name, array('created', 'modified', 'published'))) {
 			// @todo make this format customizable via wireDate()
 			// date modified or created
 			$value = "<span class='datetime'>" . wireDate($this->nativeDateFormat, $value) . "</span>";

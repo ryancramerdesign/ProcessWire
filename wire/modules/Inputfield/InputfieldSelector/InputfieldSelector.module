@@ -415,6 +415,11 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 				'label' => $this->_('Created date'),
 				'operators' => $this->operatorsByType['datetime'], 
 				),
+			'published' => array(
+				'input' => 'datetime',
+				'label' => $this->_('Published date'),
+				'operators' => $this->operatorsByType['datetime'],
+			),
 			'modified_users_id' => array(
 				'input' => 'select',
 				'label' => $this->_('Modified by user'),
@@ -480,7 +485,8 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			'name' => $this->systemFields['name'], 
 			'status' => $this->systemFields['status'], 
 			'modified' => $this->systemFields['modified'], 
-			'created' => $this->systemFields['created'], 
+			'created' => $this->systemFields['created'],
+			'published' => $this->systemFields['published'], 
 			);
 
 		$this->modifierFields = array(

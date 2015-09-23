@@ -304,6 +304,7 @@ class MarkupRSS extends WireData implements Module, ConfigurableModule {
 		$f3->description = "The default field to use as an individual feed item's date.";
 		$f3->addOption('created'); 
 		$f3->addOption('modified');
+		$f3->addOption('published');
 
 		foreach(wire('fields') as $field) {
 

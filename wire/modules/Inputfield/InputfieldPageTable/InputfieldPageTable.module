@@ -70,7 +70,8 @@ class InputfieldPageTable extends Inputfield {
 			'id' => $this->_x('ID', 'th'), 
 			'name' => $this->_x('Name', 'th'), 
 			'created' => $this->_x('Created', 'th'), 
-			'modified' => $this->_x('Modified', 'th'), 
+			'modified' => $this->_x('Modified', 'th'),
+			'published' => $this->_x('Published', 'th'), 
 			'modifiedUser' => $this->_x('Modified By', 'th'), 
 			'createdUser' => $this->_x('Created By', 'th'), 
 			'url' => $this->_x('URL', 'th'), 
@@ -353,8 +354,8 @@ class InputfieldPageTable extends Inputfield {
 				$value = $this->objectToString($value, $subfieldName); 
 				$fieldName = $subfieldName; 
 			}
-			if($fieldName == 'modified' || $fieldName == 'created') {
-				$value = wireDate($this->_('Y-m-d H:i'), (int) $value); // Date format for created/modified
+			if($fieldName == 'modified' || $fieldName == 'created' || $fieldName == 'published') {
+				$value = wireDate($this->_('Y-m-d H:i'), (int) $value); // Date format for created/modified/published
 			}
 		}
 		

@@ -40,6 +40,7 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 		'parent_id',
 		'created',
 		'modified',
+		'published',
 		'modified_users_id',
 		'created_users_id',
 		'createdUser',
@@ -742,7 +743,7 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 					if($value instanceof Page) $value = $value->name;
 				}
 				$value = strip_tags($value);
-				if($name == 'created' || $name == 'modified') $value = date(DATE_ISO8601, $value);
+				if($name == 'created' || $name == 'modified' || $name == 'published') $value = date(DATE_ISO8601, $value);
 				$row[] = "<a href='$viewUrl'>$value</a>";
 			}
 			$row[] = $match->editable() ? "<a class='action' href='$editUrl'>" . $this->_('edit') . "</a>" : '&nbsp;';

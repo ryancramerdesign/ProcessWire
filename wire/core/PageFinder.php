@@ -1310,8 +1310,8 @@ class PageFinder extends Wire {
 					if(!ctype_digit("$value")) $value = (($template = $this->fuel('templates')->get($value)) ? $template->id : 0); 
 				}
 
-				if(in_array($field, array('created', 'modified'))) {
-					// prepare value for created or modified date fields
+				if(in_array($field, array('created', 'modified', 'published'))) {
+					// prepare value for created, modified or published date fields
 					if(!ctype_digit($value)) $value = strtotime($value); 
 					$value = date('Y-m-d H:i:s', $value); 
 				}

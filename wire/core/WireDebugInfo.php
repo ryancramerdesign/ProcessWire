@@ -109,7 +109,8 @@ class WireDebugInfo extends Wire {
 			'sort' => $page->sort,
 			'sortfield' => $page->sortfield,
 			'created' => $page->created,
-			'modified' => $page->modified, 
+			'modified' => $page->modified,
+			'published' => $page->published, 
 			'createdUser' => $page->createdUser ? $page->createdUser->name : $page->created_users_id, 
 			'modifiedUser' => $page->modifiedUser ? $page->modifiedUser->name : $page->modified_users_id, 
 		);
@@ -143,7 +144,7 @@ class WireDebugInfo extends Wire {
 		$info['outputFormatting'] = (int) $page->outputFormatting();
 		if($page->quietMode) $info['quietMode'] = 1;
 
-		foreach(array('created', 'modified') as $key) {
+		foreach(array('created', 'modified', 'published') as $key) {
 			$info[$key] = wireDate($this->wire('config')->dateFormat, $info[$key]) . " " .
 				"(" . wireDate('relative', $info[$key]) . ")";
 		}

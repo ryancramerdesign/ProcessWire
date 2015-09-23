@@ -617,7 +617,8 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 			'name' => 'name', 
 			'status' => 'status', 
 			'modified' => 'modified', 
-			'created' => 'created', 
+			'created' => 'created',
+			'published' => 'published', 
 			); 
 
 		$field->addOption(__('Native Fields', __FILE__), $options); // Optgroup label for sorting by fields native to ProcessWire

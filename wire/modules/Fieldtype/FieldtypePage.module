@@ -45,6 +45,7 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 		'parent_id',
 		'created',
 		'modified',
+		'published',
 		);
 
 
@@ -635,7 +636,7 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 		// we let the custom field query matcher handle the '!=' scenario
 		if(!$database->isOperator($operator)) return $this->getMatchQueryCustom($query, $table, $subfield, $operator, $value); 
 
-		if($subfield == 'created' || $subfield == 'modified') {
+		if($subfield == 'created' || $subfield == 'modified' || $subfield == 'published') {
 			if(!ctype_digit($value)) $value = strtotime($value); 
 			$value = (int) $value;
 			$value = date('Y-m-d H:i:s', $value); 

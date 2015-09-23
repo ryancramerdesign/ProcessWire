@@ -49,6 +49,7 @@ class Fields extends WireSaveableItems {
 		'modifiedUserID',
 		'modifiedUsersID',
 		'modified_users_id', 
+		'published',
 		'num_children',
 		'numChildren', 
 		'sort', 
