@@ -2122,7 +2122,7 @@ class ProcessTemplate extends Process {
 		if($this->config->advanced) { 
 			if($form->get('flagSystem')->attr('value')) $this->template->flags = $this->template->flags | Template::flagSystem;
 			$this->template->noMove = (int) $form->get('noMove')->attr('value');
-			$this->template->pageClass = $this->sanitizer->varName($form->get('pageClass')->attr('value'));
+			$this->template->pageClass = $form->get('pageClass')->attr('value');
 			$this->template->noGlobal = (int) $form->get('noGlobal')->attr('value');
 			$this->template->noSettings = (int) $form->get('noSettings')->attr('value');
 			$this->template->noTrash = (int) $form->get('noTrash')->attr('value');
