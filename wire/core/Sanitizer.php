@@ -589,7 +589,15 @@ class Sanitizer extends Wire {
 				// if a scheme was added above (for filter_var validation) and it's not required, remove it
 				$value = str_replace('http://', '', $value); 
 			}
-				
+		} else if($scheme == 'tel') {
+			// tel: scheme is not supported by filter_var 
+			if(!preg_match('/^tel:\+?\d+$/', $value)) {
+				$value = str_replace(' ', '', $value);
+				list($tel, $num) = explode(':', $value);
+				$value = 'tel:'; 
+				if(strpos($num, '+') === 0) $value .= '+';
+				$value .= preg_replace('/[^\d]/', '', $num);
+			}
 		} else {
 			// URL already has a scheme
 			$value = filter_var($value, FILTER_VALIDATE_URL); 
