@@ -323,6 +323,7 @@ class ProcessLogger extends Process {
 		$sanitizer = $this->wire('sanitizer');
 		
 		$table = $this->wire('modules')->get('MarkupAdminDataTable');
+		$table->setSortable(false);
 		$table->setEncodeEntities(false);
 		$templateItem = reset($items);
 		$headers = array(
