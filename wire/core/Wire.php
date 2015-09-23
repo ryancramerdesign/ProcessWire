@@ -429,8 +429,13 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 								$matches = false;
 							}
 						} else {
-							// exact string match
-							$matches = $argMatch == $argVal;
+							if(is_array($argVal)) {
+								// match any array element
+								$matches = in_array($argMatch, $argVal);
+							} else {
+								// exact string match
+								$matches = $argMatch == $argVal;
+							}
 						}
 						if(!$matches) break;
 					}
