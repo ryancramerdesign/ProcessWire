@@ -159,7 +159,7 @@ var InputfieldPageAutocomplete = {
 			$icon.attr('class', $icon.attr('data-class')); 
 			$note.hide();
 			if($input.hasClass('no_list')) {
-				if($value.val().length) {
+				if($value.val().length || $input.val().length) {
 					if($input.hasClass('allow_any') || $input.hasClass('added_item')) {
 						// allow value to remain
 					} else {
