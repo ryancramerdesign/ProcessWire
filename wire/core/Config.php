@@ -61,6 +61,7 @@
  * 
  * @property string $pageNumUrlPrefix Prefix used for pagination URLs. Default is "page", resulting in "/page1", "/page2", etc.
  * @property int $maxUrlSegments Maximum number of extra stacked URL segments allowed in a page's URL (including page numbers).
+ * @property int $maxUrlDepth Maximum URL/path slashes (depth) for request URLs. (Min=10, Max=60)
  * @property string $wireInputOrder Order that variables with the $input API var are handled when you access $input->var.
  * 
  * @property bool $advanced Special mode for ProcessWire system development. Not recommended for regular site development or production use. 

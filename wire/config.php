@@ -569,6 +569,17 @@ $config->protectCSRF = true;
 $config->maxUrlSegments = 4;
 
 /**
+ * Maximum URL/path slashes (depth) for request URLs
+ * 
+ * The maximum number of slashes that any path requested from ProcessWire may have.
+ * Maximum possible value is 60. Minimum recommended value is 10. 
+ * 
+ * @var int
+ * 
+ */
+$config->maxUrlDepth = 30; 
+
+/**
  * Pagination URL prefix
  *
  * Default prefix used for pagination, i.e. "page2", "page3", etc.

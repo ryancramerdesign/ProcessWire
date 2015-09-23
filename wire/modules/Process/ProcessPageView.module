@@ -253,13 +253,17 @@ class ProcessPageView extends Process {
 	 */
 	protected function getPage() {
 
+		$config = $this->wire('config');
 		$it = isset($_GET['it']) ? trim($_GET['it']) : "/";
 		unset($_GET['it']); 
 		$it = preg_replace('{[^-_./a-zA-Z0-9]}', '', $it);
 		if(!isset($it[0]) || $it[0] != '/') $it = "/$it";
 		if(strpos($it, '//') !== false) return null;
+		
+		$numParts = substr_count($it, '/');
+		if($numParts > $config->maxUrlDepth) return null;
 
-		if($this->wire('config')->pagefileSecure) {
+		if($config->pagefileSecure) {
 			$page = $this->checkRequestFile($it);
 			if(is_object($page)) return $page; // Page or NullPage
 		}
@@ -296,7 +300,7 @@ class ProcessPageView extends Process {
 
 		$this->requestURL = $it; 
 		$urlSegments = array();
-		$maxSegments = $this->wire('config')->maxUrlSegments; 
+		$maxSegments = $config->maxUrlSegments; 
 		if(is_null($maxSegments)) $maxSegments = 4; // default
 		$cnt = 0;
 
@@ -516,6 +520,7 @@ class ProcessPageView extends Process {
 
 		$accessTemplate = $page->getAccessTemplate();
 		$redirectLogin = $accessTemplate ? $accessTemplate->redirectLogin : false;
+		$requestPage = $page;
 
 		if($redirectLogin) {
 			$config = $this->wire('config');
@@ -523,17 +528,23 @@ class ProcessPageView extends Process {
 			if($page->id && in_array($page->id, $disallowIDs)) {
 				$page = null;
 			} else if(ctype_digit("$redirectLogin")) {
+				// redirect login provided as a page ID
 				$redirectLogin = (int) $redirectLogin;
 				if($redirectLogin == 1) $redirectLogin = $this->config->loginPageID; 
-				//$this->error("You don't have permission to access this page"); 
 				$page = $this->pages->get($redirectLogin); 
 			} else {
+				// redirect login provided as a URL, optionally with an {id} tag for requested page ID
 				$redirectLogin = str_replace('{id}', $page->id, $redirectLogin); 
 				$this->redirectURL = $redirectLogin;
 			}
+			
+			// in case anything needs to know the originally requested login page
+			$this->wire('session')->setFor('ProcessPageView', 'loginRequestPageID', $requestPage->id);
+			
 		} else {
 			$page = null;
 		}
+		
 		return $page; 
 	}
 
