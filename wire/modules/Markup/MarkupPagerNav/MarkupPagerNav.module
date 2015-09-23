@@ -14,7 +14,7 @@
  * echo "</ul>";
  * echo $pager->render($items); // render the pagination navigation
  *
- * MarkupPagerNav generates it's own HTML5/XHTML markup. To modify it's markup
+ * MarkupPagerNav generates it's own HTML5/XHTML markup. To modify its markup
  * or options, specify a second $options array to the render() method. See 
  * the MarkupPagerNav::$options to see what defaults can be overridden. 
  *
@@ -76,7 +76,7 @@ class MarkupPagerNav extends Wire implements Module {
 		return array(
 			'title' => 'Pager (Pagination) Navigation', 
 			'summary' => 'Generates markup for pagination navigation', 
-			'version' => 103, 
+			'version' => 104, 
 			'permanent' => false, 
 			'singular' => false, 
 			'autoload' => false, 
@@ -176,7 +176,7 @@ class MarkupPagerNav extends Wire implements Module {
 	 */
 	public function ___render(WirePaginatable $items, $options = array()) {
 
-		
+		$config = $this->wire('config');
 		$this->isLastPage = true; 
 		$this->totalItems = $items->getTotal();
 		if(!$this->totalItems) return '';
@@ -204,7 +204,7 @@ class MarkupPagerNav extends Wire implements Module {
 		$allowPageNum = $this->options['page']->template->allowPageNum; 
 		$slashUrls = $this->options['page']->template->slashUrls;
 		$slashPageNum = $this->options['page']->template->slashPageNum;
-		$pageNumUrlPrefix = wire('config')->pageNumUrlPrefix; 
+		$pageNumUrlPrefix = $config->pageNumUrlPrefix; 
 		if(!$pageNumUrlPrefix) $pageNumUrlPrefix = 'page';
 
 		$pagerCount = count($pager);
@@ -218,6 +218,11 @@ class MarkupPagerNav extends Wire implements Module {
 			if(is_null($firstNumberKey)) $firstNumberKey = $key;
 			$lastNumberKey = $key;
 		}
+		
+		$_url = ''; // URL from previous loop interation
+		$nextURL = '';
+		$prevURL = '';
+		$lastWasCurrent = false; // was the last iteration for the current page item?
 		
 		foreach($pager as $key => $item) {
 
@@ -236,7 +241,7 @@ class MarkupPagerNav extends Wire implements Module {
 				if($allowPageNum) {
 					if($slashUrls === 0) $url .= '/'; // enforce a trailing slash, regardless of slashUrls template setting
 					$url .= "$pageNumUrlPrefix{$item->pageNum}";
-					if($slashPageNum) $url .= '/';
+					if($slashPageNum > 0) $url .= '/';
 					$url .= $this->queryString; 
 				} else {
 					$url .= $this->queryString . ($this->queryString ? "&" : "?") . "$pageNumUrlPrefix=" . $item->pageNum;
@@ -256,19 +261,30 @@ class MarkupPagerNav extends Wire implements Module {
 				$class .= ' ' . $this->options['lastNumberItemClass'];
 				if($item->type == 'current') $this->isLastPage = true; 
 			}
-
+			
 			$linkMarkup = isset($this->options[$item->type . 'LinkMarkup']) ? $this->options[$item->type . 'LinkMarkup'] : $this->options['linkMarkup'];
 			$link = str_replace(array('{url}', '{out}'), array($url, $item->label), $linkMarkup); 
 			$out .= str_replace(array('{class}', '{out}'), array(trim($class), $link), $this->options['itemMarkup']); 
-
+			
+			if($item->type == 'current') {
+				$prevURL = $_url;
+				$lastWasCurrent = true;
+			} else {
+				if($lastWasCurrent) $nextURL = $url;
+				$lastWasCurrent = false;
+			}
+			
+			$_url = $url; // remember previous url
 		}
 
 		if($out) {
 			$out = str_replace(array(" class=''", ' class=""'), '', $out);
 			$out = str_replace('{out}', $out, $this->options['listMarkup']); 
+			
+			if($nextURL) $config->urls->next = $nextURL;
+			if($prevURL) $config->urls->prev = $prevURL;
 		}
 		
-
 		return $out; 
 	}
 

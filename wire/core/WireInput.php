@@ -397,7 +397,15 @@ class WireInput {
 		}
 		return $value; 
 	}
-	
+
+	/**
+	 * Get the string of URL segments separated by slashes
+	 * 
+	 * Note that return value lacks leading or trailing slashes
+	 * 
+	 * @return string
+	 * 
+	 */
 	public function urlSegmentStr() {
 		return implode('/', $this->urlSegments);
 	}

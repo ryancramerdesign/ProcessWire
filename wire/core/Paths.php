@@ -6,10 +6,10 @@
  * Maintains lists of file paths, primarily used by the ProcessWire configuration.
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://processwire.com
+ * https://processwire.com
  *
  * @see http://processwire.com/api/variables/config/ Offical $config API variable Documentation
  * 
@@ -25,7 +25,12 @@
  * @property string $files Site-specific files: /site/assets/files/
  * @property string $tmp Temporary files: /site/assets/tmp/
  * @property string $sessions Session files: /site/assets/sessions/
- * @property string $admin Admin URL (applicable only to $config->urls)
+ *
+ * The following properties are only in $config->urls
+ * ==================================================
+ * @property string $admin Admin URL
+ * @property string|null $next URL to next pagination of current page, when applicable (populated by MarkupPagerNav, after render)
+ * @property string|null $prev URL to previous pagination of current page, when applicable (populated by MarkupPagerNav, after render)
  * 
  *
  */
@@ -80,7 +85,7 @@ class Paths extends WireData {
 	public function get($key) {
 		$value = parent::get($key); 
 		if($key == 'root') return $value; 
-		if(!is_null($value)) {
+		if(!is_null($value) && strlen($value)) {
 			if($value[0] == '/' || (DIRECTORY_SEPARATOR != '/' && $value[1] == ':')) return $value; 
 				else $value = $this->root . $value; 
 		}
