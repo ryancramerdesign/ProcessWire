@@ -458,7 +458,7 @@ class WireDatabaseBackup {
 		fclose($fp);
 	
 		// footer summary
-		$pos = strpos($foot, '{'); 
+		$pos = strpos($foot, self::fileFooter) + strlen(self::fileFooter);
 		if($info['valid'] && $pos !== false) {
 			$json = substr($foot, $pos); 
 			$summary = json_decode($json, true); 
