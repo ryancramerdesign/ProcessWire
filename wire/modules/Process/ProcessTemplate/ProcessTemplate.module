@@ -1753,7 +1753,9 @@ class ProcessTemplate extends Process {
 		$field->addOption(0, $this->_('Show a 404 Page')); 
 		$field->addOption($this->config->loginPageID, sprintf($this->_('Show the Login page: %s'), $this->pages->get($this->config->loginPageID)->url));
 		$field->addOption(-1, $this->_('Redirect to another URL')); 
-		$field->attr('value', !$template->redirectLogin || ctype_digit("{$template->redirectLogin}") ? (int) $template->redirectLogin : -1); 
+		if($template->redirectLogin == $this->config->loginPageID) $field->attr('value', $this->config->loginPageID); 
+			else if($template->redirectLogin) $field->attr('value', -1);
+			else $field->attr('value', 0);
 		$field->collapsed = Inputfield::collapsedBlank;
 		$fieldset->add($field); 
 
@@ -1761,7 +1763,7 @@ class ProcessTemplate extends Process {
 		$field->attr('id+name', 'redirectLoginURL'); 
 		$field->label = $this->_("Enter the URL or page ID you want to redirect to when a user doesn't have access"); 
 		$field->description = $this->_('This field is applicable only if you selected "redirect to another URL" in the field above.');
-		if($template->redirectLogin && !ctype_digit("{$template->redirectLogin}")) $field->attr('value', $template->redirectLogin); 
+		if($template->redirectLogin && $template->redirectLogin != $this->config->loginPageID) $field->attr('value', $template->redirectLogin); 
 		$field->collapsed = Inputfield::collapsedNo;
 		$field->notes = $this->_("Optional: In your URL, you can include the tag '{id}' (perhaps as a GET variable), and it will be replaced by the requested page's ID number, if you want it."); // Redirect URL, notes
 		$fieldset->add($field); 
