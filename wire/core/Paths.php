@@ -32,10 +32,31 @@
  * @property string|null $next URL to next pagination of current page, when applicable (populated by MarkupPagerNav, after render)
  * @property string|null $prev URL to previous pagination of current page, when applicable (populated by MarkupPagerNav, after render)
  * 
+ * The following are in $config->urls and equivalent to previously mentioned properties, but include scheme + host
+ * ===============================================================================================================
+ * @property string $httpRoot
+ * @property string $httpTemplates
+ * @property string $httpAdminTemplates
+ * @property string $httpModules
+ * @property string $httpSiteModules
+ * @property string $httpAssets
+ * @property string $httpFiles 
+ * @property string $httpNext
+ * @property string $httpPrev
+ *
+ * The "http" may be optionally prepended to any property accessed from $config->urls (including those you add yourself).
  *
  */
 
 class Paths extends WireData {
+
+	/**
+	 * Cached root 
+	 * 
+	 * @var string
+	 * 
+	 */
+	protected $_root = '';
 
 	/**
 	 * Construct the Paths
@@ -44,7 +65,7 @@ class Paths extends WireData {
 	 *
 	 */
 	public function __construct($root) {
-		$this->set('root', $root); 
+		$this->_root = $root;
 	}
 
 	/**
@@ -72,6 +93,10 @@ class Paths extends WireData {
 	 */
 	public function set($key, $value) {
 		$value = self::normalizeSeparators($value); 
+		if($key == 'root') {
+			$this->_root = $value;
+			return $this;
+		}
 		return parent::set($key, $value); 
 	}
 
@@ -83,11 +108,32 @@ class Paths extends WireData {
 	 *
 	 */
 	public function get($key) {
-		$value = parent::get($key); 
-		if($key == 'root') return $value; 
-		if(!is_null($value) && strlen($value)) {
-			if($value[0] == '/' || (DIRECTORY_SEPARATOR != '/' && $value[1] == ':')) return $value; 
-				else $value = $this->root . $value; 
+		static $_http = null;
+		if($key == 'root') return $this->_root;
+		if(strpos($key, 'http') === 0) {
+			if(is_null($_http)) {
+				$scheme = $this->wire('input')->scheme;
+				if(!$scheme) $scheme = 'http';
+				$httpHost = $this->wire('config')->httpHost; 
+				if($httpHost) $_http = "$scheme://$httpHost";
+			}
+			$http = $_http;
+			$key = substr($key, 4);
+			$key[0] = strtolower($key[0]);
+		} else {
+			$http = '';
+		}
+		if($key == 'root') {
+			$value = $http . $this->_root;
+		} else {
+			$value = parent::get($key);
+			if(!is_null($value) && strlen($value)) {
+				if($value[0] == '/' || (DIRECTORY_SEPARATOR != '/' && $value[1] == ':')) {
+					$value = $http . $value;
+				} else {
+					$value = $http . $this->_root . $value;
+				}
+			}
 		}
 		return $value; 
 	}
