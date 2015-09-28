@@ -176,6 +176,7 @@ class ProcessModule extends Process {
 		if($site || $install) $data['add'] = array(
 			'url' => "?new#tab_new_modules",
 			'label' => __('Add New', '/wire/templates-admin/default.php'),
+			'icon' => 'plus-circle',
 		);
 		
 		$modules = $this->wire('modules'); 
