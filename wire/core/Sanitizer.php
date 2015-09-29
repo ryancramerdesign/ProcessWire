@@ -425,30 +425,50 @@ class Sanitizer extends Wire {
 	public function text($value, $options = array()) {
 
 		$defaultOptions = array(
-			'multiLine' => false,
-			'maxLength' => 255, 
-			'maxBytes' => 1024, 
-			'stripTags' => true,
-			'allowableTags' => '', 
-			'inCharset' => 'UTF-8', 
-			'outCharset' => 'UTF-8', 
+			'maxLength' => 255, // maximum characters allowed, or 0=no max
+			'maxBytes' => 0,  // maximum bytes allowed (0 = default, which is maxLength*4)
+			'stripTags' => true, // strip markup tags
+			'allowableTags' => '', // tags that are allowed, if stripTags is true (use same format as for PHP's strip_tags function)
+			'multiLine' => false, // allow multiple lines? if false, then $newlineReplacement below is applicable
+			'newlineReplacement' => ' ', // character to replace newlines with, OR specify boolean TRUE to remove extra lines
+			'inCharset' => 'UTF-8', // input charset
+			'outCharset' => 'UTF-8',  // output charset
 			);
 
 		$options = array_merge($defaultOptions, $options); 
 		
 		if(!is_string($value)) $value = $this->string($value);
 
-		if(!$options['multiLine']) $value = str_replace(array("\r", "\n"), " ", $value); 
+		if(!$options['multiLine']) {
+			if(strpos($value, "\r") !== false) {
+				$value = str_replace("\r", "\n", $value); // normalize to LF
+			}
+			$pos = strpos($value, "\n"); 
+			if($pos !== false) {
+				if($options['newlineReplacement'] === true) {
+					// remove extra lines
+					$value = rtrim(substr($value, 0, $pos));
+				} else {
+					// remove linefeeds
+					$value = str_replace(array("\n\n", "\n"), $options['newlineReplacement'], $value);
+				}
+			}
+		}
 
 		if($options['stripTags']) $value = strip_tags($value, $options['allowableTags']); 
 
 		if($options['inCharset'] != $options['outCharset']) $value = iconv($options['inCharset'], $options['outCharset'], $value); 
 
 		if($options['maxLength']) {
+			if(empty($options['maxBytes'])) $options['maxBytes'] = $options['maxLength'] * 4;
 			if($this->multibyteSupport) {
-				if(mb_strlen($value, $options['outCharset']) > $options['maxLength']) $value = mb_substr($value, 0, $options['maxLength'], $options['outCharset']);
+				if(mb_strlen($value, $options['outCharset']) > $options['maxLength']) {
+					$value = mb_substr($value, 0, $options['maxLength'], $options['outCharset']);
+				}
 			} else {
-				if(strlen($value) > $options['maxLength']) $value = substr($value, 0, $options['maxLength']);
+				if(strlen($value) > $options['maxLength']) {
+					$value = substr($value, 0, $options['maxLength']);
+				}
 			}
 		}
 
@@ -519,8 +539,10 @@ class Sanitizer extends Wire {
 			'allowRelative' => true, 
 			'allowQuerystring' => true,
 			'allowSchemes' => array(), 
-			'disallowSchemes' => array('file'), 
-			'requireScheme' => true, 
+			'disallowSchemes' => array('file', 'javascript'), 
+			'requireScheme' => true,
+			'stripTags' => true, 
+			'maxLength' => 4096,
 			'throw' => false,
 			);
 
@@ -530,12 +552,18 @@ class Sanitizer extends Wire {
 		}
 
 		$options = array_merge($defaultOptions, $options);
+		$textOptions = array(
+			'stripTags' => $options['stripTags'],
+			'maxLength' => $options['maxLength'],
+			'newlineReplacement' => true,
+		);
 
-		if(!is_string($value)) $value = $this->string($value);
+		$value = $this->text($value, $textOptions);
 		if(!strlen($value)) return '';
 		
 		$scheme = parse_url($value, PHP_URL_SCHEME); 
 		if($scheme !== false && strlen($scheme)) {
+			$_scheme = $scheme;
 			$scheme = strtolower($scheme);
 			$schemeError = false;
 			if(!empty($options['allowSchemes']) && !in_array($scheme, $options['allowSchemes'])) $schemeError = true; 
@@ -545,11 +573,40 @@ class Sanitizer extends Wire {
 				if($options['throw']) throw new WireException($error);
 				$this->error($error);
 				$value = str_ireplace(array("$scheme:///", "$scheme://"), '', $value); 
+			} else if($_scheme !== $scheme) {
+				$value = str_replace("$_scheme://", "$scheme://", $value); // lowercase scheme
 			}
+		}
+		
+		// separate scheme+domain+path from query string temporarily
+		if(strpos($value, '?') !== false) {
+			list($domainPath, $queryString) = explode('?', $value);
+			if(!$options['allowQuerystring']) $queryString = '';
+		} else {
+			$domainPath = $value;
+			$queryString = '';
+		}
+	
+		$pathIsEncoded = strpos($domainPath, '%') !== false;
+		if($pathIsEncoded || filter_var($domainPath, FILTER_SANITIZE_URL) !== $domainPath) {
+			// the domain and/or path contains extended characters not supported by FILTER_SANITIZE_URL
+			// Example: https://de.wikipedia.org/wiki/Linkshänder
+			// OR it is already rawurlencode()'d
+			// Example: https://de.wikipedia.org/wiki/Linksh%C3%A4nder
+			// we convert the URL to be FILTER_SANITIZE_URL compatible
+			// if already encoded, first remove encoding: 
+			if(strpos($domainPath, '%') !== false) $domainPath = rawurldecode($domainPath);
+			// Next, encode it, for example: https%3A%2F%2Fde.wikipedia.org%2Fwiki%2FLinksh%C3%A4nder
+			$domainPath = rawurlencode($domainPath);
+			// restore characters allowed in domain/path
+			$domainPath = str_replace(array('%2F', '%3A'), array('/', ':'), $domainPath);
+			// restore value that is now FILTER_SANITIZE_URL compatible
+			$value = $domainPath . (strlen($queryString) ? "?$queryString" : "");
+			$pathIsEncoded = true;	
 		}
 
 		// this filter_var sanitizer just removes invalid characters that don't appear in domains or paths
-		$value = filter_var($value, FILTER_SANITIZE_URL); 
+		$value = filter_var($value, FILTER_SANITIZE_URL);
 	
 		if(!$scheme) {
 			// URL is missing scheme/protocol, or is local/relative
@@ -601,6 +658,23 @@ class Sanitizer extends Wire {
 		} else {
 			// URL already has a scheme
 			$value = filter_var($value, FILTER_VALIDATE_URL); 
+		}
+		
+		if($pathIsEncoded) {
+			// restore to non-encoded, UTF-8 version 
+			if(strpos('?', $value) !== false) {
+				list($domainPath, $queryString) = explode('?', $value);
+			} else {
+				$domainPath = $value;
+				$queryString = '';
+			}
+			$domainPath = rawurldecode($domainPath);
+			if(strpos($domainPath, '%') !== false) {
+				$domainPath = preg_replace('/%[0-9ABCDEF]{1,2}/i', '', $domainPath); 
+				$domainPath = str_replace('%', '', $domainPath);
+			}
+			$domainPath = $this->text($domainPath, $textOptions);
+			$value = $domainPath . (strlen($queryString) ? "?$queryString" : "");
 		}
 
 		return $value ? $value : '';

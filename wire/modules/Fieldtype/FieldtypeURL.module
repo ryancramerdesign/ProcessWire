@@ -60,7 +60,10 @@ class FieldtypeURL extends FieldtypeText {
 		$inputfields = parent::___getConfigInputfields($field);
 
 		$f = $inputfields->getChildByName('textformatters'); 
-		$f->notes .= " " . $this->_('The "HTML Entity Encoder" text formatter is recommended for URL fields.'); 
+		$f->notes = $this->_('The "HTML Entity Encoder" text formatter is recommended for URL fields.'); 
+		if(!count($field->textformatters) || !in_array('TextformatterEntities', $field->textformatters)) {
+			$this->warning($this->_('If this URL will be used for any output, it is strongly recommended that you select the "HTML Entity Encoder" for "Text Formatters" on the Details tab.')); // Wwarning to use the HTML entity encoder
+		}
 
 		$f = $this->modules->get('InputfieldRadios');
 		$f->attr('name', 'noRelative');
