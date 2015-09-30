@@ -134,6 +134,10 @@
 	padding: 0;
 }
 
+.AdminThemeDefault #NotificationGhosts {
+	z-index: 199; /* makes them appear under drop down menus */
+}
+
 #NotificationGhosts.NotificationGhostsRight {
 	left: auto;
 	right: 0;
