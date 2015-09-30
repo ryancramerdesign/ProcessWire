@@ -514,7 +514,8 @@ class ProcessPageView extends Process {
 		if($this->requestFile) {
 			// if a file was requested, we still allow view even if page doesn't have template file
 			// this is something that viewable() does not echeck
-			if($page->editable()) return $page;	
+			if($page->editable()) return $page;
+			if($this->checkAccessDelegated($page)) return $page; 
 			if($page->status < Page::statusUnpublished && wire('user')->hasPermission('page-view', $page)) return $page;
 		}
 
@@ -546,6 +547,31 @@ class ProcessPageView extends Process {
 		}
 		
 		return $page; 
+	}
+
+	/**
+	 * Check access to a delegated page (like a repeater)
+	 * 
+	 * Note: this should move to PagePermissions.module or FieldtypeRepeater.module 
+	 * if a similar check is needed somewhere else in the core.
+	 * 
+	 * @param Page $page
+	 * @return Page|null
+	 * 
+	 */
+	protected function checkAccessDelegated(Page $page) {
+		if(strpos($page->template->name, 'repeater_') == 0) {
+			if(!$this->wire('modules')->isInstalled('FieldtypeRepeater')) return false;
+			$fieldName = substr($page->template->name, strpos($page->template->name, '_') + 1); // repeater_(fieldName)
+			if(!$fieldName) return false;
+			$field = $this->wire('fields')->get($fieldName);
+			if(!$field) return false;
+			$forPageID = substr($page->parent->name, strrpos($page->parent->name, '-') + 1); // for-page-(id)
+			$forPage = $this->wire('pages')->get((int) $forPageID);
+			// delegate viewable check to the page the repeater lives on
+			if($forPage->id && $forPage->viewable($field)) return $page;
+		}
+		return null;
 	}
 
 	/**
