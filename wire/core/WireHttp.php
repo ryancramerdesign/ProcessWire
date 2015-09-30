@@ -412,8 +412,11 @@ class WireHttp extends Wire {
 			if($code && isset($this->errorCodes[$code])) {
 				// known http error code, no need to fallback to sockets
 				$result = false;
+			} else if($code && $code >= 200 && $code < 300) {
+				// PR #1281: known http success status code, no need to fallback to sockets
+				$result = true;
 			} else {
-				//fallback to sockets
+				// fallback to sockets
 				$result = $this->sendSocket($unmodifiedURL, $method);
 			}
 		}
