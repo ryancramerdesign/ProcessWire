@@ -198,6 +198,11 @@ class AdminThemeDefaultHelpers extends WireData {
 			if(!empty($info['icon'])) $icon = $info['icon'];
 		}
 		if($p->page_icon) $icon = $p->page_icon; // allow for option of an admin field overriding the module icon
+		if(!$icon) switch($p->id) {
+			case 22: $icon = 'gears'; break; // Setup
+			case 21: $icon = 'plug'; break; // Modules
+			case 28: $icon = 'key'; break; // Access
+		}
 		if(!$icon && $p->parent->id != $this->wire('config')->adminRootPageID) $icon = 'file-o ui-priority-secondary';
 		if($icon) $icon = "<i class='fa fa-fw fa-$icon'></i>&nbsp;";
 		return $icon;
@@ -232,14 +237,6 @@ class AdminThemeDefaultHelpers extends WireData {
 		}
 		
 		if(!$showItem) return '';
-
-		/*
-		if($numChildren && $p->name == 'page') {
-			// don't bother with a drop-down for "Pages" if user will only see 1 "tree" item, duplicating the tab
-			if($numChildren == 2 && !$isSuperuser && !$this->wire('user')->hasPermission('page-lister')) $children = array();
-			if($numChildren == 1) $children = array();
-		}
-		*/
 
 		$class = strpos($this->wire('page')->path, $p->path) === 0 ? 'on' : '';
 		$title = strip_tags((string) $p->title); 
@@ -385,7 +382,12 @@ class AdminThemeDefaultHelpers extends WireData {
 		foreach($admin->children("check_access=0") as $p) {
 			if(!$p->viewable()) continue; 
 			$out .= $this->renderTopNavItem($p);
-			$outMobile .= "<li><a href='$p->url'>$p->title</a></li>";
+			
+			$title = $this->getPageTitle($p);
+			if(strlen($title)) {
+				$icon = $this->getPageIcon($p);
+				$outMobile .= "<li><a href='$p->url'>$icon$title</a></li>";
+			}
 		}
 	
 		
