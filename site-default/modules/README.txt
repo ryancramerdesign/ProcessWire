@@ -7,7 +7,7 @@ leave those alone).
 
 If safe for your hosting environment, you may wish to make this directory 
 writable to PHP so that the installation of your modules can be managed from 
-ProcessWire's admin. However, this is not necessary safe in all shared hosting
+ProcessWire's admin. However, this is not necessarily safe in all shared hosting
 environments and is completely optional. 
 
 
