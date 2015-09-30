@@ -276,23 +276,33 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 			if($this->input->post->submit_publish || $this->input->post->submit_save) {
 
 				try {
+					$options = array();
+					$name = '';
+					
+					if($this->page->isChanged('name')) {
+						if(!strlen($this->page->name) && $this->page->namePrevious) {
+							// blank page name when there was a previous name, set back the previous
+							// example instance: when template.childNameFormat in use and template.noSettings active
+							$this->page->name = $this->page->namePrevious; 
+						} else {
+							$name = $this->page->name; 
+						}
+						$options['adjustName'] = true;
+					}
+					
 					$numChanges = $numChanges > 0 ? ' (' . sprintf($this->_n('%d change', '%d changes', $numChanges) . ')', $numChanges) : '';
 					if($this->input->post->submit_publish && $isUnpublished && $this->page->publishable() && !$formErrors) {
 						$this->page->removeStatus(Page::statusUnpublished);
-						$message = sprintf($this->_('Published Page: %s'), $this->page->path) . $numChanges; // Message shown when page is published
+						$message = sprintf($this->_('Published Page: %s'), '{path}') . $numChanges; // Message shown when page is published
 					} else {
-						$message = sprintf($this->_('Saved Page: %s'), $this->page->path) . $numChanges; // Message shown when page is saved
-						if($isUnpublished && $formErrors && $this->input->post->submit_publish) $message .= ' - ' . $this->_('Cannot be published until errors are corrected'); 
+						$message = sprintf($this->_('Saved Page: %s'), '{path}') . $numChanges; // Message shown when page is saved
+						if($isUnpublished && $formErrors && $this->input->post->submit_publish) $message .= ' - ' . $this->_('Cannot be published until errors are corrected');
 					}
 
-					$options = array();
-					$name = '';
-					if($this->page->isChanged('name')) {
-						$options['adjustName'] = true;
-						$name = $this->page->name; 
-					}
 					$this->wire('pages')->save($this->page, $options); 
+					$message = str_replace('{path}', $this->page->path, $message);
 					$this->message($message); 
+					
 					if($name && $name != $this->page->name) {
 						$this->warning(sprintf($this->_('Changed page URL name to "%s" because requested name was already taken.'), $this->page->name)); 
 					}	

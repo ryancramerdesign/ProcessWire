@@ -50,6 +50,7 @@
  * @property string $altFilename Alternate filename for template file, if not based on template name.
  * @property int $guestSearchable Pages appear in search results even when user doesnt have access? (0=no, 1=yes)
  * @property string $pageClass Class for instantiated page objects. Page assumed if blank, or specify class name. 
+ * @property string $childNameFormat Name format for child pages. when specified, the page-add UI step can be skipped when adding chilcren. Counter appended till unique. Date format assumed if any non-pageName chars present. Use 'title' to pull from title field.
  * @property string $pageLabelField CSV or space separated string of field names to be displayed by ProcessPageList (overrides those set with ProcessPageList config).
  * @property int $noGlobal Template should ignore the global option of fields? (0=no, 1=yes)
  * @property int $noMove Pages using this template are not moveable? (0=moveable, 1=not movable)
