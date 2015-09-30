@@ -971,7 +971,7 @@ function wireTempDir($name, $options = array()) {
 	if(is_int($options)) $options = array('maxAge' => $options); 	
 	$basePath = isset($options['basePath']) ? $options['basePath'] : '';
 	$tempDir = new WireTempDir($name, $basePath); 
-	if(isset($options['maxAge'])) $tempDir->setMaxAge($maxAge); 
+	if(isset($options['maxAge'])) $tempDir->setMaxAge($options['maxAge']); 
 	$tempDirs[$name] = $tempDir; 
 	return $tempDir; 
 }
