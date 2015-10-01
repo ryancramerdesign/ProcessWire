@@ -203,8 +203,8 @@ function InputfieldDependencies($target) {
 		// for loop in case there is a multi-value OR condition
 		for(var i = 0; i < condition.values.length; i++) {
 
-			var conditionValue = new String(condition.values[i]);
-			conditionValue = trimValue(conditionValue.replace(/\s/g, '_'));
+			var _conditionValue = new String(condition.values[i]); // original
+			var conditionValue = trimValue(_conditionValue.replace(/\s/g, '_')); // spaces converted to "_"
 			consoleLog('conditionValue: ' + conditionValue);
 			var fieldID = "#Inputfield_" + conditionField + "_" + conditionValue;
 			$field = $(fieldID);
@@ -240,11 +240,11 @@ function InputfieldDependencies($target) {
 				var $label = $checkbox.closest('label');
 				if($label.length) {
 					var label = jQuery.trim($label.text());
-					if(label == conditionValue) {
-						consoleLog('Matching checked label found: ' + conditionValue);
+					if(label == _conditionValue) {
+						consoleLog('Matching checked label found: ' + _conditionValue);
 						value.push(label);
 					} else {
-						consoleLog('Matching checked label not found: ' + conditionValue);
+						consoleLog('Matching checked label not found: ' + _conditionValue);
 					}
 				}
 			}
@@ -840,12 +840,28 @@ function InputfieldColumnWidths($target) {
 	});
 	
 	if(!$('body').hasClass('InputfieldColumnWidthsInit')) {
+		// initialize monitoring events on first run
 		$('body').addClass('InputfieldColumnWidthsInit');
-		$(document).on('change', '.InputfieldColumnWidth :input', function() {
-			var $item = $(this).closest('.InputfieldColumnWidth');
-			var $firstItem = $item.is(".InputfieldColumnWidthFirst") ? $item : $item.prev(".InputfieldColumnWidthFirst");
-			updateInputfieldRow($firstItem);
-		});
+		
+		var changeTimeout = null;
+		var checkInputfieldHeightChange = function() {
+			var $this = $(this);
+			var checkNow = function() {
+				var $item = $this.hasClass('InputfieldColumnWidth') ? $this : $this.closest('.InputfieldColumnWidth');
+				var $firstItem = $item.hasClass('InputfieldColumnWidthFirst') ? $item : $item.prev(".InputfieldColumnWidthFirst");
+				if($firstItem.length) updateInputfieldRow($firstItem);
+			}
+			if($this.is(':input')) {
+				if(changeTimeout) clearTimeout(changeTimeout);
+				changeTimeout = setTimeout(checkNow, 1000);
+			} else {
+				checkNow();	
+			}
+		};
+		
+		$(document).on('change', '.InputfieldColumnWidth :input', checkInputfieldHeightChange);
+		$(document).on('AjaxUploadDone', '.InputfieldFileList', checkInputfieldHeightChange);
+		$(document).on('heightChanged', '.InputfieldColumnWidth', checkInputfieldHeightChange);
 	} 
 }
 

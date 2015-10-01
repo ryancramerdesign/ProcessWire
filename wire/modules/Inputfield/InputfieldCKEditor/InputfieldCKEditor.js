@@ -40,14 +40,35 @@ function ckeBlurEvent(event) {
 }
 
 /**
+ * Event called when an editor is resized vertically
+ *
+ * @param event
+ *
+ */
+function ckeResizeEvent(event) {
+	var editor = event.editor;
+	var $textarea = $(editor.element.$);
+	if($textarea.length) {
+		$textarea.closest(".Inputfield").trigger('heightChanged');
+	}
+}
+
+/**
  * Attach events common to all CKEditor instances
  *
  * @param editor CKEditor instance
  *
  */
 function ckeInitEvents(editor) {
+	
 	editor.on('blur', ckeBlurEvent);
 	editor.on('change', ckeBlurEvent);
+	editor.on('resize', ckeResizeEvent);
+	
+	var $inputfield = $(editor.element.$).closest('.Inputfield.InputfieldColumnWidth');
+	if($inputfield.length) setTimeout(function() {
+		$inputfield.trigger('heightChanged');
+	}, 1000);
 }
 
 
