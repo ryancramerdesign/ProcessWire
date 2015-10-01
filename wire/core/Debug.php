@@ -8,11 +8,10 @@
  * Currently only provides timer capability. 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * https://processwire.com
  *
  */
 
@@ -46,21 +45,16 @@ class Debug {
 
 		if(!$key || !isset(self::$timers[$key])) {
 			// start new timer
-			preg_match('/(\.[0-9]+) ([0-9]+)/', microtime(), $time);
-			$startTime = doubleval($time[1]) + doubleval($time[2]);
+			$startTime = -microtime(true);
 			if(!$key) {
-				$key = $startTime; 
+				$key = (string) $startTime; 
 				while(isset(self::$timers[$key])) $key .= ".";
 			}
-			self::$timers[$key] = $startTime; 
+			self::$timers[(string) $key] = $startTime; 
 			$value = $key; 
 		} else {
-			// return timer
-			preg_match('/(\.[0-9]*) ([0-9]*)/', microtime(), $time);
-			$endTime = doubleval($time[1]) + doubleval($time[2]);
-			$startTime = self::$timers[$key]; 
-			$runTime = number_format($endTime - $startTime, 4);
-			$value = $runTime;
+			// return existing timer
+			$value = number_format(self::$timers[$key] + microtime(true), 4);
 		}
 
 		return $value; 
