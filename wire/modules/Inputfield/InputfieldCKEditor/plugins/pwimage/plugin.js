@@ -132,12 +132,17 @@
 			var parts = src.split('/'); 
 			file = parts.pop();
 			parts = parts.reverse();
-			page_id = 0; 
+			page_id = ''; 
 			// pull page_id out of img[src]
 			for(var n = 0; n < parts.length; n++) {
-				page_id = parseInt(parts[n]); 
-				if(page_id > 0) break;
+				// accounts for either /1/2/3/ or /123/ format
+				if(parts[n].match(/^\d+$/)) {
+					page_id = parts[n] + page_id;
+				} else if(page_id.length) {
+					break;
+				}
 			}
+			page_id = parseInt(page_id);
 		}
 
 		var modalUri = config.urls.admin + 'page/image/';
