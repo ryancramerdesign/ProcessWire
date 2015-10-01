@@ -95,14 +95,18 @@ class ProcessPageListActions extends Wire {
 	public function ___getExtraActions(Page $page) {
 
 		$extras = array();
+		$noSettings = $page->template->noSettings;
+		$statusEditable = $page->editable('status', false);
+		
 		if($page->id == 1 || $page->template == 'admin') return $extras;
-		if($page->template->noSettings || !$page->editable('status', false)) return $extras;
+		if(!$this->superuser && ($noSettings || !$statusEditable)) return $extras;
+		
 		$adminUrl = $this->wire('config')->urls->admin . 'page/';
 		$locked = $page->isLocked();
 		$trash = $page->isTrash();
 		$user = $this->wire('user');
 
-		if(!$locked && !$trash) {
+		if(!$locked && !$trash && !$noSettings && $statusEditable) {
 			if($page->publishable()) {
 				if($page->isUnpublished()) {
 					$extras['pub'] = array(
@@ -140,7 +144,7 @@ class ProcessPageListActions extends Wire {
 			}
 		}
 
-		if($this->wire('user')->hasPermission('page-lock', $page) && !$trash) {
+		if($this->wire('user')->hasPermission('page-lock', $page) && !$trash && $statusEditable) {
 			if($locked) {
 				$extras['unlock'] = array(
 					'cn'    => 'Unlock',
