@@ -24,7 +24,7 @@ class InputfieldForm extends InputfieldWrapper {
 		return array(
 			'title' => __('Form', __FILE__), // Module Title
 			'summary' => __('Contains one or more fields in a form', __FILE__), // Module Summary
-			'version' => 106,
+			'version' => 107,
 			'permanent' => true, 
 			);
 	}
@@ -197,32 +197,11 @@ class InputfieldForm extends InputfieldWrapper {
 			
 				// good to process $child
 				foreach($fields as $name) {
+					
 					if($name == '1') {
 						$numFieldsMatched++;
-						continue;
-					}
-				
-					$subfield = '';
-					if(strpos($name, '.')) list($name, $subfield) = explode('.', $name); 
-
-					// get the inputfield that $child has a dependency on
-					$dependencyChild = $this->getChildByName($name);
-
-					// if field is not present in this form, we assume a blank value for it
-					if(!$dependencyChild) {
-						$this->error("Warning: dependency field '$name' is not present in this form.", Notice::debug);
-						continue;
-					}
-
-					$value = $dependencyChild->attr('value');
-					if($subfield == 'count') $value = count($value); 
-					if(is_object($value)) $value = "$value";
-
-					if($selector->matches($value)) {
-						$this->debugNote("Selector matched \"$selector\" (field=$name, value=" . print_r($value, true) . ")"); 
+					} else if($this->selectorMatchesInputfield($selector, $name, 'showIf')) {
 						$numFieldsMatched++;
-					} else {
-						$this->debugNote("Selector failed to match \"$selector\" (field=$name, value=" . print_r($value, true) . ")"); 
 					}
 					
 				} // $fields
@@ -235,7 +214,6 @@ class InputfieldForm extends InputfieldWrapper {
 
 			} // $selectors
 			
-			if($subfield == 'count') $this->debugNote("actual count: $value"); 
 			
 			if(!$processNow) {
 				$this->debugNote("$child->name ($child->label) - did not match: showIf($selector)"); 
@@ -316,25 +294,10 @@ class InputfieldForm extends InputfieldWrapper {
 					$fields = is_array($selector->field) ? $selector->field : array($selector->field);
 		
 					foreach($fields as $name) {
-		
-						$subfield = '';
-						if(strpos($name, '.')) list($name, $subfield) = explode('.', $name);
-		
-						// get the inputfield that $child has a dependency on
-						$dependencyChild = $this->getChildByName($name);
-		
-						// if field is not present in this form, we assume a blank value for it
-						if(!$dependencyChild) {
-							$this->error("Warning: required dependency field '$name' is not present in this form.", Notice::debug);
-							continue;
-						}
-		
-						$value = $dependencyChild->attr('value');
-						if($subfield == 'count') $value = count($value);
-						if(is_object($value)) $value = "$value";
-
-						if(!$selector->matches($value)) {
-							$this->debugNote("$name ($name.$subfield) - did not match: requiredIf($selector)");
+						
+						$matches = $this->selectorMatchesInputfield($selector, $name, 'requiredIf'); 
+						if($matches === null) continue;
+						if($matches === false) {
 							$required = false;
 							break;
 						}
@@ -358,6 +321,66 @@ class InputfieldForm extends InputfieldWrapper {
 			}
 			
 		}
+	}
+
+	/**
+	 * Does the selector match the given Inputfield name?
+	 * 
+	 * @param Selector $selector
+	 * @param $name Name of Inputfield
+	 * @parma string $debugNote Optional qualifier note for debugging
+	 * @return bool|null Returns true|false if match determined, or NULL if $name is not present in form
+	 * 
+	 */
+	protected function selectorMatchesInputfield(Selector $selector, $name, $debugNote = '') {
+	
+		$subfield = '';
+		if(strpos($name, '.')) list($name, $subfield) = explode('.', $name);
+
+		// get the inputfield that $child has a dependency on
+		$inputfield = $this->getChildByName($name);
+		
+		// if field is not present in this form, we assume a blank value for it
+		if(!$inputfield) {
+			$this->error("Warning ($debugNote): dependency field '$name' is not present in this form.", Notice::debug);
+			return null;
+		}
+		
+		$value = $inputfield->attr('value');
+		$value2 = null;
+		$matches = false;
+		
+		if($subfield == 'count') {
+			$value = count($value);
+			$this->debugNote("Actual count ($debugNote): $value");
+		}
+		if(is_object($value)) $value = "$value";
+
+		if($inputfield instanceof InputfieldSelect) {
+			// allow for match by field labels, in addition to field values
+			$options = $inputfield->getOptions();
+			if($inputfield instanceof InputfieldHasArrayValue) {
+				$value2 = array();
+				foreach($value as $k => $v) {
+					if(isset($options[$v])) $value2[] = $options[$v];
+				}
+				if(empty($value2)) $value2 = null;
+			} else {
+				if(isset($options[$value])) $value2 = $options[$value];
+			}
+		}
+		
+		if($selector->matches($value)) {
+			$this->debugNote("Selector ($debugNote) matched value \"$selector\" (field=$name, value=" . print_r($value, true) . ")");
+			$matches = true; 
+		} else if($value2 !== null && $selector->matches($value2)) {
+			$this->debugNote("Selector ($debugNote) matched label \"$selector\" (field=$name, label=" . print_r($value2, true) . ")");
+			$matches = true;
+		} else {
+			$this->debugNote("Selector ($debugNote) failed to match \"$selector\" (field=$name, value=" . print_r($value, true) . ")");
+		}
+		
+		return $matches;
 	}
 }
 
