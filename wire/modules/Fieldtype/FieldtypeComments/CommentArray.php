@@ -5,11 +5,11 @@
  *
  * Maintains an array of multiple Comment instances.
  * Serves as the value referenced when a FieldtypeComment field is reference from a Page.
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2010 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
@@ -18,10 +18,10 @@
 class CommentArray extends PaginatedArray implements WirePaginatable {
 
 	/**
-	 * Page that owns these comments, required to use the renderForm() or getCommentForm() methods. 
+	 * Page that owns these comments, required to use the renderForm() or getCommentForm() methods.
 	 *
 	 */
-	protected $page = null; 
+	protected $page = null;
 
 	/**
 	 * Field object associated with this CommentArray
@@ -31,14 +31,14 @@ class CommentArray extends PaginatedArray implements WirePaginatable {
 
 	/**
 	 * Total number of comments, including those here and others that aren't, but may be here in pagination.
-	 * 
+	 *
 	 * @var int
-	 * 
+	 *
 	 */
 	protected $numTotal = 0;
 
 	/**
-	 * If this CommentArray is a partial representation of a larger set, this will contain the max number 
+	 * If this CommentArray is a partial representation of a larger set, this will contain the max number
 	 * of comments allowed to be present/loaded in the CommentArray at once.
 	 *
 	 * May vary from count() when on the last page of a result set.
@@ -46,16 +46,16 @@ class CommentArray extends PaginatedArray implements WirePaginatable {
 	 * Applicable for paginated result sets. This number is not enforced for adding items to this CommentArray.
 	 *
 	 * @var int
-	 * 
+	 *
 	 */
 	protected $numLimit = 0;
 
 	/**
-	 * If this CommentArray is a partial representation of a larger set, this will contain the starting result 
+	 * If this CommentArray is a partial representation of a larger set, this will contain the starting result
 	 * number if previous results preceded it.
 	 *
 	 * @var int
-	 * 
+	 *
 	 */
 	protected $numStart = 0;
 
@@ -65,9 +65,9 @@ class CommentArray extends PaginatedArray implements WirePaginatable {
 	 */
 	public function isValidItem($item) {
 		if($item instanceof Comment) {
-			if($this->page) $item->setPage($this->page); 
-			if($this->field) $item->setField($this->field); 
-			return true; 
+			if($this->page) $item->setPage($this->page);
+			if($this->field) $item->setField($this->field);
+			return true;
 		} else {
 			return false;
 		}
@@ -83,13 +83,14 @@ class CommentArray extends PaginatedArray implements WirePaginatable {
 	 */
 	public function render(array $options = array()) {
 		$defaultOptions = array(
+			'useImageField' => ($this->field ? $this->field->useImageField : ''),
 			'useGravatar' => ($this->field ? $this->field->useGravatar : ''),
-			'useVotes' => ($this->field ? $this->field->useVotes : 0), 
-			'depth' => ($this->field ? (int) $this->field->depth : 0), 	
-			'dateFormat' => 'relative', 
+			'useVotes' => ($this->field ? $this->field->useVotes : 0),
+			'depth' => ($this->field ? (int) $this->field->depth : 0),
+			'dateFormat' => 'relative',
 			);
 		$options = array_merge($defaultOptions, $options);
-		$commentList = $this->getCommentList($options); 
+		$commentList = $this->getCommentList($options);
 		return $commentList->render();
 	}
 
@@ -105,20 +106,20 @@ class CommentArray extends PaginatedArray implements WirePaginatable {
 		$defaultOptions = array(
 			'depth' => ($this->field ? (int) $this->field->depth : 0)
 			);
-		$options = array_merge($defaultOptions, $options); 
-		$form = $this->getCommentForm($options); 
+		$options = array_merge($defaultOptions, $options);
+		$form = $this->getCommentForm($options);
 		return $form->render();
 	}
 
 	/**
 	 * Render all comments and a comments form below it
-	 * 
+	 *
 	 * @param array $options
 	 * @return string
-	 * 
+	 *
 	 */
 	public function renderAll(array $options = array()) {
-		return $this->render($options) . $this->renderForm($options); 
+		return $this->render($options) . $this->renderForm($options);
 	}
 
 	/**
@@ -126,7 +127,7 @@ class CommentArray extends PaginatedArray implements WirePaginatable {
 	 *
 	 */
 	public function getCommentList(array $options = array()) {
-		return new CommentList($this, $options); 	
+		return new CommentList($this, $options);
 	}
 
 	/**
@@ -135,35 +136,35 @@ class CommentArray extends PaginatedArray implements WirePaginatable {
 	 * @param array $options
 	 * @return CommentForm
 	 * @throws WireException
-	 * 
+	 *
 	 */
 	public function getCommentForm(array $options = array()) {
-		if(!$this->page) throw new WireException("You must set a page to this CommentArray before using it i.e. \$ca->setPage(\$page)"); 
-		return new CommentForm($this->page, $this, $options); 
+		if(!$this->page) throw new WireException("You must set a page to this CommentArray before using it i.e. \$ca->setPage(\$page)");
+		return new CommentForm($this->page, $this, $options);
 	}
 
 	/**
-	 * Set the page that these comments are on 
+	 * Set the page that these comments are on
 	 *
-	 */ 
+	 */
 	public function setPage(Page $page) {
-		$this->page = $page; 
+		$this->page = $page;
 	}
 
 	/**
-	 * Set the Field that these comments are on 
+	 * Set the Field that these comments are on
 	 *
-	 */ 
+	 */
 	public function setField(Field $field) {
-		$this->field = $field; 
+		$this->field = $field;
 	}
-	
+
 	/**
 	 * Get the page that these comments are on
 	 *
 	 */
-	public function getPage() { 
-		return $this->page; 
+	public function getPage() {
+		return $this->page;
 	}
 
 	/**

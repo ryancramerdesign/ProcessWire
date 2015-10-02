@@ -4,16 +4,16 @@
  * ProcessWire CommentListInterface and CommentList
  *
  * CommentListInterface defines an interface for CommentLists.
- * CommentList provides the default implementation of this interface. 
+ * CommentList provides the default implementation of this interface.
  *
- * Use of these is not required. These are just here to provide output for a FieldtypeComments field. 
+ * Use of these is not required. These are just here to provide output for a FieldtypeComments field.
  * Typically you would iterate through the field and generate your own output. But if you just need
- * something simple, or are testing, then this may fit your needs. 
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * something simple, or are testing, then this may fit your needs.
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2010 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
@@ -24,23 +24,23 @@
  *
  */
 interface CommentListInterface {
-	public function __construct(CommentArray $comments, $options = array()); 
+	public function __construct(CommentArray $comments, $options = array());
 	public function render();
 	public function renderItem(Comment $comment);
 }
 
 /**
- * CommentList provides the default implementation of the CommentListInterface interface. 
+ * CommentList provides the default implementation of the CommentListInterface interface.
  *
  */
 class CommentList extends Wire implements CommentListInterface {
-	
+
 	/**
 	 * Reference to CommentsArray provided in constructor
 	 *
 	 */
 	protected $comments = null;
-	
+
 	protected $page;
 	protected $field;
 
@@ -49,24 +49,25 @@ class CommentList extends Wire implements CommentListInterface {
 	 *
 	 */
 	protected $options = array(
-		'headline' => '', 	// '<h3>Comments</h3>', 
+		'headline' => '', 	// '<h3>Comments</h3>',
 		'commentHeader' => '', 	// 'Posted by {cite} on {created}',
-		'dateFormat' => '', 	// 'm/d/y g:ia', 
-		'encoding' => 'UTF-8', 
+		'dateFormat' => '', 	// 'm/d/y g:ia',
+		'encoding' => 'UTF-8',
 		'admin' => false, 	// shows unapproved comments if true
+		'useImageField' => '',	// enable user image field
 		'useGravatar' => '', 	// enable gravatar? if so, specify maximum rating: [ g | pg | r | x ] or blank = disable gravatar
 		'useGravatarImageset' => 'mm',	// default gravatar imageset, specify: [ 404 | mm | identicon | monsterid | wavatar ]
 		'usePermalink' => false, // @todo
-		'useVotes' => 0, 
+		'useVotes' => 0,
 		'upvoteFormat' => '&uarr;{cnt}',
-		'downvoteFormat' => '&darr;{cnt}', 
-		'depth' => 0, 
-		); 
+		'downvoteFormat' => '&darr;{cnt}',
+		'depth' => 0,
+		);
 
 	/**
 	 * Construct the CommentList
 	 *
-	 * @param CommentArray $comments 
+	 * @param CommentArray $comments
 	 * @param array $options Options that may override those provided with the class (see CommentList::$options)
 	 *
 	 */
@@ -74,7 +75,7 @@ class CommentList extends Wire implements CommentListInterface {
 
 		$h3 = $this->_('h3'); // Headline tag
 		$this->options['headline'] = "<$h3>" . $this->_('Comments') . "</$h3>"; // Header text
-		
+
 		if(empty($options['commentHeader'])) {
 			if(empty($options['dateFormat'])) {
 				$this->options['dateFormat'] = 'relative';
@@ -85,23 +86,23 @@ class CommentList extends Wire implements CommentListInterface {
 				$this->options['dateFormat'] = $this->_('%b %e, %Y %l:%M %p'); // Date format in either PHP strftime() or PHP date() format // Example 1 (strftime): %b %e, %Y %l:%M %p = Feb 27, 2012 1:21 PM. Example 2 (date): m/d/y g:ia = 02/27/12 1:21pm.
 			}
 		}
-		
-		$this->comments = $comments; 
+
+		$this->comments = $comments;
 		$this->page = $comments->getPage();
 		$this->field = $comments->getField();
-		$this->options = array_merge($this->options, $options); 
+		$this->options = array_merge($this->options, $options);
 	}
 
 	/**
 	 * Get replies to the given comment ID, or 0 for root level comments
-	 * 
+	 *
 	 * @param int|Comment $commentID
 	 * @return array
-	 * 
+	 *
 	 */
 	public function getReplies($commentID) {
-		if(is_object($commentID)) $commentID = $commentID->id; 
-		$commentID = (int) $commentID; 
+		if(is_object($commentID)) $commentID = $commentID->id;
+		$commentID = (int) $commentID;
 		$admin = $this->options['admin'];
 		$replies = array();
 		foreach($this->comments as $c) {
@@ -109,7 +110,7 @@ class CommentList extends Wire implements CommentListInterface {
 			if(!$admin && $c->status != Comment::statusApproved) continue;
 			$replies[] = $c;
 		}
-		return $replies; 
+		return $replies;
 	}
 
 	/**
@@ -120,11 +121,11 @@ class CommentList extends Wire implements CommentListInterface {
 	 *
 	 */
 	public function render() {
-		$out = $this->renderList(0); 
-		if($out) $out = "\n" . $this->options['headline'] . $out; 
+		$out = $this->renderList(0);
+		if($out) $out = "\n" . $this->options['headline'] . $out;
 		return $out;
 	}
-	
+
 	protected function renderList($parent_id = 0, $depth = 0) {
 		$out = $parent_id ? '' : $this->renderCheckActions();
 		$comments = $this->options['depth'] > 0 ? $this->getReplies($parent_id) : $this->comments;
@@ -134,62 +135,70 @@ class CommentList extends Wire implements CommentListInterface {
 		$class = "CommentList";
 		if($this->options['depth'] > 0) $class .= " CommentListThread";
 			else $class .= " CommentListNormal";
-		if($this->options['useGravatar']) $class .= " CommentListHasGravatar";
+		if($this->options['useImageField'] || $this->options['useGravatar']) $class .= " CommentListHasGravatar";
 		if($parent_id) $class .= " CommentListReplies";
 		$out = "<ul class='$class'>$out\n</ul><!--/CommentList-->";
-		
-		return $out; 
+
+		return $out;
 	}
-	
+
 	/**
 	 * Render the comment
 	 *
 	 * This is the default rendering for development/testing/demonstration purposes
 	 *
 	 * It may be used for production, but only if it meets your needs already. Typically you'll want to render the comments
-	 * using your own code in your templates. 
+	 * using your own code in your templates.
 	 *
 	 * @see CommentArray::render()
-	 * @return string 
+	 * @return string
 	 *
 	 */
 	public function renderItem(Comment $comment, $depth = 0) {
 
-		$text = $comment->getFormatted('text'); 
-		$cite = $comment->getFormatted('cite'); 
+		$text = $comment->getFormatted('text');
+		$cite = $comment->getFormatted('cite');
 
-		$gravatar = '';
-		if($this->options['useGravatar']) {
-			$imgUrl = $comment->gravatar($this->options['useGravatar'], $this->options['useGravatarImageset']); 
-			if($imgUrl) $gravatar = "\n\t\t<img class='CommentGravatar' src='$imgUrl' alt='$cite' />";
+		$avatar = '';
+		if($this->options['useImageField']) {
+			$u = $this->users->get("email={$comment->email}");
+			$u->of(false); // set to false so that first() will always work when getting the image
+			$imgUrl = count($u->{$this->options['useImageField']}) ? $u->{$this->options['useImageField']}->first()->url : '';
+			$u->of(true);
+			if($imgUrl) $avatar = "\n\t\t<img class='CommentGravatar' src='$imgUrl' alt='$cite' />";
+		}
+
+		if($this->options['useGravatar'] && !$imgUrl) {
+			$imgUrl = $comment->gravatar($this->options['useGravatar'], $this->options['useGravatarImageset']);
+			if($imgUrl) $avatar = "\n\t\t<img class='CommentGravatar' src='$imgUrl' alt='$cite' />";
 		}
 
 		$website = '';
-		if($comment->website) $website = $comment->getFormatted('website'); 
+		if($comment->website) $website = $comment->getFormatted('website');
 		if($website) $cite = "<a href='$website' rel='nofollow' target='_blank'>$cite</a>";
-		$created = wireDate($this->options['dateFormat'], $comment->created); 
-		
+		$created = wireDate($this->options['dateFormat'], $comment->created);
+
 		if(empty($this->options['commentHeader'])) {
 			$header = "<span class='CommentCite'>$cite</span> <small class='CommentCreated'>$created</small> ";
-			if($this->options['useVotes']) $header .= $this->renderVotes($comment); 
+			if($this->options['useVotes']) $header .= $this->renderVotes($comment);
 		} else {
 			$header = str_replace(array('{cite}', '{created}'), array($cite, $created), $this->options['commentHeader']);
-			if(strpos($header, '{votes}') !== false) $header = str_replace('{votes}', $this->renderVotes($comment), $header); 
+			if(strpos($header, '{votes}') !== false) $header = str_replace('{votes}', $this->renderVotes($comment), $header);
 		}
-		
+
 		$liClass = '';
-		$replies = $this->options['depth'] > 0 ? $this->renderList($comment->id, $depth+1) : ''; 
+		$replies = $this->options['depth'] > 0 ? $this->renderList($comment->id, $depth+1) : '';
 		if($replies) $liClass .= ' CommentHasReplies';
-		if($comment->status == Comment::statusPending) $liClass .= ' CommentStatusPending'; 
+		if($comment->status == Comment::statusPending) $liClass .= ' CommentStatusPending';
 			else if($comment->status == Comment::statusSpam) $liClass .= ' CommentStatusSpam';
-		
-		$out = 
-			"\n\t<li id='Comment{$comment->id}' class='CommentListItem$liClass' data-comment='$comment->id'>" . $gravatar . 
-			"\n\t\t<p class='CommentHeader'>$header</p>" . 
-			"\n\t\t<div class='CommentText'>" . 
-			"\n\t\t\t<p>$text</p>" . 
+
+		$out =
+			"\n\t<li id='Comment{$comment->id}' class='CommentListItem$liClass' data-comment='$comment->id'>" . $avatar .
+			"\n\t\t<p class='CommentHeader'>$header</p>" .
+			"\n\t\t<div class='CommentText'>" .
+			"\n\t\t\t<p>$text</p>" .
 			"\n\t\t</div>";
-		
+
 		if($this->options['usePermalink']) {
 			$permalink = $comment->getPage()->httpUrl;
 			$urlSegmentStr = $this->wire('input')->urlSegmentStr;
@@ -202,28 +211,28 @@ class CommentList extends Wire implements CommentListInterface {
 
 		if($this->options['depth'] > 0 && $depth < $this->options['depth']) {
 			$out .=
-				"\n\t\t<div class='CommentFooter'>" . 
+				"\n\t\t<div class='CommentFooter'>" .
 				"\n\t\t\t<p class='CommentAction'>" .
 				"\n\t\t\t\t<a class='CommentActionReply' data-comment-id='$comment->id' href='#Comment{$comment->id}'>" . $this->_('Reply') . "</a> " .
-				($permalink ? "\n\t\t\t\t$permalink" : "") . 
-				"\n\t\t\t</p>" . 
+				($permalink ? "\n\t\t\t\t$permalink" : "") .
+				"\n\t\t\t</p>" .
 				"\n\t\t</div>";
-			
+
 			if($replies) $out .= $replies;
-			
+
 		} else {
 			$out .= "\n\t\t<div class='CommentFooter'></div>";
 		}
-	
+
 		$out .= "\n\t</li>";
-	
-		return $out; 	
+
+		return $out;
 	}
-	
+
 	public function renderVotes(Comment $comment) {
-		
+
 		if(!$this->options['useVotes']) return '';
-		
+
 		$upvoteFormat = str_replace('{cnt}', "<small class='CommentUpvoteCnt'>$comment->upvotes</small>", $this->options['upvoteFormat']);
 		$upvoteURL = "{$this->page->url}?comment_success=upvote&amp;comment_id=$comment->id&amp;field_id={$this->field->id}#Comment$comment->id";
 		$upvoteLabel = $this->_('Like this comment');
@@ -235,14 +244,14 @@ class CommentList extends Wire implements CommentListInterface {
 		// note that data-url attribute stores the href (rather than href) so that we can keep crawlers out of auto-following these links
 		$out = "<span class='CommentVotes'>";
 		$out .= "<a class='CommentActionUpvote' title='$upvoteLabel' data-url='$upvoteURL' href='#Comment$comment->id'>$upvoteFormat</a>";
-		
+
 		if($this->options['useVotes'] == FieldtypeComments::useVotesAll) {
 			$out .= "<a class='CommentActionDownvote' title='$downvoteLabel' data-url='$downvoteURL' href='#Comment$comment->id'>$downvoteFormat</a>";
 		}
-		
+
 		$out .= "</span> ";
-		
-		return $out; 
+
+		return $out;
 	}
 
 	/**
@@ -281,8 +290,8 @@ class CommentList extends Wire implements CommentListInterface {
 		require_once(dirname(__FILE__) . '/CommentNotifications.php');
 		$no = new CommentNotifications($this->page, $this->field);
 		$info = $no->checkActions();
-		if($info['valid']) { 
-			$url = $this->page->url . '?'; 
+		if($info['valid']) {
+			$url = $this->page->url . '?';
 			if($info['commentID']) $url .= "comment_id=$info[commentID]&";
 			$url .= "comment_success=" . ($info['success'] ? '2' : '3');
 			$this->wire('session')->set('CommentApprovalMessage', $info['message']);
