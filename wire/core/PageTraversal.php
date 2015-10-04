@@ -228,6 +228,19 @@ class PageTraversal {
 		return $next; 
 	}
 
+	/*
+	public function nextFast(Page $page, $selector = '') {
+		$sortfield = $page->sortfield;	
+		if(!$sortfield) $sortfield = 'sort';
+		$descending = strpos($sortfield, '-') === 0;
+		if($descending) $sortfield = ltrim($sortfield, '-');
+		$value = $this->wire('sanitizer')->selectorValue($page->getUnformatted($sortfield)); 
+		$operator = $descending ? "<=" : ">=";
+		$selector .= ", sortfield$operator$value, id!=$page->id";
+		// experimental/work in progress
+	}
+	*/
+
 	/**
 	 * Return the previous sibling page
 	 *

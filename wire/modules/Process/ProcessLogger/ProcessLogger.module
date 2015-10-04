@@ -142,7 +142,10 @@ class ProcessLogger extends Process {
 		$name = $this->wire('input')->urlSegment2;
 		if(!$name) $this->wire('session')->redirect('../');
 		$logs = $this->wire('log')->getLogs();
-		if(!isset($logs[$name])) throw new WireException("Unknown log");
+		if(!isset($logs[$name])) {
+			$this->error(sprintf('Unknown log: %s', $name));
+			$this->wire('session')->redirect('../');
+		}
 		$action = $this->wire('input')->post('action'); 
 		if($action) $this->processAction($action, $name);
 		$limit = 100;

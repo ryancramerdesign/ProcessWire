@@ -1032,6 +1032,99 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 		if(!$totalCleaned) $this->message("No problems found"); 
 			else $this->message("Found and fixed a total of $totalCleaned issues."); 
 	}
+	
+	/**
+	 * Return pages referencing the given $page, optionally indexed by field name
+	 * 
+	 * Not currently applicable, for future use. 
+	 *
+	 * The default behavior when no arguments are provided (except $page) is to simply return a PageArray of all pages
+	 * referencing the given one (excluding hidden, unpublished, trash, no-access, etc.). Specify "include=all"
+	 * as your $selector if you want to include all pages without filtering. If the quantity may be large,
+	 * you should also include a "limit=100" (replacing 100 with your limit). This method supports pagination
+	 * when specifying a limit.
+	 *
+	 * @param Page $page Page to get references for
+	 * @param string|bool $selector Optionally filter/modify returned result, i.e. "limit=10, include=all", etc.
+	 * 	Or specify boolean TRUE to get a count. 
+	 * @param bool|Field|null $field Optionally specify Field to limit results to (default includes all fields of this type),
+	 * 	Or boolean TRUE to return array indexed by field name.
+	 * @return PageArray|array Returns one of the following, according to the provided arguments:
+	 * 	- returns PageArray as default behavior, including when given a $selector string and/or Field object.
+	 * 	- returns array of PageArray objects if $field argument is TRUE ($selector may be populated string or blank string).
+	 *
+	 */
+	private function findReferences(Page $page, $selector = '', $field = false) {
+
+		// modifier option defaults
+		$getCount = false;
+		$byField = false;
+		$fieldName = '';
+
+		// determine which modifier options are used
+		if($selector === true) {
+			$getCount = true;
+			$selector = '';
+		}
+
+		if(is_bool($field) || is_null($field)) {
+			$byField = $field ? true : false;
+		} else if(is_string($field)) {
+			$fieldName = $this->wire('sanitizer')->fieldName($field);
+		} else if(is_int($field)) {
+			$field = $this->wire('fields')->get($field);
+			if($field) $fieldName = $field->name;
+		} else if($field instanceof Field) {
+			$fieldName = $field->name;
+		}
+
+		// results
+		$fieldNames = array();
+		$fieldCounts = array();
+		$total = 0;
+
+		foreach($this->wire('fields') as $field) {
+			if($fieldName && $field->name != $fieldName) continue;
+			if(!$field->type instanceof FieldtypePage) continue;
+			$table = $field->getTable();
+			$sql = "SELECT COUNT(*) FROM `$table` WHERE data=:id";
+			$query = $this->wire('database')->prepare($sql);
+			$query->bindValue(':id', $page->id, PDO::PARAM_INT);
+			$query->execute();
+			$cnt = (int) $query->fetchColumn();
+			if($cnt) {
+				$fieldNames[$field->id] = $field->name;
+				$fieldCounts[$field->name] = $cnt;
+				$total += $cnt;
+			}
+			$query->closeCursor();
+		}
+
+		// return count or array of counts
+		if($getCount) return $byField ? $fieldCounts : $total;
+
+		// no references found and PageArray requested, return blank PageArray
+		if(!$total) return new PageArray();
+
+		if($byField) {
+			// return array of PageArrays indexed by fieldName
+			$result = array();
+			foreach($fieldNames as $fieldName) {
+				$selector = "$fieldName=$page->id, $selector";
+				$items = $this->wire('pages')->find(rtrim($selector, ", "));
+				if($items->count()) {
+					$result[$fieldName] = $items;
+				}
+			}
+
+		} else {
+			// return PageArray of all references
+			$selector = implode('|', $fieldNames) . "=$page->id, $selector";
+			$result = $this->wire('pages')->find(rtrim($selector, ", "));
+		}
+
+		return $result;
+	}
 
 	/**
 	 * Module configuration screen
