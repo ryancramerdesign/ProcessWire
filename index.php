@@ -1,6 +1,4 @@
 <?php namespace ProcessWire;
-ini_set('display_errors', 1);
-error_reporting(E_ALL | E_STRICT);
 
 /**
  * ProcessWire Bootstrap
@@ -195,22 +193,16 @@ function ProcessWireBootConfig() {
 }
 
 /**
- * Shutdown function for cleanup of externally bootstrapped requests
- *
- */
-function ProcessWireExternalShutdown() {
-	if(error_get_last()) return;
-	$process = wire('process'); 
-	if($process == 'ProcessPageView') $process->finished();
-}
-
-/**
  * Determine if the request is one we should handle (internal) or one that another
  * script coming after this (external) will handle. 
  *
  */
 $internal = isset($_SERVER['HTTP_HOST']) && realpath(__FILE__) == realpath($_SERVER['SCRIPT_FILENAME']);
-if(!$internal) register_shutdown_function('ProcessWireExternalShutdown'); 
+if(!$internal) register_shutdown_function(function() {
+	if(error_get_last()) return;
+	$process = wire('process');
+	if($process == 'ProcessPageView') $process->finished();
+});
 
 /*
  * If you include ProcessWire's index.php from another script, or from a

@@ -13,13 +13,7 @@
  *
  */
 
-if(__NAMESPACE__) {
-	register_shutdown_function(__NAMESPACE__ . "\\ProcessWireShutdown");
-} else {
-	register_shutdown_function("ProcessWireShutdown");
-}
-
-function ProcessWireShutdown() {
+register_shutdown_function(function() {
 
 	$types = array(
 		E_ERROR => 'Error',
@@ -139,5 +133,5 @@ function ProcessWireShutdown() {
 	}
 
 	return true;
-}
+});
 

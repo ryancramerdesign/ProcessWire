@@ -11,17 +11,11 @@
  *
  */
 
-if(__NAMESPACE__) {
-	spl_autoload_register(__NAMESPACE__ . "\\ProcessWireClassLoader");
-} else {
-	spl_autoload_register("ProcessWireClassLoader");
-}
-
 /**
  * Handles dynamic loading of classes as registered with spl_autoload_register
  *
  */
-function ProcessWireClassLoader($className) {
+spl_autoload_register(function($className) {
 
 	static $modules = null;
 	
@@ -38,4 +32,4 @@ function ProcessWireClassLoader($className) {
 		if(is_null($modules)) $modules = wire('modules');
 		if($modules) $modules->includeModule($className);
 	}
-}
+});
