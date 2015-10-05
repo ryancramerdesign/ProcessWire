@@ -58,20 +58,20 @@ class TextformatterMarkdownExtra extends Textformatter implements ConfigurableMo
 		if($flavor & self::flavorParsedown) {
 			// regular parsedown
 			require_once(dirname(__FILE__) . "/parsedown/Parsedown.php");
-			$parsedown = new Parsedown();
+			$parsedown = new \Parsedown();
 			$str = $parsedown->text($str);
 			
 		} else if($flavor & self::flavorParsedownExtra) {
 			// parsedown extra 
 			require_once(dirname(__FILE__) . "/parsedown/Parsedown.php");
 			require_once(dirname(__FILE__) . "/parsedown-extra/ParsedownExtra.php");
-			$extra = new ParsedownExtra();
+			$extra = new \ParsedownExtra();
 			$str = $extra->text($str);
 			
 		} else {
 			// markdown extra (default)
 			require_once(dirname(__FILE__) . "/markdown.php");
-			$str = Markdown($str);
+			$str = \Markdown($str);
 		}
 		
 		if($flavor & self::flavorRCD) $this->markdownExtensions($str);

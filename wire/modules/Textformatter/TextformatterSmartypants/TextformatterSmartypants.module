@@ -26,6 +26,6 @@ class TextformatterSmartypants extends Textformatter {
 
 	public function format(&$str) {
 		require_once(dirname(__FILE__) . "/smartypants.php"); 
-		$str = SmartyPants($str); 
+		$str = \SmartyPants($str); 
 	}
 }
