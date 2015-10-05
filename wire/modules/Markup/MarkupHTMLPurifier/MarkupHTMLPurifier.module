@@ -55,7 +55,7 @@ class MarkupHTMLPurifier extends WireData implements Module {
 	 */
 	public function __construct() {
 		require_once(dirname(__FILE__) . '/htmlpurifier/HTMLPurifier.standalone.php'); 
-		$this->settings = HTMLPurifier_Config::createDefault();
+		$this->settings = \HTMLPurifier_Config::createDefault();
 		$this->settings->autoFinalize = false;
 	}
 
@@ -101,7 +101,7 @@ class MarkupHTMLPurifier extends WireData implements Module {
 	 *
 	 */
 	public function getPurifier() {
-		if(is_null($this->purifier)) $this->purifier = new HTMLPurifier($this->settings); 	
+		if(is_null($this->purifier)) $this->purifier = new \HTMLPurifier($this->settings); 	
 		return $this->purifier; 
 	}
 

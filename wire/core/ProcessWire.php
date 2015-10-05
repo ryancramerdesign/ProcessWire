@@ -16,7 +16,6 @@
  */
 
 define("PROCESSWIRE_CORE_PATH", dirname(__FILE__) . '/');
-define("PROCESSWIRE_NAMESPACE", "ProcessWire");
 
 require(PROCESSWIRE_CORE_PATH . "autoload.php"); 
 require(PROCESSWIRE_CORE_PATH . "Interfaces.php"); 

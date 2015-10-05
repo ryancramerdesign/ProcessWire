@@ -375,7 +375,7 @@ function wireUnzipFile($file, $dst) {
 
 	$dst = rtrim($dst, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
 	
-	if(!class_exists('ZipArchive')) throw new WireException("PHP's ZipArchive class does not exist"); 
+	if(!class_exists('\ZipArchive')) throw new WireException("PHP's ZipArchive class does not exist"); 
 	if(!is_file($file)) throw new WireException("ZIP file does not exist"); 
 	if(!is_dir($dst)) wireMkdir($dst, true);	
 	
@@ -440,13 +440,13 @@ function wireZipFile($zipfile, $files, array $options = array()) {
 		'errors' => array(), 
 		);
 	
-	if(!empty($options['zip']) && !empty($options['dir']) && $options['zip'] instanceof ZipArchive) {
+	if(!empty($options['zip']) && !empty($options['dir']) && $options['zip'] instanceof \ZipArchive) {
 		// internal recursive call
 		$recursive = true;
 		$zip = $options['zip']; // ZipArchive instance
 		
 	} else if(is_string($zipfile)) {
-		if(!class_exists('ZipArchive')) throw new WireException("PHP's ZipArchive class does not exist");
+		if(!class_exists('\ZipArchive')) throw new WireException("PHP's ZipArchive class does not exist");
 		$options = array_merge($defaults, $options); 
 		$zippath = dirname($zipfile);
 		if(!is_dir($zippath)) throw new WireException("Path for ZIP file ($zippath) does not exist"); 
@@ -457,7 +457,7 @@ function wireZipFile($zipfile, $files, array $options = array()) {
 		if(!is_array($options['exclude'])) $options['exclude'] = array($options['exclude']);
 		$recursive = false;
 		$zip = new \ZipArchive();
-		if($zip->open($zipfile, ZipArchive::CREATE) !== true) throw new WireException("Unable to create ZIP: $zipfile"); 
+		if($zip->open($zipfile, \ZipArchive::CREATE) !== true) throw new WireException("Unable to create ZIP: $zipfile"); 
 		
 	} else {
 		throw new WireException("Invalid zipfile argument"); 
@@ -801,7 +801,7 @@ function wireMail($to = '', $from = '', $subject = '', $body = '', $options = ar
 
 	// attempt to locate an installed module that overrides WireMail
 	foreach($modules as $module) {
-		$parents = class_parents("$module"); 
+		$parents = wireClassParents("$module"); 
 		if(in_array('WireMail', $parents) && $modules->isInstalled("$module")) { 
 			$mail = wire('modules')->get("$module"); 
 			break;
@@ -1293,31 +1293,61 @@ function wireBytesStr($size) {
 	return number_format($kb) . " " . __('kB', __FILE__); // kilobytes
 }
 
+/**
+ * Normalize a class name with or without namespace
+ * 
+ * Can also be used in an equivalent way to PHP's get_class() function. 
+ * 
+ * @param string|object $className
+ * @param bool $withNamespace Should return value include namespace? (default=false)
+ * @return string
+ * 
+ */
 function wireClassName($className, $withNamespace = false) {
 	if(is_object($className)) $className = get_class($className);
+	$pos = strrpos($className, "\\");
 	if($withNamespace) {
-		if(defined("PROCESSWIRE_NAMESPACE") && strpos($className, "\\") === false) {
-			$className = PROCESSWIRE_NAMESPACE . "\\$className";
-		}
+		if($pos === false && __NAMESPACE__) $className = __NAMESPACE__ . "\\$className";
 	} else {
-		$pos = strrpos($className, "\\");
-		if($pos !== false) {
-			$className = substr($className, $pos+1);
-		}
+		if($pos !== false) $className = substr($className, $pos+1);
 	}
 	return $className;
 }
 
+/**
+ * ProcessWire namespace aware version of PHP's class_exists() function
+ * 
+ * @param string $className
+ * @param bool $autoload
+ * @return bool
+ * 
+ */
 function wireClassExists($className, $autoload = true) {
 	if(!is_object($className)) $className = wireClassName($className, true);
 	return class_exists($className, $autoload);
 }
 
+/**
+ * ProcessWire namespace aware version of PHP's method_exists() function
+ *
+ * @param string $className
+ * @param string $method
+ * @return bool
+ *
+ */
 function wireMethodExists($className, $method) {
 	if(!is_object($className)) $className = wireClassName($className, true);
 	return method_exists($className, $method);
 }
 
+/**
+ * ProcessWire namespace aware version of PHP's class_implements() function
+ *
+ * @param string|object $className
+ * @param bool $autoload
+ * @return array
+ *
+ */
 function wireClassImplements($className, $autoload = true) {
 	if(!is_object($className)) $className = wireClassName($className, true);
 	$implements = class_implements($className, $autoload);
@@ -1329,6 +1359,34 @@ function wireClassImplements($className, $autoload = true) {
 	return $a; 
 }
 
+/**
+ * ProcessWire namespace aware version of PHP's class_parents() function
+ *
+ * @param string|object $className
+ * @param bool $autoload
+ * @return array
+ *
+ */
+function wireClassParents($className, $autoload = true) {
+	if(!is_object($className)) $className = wireClassName($className, true);
+	$parents = class_parents($className, $autoload);
+	$a = array();
+	foreach($parents as $k => $v) {
+		$v = wireClassName($k, false);
+		$a[$k] = $v; // values have no namespace
+	}
+	return $a; 
+}
+
+/**
+ * ProcessWire namespace aware version of PHP's is_callable() function
+ *
+ * @param string|callable $var
+ * @param bool $syntaxOnly
+ * @var string $callableName
+ * @return array
+ *
+ */
 function wireIsCallable($var, $syntaxOnly = false, &$callableName = '') {
 	if(is_string($var)) $var = wireClassName($var, true);
 	return is_callable($var, $syntaxOnly, $callableName);

@@ -62,6 +62,9 @@ class ModulePlaceholder extends WireData implements Module {
 	}
 
 	public function className($options = null) {
+		if($options === true || !empty($options['namespace'])) {
+			return wireClassName($this->class, true);	
+		}
 		return $this->class; 
 	}
 

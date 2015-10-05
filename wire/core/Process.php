@@ -97,6 +97,9 @@ abstract class Process extends WireData implements Module {
 	 * 
 	 */
 	private $_viewVars = array();
+	
+	public function __construct() {
+	}
 
 	/**
 	 * Per the Module interface, Initialize the Process, loading any related CSS or JS files

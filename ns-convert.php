@@ -17,7 +17,7 @@
  * 
  * MANUAL UPDATES
  * ==============
- * 1. is_callable($), call_user_func, class_exists($), new $className, method_exists(), function_exists(), class_implements()
+ * 1. is_callable($), call_user_func, class_exists($), new $className, method_exists(), function_exists(), class_implements(), class_parents()
  * 2. all get_class() calls will include the ProcessWire namespace in them, so must be updated. 
  * 3. Add define("PROCESSWIRE_NAMESPACE", "ProcessWire"); to top of core/ProcessWire.php
  */
@@ -125,6 +125,9 @@ function updateFile($file) {
 		$data = str_replace(' PDO::', ' \\PDO::', $data);
 		$data = str_replace('(PDO::', '(\\PDO::', $data);
 		echo "\tUpdated 'PDO::' => '\\PDO::'\n";
+	}
+	if(strpos($data, '(PDOStatement') || strpos($data, ' PDOStatement')) {
+		$data = str_replace(array('(PDOStatement', ' PDOStatement'), array('(\\PDOStatement', ' \\PDOStatement'), $data);
 	}
 
 	/*

@@ -168,46 +168,48 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 */
 	
 	/**
-	 * Cached name of this class from the className(false) method
-	 *
-	 */
-	private $className = '';
-	
-	/**
-	 * Cached results from class name calls with options
-	 *
-	 */
-	private $classNameOptions = array();
-
-	/**
 	 * Return this object's class name
 	 *
-	 * Note that it caches the class name in the $className object property to reduce overhead from calls to get_class().
-	 *
-	 * @param array|null $options Optionally an option: 
+	 * @param array|bool|null $options Optionally an option or boolean for 'namespace' option: 
 	 * 	- lowercase (bool): Specify true to make it return hyphenated lowercase version of class name
+	 * 	- namespace (bool): Specify false to omit namespace from returned class name. Default=true. 
+	 * 	Note: when lowercase=true option is specified, the namespace=false option is required.
 	 * @return string
 	 *
 	 */
 	public function className($options = null) {
 		
-		if(!$this->className) $this->className = get_class($this);
-		if($options === null || !is_array($options)) return $this->className; 
-		
+		if(is_bool($options)) {
+			$options = array('namespace' => $options);
+		} else if(is_array($options)) {
+			if(!empty($options['lowercase'])) $options['namespace'] = false;
+		} else {
+			$options = array();
+		}
+
+		if(isset($options['namespace']) && $options['namespace'] === true) {
+			$className = get_class($this);
+		} else {
+			$className = wireClassName($this, false);
+		}
+
 		if(!empty($options['lowercase'])) {
-			if(!empty($this->classNameOptions['lowercase'])) return $this->classNameOptions['lowercase']; 
-			$name = $this->className;
-			$part = substr($name, 1);
-			if(strtolower($part) != $part) {
-				// contains more than 1 uppercase character, convert to hyphenated lowercase
-				$name = substr($name, 0, 1) . preg_replace('/([A-Z])/', '-$1', $part);
+			static $cache = array();
+			if(isset($cache[$className])) {
+				$className = $cache[$className];
+			} else {
+				$_className = $className;
+				$part = substr($className, 1);
+				if(strtolower($part) != $part) {
+					// contains more than 1 uppercase character, convert to hyphenated lowercase
+					$className = substr($name, 0, 1) . preg_replace('/([A-Z])/', '-$1', $part);
+				}
+				$className = strtolower($className);
+				$cache[$_className] = $className;
 			}
-			$name = strtolower($name); 
-			$this->classNameOptions['lowercase'] = $name;
-			return $name; 
 		}
 		
-		return $this->className;
+		return $className;
 	}
 
 
@@ -504,10 +506,12 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 		if($type === 1) return $hooks;
 		
 		$needSort = false;
+		$namespace = __NAMESPACE__ ? __NAMESPACE__ . "\\" : "";
 		
 		// join in static hooks
 		foreach(self::$staticHooks as $className => $staticHooks) {
-			if(!$this instanceof $className && $method !== '*') continue;
+			$_className = $namespace . $className;
+			if(!$this instanceof $_className && $method !== '*') continue;
 			// join in any related static hooks to the local hooks
 			if($method && $method !== '*') {
 				// retrieve all static hooks for method
@@ -612,13 +616,13 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 		if(!empty($this->localHooks[$_method])) {
 			// first check local hooks attached to this instance
 			$hooked = true;
-		} else if(!empty(self::$staticHooks[get_class($this)][$_method])) {
+		} else if(!empty(self::$staticHooks[$this->className()][$_method])) {
 			// now check if hooked in this class
 			$hooked = true;
 		} else {
 			// check parent classes and interfaces
-			$classes = class_parents($this, false);
-			$interfaces = class_implements($this);
+			$classes = wireClassParents($this, false);
+			$interfaces = wireClassImplements($this);
 			if(is_array($interfaces)) $classes = array_merge($interfaces, $classes);
 			foreach($classes as $class) {
 				if(!empty(self::$staticHooks[$class][$_method])) {
@@ -1083,6 +1087,7 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 */
 	protected function _notice($text, $flags, $name, $class) {
 		if($flags === true) $flags = Notice::log;
+		$class = wireClassName($class, true);
 		$notice = new $class($text, $flags);
 		$notice->class = $this->className();
 		if(is_null($this->_notices[$name])) $this->_notices[$name] = new Notices();

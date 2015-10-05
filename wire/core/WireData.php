@@ -311,8 +311,8 @@ class WireData extends Wire implements \IteratorAggregate {
 			$a->prepend($this);
 		} else if($items instanceof WireData) {
 			// single item
-			$className = get_class($this) . 'Array';
-			if(!class_exists($className)) $className = 'WireArray';		
+			$className = $this->className(true) . 'Array';
+			if(!class_exists($className)) $className = wireClassName('WireArray', true);		
 			$a = new $className(); 
 			$a->add($this);
 			$a->add($items); 

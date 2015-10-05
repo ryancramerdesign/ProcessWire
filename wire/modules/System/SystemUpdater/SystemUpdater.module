@@ -161,6 +161,7 @@ class SystemUpdater extends WireData implements Module, ConfigurableModule {
 		
 		$className = 'SystemUpdate' . $version;
 		$filename = $this->config->paths->SystemUpdater . $className . '.php';
+		$className = wireClassName($className, true);
 		$errorMessage = sprintf('Failed to apply update %d', $version); 
 		
 		if(is_file($filename)) {

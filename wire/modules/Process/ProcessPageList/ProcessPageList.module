@@ -205,8 +205,9 @@ class ProcessPageList extends Process implements ConfigurableModule {
 		
 		require_once(dirname(__FILE__) . '/ProcessPageListRender.php');
 		$class = "ProcessPageListRender" . $this->render;
+		$className = wireClassName($class, true);
 		
-		if(!class_exists($class, false)) require_once(dirname(__FILE__) . "/$class.php");
+		if(!class_exists($className, false)) require_once(dirname(__FILE__) . "/$class.php");
 		
 		if(is_null($limit)) $limit = $this->limit;
 		
@@ -216,7 +217,7 @@ class ProcessPageList extends Process implements ConfigurableModule {
 			$children = new PageArray();
 		}
 
-		$renderer = new $class($this->page, $children);
+		$renderer = new $className($this->page, $children);
 		$renderer->setStart($this->start);
 		$renderer->setLimit($this->limit);
 		$renderer->setPageLabelField($this->getPageLabelField());

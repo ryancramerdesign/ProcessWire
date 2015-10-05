@@ -813,6 +813,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 			$nameFormat = $nameFormatTemplate;
 		}
 		$class = $template->pageClass ? $template->pageClass : 'Page';
+		$class = wireClassName($class, true);
 		$page = new $class(); 
 		$page->template = $template;	
 		$page->parent = $parent; 

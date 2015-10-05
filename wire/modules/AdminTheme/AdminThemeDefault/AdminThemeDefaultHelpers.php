@@ -23,7 +23,6 @@ class AdminThemeDefaultHelpers extends WireData {
 			$this->error('Error test debug', Notice::debug);
 			$this->error('Error test markup <a href="#">example</a>', Notice::allowMarkup);
 		}
-		parent::__construct();
 	}
 
 	/**

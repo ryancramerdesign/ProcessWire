@@ -655,6 +655,7 @@ class WireCache extends Wire {
 		$pageArrayClass = isset($data['pageArrayClass']) ? $data['pageArrayClass'] : 'PageArray';
 
 		if(!isset($data['PageArray']) || !is_array($data['PageArray'])) {
+			$pageArrayClass = wireClassName($pageArrayClass, true);
 			return new $pageArrayClass();
 		}
 

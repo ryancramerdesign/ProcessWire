@@ -282,7 +282,7 @@ class Selectors extends WireArray {
 			$debug = $this->wire('config')->debug ? "field='$field', value='$value', selector: '$this->selectorStr'" : "";
 			throw new WireException("Unknown Selector operator: '$operator' -- was your selector value properly escaped? $debug"); 
 		}
-		$class = self::$selectorTypes[$operator]; 
+		$class = wireClassName(self::$selectorTypes[$operator], true); 
 		$selector = new $class($field, $value); 
 		return $selector; 		
 	}

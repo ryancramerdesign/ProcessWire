@@ -49,7 +49,7 @@ class WireDebugInfo extends Wire {
 			if($hook['options']['type'] == 'property') {
 				$key .= "property ";
 			} else if($hook['options']['after']) {
-				if(method_exists($class, $hook['method']) || method_exists($class, '___' . $hook['method'])) {
+				if(wireMethodExists($class, $hook['method']) || wireMethodExists($class, '___' . $hook['method'])) {
 					$key .= "after ";
 				}
 			}

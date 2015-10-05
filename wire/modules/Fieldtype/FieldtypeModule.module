@@ -64,7 +64,7 @@ class FieldtypeModule extends Fieldtype {
 
 		foreach($this->modules as $module) {
 			$found = false; 
-			$parents = class_parents("$module"); 
+			$parents = wireClassParents("$module"); 
 			if($field->moduleTypes) foreach($field->moduleTypes as $moduleType) {
 				if(in_array($moduleType, $parents)) { 
 				//if(strpos("$module", $moduleType) === 0) {

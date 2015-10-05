@@ -142,9 +142,9 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 
 		$page = wire('page'); 
 
-		if($page->template == 'admin' && $page->process && in_array('WirePageEditor', class_implements($page->process))) { 
+		if($page->template == 'admin' && $page->process && in_array('WirePageEditor', wireClassImplements($page->process))) { 
 			// when in admin, add inputs for each language's page name
-			if(!in_array('ProcessPageType', class_parents($page->process))) {
+			if(!in_array('ProcessPageType', wireClassParents($page->process))) {
 				$page->addHookBefore('WirePageEditor::execute', $this, 'hookWirePageEditorExecute');
 				$this->addHookAfter('InputfieldPageName::render', $this, 'hookInputfieldPageNameRenderAfter');
 				$this->addHookAfter('InputfieldPageName::processInput', $this, 'hookInputfieldPageNameProcess');

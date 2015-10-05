@@ -11,7 +11,11 @@
  *
  */
 
-spl_autoload_register('ProcessWire\ProcessWireClassLoader');
+if(__NAMESPACE__) {
+	spl_autoload_register(__NAMESPACE__ . "\\ProcessWireClassLoader");
+} else {
+	spl_autoload_register("ProcessWireClassLoader");
+}
 
 /**
  * Handles dynamic loading of classes as registered with spl_autoload_register
@@ -20,12 +24,15 @@ spl_autoload_register('ProcessWire\ProcessWireClassLoader');
 function ProcessWireClassLoader($className) {
 
 	static $modules = null;
-	$className = str_replace('ProcessWire\\', '', $className);
+	
+	if(__NAMESPACE__) {
+		$className = str_replace(__NAMESPACE__ . "\\", "", $className);
+	}
 
 	$file = PROCESSWIRE_CORE_PATH . "$className.php";
 
 	if(is_file($file)) {
-		require($file);
+		require_once($file);
 
 	} else {
 		if(is_null($modules)) $modules = wire('modules');

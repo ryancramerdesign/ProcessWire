@@ -13,7 +13,11 @@
  *
  */
 
-register_shutdown_function('ProcessWire\ProcessWireShutdown');
+if(__NAMESPACE__) {
+	register_shutdown_function(__NAMESPACE__ . "\\ProcessWireShutdown");
+} else {
+	register_shutdown_function("ProcessWireShutdown");
+}
 
 function ProcessWireShutdown() {
 

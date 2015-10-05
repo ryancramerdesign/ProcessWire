@@ -314,7 +314,7 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 	
 		// show description for tabs
 		$description = $this->quietMode ? '' : $this->getSetting('description'); 
-		if($description && class_exists("InputfieldFieldsetTabOpen") && $this instanceof InputfieldFieldsetTabOpen) {
+		if($description && wireClassExists("InputfieldFieldsetTabOpen") && $this instanceof InputfieldFieldsetTabOpen) {
 			$out .= str_replace('{out}', nl2br($this->entityEncode($description, true)), $_markup['item_head']);
 		}
 		

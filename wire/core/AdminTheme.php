@@ -58,6 +58,10 @@ abstract class AdminTheme extends WireData implements Module {
 	 */
 	protected $bodyClasses = array();
 
+	public function __construct() {
+		// placeholder
+	}
+
 	/**
 	 * Initialize the admin theme systme and determine which admin theme should be used
 	 *

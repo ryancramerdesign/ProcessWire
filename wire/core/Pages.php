@@ -400,7 +400,7 @@ class Pages extends Wire {
 			throw new WireException('getById argument 2 must be Template or $options array'); 
 		}
 	
-		$pageArrayClass = $options['pageArrayClass'];
+		$pageArrayClass = wireClassName($options['pageArrayClass'], true);
 	
 		if(!is_null($parent_id) && !is_int($parent_id)) {
 			// convert Page object or string to integer id
@@ -548,18 +548,19 @@ class Pages extends Wire {
 			$class = $options['pageClass'];
 			if(empty($class)) {
 				if($template) {
-					$class = ($template->pageClass && class_exists($template->pageClass)) ? $template->pageClass : 'Page';
+					$class = ($template->pageClass && wireClassExists($template->pageClass)) ? $template->pageClass : 'Page';
 				} else {
 					$class = 'Page';
 				}
 			}
-			if($class != 'Page' && !class_exists($class)) {
+			if($class != 'Page' && !wireClassExists($class)) {
 				$this->error("Class '$class' for Pages::getById() does not exist", Notice::log);
 				$class = 'Page';
 			}
 
 			try {
-				while($page = $stmt->fetchObject($class, array($template))) {
+				$_class = wireClassName($class, true);
+				while($page = $stmt->fetchObject($_class, array($template))) {
 					$page->instanceID = ++$instanceID;
 					$page->setIsLoaded(true);
 					$page->setIsNew(false);
@@ -640,7 +641,7 @@ class Pages extends Wire {
 			if(!$template) throw new WireException("Unknown template"); 
 		}
 
-		$pageClass = $template->pageClass ? $template->pageClass : 'Page';	
+		$pageClass = wireClassName($template->pageClass ? $template->pageClass : 'Page', true);	
 		
 		$page = new $pageClass();	
 		$page->template = $template;
@@ -1999,7 +2000,7 @@ class Pages extends Wire {
 	 * @return bool
 	 * 
 	 */
-	public function executeQuery(PDOStatement $query, $throw = true, $maxTries = 3) {
+	public function executeQuery(\PDOStatement $query, $throw = true, $maxTries = 3) {
 		
 		$tryAgain = 0;
 		$_throw = $throw;
