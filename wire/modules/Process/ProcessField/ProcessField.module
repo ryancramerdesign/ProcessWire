@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Field Editing Process
@@ -525,7 +525,7 @@ class ProcessField extends Process implements ConfigurableModule {
 						$message = $checkLabel . sprintf($this->_('%d orphaned table rows found'), $cnt); 
 						$numRows = $cnt; 
 						$n = 0; 
-						while($row = $query->fetch(PDO::FETCH_ASSOC)) {
+						while($row = $query->fetch(\PDO::FETCH_ASSOC)) {
 							$message .= "\n<small>pages_id: $row[pages_id], data: " . $this->sanitizer->entities($row['data']) . "</small>";
 							if(++$n >= 100) break;
 						}
@@ -535,7 +535,7 @@ class ProcessField extends Process implements ConfigurableModule {
 					}
 					$this->error(nl2br($message), Notice::allowMarkup); 
 				}
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 			}
 		}
 		
@@ -1250,7 +1250,7 @@ class ProcessField extends Process implements ConfigurableModule {
 		try {
 			$this->form->processInput($this->input->post); 
 			$this->saveInputfields($this->form); 
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$this->error($e->getMessage()); 
 		}
 		
@@ -1267,7 +1267,7 @@ class ProcessField extends Process implements ConfigurableModule {
 				$this->field->save();
 				$this->session->message($this->_('Added Field') . " - {$this->field->name}"); 
 				$this->fieldAdded($this->field); 
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 				$this->error($e->getMessage()); 
 				if(!$this->field->id) $this->session->redirect("./"); 
 			}
@@ -1309,7 +1309,7 @@ class ProcessField extends Process implements ConfigurableModule {
 				if($this->field->type->className() != $select->value) {
 					$this->session->redirect("changeType?id={$this->field->id}&type={$select->value}"); 
 				}	
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 				$this->error($e->getMessage()); 
 			}
 			
@@ -1327,7 +1327,7 @@ class ProcessField extends Process implements ConfigurableModule {
 							$this->wire('session')->message($this->_('You are now editing the field you cloned.'));
 							$this->wire('session')->redirect("./edit?id=$clone->id#basics");
 						}
-					} catch(Exception $e) {
+					} catch(\Exception $e) {
 						$errors[] = $e->getMessage(); 
 					}
 					// $this->listAfterSave = true;
@@ -1417,7 +1417,7 @@ class ProcessField extends Process implements ConfigurableModule {
 			$this->saveInputfields($this->form); 
 			$this->fields->saveFieldgroupContext($this->field, $this->fieldgroup); 
 			$this->saveRemoveOverrides();
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$this->error($e->getMessage()); 
 		}
 		$this->session->redirect("edit?id={$this->field->id}&fieldgroup_id={$this->fieldgroup->id}"); 
@@ -1818,7 +1818,7 @@ class ProcessField extends Process implements ConfigurableModule {
 				try {
 					$template->fieldgroup->save();
 					$this->message(sprintf($this->_('Removed field "%1$s" from template "%2$s"'), $this->field->name, $template->name));
-				} catch(Exception $e) {
+				} catch(\Exception $e) {
 					$this->error(
 						sprintf($this->_('Error removing "%1$s" from template "%2$s"'), $this->field->name, $template->name) . " - " . 
 							$e->getMessage(), 

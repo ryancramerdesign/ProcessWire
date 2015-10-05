@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 #
 # Markdown Extra  -  A text-to-HTML conversion tool for web writers
 #

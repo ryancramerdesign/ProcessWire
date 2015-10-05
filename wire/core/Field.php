@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Field
@@ -778,7 +778,7 @@ class Field extends WireData implements Saveable, Exportable {
 					if($fieldgroupContext && !in_array($inputfield->name, $allowContext)) continue;
 					$inputfields->append($inputfield);
 				}
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 				$this->trackException($e, false, true); 
 			}
 

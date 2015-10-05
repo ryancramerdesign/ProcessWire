@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire CacheFile
@@ -205,7 +205,7 @@ class CacheFile {
 	 */
 	public function remove() {
 
-		$dir = new DirectoryIterator($this->path); 
+		$dir = new \DirectoryIterator($this->path); 
 		foreach($dir as $file) {
 			if($file->isDir() || $file->isDot()) continue; 
 			//if(strpos($file->getFilename(), self::cacheFileExtension)) @unlink($file->getPathname()); 
@@ -234,7 +234,7 @@ class CacheFile {
 	 */
 	static public function removeAll($path, $rmdir = false) {
 
-		$dir = new DirectoryIterator($path); 
+		$dir = new \DirectoryIterator($path); 
 		$numRemoved = 0;
 	
 		foreach($dir as $file) {

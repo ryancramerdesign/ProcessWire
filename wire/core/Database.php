@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire MySQLi Database
@@ -20,7 +20,7 @@
  * Database class provides a layer on top of mysqli
  *
  */
-class Database extends mysqli implements WireDatabase {
+class Database extends \mysqli implements WireDatabase {
 
 	/**
 	 * Log of all queries performed in this instance

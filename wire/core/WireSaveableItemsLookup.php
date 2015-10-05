@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire WireSaveableItemsLookup
@@ -71,7 +71,7 @@ abstract class WireSaveableItemsLookup extends WireSaveableItems {
 		$stmt->execute();
 		$lookupField = $this->getLookupField();
 
-		while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+		while($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
 
 			$item = $this->makeBlankItem();
 			$lookupValue = $row[$lookupField];
@@ -130,7 +130,7 @@ abstract class WireSaveableItemsLookup extends WireSaveableItems {
 
 		if($item_id) {
 			$query = $database->prepare("DELETE FROM $lookupTable WHERE {$table}_id=:item_id");
-			$query->bindValue(":item_id", $item_id, PDO::PARAM_INT);
+			$query->bindValue(":item_id", $item_id, \PDO::PARAM_INT);
 			$query->execute();
 		}
 			
@@ -165,7 +165,7 @@ abstract class WireSaveableItemsLookup extends WireSaveableItems {
 		$table = $database->escapeTable($this->getTable()); 
 		$item_id = (int) $item->id; 
 		$query = $database->prepare("DELETE FROM $lookupTable WHERE {$table}_id=:item_id"); // QA
-		$query->bindValue(":item_id", $item_id, PDO::PARAM_INT);
+		$query->bindValue(":item_id", $item_id, \PDO::PARAM_INT);
 		$query->execute();
 		return parent::___delete($item); 
 	}

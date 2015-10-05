@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Page Path History
@@ -99,12 +99,12 @@ class PagePathHistory extends WireData implements Module {
 	
 		$query = $database->prepare("INSERT INTO " . self::dbTableName . " SET path=:path, pages_id=:pages_id, created=NOW()");
 		$query->bindValue(":path", $path); 
-		$query->bindValue(":pages_id", $page->id, PDO::PARAM_INT);
+		$query->bindValue(":pages_id", $page->id, \PDO::PARAM_INT);
 
 		try {
 			$query->execute();
 
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			// catch the exception because it means there is already a past URL (duplicate)
 		}
 
@@ -197,7 +197,7 @@ class PagePathHistory extends WireData implements Module {
 		$page = $event->arguments[0];
 		$database = $this->wire('database');
 		$query = $database->prepare("DELETE FROM " . self::dbTableName . " WHERE pages_id=:pages_id"); 
-		$query->bindValue(":pages_id", $page->id, PDO::PARAM_INT);
+		$query->bindValue(":pages_id", $page->id, \PDO::PARAM_INT);
 		$query->execute();
 	}
 

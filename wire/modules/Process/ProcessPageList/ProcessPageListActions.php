@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 class ProcessPageListActions extends Wire {
 	
@@ -238,7 +238,7 @@ class ProcessPageListActions extends Wire {
 					try {
 						$this->wire('pages')->trash($page);
 						$message = $this->_('Trashed');
-					} catch(Exception $e) {
+					} catch(\Exception $e) {
 						$success = false;
 						$message = $e->getMessage();
 					}
@@ -251,7 +251,7 @@ class ProcessPageListActions extends Wire {
 						$this->wire('pages')->restore($page);
 						$message = sprintf($this->_('Restored to: %s (reload to see)'), $page->path);
 						$refreshChildren = $page->parent->id;
-					} catch(Exception $e) {
+					} catch(\Exception $e) {
 						$success = false;
 						$message = $e->getMessage();
 					}
@@ -265,7 +265,7 @@ class ProcessPageListActions extends Wire {
 			if($success) try {
 				if($needSave) $success = $page->save();
 				if(!$success) $message = sprintf($this->_('Error executing: %s', $message));
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 				$success = false;
 				$message = $e->getMessage();
 			}

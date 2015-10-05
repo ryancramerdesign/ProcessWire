@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 class LogEntriesArray extends PaginatedArray {
 	public function isValidItem($item) {

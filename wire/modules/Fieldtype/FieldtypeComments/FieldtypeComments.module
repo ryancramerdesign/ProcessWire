@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Comments Fieldtype
@@ -315,7 +315,7 @@ class FieldtypeComments extends FieldtypeMulti {
 				$database = $this->wire('database');
 				$table = $database->escapeTable($field->table); 
 				$query = $database->prepare("SELECT count(*) FROM `$table`  WHERE status=:status AND email=:email"); 
-				$query->bindValue(":status", Comment::statusApproved, PDO::PARAM_INT);
+				$query->bindValue(":status", Comment::statusApproved, \PDO::PARAM_INT);
 				$query->bindValue(":email", $comment->email); 
 				$query->execute();
 				$numApproved = (int) $query->fetchColumn();
@@ -349,7 +349,7 @@ class FieldtypeComments extends FieldtypeMulti {
 		// delete old spam
 		$expiredTime = time() - (86400 * $field->deleteSpamDays);
 		$query = $database->prepare("DELETE FROM `$table` WHERE status=:status AND created < :expiredTime");
-		$query->bindValue(":status", Comment::statusSpam, PDO::PARAM_INT);
+		$query->bindValue(":status", Comment::statusSpam, \PDO::PARAM_INT);
 		$query->bindValue(":expiredTime", $expiredTime); 
 		$query->execute();
 		
@@ -360,7 +360,7 @@ class FieldtypeComments extends FieldtypeMulti {
 		try {
 			// we use a try/catch here in case the votes table doesn't yet exist
 			$query->execute();
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$this->error($e->getMessage(), Notice::log); 
 		}
 	}
@@ -390,7 +390,7 @@ class FieldtypeComments extends FieldtypeMulti {
 			try { 
 				$database->query("ALTER TABLE `$table` ADD website $websiteSchema");
 				$schemaVersion = 1;
-			} catch(Exception $e) { }
+			} catch(\Exception $e) { }
 		}
 		
 		if($schemaVersion < 2) {
@@ -401,7 +401,7 @@ class FieldtypeComments extends FieldtypeMulti {
 				$database->query("ALTER TABLE `$table` ADD parent_id $parentSchema");
 				$database->query("ALTER TABLE `$table` ADD flags $flagSchema");
 				$schemaVersion = 2;
-			} catch(Exception $e) { }
+			} catch(\Exception $e) { }
 		}
 		
 		if($schemaVersion < 3) {
@@ -412,7 +412,7 @@ class FieldtypeComments extends FieldtypeMulti {
 				$database->query("ALTER TABLE `$table` ADD `code` $codeSchema");
 				$database->query("ALTER TABLE `$table` ADD $codeIndexSchema"); 
 				$schemaVersion = 3;
-			} catch(Exception $e) { }
+			} catch(\Exception $e) { }
 		}
 		
 		if($schemaVersion < 4) {
@@ -423,7 +423,7 @@ class FieldtypeComments extends FieldtypeMulti {
 				$database->query("ALTER TABLE `$table` ADD `subcode` $subcodeSchema");
 				$database->query("ALTER TABLE `$table` ADD $subcodeIndexSchema");
 				$schemaVersion = 4;
-			} catch(Exception $e) { }
+			} catch(\Exception $e) { }
 		}
 		
 		if($schemaVersion < 5) {
@@ -444,7 +444,7 @@ class FieldtypeComments extends FieldtypeMulti {
 					) " . $parentSchema['xtra']['append']; // engine and charset
 				$database->exec($sql);
 				$createdVotesTable = true;	
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 				$createdVotesTable = $e->getCode() == '42S01'; // 42S01=table already exists (which we consider success too)
 				if(!$createdVotesTable) $this->error($e->getMessage(), Notice::log);
 			}
@@ -456,7 +456,7 @@ class FieldtypeComments extends FieldtypeMulti {
 				$isDownvotes->execute();
 				if(!$isDownvotes->rowCount()) $database->query("ALTER TABLE `$table` ADD `downvotes` $downvoteSchema");
 				$schemaVersion = 5;
-			} catch(Exception $e) { 
+			} catch(\Exception $e) { 
 				$this->error($e->getMessage(), Notice::log); 
 			}
 		}
@@ -535,8 +535,8 @@ class FieldtypeComments extends FieldtypeMulti {
 				$this->deleteComment($page, $field, $item, 'deleted from savePageField()'); 
 				/*
 				$query = $database->prepare("DELETE FROM `$table` WHERE id=:item_id AND pages_id=:pages_id"); 
-				$query->bindValue(":item_id", $item->id, PDO::PARAM_INT);
-				$query->bindValue(":pages_id", $page->id, PDO::PARAM_INT);
+				$query->bindValue(":item_id", $item->id, \PDO::PARAM_INT);
+				$query->bindValue(":pages_id", $page->id, \PDO::PARAM_INT);
 				$query->execute();
 				*/
 			}
@@ -600,7 +600,7 @@ class FieldtypeComments extends FieldtypeMulti {
 						if(!$item->id && $item->code === $value['code']) $item->id = $value['id'];
 					}
 				}
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 				$result = false; 
 			}
 			if(!$result) $this->error("Error saving item $value[id] in savePageField", Notice::log);
@@ -984,7 +984,7 @@ class FieldtypeComments extends FieldtypeMulti {
 		$query->execute();
 		$commentPages = array();
 
-		while($row = $query->fetch(PDO::FETCH_ASSOC)) {
+		while($row = $query->fetch(\PDO::FETCH_ASSOC)) {
 			$comment = new Comment();
 			$comment->setField($field); 
 			foreach($row as $key => $value) {
@@ -1007,7 +1007,7 @@ class FieldtypeComments extends FieldtypeMulti {
 		$query->closeCursor();
 		$query = $database->prepare($sqlCount);
 		$query->execute();
-		list($total) = $query->fetch(PDO::FETCH_NUM);
+		list($total) = $query->fetch(\PDO::FETCH_NUM);
 		$comments->resetTrackChanges();
 		$comments->setTotal($total);
 
@@ -1033,11 +1033,11 @@ class FieldtypeComments extends FieldtypeMulti {
 		$col = strlen($code) > 100 ? 'code' : 'subcode';
 		$sql = "SELECT * FROM `$table` WHERE `$col`!='' AND `$col` IS NOT NULL AND `$col`=:code AND pages_id=:pageID";
 		$query = $this->wire('database')->prepare($sql);
-		$query->bindValue(':code', substr($code, 0, 128), PDO::PARAM_STR); 
-		$query->bindValue(':pageID', $page->id, PDO::PARAM_INT); 
+		$query->bindValue(':code', substr($code, 0, 128), \PDO::PARAM_STR); 
+		$query->bindValue(':pageID', $page->id, \PDO::PARAM_INT); 
 		if(!$query->execute()) return null; 
 		if(!$query->rowCount()) return null; 
-		$data = $query->fetch(PDO::FETCH_ASSOC); 
+		$data = $query->fetch(\PDO::FETCH_ASSOC); 
 		return $this->makeComment($page, $field, $data); 
 	}
 
@@ -1059,11 +1059,11 @@ class FieldtypeComments extends FieldtypeMulti {
 		$table = $field->getTable();
 		$sql = "SELECT * FROM `$table` WHERE id=:id AND pages_id=:pageID";
 		$query = $this->wire('database')->prepare($sql);
-		$query->bindValue(':id', (int) $id, PDO::PARAM_INT); 
-		$query->bindValue(':pageID', $page->id, PDO::PARAM_INT);
+		$query->bindValue(':id', (int) $id, \PDO::PARAM_INT); 
+		$query->bindValue(':pageID', $page->id, \PDO::PARAM_INT);
 		if(!$query->execute()) return null;
 		if(!$query->rowCount()) return null;
-		$data = $query->fetch(PDO::FETCH_ASSOC);
+		$data = $query->fetch(\PDO::FETCH_ASSOC);
 		return $this->makeComment($page, $field, $data); 
 	}
 
@@ -1122,8 +1122,8 @@ class FieldtypeComments extends FieldtypeMulti {
 		}
 		$sql = rtrim($sql, ', ') . " WHERE id=:commentID AND pages_id=:pageID";
 		$query = $this->wire('database')->prepare($sql); 
-		$query->bindValue(':commentID', $commentID, PDO::PARAM_INT);
-		$query->bindValue(':pageID', $page->id, PDO::PARAM_INT); 
+		$query->bindValue(':commentID', $commentID, \PDO::PARAM_INT);
+		$query->bindValue(':pageID', $page->id, \PDO::PARAM_INT); 
 		foreach($values as $property => $value) {
 			$query->bindValue(":$property", $value); 
 		}
@@ -1131,7 +1131,7 @@ class FieldtypeComments extends FieldtypeMulti {
 		try {
 			$result = $query->execute();
 			$this->wire('pages')->savedField($page, $field); 
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$result = false;
 			if($this->wire('config')->debug) $this->error($e->getMessage(), Notice::log); 
 				else $this->wire('log')->error($e->getMessage()); 
@@ -1162,8 +1162,8 @@ class FieldtypeComments extends FieldtypeMulti {
 		$table = $this->wire('database')->escapeTable($field->getTable());
 		$sql = "DELETE FROM `$table` WHERE id=:id AND pages_id=:pages_id";
 		$query = $this->wire('database')->prepare($sql); 
-		$query->bindValue(':id', $comment->id, PDO::PARAM_INT);
-		$query->bindValue(':pages_id', $page->id, PDO::PARAM_INT);
+		$query->bindValue(':id', $comment->id, \PDO::PARAM_INT);
+		$query->bindValue(':pages_id', $page->id, \PDO::PARAM_INT);
 		$comments = $page->get($field->name); 
 		
 		try {
@@ -1173,7 +1173,7 @@ class FieldtypeComments extends FieldtypeMulti {
 			$this->commentDeleted($page, $field, $comment, $notes); 
 			$this->wire('pages')->savedField($page, $field); 
 			
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$this->error($e->getMessage()); 
 			$result = false;
 		}
@@ -1275,10 +1275,10 @@ class FieldtypeComments extends FieldtypeMulti {
 		
 		$sql = "INSERT INTO `$table` SET comment_id=:comment_id, vote=:vote, ip=:ip, user_id=:user_id";
 		$query = $database->prepare($sql);
-		$query->bindValue(':comment_id', $comment->id, PDO::PARAM_INT); 
-		$query->bindValue(':vote', $up ? 1 : -1, PDO::PARAM_INT); 
-		$query->bindValue(':ip', $this->wire('session')->getIP(), PDO::PARAM_STR); 
-		$query->bindValue(':user_id', $this->wire('user')->id, PDO::PARAM_INT); 
+		$query->bindValue(':comment_id', $comment->id, \PDO::PARAM_INT); 
+		$query->bindValue(':vote', $up ? 1 : -1, \PDO::PARAM_INT); 
+		$query->bindValue(':ip', $this->wire('session')->getIP(), \PDO::PARAM_STR); 
+		$query->bindValue(':user_id', $this->wire('user')->id, \PDO::PARAM_INT); 
 		
 		$result = false;
 		
@@ -1292,7 +1292,7 @@ class FieldtypeComments extends FieldtypeMulti {
 					$result = $this->updateComment($page, $field, $comment, array('downvotes' => $comment->downvotes));
 				}
 			}
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			// duplicate or fail
 			$error = $e->getMessage();
 			if(stripos($error, 'duplicate entry')) {
@@ -1383,13 +1383,13 @@ class FieldtypeComments extends FieldtypeMulti {
 		$table = $database->escapeTable($field->table);
 		try {
 			$result = $database->exec("DROP TABLE `$table`"); // QA
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$result = false;
 			$this->error($e->getMessage());
 		}
 		if($result) try {
 			$database->exec("DROP TABLE `{$table}_votes`"); // QA
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			// ok to ignore, as table may not exist
 		}
 		return $result;

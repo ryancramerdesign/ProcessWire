@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * A WireArray of Inputfield instances, as used by InputfieldWrapper. 

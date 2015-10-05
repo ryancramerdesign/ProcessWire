@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire shutdown handler
@@ -13,7 +13,7 @@
  *
  */
 
-register_shutdown_function('ProcessWireShutdown');
+register_shutdown_function('ProcessWire\ProcessWireShutdown');
 
 function ProcessWireShutdown() {
 

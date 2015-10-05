@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire HookEvent
@@ -144,7 +144,7 @@ class HookEvent extends WireData {
 		if(isset(self::$argumentNames[$key])) return self::$argumentNames[$key];
 
 		$argumentNames = array();
-		$method = new ReflectionMethod($o, '___' . $m); 
+		$method = new \ReflectionMethod($o, '___' . $m); 
 		$arguments = $method->getParameters();
 
 		foreach($arguments as $a) {

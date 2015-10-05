@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Page Paths
@@ -63,7 +63,7 @@ class PagePaths extends WireData implements Module {
 		$page = $event->arguments[0];
 		$database = $this->wire('database');
 		$query = $database->prepare("DELETE FROM " . self::dbTableName . " WHERE pages_id=:pages_id"); 
-		$query->bindValue(":pages_id", $page->id, PDO::PARAM_INT);
+		$query->bindValue(":pages_id", $page->id, \PDO::PARAM_INT);
 		$query->execute();
 	}
 
@@ -79,7 +79,7 @@ class PagePaths extends WireData implements Module {
 		$id = (int) $id; 
 		$database = $this->wire('database');
 		$query = $database->prepare("SELECT path FROM `$table` WHERE pages_id=:pages_id"); 
-		$query->bindValue(":pages_id", $id, PDO::PARAM_INT);
+		$query->bindValue(":pages_id", $id, \PDO::PARAM_INT);
 		$query->execute();
 		if(!$query->rowCount()) return null;
 		$path = $query->fetchColumn();
@@ -172,7 +172,7 @@ class PagePaths extends WireData implements Module {
 				"ON DUPLICATE KEY UPDATE pages_id=VALUES(pages_id), path=VALUES(path)"; 
 	
 		$query = $database->prepare($sql);
-		$query->bindValue(":id", $id, PDO::PARAM_INT);	
+		$query->bindValue(":id", $id, \PDO::PARAM_INT);	
 		$query->bindValue(":path", $_path); 
 		$query->execute();
 
@@ -184,10 +184,10 @@ class PagePaths extends WireData implements Module {
 					"GROUP BY pages.id ";
 		
 			$query = $database->prepare($sql);
-			$query->bindValue(":id", $id, PDO::PARAM_INT);
+			$query->bindValue(":id", $id, \PDO::PARAM_INT);
 			$query->execute();	
 			
-			while($row = $query->fetch(PDO::FETCH_NUM)) {
+			while($row = $query->fetch(\PDO::FETCH_NUM)) {
 				list($id, $name, $numChildren) = $row;
 				$numUpdated += $this->updatePagePath($id, "$path/$name", $numChildren > 0, $level+1);
 			}

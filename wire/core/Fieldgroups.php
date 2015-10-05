@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Fieldgroups
@@ -205,9 +205,9 @@ class Fieldgroups extends WireSaveableItemsLookup {
 		if($item->id) { 
 			// save context data
 			$query = $database->prepare("SELECT fields_id, data FROM fieldgroups_fields WHERE fieldgroups_id=:item_id"); 
-			$query->bindValue(":item_id", (int) $item->id, PDO::PARAM_INT); 
+			$query->bindValue(":item_id", (int) $item->id, \PDO::PARAM_INT); 
 			$query->execute();
-			while($row = $query->fetch(PDO::FETCH_ASSOC)) {
+			while($row = $query->fetch(\PDO::FETCH_ASSOC)) {
 				$contextData[$row['fields_id']] = $row['data'];
 			}
 			$query->closeCursor();
@@ -221,9 +221,9 @@ class Fieldgroups extends WireSaveableItemsLookup {
 				$fieldgroups_id = (int) $item->id; 
 				$fields_id = (int) $fields_id; 
 				$query = $database->prepare("UPDATE fieldgroups_fields SET data=:data WHERE fieldgroups_id=:fieldgroups_id AND fields_id=:fields_id"); // QA
-				$query->bindValue(":data", $data, PDO::PARAM_STR); 
-				$query->bindValue(":fieldgroups_id", $fieldgroups_id, PDO::PARAM_INT);
-				$query->bindValue(":fields_id", $fields_id, PDO::PARAM_INT); 
+				$query->bindValue(":data", $data, \PDO::PARAM_STR); 
+				$query->bindValue(":fieldgroups_id", $fieldgroups_id, \PDO::PARAM_INT);
+				$query->bindValue(":fields_id", $fields_id, \PDO::PARAM_INT); 
 				$query->execute();
 			}
 		}
@@ -265,7 +265,7 @@ class Fieldgroups extends WireSaveableItemsLookup {
 	public function deleteField(Field $field) {
 		$database = $this->wire('database'); 
 		$query = $database->prepare("DELETE FROM fieldgroups_fields WHERE fields_id=:fields_id"); // QA
-		$query->bindValue(":fields_id", $field->id, PDO::PARAM_INT);
+		$query->bindValue(":fields_id", $field->id, \PDO::PARAM_INT);
 		$result = $query->execute();
 		return $result;
 	}

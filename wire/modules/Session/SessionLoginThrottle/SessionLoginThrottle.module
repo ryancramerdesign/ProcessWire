@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Session Login Throttle Module
@@ -86,7 +86,7 @@ class SessionLoginThrottle extends WireData implements Module, ConfigurableModul
 		$query->bindValue(":name", $name);
 		$query->execute();
 		$numRows = $query->rowCount();
-		if($numRows) list($attempts, $lastAttempt) = $query->fetch(PDO::FETCH_NUM);
+		if($numRows) list($attempts, $lastAttempt) = $query->fetch(\PDO::FETCH_NUM);
 		$allowed = false;
 
 		if($numRows) {
@@ -120,8 +120,8 @@ class SessionLoginThrottle extends WireData implements Module, ConfigurableModul
 			
 			$query = $database->prepare('INSERT INTO session_login_throttle (name, attempts, last_attempt) VALUES(:name, :attempts, :last_attempt)');
 			$query->bindValue(":name", $name);
-			$query->bindValue(":attempts", 1, PDO::PARAM_INT);
-			$query->bindValue(":last_attempt", $time, PDO::PARAM_INT);
+			$query->bindValue(":attempts", 1, \PDO::PARAM_INT);
+			$query->bindValue(":last_attempt", $time, \PDO::PARAM_INT);
 			$query->execute();
 		}
 
@@ -130,7 +130,7 @@ class SessionLoginThrottle extends WireData implements Module, ConfigurableModul
 		
 		$sql = "DELETE FROM session_login_throttle WHERE last_attempt < :expired ";
 		$query = $database->prepare($sql);
-		$query->bindValue(":expired", $expired, PDO::PARAM_INT);
+		$query->bindValue(":expired", $expired, \PDO::PARAM_INT);
 		$query->execute();
 			
 		return $allowed; 

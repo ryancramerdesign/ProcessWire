@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire WireArray
@@ -19,7 +19,7 @@
  *
  */
 
-class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countable {
+class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Countable {
 
 	/**
 	 * Basic type managed by the WireArray for data storage
@@ -1236,20 +1236,20 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	/**
 	 * Allows iteration of the WireArray. 
 	 *
-	 * Fulfills IteratorAggregate interface. 
+	 * Fulfills \IteratorAggregate interface. 
 	 * TODO return $this rather than ArrayObject ?
 	 * 
 	 * @return ArrayObject
 	 *
 	 */
 	public function getIterator() {
-		return new ArrayObject($this->data); 
+		return new \ArrayObject($this->data); 
 	}
 
 	/**
 	 * Returns the number of items in this WireArray.
 	 *
-	 * Fulfills Countable interface. 
+	 * Fulfills \Countable interface. 
 	 * 
 	 * @return int
 	 */
@@ -1260,7 +1260,7 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	/**
 	 * Sets an index in the WireArray.
 	 *
-	 * For the ArrayAccess interface. 
+	 * For the \ArrayAccess interface. 
 	 * 
 	 * @param int|string $key Key of item to set.
 	 * @param int|string|array|object $value Value of item. 
@@ -1282,7 +1282,7 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	/**
 	 * Unsets the value at the given index. 
 	 *
-	 * For the ArrayAccess interface.
+	 * For the \ArrayAccess interface.
 	 *
 	 * @param int|string $key Key of the item to unset. 
 	 * @return bool True if item existed and was unset. False if item didn't exist. 
@@ -1295,7 +1295,7 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	/**
 	 * Determines if the given index exists in this WireArray. 	
 	 *
-	 * For the ArrayAccess interface. 
+	 * For the \ArrayAccess interface. 
 	 * 
 	 * @param int|string $key Key of the item to check for existance.
 	 * @return bool True if the item exists, false if not.
@@ -1708,7 +1708,7 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	public function each($func = null) {
 		$result = null; // return value, if it's detected that one is desired
 		if(is_callable($func)) {
-			$funcInfo = new ReflectionFunction($func);
+			$funcInfo = new \ReflectionFunction($func);
 			$useIndex = $funcInfo->getNumberOfParameters() > 1;
 			foreach($this as $index => $item) {
 				$val = $useIndex ? $func($index, $item) : $func($item);

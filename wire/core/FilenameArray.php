@@ -1,6 +1,6 @@
-<?php
+<?php namespace ProcessWire;
 
-class FilenameArray implements IteratorAggregate, Countable {
+class FilenameArray implements \IteratorAggregate, \Countable {
 
 	protected $data = array();
 
@@ -32,7 +32,7 @@ class FilenameArray implements IteratorAggregate, Countable {
 	}
 
 	public function getIterator() {
-		return new ArrayObject($this->data); 
+		return new \ArrayObject($this->data); 
 	}
 
 	/**

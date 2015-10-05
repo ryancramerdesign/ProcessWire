@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * The Permissions class serves as the $permissions API variable. 

@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * Add caches table for WireCache 
@@ -25,7 +25,7 @@ class SystemUpdate6 extends SystemUpdate {
 		try {
 			$this->wire('database')->exec($sql); 
 			$this->message("Added caches table"); 	
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$this->error($e->getMessage()); 
 			return false; 
 		}

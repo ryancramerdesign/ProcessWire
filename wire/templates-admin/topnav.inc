@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 foreach($pages->get($wire->config->adminRootPageID)->children("check_access=0") as $p) {
 

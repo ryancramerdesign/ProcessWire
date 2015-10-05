@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire PDO Database
@@ -80,8 +80,8 @@ class WireDatabasePDO extends Wire implements WireDatabase {
 			if($port) $dsn .= ";port=$port";
 		}
 		$driver_options = array(
-			PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES '$charset'",
-			PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+			\PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES '$charset'",
+			\PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION
 			);
 		$database = new WireDatabasePDO($dsn, $username, $password, $driver_options); 
 		$database->setDebugMode($config->debug);
@@ -105,7 +105,7 @@ class WireDatabasePDO extends Wire implements WireDatabase {
 	 *
 	 */
 	public function pdo() {
-		if(!$this->pdo) $this->pdo = new PDO(
+		if(!$this->pdo) $this->pdo = new \PDO(
 			$this->pdoConfig['dsn'], 
 			$this->pdoConfig['user'], 
 			$this->pdoConfig['pass'], 

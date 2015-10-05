@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Session
@@ -38,7 +38,7 @@
  *
  */
 
-class Session extends Wire implements IteratorAggregate {
+class Session extends Wire implements \IteratorAggregate {
 
 	/**
 	 * Fingerprint bitmask: Use remote addr (recommended)
@@ -382,7 +382,7 @@ class Session extends Wire implements IteratorAggregate {
 	 *
 	 */
 	public function getIterator() {
-		return new ArrayObject($_SESSION[$this->className()]); 
+		return new \ArrayObject($_SESSION[$this->className()]); 
 	}
 
 	/**

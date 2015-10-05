@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire WireInputData and WireInput
@@ -60,7 +60,7 @@
  * 
  *
  */
-class WireInputData implements ArrayAccess, IteratorAggregate, Countable {
+class WireInputData implements \ArrayAccess, \IteratorAggregate, \Countable {
 
 	protected $stripSlashes = false;
 	protected $data = array();
@@ -105,7 +105,7 @@ class WireInputData implements ArrayAccess, IteratorAggregate, Countable {
 	}
 
 	public function getIterator() {
-		return new ArrayObject($this->data); 
+		return new \ArrayObject($this->data); 
 	}
 
 	public function offsetExists($key) {

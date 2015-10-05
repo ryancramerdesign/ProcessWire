@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * An individual notification item to be part of a NotificationArray for a Page

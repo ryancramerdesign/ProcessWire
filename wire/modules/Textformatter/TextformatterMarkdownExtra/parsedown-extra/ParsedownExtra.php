@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 #
 #
@@ -25,7 +25,7 @@ class ParsedownExtra extends Parsedown
     {
         if (parent::version < '1.5.0')
         {
-            throw new Exception('ParsedownExtra requires a later version of Parsedown');
+            throw new \Exception('ParsedownExtra requires a later version of Parsedown');
         }
 
         $this->BlockTypes[':'] []= 'DefinitionList';

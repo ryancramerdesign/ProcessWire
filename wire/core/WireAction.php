@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * WireAction
@@ -96,7 +96,7 @@ abstract class WireAction extends WireData implements Module {
 		try {
 			$result = $this->action($item); 
 
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$this->trackException($e, true);
 			$result = false; 
 			$this->error($e->getMessage()); 

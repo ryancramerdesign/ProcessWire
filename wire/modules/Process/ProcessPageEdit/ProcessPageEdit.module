@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Page Edit Process
@@ -307,7 +307,7 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 						$this->warning(sprintf($this->_('Changed page URL name to "%s" because requested name was already taken.'), $this->page->name)); 
 					}	
 
-				} catch(Exception $e) {
+				} catch(\Exception $e) {
 					$this->error($e->getMessage()); 
 				}
 			}
@@ -1322,7 +1322,7 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 					$this->page->template = $template; 
 					$this->page->save();
 					$this->message(sprintf($this->_("Changed template to '%s'"), $template)); // Message: template was changed 
-				} catch(Exception $e) {
+				} catch(\Exception $e) {
 					$this->error($e->getMessage()); 
 				}
 			}

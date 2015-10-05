@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * Multi-language support fields module
@@ -232,7 +232,7 @@ class LanguageSupportFields extends WireData implements Module {
 			// field in schema ends with the language ID
 			try {
 				$database->exec("ALTER TABLE `{$table}` ADD `$name` $value");
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 				$this->error($e->getMessage(), Notice::log); 
 			}
 		}
@@ -242,7 +242,7 @@ class LanguageSupportFields extends WireData implements Module {
 			// index in schema ends with the language ID
 			try {
 				$database->exec("ALTER TABLE `{$table}` ADD $value");
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 				$this->error($e->getMessage(), Notice::log); 
 			}
 		}
@@ -267,7 +267,7 @@ class LanguageSupportFields extends WireData implements Module {
 			if(!preg_match('/[^\d]+' . $language->id . '$/', $name)) continue; 
 			try { 
 				$database->exec("ALTER TABLE `{$table}` DROP COLUMN `$name`"); 
-			} catch(Exception $e) { 
+			} catch(\Exception $e) { 
 				// just catch, no need for fatal errors here
 			}
 		}

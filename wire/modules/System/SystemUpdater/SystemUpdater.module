@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * Class SystemUpdater
@@ -169,7 +169,7 @@ class SystemUpdater extends WireData implements Module, ConfigurableModule {
 				$update = new $className($this); 
 				$update->message('Initializing update'); 
 				$success = $update->execute();
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 				$msg = $errorMessage . " - " . $e->getMessage(); 
 				if($update) $update->error($msg); 
 					else $this->error($msg); 

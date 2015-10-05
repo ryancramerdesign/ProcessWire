@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * Session handler for storing sessions to database
@@ -263,7 +263,7 @@ class SessionHandlerDB extends WireSessionHandler implements Module, Configurabl
 		$query = $this->wire('database')->prepare($sql);
 		$query->bindValue(':ts', date('Y-m-d H:i:s', (time() - $seconds)));
 		$query->execute();
-		list($numSessions) = $query->fetch(PDO::FETCH_NUM); 
+		list($numSessions) = $query->fetch(\PDO::FETCH_NUM); 
 		return $numSessions; 
 	}
 
@@ -290,7 +290,7 @@ class SessionHandlerDB extends WireSessionHandler implements Module, Configurabl
 		$query->execute();
 	
 		$sessions = array();
-		while($row = $query->fetch(PDO::FETCH_ASSOC)) {
+		while($row = $query->fetch(\PDO::FETCH_ASSOC)) {
 			$sessions[] = $row; 
 		}
 		
@@ -313,7 +313,7 @@ class SessionHandlerDB extends WireSessionHandler implements Module, Configurabl
 		$query->bindValue(':id', $sessionID); 
 		$query->execute();
 		if(!$query->rowCount()) return array();
-		$row = $query->fetch(PDO::FETCH_ASSOC) ;
+		$row = $query->fetch(\PDO::FETCH_ASSOC) ;
 		$sess = $_SESSION; // save
 		session_decode($row['data']); 
 		$row['data'] = $_SESSION; 

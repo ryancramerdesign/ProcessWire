@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Selector Inputfield
@@ -642,7 +642,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 				}
 			}
 
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$out = $e->getMessage();
 		}
 		return $out; 
@@ -1570,7 +1570,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			$this->selectors = new Selectors(); 
 			if(!$this->parseVars) $this->selectors->setParseVars(false);
 			$this->selectors->setSelectorString($value); 
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$this->error($e->getMessage()); 
 		}
 		

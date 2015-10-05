@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Fieldtype Base
@@ -668,7 +668,7 @@ abstract class Fieldtype extends WireData implements Module {
 		try {
 			$stmt = $query->prepare();
 			$result = $this->wire('pages')->executeQuery($stmt);
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$result = false;
 			$this->trackException($e, false, true);
 		}
@@ -679,7 +679,7 @@ abstract class Fieldtype extends WireData implements Module {
 
 		$values = array();
 		
-		while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+		while($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
 			$value = array();
 			foreach($schema as $k => $unused) {
 				$key = $fieldName . '__' . $k;
@@ -824,7 +824,7 @@ abstract class Fieldtype extends WireData implements Module {
 			$table = $database->escapeTable($field->table); 
 			$query = $database->prepare("DROP TABLE `$table`"); // QA
 			$result = $query->execute();
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$result = false; 
 			$this->trackException($e, true, true);
 		}
@@ -859,7 +859,7 @@ abstract class Fieldtype extends WireData implements Module {
 		$table = $database->escapeTable($field->table);
 		$page_id = (int) $page->id; 
 		$query = $database->prepare("DELETE FROM `$table` WHERE pages_id=:page_id"); 
-		$query->bindValue(":page_id", $page_id, PDO::PARAM_INT);
+		$query->bindValue(":page_id", $page_id, \PDO::PARAM_INT);
 		$result = $query->execute();
 		return $result;
 
@@ -881,7 +881,7 @@ abstract class Fieldtype extends WireData implements Module {
 		if(!$field->id) throw new WireException("Unable to empty from '{$field->table}' for field that doesn't exist in fields table");
 		$table = $this->wire('database')->escapeTable($field->table);
 		$query = $this->wire('database')->prepare("DELETE FROM `$table` WHERE pages_id=:page_id");
-		$query->bindValue(":page_id", $page->id, PDO::PARAM_INT);
+		$query->bindValue(":page_id", $page->id, \PDO::PARAM_INT);
 		return $query->execute();
 	}
 

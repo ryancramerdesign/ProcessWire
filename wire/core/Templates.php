@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Templates
@@ -266,7 +266,7 @@ class Templates extends WireSaveableItems {
 	public function getNumPages(Template $tpl) {
 		$database = $this->wire('database');
 		$query = $database->prepare("SELECT COUNT(*) AS total FROM pages WHERE templates_id=:template_id"); // QA
-		$query->bindValue(":template_id", $tpl->id, PDO::PARAM_INT);
+		$query->bindValue(":template_id", $tpl->id, \PDO::PARAM_INT);
 		$query->execute();
 		return (int) $query->fetchColumn();	
 	}
@@ -386,7 +386,7 @@ class Templates extends WireSaveableItems {
 				$error = '';
 				try {
 					$template->setFieldgroup($fieldgroup);
-				} catch(Exception $e) {
+				} catch(\Exception $e) {
 					$this->trackException($e, false);
 					$error = $e->getMessage();
 				}
@@ -417,7 +417,7 @@ class Templates extends WireSaveableItems {
 					$template->set($key, $value);
 					if($key == 'roles') $template->getRoles(); // forces reload of roles (and resulting error messages)
 					$error = $template->errors("clear");
-				} catch(Exception $e) {
+				} catch(\Exception $e) {
 					$this->trackException($e, false);
 					$error = array($e->getMessage());
 				}

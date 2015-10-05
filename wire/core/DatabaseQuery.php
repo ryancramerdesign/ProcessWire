@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire DatabaseQuery
@@ -111,7 +111,7 @@ abstract class DatabaseQuery extends WireData {
 		try { 
 			$query = $this->prepare();
 			$query->execute();
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$msg = $e->getMessage();
 			if(stripos($msg, 'MySQL server has gone away') !== false) $database->closeConnection();
 			if($this->wire('config')->allowExceptions) throw $e; // throw original

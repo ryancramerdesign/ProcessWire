@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire PageFinder
@@ -288,7 +288,7 @@ class PageFinder extends Wire {
 				$stmt = $query->prepare();
 				$this->wire('pages')->executeQuery($stmt);
 				$error = '';
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 				$this->trackException($e, true);
 				$error = $e->getMessage();
 			}
@@ -299,7 +299,7 @@ class PageFinder extends Wire {
 			}
 		
 			if($options['loadPages']) { 	
-				while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+				while($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
 
 					// determine score for this row
 					$score = 0;
@@ -328,7 +328,7 @@ class PageFinder extends Wire {
 				$stmt = $query->execute();
 				$errorInfo = $stmt->errorInfo();
 				if($stmt->errorCode() > 0) throw new PageFinderException($errorInfo[2]);
-				list($this->total) = $stmt->fetch(PDO::FETCH_NUM); 
+				list($this->total) = $stmt->fetch(\PDO::FETCH_NUM); 
 				$stmt->closeCursor();
 			} else {
 				$this->total = (int) $database->query("SELECT FOUND_ROWS()")->fetchColumn();

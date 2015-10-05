@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire PagerNav support classes for MarkupPagerNav module
@@ -63,7 +63,7 @@ class PagerNavItem {
  * }
  *
  */
-class PagerNav implements IteratorAggregate {
+class PagerNav implements \IteratorAggregate {
 
 	protected $totalPages = 0;
 	protected $currentPage = 0;
@@ -246,7 +246,7 @@ class PagerNav implements IteratorAggregate {
 		return $this->pager; 	
 	}
 
-	public function getIterator() { return new ArrayObject($this->getPager()); }
+	public function getIterator() { return new \ArrayObject($this->getPager()); }
 	public function getFirstItem() { return $this->firstItem; }
 	public function getItemsPerPage() { return $this->itemsPerPage; }
 	public function getCurrentPage() { return $this->currentPage; }

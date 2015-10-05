@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Log
@@ -135,7 +135,7 @@ class WireLog extends Wire {
 	public function getLogs() {
 		
 		$logs = array();
-		$dir = new DirectoryIterator($this->wire('config')->paths->logs); 
+		$dir = new \DirectoryIterator($this->wire('config')->paths->logs); 
 		
 		foreach($dir as $file) {
 			if($file->isDot() || $file->isDir()) continue; 

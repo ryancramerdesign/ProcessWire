@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Inputfield for CKEditor
@@ -392,7 +392,7 @@ class InputfieldCKEditor extends InputfieldTextarea {
 				continue;
 			}
 			
-			foreach(new DirectoryIterator($path) as $dir) {
+			foreach(new \DirectoryIterator($path) as $dir) {
 				if(!$dir->isDir() || $dir->isDot()) continue;
 				$basename = $dir->getBasename();
 				$file = "$path$basename/plugin.js";

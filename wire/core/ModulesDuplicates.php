@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Modules Duplicates
@@ -247,10 +247,10 @@ class ModulesDuplicates extends Wire {
 		// update any modules that no longer have duplicates
 		$removals = array();
 		$query = $this->wire('database')->prepare("SELECT `class`, `flags` FROM modules WHERE `flags` & :flag");
-		$query->bindValue(':flag', Modules::flagsDuplicate, PDO::PARAM_INT);
+		$query->bindValue(':flag', Modules::flagsDuplicate, \PDO::PARAM_INT);
 		$query->execute();
 
-		while($row = $query->fetch(PDO::FETCH_NUM)) {
+		while($row = $query->fetch(\PDO::FETCH_NUM)) {
 			list($class, $flags) = $row;
 			if(empty($this->duplicates[$class])) {
 				$flags = $flags & ~Modules::flagsDuplicate;

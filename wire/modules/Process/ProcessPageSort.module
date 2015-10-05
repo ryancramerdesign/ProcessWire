@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Page Sort Process
@@ -123,21 +123,21 @@ class ProcessPageSort extends Process {
 		if($this->isMoved) $sql .= "AND id!=:move_id ";
 		$sql .= "ORDER BY sort LIMIT 1";
 		$query = $database->prepare($sql);
-		$query->bindValue(":parent_id", $parent->id, PDO::PARAM_INT);
-		if($this->isMoved) $query->bindValue(":move_id", $this->move_id, PDO::PARAM_INT);
+		$query->bindValue(":parent_id", $parent->id, \PDO::PARAM_INT);
+		if($this->isMoved) $query->bindValue(":move_id", $this->move_id, \PDO::PARAM_INT);
 		$query->execute();
 		$sortStart = (int) $query->fetchColumn();
 		
 		$query = $database->prepare("UPDATE pages SET sort=:sort1 WHERE id=:id AND parent_id=:parent_id AND sort!=:sort2");
-		$query->bindValue(":parent_id", $parent->id, PDO::PARAM_INT);
+		$query->bindValue(":parent_id", $parent->id, \PDO::PARAM_INT);
 		$id = 0;
 		$pageSort = 0;
 		
 		foreach($this->ids as $sort => $id) {
 			$sort += $sortStart;
-			$query->bindValue(":sort1", $sort, PDO::PARAM_INT);
-			$query->bindValue(":sort2", $sort, PDO::PARAM_INT);
-			$query->bindValue(":id", $id, PDO::PARAM_INT); 
+			$query->bindValue(":sort1", $sort, \PDO::PARAM_INT);
+			$query->bindValue(":sort2", $sort, \PDO::PARAM_INT);
+			$query->bindValue(":id", $id, \PDO::PARAM_INT); 
 			$query->execute();
 			if($query->rowCount() > 0) $changes++;
 			if($page->id == $id) $pageSort = $sort; 

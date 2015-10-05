@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire FieldtypeMulti
@@ -208,7 +208,7 @@ abstract class FieldtypeMulti extends Fieldtype {
 
 		// since we don't manage IDs of existing values for multi fields, we delete the existing data and insert all of it again
 		$query = $database->prepare("DELETE FROM `$table` WHERE pages_id=:page_id"); // QA
-		$query->bindValue(":page_id", $page_id, PDO::PARAM_INT); 
+		$query->bindValue(":page_id", $page_id, \PDO::PARAM_INT); 
 		$query->execute();
 		
 		if(count($values)) {
@@ -255,7 +255,7 @@ abstract class FieldtypeMulti extends Fieldtype {
 			$query = $database->prepare($sql);	
 			try {
 				$result = $query->execute();
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 				if($this->wire('config')->allowExceptions) throw $e; // throw original
 				$msg = $e->getMessage();
 				if($this->wire('config')->debug && $this->wire('config')->advanced) $msg .= "\n$sql";

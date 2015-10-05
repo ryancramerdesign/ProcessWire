@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Cache Fieldtype
@@ -110,7 +110,7 @@ class FieldtypeCache extends Fieldtype {
 			$query->execute();
 			$num = (int) $query->fetchColumn();
 			$query->closeCursor();
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$num = 0;
 		}
 		return $num; 

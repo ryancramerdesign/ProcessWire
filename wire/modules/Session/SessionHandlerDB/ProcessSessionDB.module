@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Session Viewer
@@ -87,7 +87,7 @@ class ProcessSessionDB extends Process {
 			$table->headerRow($header);
 
 			// for first iteration
-			$row = $query->fetch(PDO::FETCH_NUM);
+			$row = $query->fetch(\PDO::FETCH_NUM);
 			
 			while($row) {
 				
@@ -118,7 +118,7 @@ class ProcessSessionDB extends Process {
 				$table->row($tr);
 			
 				// for next iteration
-				$row = $query->fetch(PDO::FETCH_NUM);
+				$row = $query->fetch(\PDO::FETCH_NUM);
 			}
 			
 			$tableOut = $table->render();

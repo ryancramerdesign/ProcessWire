@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire WireSaveableItems
@@ -14,7 +14,7 @@
  *
  */
 
-abstract class WireSaveableItems extends Wire implements IteratorAggregate {
+abstract class WireSaveableItems extends Wire implements \IteratorAggregate {
 
 	/**
 	 * Return the WireArray that this DAO stores it's items in
@@ -149,7 +149,7 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 		$query = $database->prepare($sql);	
 		$query->execute();
 		
-		while($row = $query->fetch(PDO::FETCH_ASSOC)) {
+		while($row = $query->fetch(\PDO::FETCH_ASSOC)) {
 			$item = $this->makeBlankItem();
 			foreach($row as $field => $value) {
 				if($field == 'data') {
@@ -215,7 +215,7 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 		if($id) {
 			
 			$query = $database->prepare("UPDATE $sql WHERE id=:id");
-			$query->bindValue(":id", $id, PDO::PARAM_INT);
+			$query->bindValue(":id", $id, \PDO::PARAM_INT);
 			$result = $query->execute();
 			
 		} else {
@@ -262,7 +262,7 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 		$table = $database->escapeTable($this->getTable());
 		
 		$query = $database->prepare("DELETE FROM `$table` WHERE id=:id LIMIT 1"); 
-		$query->bindValue(":id", $id, PDO::PARAM_INT); 
+		$query->bindValue(":id", $id, \PDO::PARAM_INT); 
 		$result = $query->execute();
 		
 		if($result) {

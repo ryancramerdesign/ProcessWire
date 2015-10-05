@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * Add Lister and make children of admin /page/ hidden
@@ -48,7 +48,7 @@ class SystemUpdate5 extends SystemUpdate {
 					try {
 						$this->wire('pages')->___saveField($child, 'title', array('quiet' => true)); 
 						$this->message("Updated title for: $child->path"); 
-					} catch(Exception $e) {
+					} catch(\Exception $e) {
 						$this->error("Error updating title for: $child->path"); 
 					}
 				}	
@@ -61,7 +61,7 @@ class SystemUpdate5 extends SystemUpdate {
 				$this->wire('pages')->___save($child, array('quiet' => true)); 
 				$this->message("Updated status for: $child->path", Notice::debug); 
 
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 				$this->error("Error updating status for: $child->path - " . $e->getMessage()); 
 			}
 
@@ -82,7 +82,7 @@ class SystemUpdate5 extends SystemUpdate {
 				$this->wire('modules')->install('ProcessPageLister');
 				$this->message("Installed module: ProcessPageLister"); 
 			}
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$this->error($e->getMessage()); 
 		}
 	
@@ -99,7 +99,7 @@ class SystemUpdate5 extends SystemUpdate {
 					$item->process = 'ProcessPageLister';
 					$item->save();
 					$this->message("Converted $item->path to use PageLister"); 
-				} catch(Exception $e) {
+				} catch(\Exception $e) {
 					$this->error($e->getMessage()); 
 				}
 			}
@@ -118,7 +118,7 @@ class SystemUpdate5 extends SystemUpdate {
 			try {
 				$this->wire('pages')->save($lister); 
 				$this->message("Created page: $lister->path"); 
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 				$this->error("Error creating: /$page->path/$lister->name/ - " . $e->getMessage()); 
 			}
 		}

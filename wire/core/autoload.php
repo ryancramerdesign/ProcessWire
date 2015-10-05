@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire class autoloader
@@ -11,7 +11,7 @@
  *
  */
 
-spl_autoload_register('ProcessWireClassLoader');
+spl_autoload_register('ProcessWire\ProcessWireClassLoader');
 
 /**
  * Handles dynamic loading of classes as registered with spl_autoload_register
@@ -20,6 +20,7 @@ spl_autoload_register('ProcessWireClassLoader');
 function ProcessWireClassLoader($className) {
 
 	static $modules = null;
+	$className = str_replace('ProcessWire\\', '', $className);
 
 	$file = PROCESSWIRE_CORE_PATH . "$className.php";
 

@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire File Fieldtype
@@ -382,7 +382,7 @@ class FieldtypeFile extends FieldtypeMulti {
 				} else {
 					$addDates = true; 
 				}
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 				// intentionally blank
 			}
 
@@ -400,7 +400,7 @@ class FieldtypeFile extends FieldtypeMulti {
 				$query->execute();
 				$this->message("Added created/modified to DB schema for '{$field->name}'", Notice::log); 
 				
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 				
 				$query = $database->prepare("SHOW COLUMNS FROM `$table` WHERE Field='modified'"); 
 				$query->execute();
@@ -431,7 +431,7 @@ class FieldtypeFile extends FieldtypeMulti {
 				$query->execute();
 				$numRows = (int) $query->rowCount();
 				$query->closeCursor();
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 				// probably in a clone, we can ignore and skip over any further changes
 				$numRows = 1; 
 			}
@@ -442,7 +442,7 @@ class FieldtypeFile extends FieldtypeMulti {
 				$field->fileSchema = $field->fileSchema | self::fileSchemaTags; 
 				$field->save();
 				$this->message("Added tags to DB schema for '{$field->name}'", Notice::log); 
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 				$this->error("Error adding tags to '{$field->name}' schema", Notice::log); 
 			}
 
@@ -454,7 +454,7 @@ class FieldtypeFile extends FieldtypeMulti {
 				$field->fileSchema = $field->fileSchema & ~self::fileSchemaTags;
 				$field->save();
 				$this->message("Dropped tags from DB schema for '{$field->name}'", Notice::log); 
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 				$this->error("Error dropping tags from '{$field->name}' schema", Notice::log); 
 			}
 		}

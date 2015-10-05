@@ -1,4 +1,5 @@
-<ul id='notices' class='ui-widget'>
+<?php namespace ProcessWire;
+?><ul id='notices' class='ui-widget'>
 <?php
 
 foreach($notices as $notice) {

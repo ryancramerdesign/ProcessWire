@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Page Clone Process
@@ -375,7 +375,7 @@ class ProcessPageClone extends Process {
 		
 		try {
 			$clone = $this->wire('pages')->clone($page, $page->parent, $cloneTree, $cloneOptions);
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$error = $e->getMessage();	
 		}
 		

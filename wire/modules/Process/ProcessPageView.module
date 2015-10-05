@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Page View Process
@@ -241,7 +241,7 @@ class ProcessPageView extends Process {
 	 * Sends a copy of the exception that occurred.
 	 *	
  	 */
-	public function ___failed(Exception $e) { 
+	public function ___failed(\Exception $e) { 
 		$this->wire()->setStatus(ProcessWire::statusFailed);
 	}
 

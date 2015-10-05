@@ -1,4 +1,5 @@
-fa-adjust
+<?php namespace ProcessWire;
+?>fa-adjust
 fa-adn
 fa-align-center
 fa-align-justify

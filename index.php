@@ -1,4 +1,6 @@
-<?php
+<?php namespace ProcessWire;
+ini_set('display_errors', 1);
+error_reporting(E_ALL | E_STRICT);
 
 /**
  * ProcessWire Bootstrap
@@ -241,7 +243,7 @@ try {
 	echo $process->execute($internal);
 	$internal ? $process->finished() : extract($wire->wire('all')->getArray());
 
-} catch(Exception $e) {
+} catch(\Exception $e) {
 
 	/*
 	 * Formulate error message and send to the error handler

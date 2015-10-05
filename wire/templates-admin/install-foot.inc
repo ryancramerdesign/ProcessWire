@@ -1,4 +1,4 @@
-
+<?php namespace ProcessWire; ?>
 		</form>
 	</div><!--/container-->
 </div><!--/content-->

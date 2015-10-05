@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 #
 # SmartyPants Typographer  -  Smart typography for web sites
 #

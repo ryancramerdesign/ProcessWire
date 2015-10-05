@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire InputfieldWrapper
@@ -25,7 +25,7 @@
  *
  */
 
-class InputfieldWrapper extends Inputfield implements Countable, IteratorAggregate {
+class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggregate {
 
 	/**
 	 * Markup used during the render() method - customize with InputfieldWrapper::setMarkup($array)
@@ -810,7 +810,7 @@ class InputfieldWrapper extends Inputfield implements Countable, IteratorAggrega
 	}
 
 	/**
-	 * Per the Countable interface
+	 * Per the \Countable interface
 	 *
 	 */
 	public function count() {

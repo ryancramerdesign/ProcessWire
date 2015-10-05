@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Fields
@@ -198,7 +198,7 @@ class Fields extends WireSaveableItems {
 			if($field->type && count($field->type->getDatabaseSchema($field))) {
 				if($field->type->createField($field)) $this->message("Created table '$table'"); 
 			}
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$this->trackException($e, false, $e->getMessage() . " (checkFieldTable)"); 
 		}
 	}
@@ -365,8 +365,8 @@ class Fields extends WireSaveableItems {
 		
 		$database = $this->wire('database');
 		$query = $database->prepare("UPDATE fieldgroups_fields SET data=$data WHERE fields_id=:field_id AND fieldgroups_id=:fieldgroup_id"); // QA
-		$query->bindValue(':field_id', $field_id, PDO::PARAM_INT);
-		$query->bindValue(':fieldgroup_id', $fieldgroup_id, PDO::PARAM_INT); 
+		$query->bindValue(':field_id', $field_id, \PDO::PARAM_INT);
+		$query->bindValue(':fieldgroup_id', $fieldgroup_id, \PDO::PARAM_INT); 
 		$result = $query->execute();
 
 		return $result; 
@@ -415,11 +415,11 @@ class Fields extends WireSaveableItems {
 
 		$query = $database->prepare("DESCRIBE `$table1`"); // QA
 		$query->execute();
-		while($row = $query->fetch(PDO::FETCH_ASSOC)) $schema1[] = $row['Field'];
+		while($row = $query->fetch(\PDO::FETCH_ASSOC)) $schema1[] = $row['Field'];
 
 		$query = $database->prepare("DESCRIBE `$table2`"); // QA
 		$query->execute();
-		while($row = $query->fetch(PDO::FETCH_ASSOC)) $schema2[] = $row['Field'];
+		while($row = $query->fetch(\PDO::FETCH_ASSOC)) $schema2[] = $row['Field'];
 			
 		foreach($schema1 as $key => $value) {
 			if(!in_array($value, $schema2)) {
@@ -440,7 +440,7 @@ class Fields extends WireSaveableItems {
 				$errorInfo = $query->errorInfo();
 				$error = !empty($errorInfo[2]) ? $errorInfo[2] : 'Unknown Error'; 
 			}
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$exception = $e;
 			$result = false;
 			$error = $e->getMessage();
@@ -495,17 +495,17 @@ class Fields extends WireSaveableItems {
 
 		// first we need to determine if the $field->type module has its own
 		// deletePageField method separate from base: Fieldtype/FieldtypeMulti
-		$reflector = new ReflectionClass($field->type->className());
+		$reflector = new \ReflectionClass($field->type->className());
 		$hasDeletePageField = false;
 
 		foreach($reflector->getMethods() as $method) {
 			$methodName = $method->getName();
 			if($methodName != '___deletePageField') continue;
 			try {
-				new ReflectionMethod($reflector->getParentClass()->getName(), $methodName);
+				new \ReflectionMethod($reflector->getParentClass()->getName(), $methodName);
 				if(!in_array($method->getDeclaringClass()->getName(), array('Fieldtype', 'FieldtypeMulti'))) $hasDeletePageField = true;
 
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 				// not there
 			}
 			break;
@@ -529,7 +529,7 @@ class Fields extends WireSaveableItems {
 					$field->type->deletePageField($page, $field);
 					// $this->message("Deleted '{$field->name}' from '{$page->path}'", Notice::debug);
 
-				} catch(Exception $e) {
+				} catch(\Exception $e) {
 					$this->trackException($e, false, true);
 					$success = false;
 				}
@@ -546,10 +546,10 @@ class Fields extends WireSaveableItems {
 					"INNER JOIN pages ON pages.id=$table.pages_id " .
 					"WHERE pages.templates_id=:templates_id";
 			$query = $database->prepare($sql);
-			$query->bindValue(':templates_id', $template->id, PDO::PARAM_INT);
+			$query->bindValue(':templates_id', $template->id, \PDO::PARAM_INT);
 			try {
 				$query->execute();
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 				$this->error($e->getMessage(), Notice::log);
 				$this->trackException($e);
 				$success = false;
@@ -650,7 +650,7 @@ class Fields extends WireSaveableItems {
 						"WHERE pages.templates_id=:templateID ";
 			}
 			$query = $database->prepare($sql);
-			$query->bindValue(':templateID', $template->id, PDO::PARAM_INT);
+			$query->bindValue(':templateID', $template->id, \PDO::PARAM_INT);
 
 		} else if($options['page']) {
 			// count by specific page
@@ -672,7 +672,7 @@ class Fields extends WireSaveableItems {
 			}
 
 			$query = $database->prepare($sql);
-			$query->bindValue(':pageID', $pageID, PDO::PARAM_INT);
+			$query->bindValue(':pageID', $pageID, \PDO::PARAM_INT);
 
 		} else {
 			// overall total count
@@ -692,16 +692,16 @@ class Fields extends WireSaveableItems {
 		try {
 			$query->execute();
 			if($options['getPageIDs']) {
-				while($row = $query->fetch(PDO::FETCH_NUM)) {
+				while($row = $query->fetch(\PDO::FETCH_NUM)) {
 					$return[] = (int) $row['id'];
 				}
 			} else if($useRowCount) {
 				$return = (int) $query->rowCount();
 			} else {
-				list($return) = $query->fetch(PDO::FETCH_NUM);
+				list($return) = $query->fetch(\PDO::FETCH_NUM);
 				$return = (int) $return;
 			}
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$this->error($e->getMessage() . " (getNumRows)");
 			$this->trackException($e, false);
 		}

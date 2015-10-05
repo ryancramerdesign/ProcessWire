@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * Process Lister
@@ -1480,7 +1480,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		try {
 			$results = $selector ? $this->wire('pages')->find($selector) : new PageArray();
 			
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$this->error($e->getMessage());
 			$results = new PageArray();
 		}

@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * Multi-language support page names module
@@ -661,7 +661,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 			$database->exec("ALTER TABLE pages ADD UNIQUE {$name}_parent_id ($name, parent_id)"); 
 			$database->exec("ALTER TABLE pages ADD $status INT UNSIGNED NOT NULL DEFAULT " . Page::statusOn); 
 			
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$this->error($e->getMessage(), Notice::log); 
 		}
 	}
@@ -688,7 +688,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 			$database->exec("ALTER TABLE pages DROP INDEX {$name}_parent_id"); 
 			$database->exec("ALTER TABLE pages DROP $name"); 
 			$database->exec("ALTER TABLE pages DROP $status"); 
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$this->error($e->getMessage(), Notice::log); 
 		}
 	}

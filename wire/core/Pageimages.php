@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Pageimages
@@ -97,7 +97,7 @@ class Pageimages extends Pagefiles {
 			$variations[$name] = array();	
 		}
 		
-		foreach(new DirectoryIterator($this->path()) as $file) {
+		foreach(new \DirectoryIterator($this->path()) as $file) {
 			
 			if($file->isDir() || $file->isDot()) continue;
 

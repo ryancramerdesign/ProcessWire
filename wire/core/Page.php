@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Page
@@ -93,7 +93,7 @@
  *
  */
 
-class Page extends WireData implements Countable, WireMatchable {
+class Page extends WireData implements \Countable, WireMatchable {
 
 	/*
 	 * The following constant flags are specific to a Page's 'status' field. A page can have 1 or more flags using bitwise logic. 
@@ -1542,7 +1542,7 @@ class Page extends WireData implements Countable, WireMatchable {
 	}
 	
 	/**
-	 * Returns number of children page has, fulfilling Countable interface
+	 * Returns number of children page has, fulfilling \Countable interface
 	 *
 	 * When output formatting is on, returns only number of visible children.
 	 * When output formatting is off, returns number of all children.
@@ -1556,7 +1556,7 @@ class Page extends WireData implements Countable, WireMatchable {
 	}
 
 	/**
-	 * Allow iteration of the properties with foreach(), fulfilling IteratorAggregate interface.
+	 * Allow iteration of the properties with foreach(), fulfilling \IteratorAggregate interface.
 	 *
 	 */
 	public function getIterator() {
@@ -1566,7 +1566,7 @@ class Page extends WireData implements Countable, WireMatchable {
 				$a[$field->name] = $this->get($field->name); 
 			}
 		}
-		return new ArrayObject($a); 	
+		return new \ArrayObject($a); 	
 	}
 
 	/**

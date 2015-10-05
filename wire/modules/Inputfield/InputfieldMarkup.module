@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * Intended just for outputting markup as help or commentary among other Inputfields

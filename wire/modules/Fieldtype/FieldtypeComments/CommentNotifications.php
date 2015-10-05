@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 class CommentNotifications extends Wire {
 	
@@ -353,7 +353,7 @@ class CommentNotifications extends Wire {
 		$query->bindValue(':subcode', $subcode); 
 		$query->execute();
 		$email = '';
-		if($query->rowCount()) list($email) = $query->fetch(PDO::FETCH_NUM); 
+		if($query->rowCount()) list($email) = $query->fetch(\PDO::FETCH_NUM); 
 		if(!strlen($email)) return false;
 	
 		if($all) {
@@ -367,7 +367,7 @@ class CommentNotifications extends Wire {
 		$query->execute();
 		if(!$query->rowCount()) return false;
 		
-		while($row = $query->fetch(PDO::FETCH_NUM)) {
+		while($row = $query->fetch(\PDO::FETCH_NUM)) {
 			list($id, $flags) = $row; 
 			if($enable) {
 				// enable

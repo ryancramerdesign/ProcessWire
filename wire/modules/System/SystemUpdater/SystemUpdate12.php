@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * Add 'published', and 'published_users_id' properties to pages table, and populates them
@@ -17,7 +17,7 @@ class SystemUpdate12 extends SystemUpdate {
 			try {
 				$this->wire('database')->exec('ALTER TABLE pages ADD published datetime DEFAULT NULL AFTER `created_users_id`');
 				$this->message("Added 'published' column to pages table");
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 				$this->error($e->getMessage());
 				$result = false;
 			}
@@ -25,7 +25,7 @@ class SystemUpdate12 extends SystemUpdate {
 			if($result) try {
 				$this->wire('database')->exec('ALTER TABLE pages ADD published_users_id int(10) UNSIGNED NOT NULL DEFAULT 0 AFTER `published`');
 				$this->message("Added 'published_users_id' column to pages table");
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 				$this->error($e->getMessage());
 				$result = false;
 			}
@@ -38,7 +38,7 @@ class SystemUpdate12 extends SystemUpdate {
 				$numRows = $query->rowCount();
 				$this->message("Populated values to 'published' for $numRows pages");
 				$this->wire('database')->exec('ALTER TABLE pages ADD KEY published (published)');
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 				$this->error($e->getMessage());
 			}
 		}

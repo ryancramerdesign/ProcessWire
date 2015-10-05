@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 class SystemUpdate9 extends SystemUpdate {
 
@@ -16,7 +16,7 @@ class SystemUpdate9 extends SystemUpdate {
 			$this->message("Added: Pages > Recent ");
 			$this->updater->saveSystemVersion(9);
 			if($this->wire('languages')) $this->wire('languages')->unsetDefault();
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$this->error($e->getMessage()); 
 		}
 	}

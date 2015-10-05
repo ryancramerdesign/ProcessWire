@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 class ProcessTemplateExportImport extends Wire {
 	
@@ -232,7 +232,7 @@ class ProcessTemplateExportImport extends Wire {
 			try {
 				$changes = $template->setImportData($templateData);
 				$template->setImportData($savedTemplateData); // restore
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 				$this->error($e->getMessage());
 			}
 
@@ -401,7 +401,7 @@ class ProcessTemplateExportImport extends Wire {
 					$numChangedItems++;
 					$this->message($this->_('Modified:') . " $name"); 
 				}
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 				$this->error($e->getMessage());
 			}
 			

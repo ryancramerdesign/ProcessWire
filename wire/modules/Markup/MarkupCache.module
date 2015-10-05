@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Markup Cache module
@@ -150,7 +150,7 @@ class MarkupCache extends Wire implements Module, ConfigurableModule {
 		$path = self::path();
 		try { 
 			$num = CacheFile::removeAll($path, true); 
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$num = 0;
 		}
 		return $num; 

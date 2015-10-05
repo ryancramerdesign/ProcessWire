@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Language Translator 
@@ -131,7 +131,7 @@ class LanguageTranslator extends Wire {
 
 		} else {
 
-			$reflection = new ReflectionClass($o); 	
+			$reflection = new \ReflectionClass($o); 	
 			$filename = $reflection->getFileName(); 		
 			$textdomain = $this->filenameToTextdomain($filename); 
 			$this->classNamesToTextdomains[$class] = $textdomain;

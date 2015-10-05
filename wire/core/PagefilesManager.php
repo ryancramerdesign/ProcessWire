@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire PagefilesManager
@@ -83,7 +83,7 @@ class PagefilesManager extends Wire {
 	 */
 	public function getFiles() {
 		$files = array();
-		foreach(new DirectoryIterator($this->path()) as $file) {
+		foreach(new \DirectoryIterator($this->path()) as $file) {
 			if($file->isDot() || $file->isDir()) continue; 
 			// if($file->isFile()) $files[] = $file->getBasename(); // PHP 5.2.2
 			if($file->isFile()) $files[] = $file->getFilename();
@@ -138,7 +138,7 @@ class PagefilesManager extends Wire {
 		$fromPath = rtrim($fromPath, '/') . '/';
 		$toPath = rtrim($toPath, '/') . '/';
 	
-		foreach(new DirectoryIterator($fromPath) as $file) {
+		foreach(new \DirectoryIterator($fromPath) as $file) {
 			if($file->isDot()) continue; 
 			
 			if($file->isDir()) {
@@ -226,7 +226,7 @@ class PagefilesManager extends Wire {
 			if(!$rmdir) $this->_createPath($path); 
 		} else {
 			// only clear out files in path
-			foreach(new DirectoryIterator($path) as $file) {
+			foreach(new \DirectoryIterator($path) as $file) {
 				if($file->isDot() || $file->isDir()) continue; 
 				unlink($file->getPathname()); 
 			}

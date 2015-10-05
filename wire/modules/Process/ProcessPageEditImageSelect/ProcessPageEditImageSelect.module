@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Image Select + Edit Process
@@ -611,7 +611,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		$isCroppable = !$isCropped;
 		try {
 			$original = $this->getPageimage(false);
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			if($this->rte) {
 				// when RTE mode, go to image selection again when invalid image
 				$this->error($e->getMessage());

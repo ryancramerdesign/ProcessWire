@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire WireCache
@@ -170,7 +170,7 @@ class WireCache extends Wire {
 			$query->execute(); 
 			if($query->rowCount() == 0) {
 				$value = null; // cache does not exist
-			} else while($row = $query->fetch(PDO::FETCH_NUM)) {
+			} else while($row = $query->fetch(\PDO::FETCH_NUM)) {
 				list($name, $value) = $row;
 				$c = substr($value, 0, 1);
 				if($c == '{' || $c == '[') {
@@ -192,7 +192,7 @@ class WireCache extends Wire {
 			}
 			$query->closeCursor();
 				
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$this->trackException($e, false);
 			$value = null;
 		}
@@ -229,7 +229,7 @@ class WireCache extends Wire {
 	 */
 	protected function renderCacheValue($name, $expire, $func) {
 		
-		$ref = new ReflectionFunction($func);
+		$ref = new \ReflectionFunction($func);
 		$params = $ref->getParameters(); // requested arguments
 		$args = array(); // arguments we provide
 		
@@ -331,7 +331,7 @@ class WireCache extends Wire {
 		try {
 			$result = $query->execute();
 			$this->log($this->_('Saved cache ') . ' - ' . $name);
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$this->trackException($e, false);
 			$result = false; 
 		}
@@ -446,7 +446,7 @@ class WireCache extends Wire {
 			$query->execute();
 			$success = true; 
 			$this->log($this->_('Cleared cache') . ' - ' . $name);
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$this->trackException($e, true);
 			$this->error($e->getMessage()); 
 			$success = false;
@@ -542,7 +542,7 @@ class WireCache extends Wire {
 			$qty = $result ? $query->rowCount() : 0;
 			if($qty) $this->log(sprintf($this->_('General maintenance expired %d cache(s)'), $qty));
 
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$this->trackException($e, false);
 			$this->error($e->getMessage(), Notice::debug | Notice::log);
 			$result = false;
@@ -568,13 +568,13 @@ class WireCache extends Wire {
 				$query->bindValue(':expire', self::expireSelector);
 				$query->execute();
 				$this->cacheNameSelectors = array();
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 				$this->trackException($e, false);
 				$this->error($e->getMessage(), Notice::log);
 				return false;
 			}
 			if($query->rowCount()) {
-				while($row = $query->fetch(PDO::FETCH_ASSOC)) {
+				while($row = $query->fetch(\PDO::FETCH_ASSOC)) {
 					$data = json_decode($row['data'], true);
 					if($data !== false && isset($data['selector'])) {
 						$name = $row['name'];
@@ -724,7 +724,7 @@ class WireCache extends Wire {
 		if($name) $query->bindValue(":name", $name);
 		$query->execute();
 		
-		while($row = $query->fetch(PDO::FETCH_ASSOC)) {
+		while($row = $query->fetch(\PDO::FETCH_ASSOC)) {
 
 			$info = array(
 				'name' => $row['name'], 	

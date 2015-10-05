@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Modules
@@ -402,7 +402,8 @@ class Modules extends WireArray {
 	 *
 	 */
 	protected function newModule($className) {
-		if($this->debug) $debugKey = $this->debugTimerStart("newModule($className)"); 
+		if($this->debug) $debugKey = $this->debugTimerStart("newModule($className)");
+		if(strpos($className, '\\') === false) $className = "ProcessWire\\$className";
 		if(!class_exists($className, false)) $this->includeModule($className); 
 		$module = new $className(); 
 		if($this->debug) $this->debugTimerStop($debugKey);
@@ -590,7 +591,7 @@ class Modules extends WireArray {
 		$query = $database->prepare("SELECT * FROM modules ORDER BY class", "modules.loadModulesTable()"); // QA
 		$query->execute();
 		
-		while($row = $query->fetch(PDO::FETCH_ASSOC)) {
+		while($row = $query->fetch(\PDO::FETCH_ASSOC)) {
 			
 			$moduleID = (int) $row['id'];
 			$flags = (int) $row['flags'];
@@ -729,7 +730,7 @@ class Modules extends WireArray {
 		}
 
 		// check if module has already been loaded, or maybe we've got duplicates
-		if(class_exists($basename, false)) { 
+		if(class_exists("ProcessWire\\$basename", false)) { 
 			$module = parent::get($basename);
 			$dir = rtrim($this->wire('config')->paths->$basename, '/');
 			if($module && $dir && $dirname != $dir) {
@@ -770,6 +771,7 @@ class Modules extends WireArray {
 			// determine if module has dependencies that are not yet met
 			if(count($moduleInfo['requires'])) {
 				foreach($moduleInfo['requires'] as $requiresClass) {
+					if(strpos($requiresClass, '\\') === false) $requiresClass = "ProcessWire\\$requiresClass";
 					if(!class_exists($requiresClass, false)) {
 						$requiresInfo = $this->getModuleInfo($requiresClass); 
 						if(!empty($requiresInfo['error']) 
@@ -864,8 +866,8 @@ class Modules extends WireArray {
 		$files = array();
 		
 		try {
-			$dir = new DirectoryIterator($path); 
-		} catch(Exception $e) {
+			$dir = new \DirectoryIterator($path); 
+		} catch(\Exception $e) {
 			$this->trackException($e, false, true);
 			$dir = null;
 		}
@@ -1111,7 +1113,7 @@ class Modules extends WireArray {
 		$className = '';
 		if(is_object($module)) $className = $module->className();
 			else if(is_string($module)) $className = $module; 
-		if($className && class_exists($className, false)) return true; // already included
+		if($className && class_exists("ProcessWire\\$className", false)) return true; // already included
 		
 		// attempt to retrieve module
 		if(is_string($module)) $module = parent::get($module); 
@@ -1121,7 +1123,7 @@ class Modules extends WireArray {
 			$file = $this->getModuleFile($className); 
 			if($file) {
 				@include_once($file);
-				if(class_exists($className, false)) return true;
+				if(class_exists("ProcessWire\\$className", false)) return true;
 			}
 		}
 		
@@ -1318,12 +1320,12 @@ class Modules extends WireArray {
 		$sql = "INSERT INTO modules SET class=:class, flags=:flags, data=''";
 		if($this->wire('config')->systemVersion >=7) $sql .= ", created=NOW()";
 		$query = $database->prepare($sql, "modules.install($class)"); 
-		$query->bindValue(":class", $class, PDO::PARAM_STR); 
-		$query->bindValue(":flags", $flags, PDO::PARAM_INT); 
+		$query->bindValue(":class", $class, \PDO::PARAM_STR); 
+		$query->bindValue(":flags", $flags, \PDO::PARAM_INT); 
 		
 		try {
 			if($query->execute()) $moduleID = (int) $database->lastInsertId();
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			if($languages) $languages->unsetDefault();
 			$this->trackException($e, false, true); 
 			return null;
@@ -1339,16 +1341,16 @@ class Modules extends WireArray {
 			try {
 				$module->install();
 
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 				// remove the module from the modules table if the install failed
 				$moduleID = (int) $moduleID;
 				$error = "Unable to install module '$class': " . $e->getMessage();
 				$ee = null;
 				try {
 					$query = $database->prepare('DELETE FROM modules WHERE id=:id LIMIT 1'); // QA
-					$query->bindValue(":id", $moduleID, PDO::PARAM_INT);
+					$query->bindValue(":id", $moduleID, \PDO::PARAM_INT);
 					$query->execute();
-				} catch(Exception $ee) {
+				} catch(\Exception $ee) {
 					$this->trackException($e, false, $error)->trackException($ee, true);
 				}
 				if($languages) $languages->unsetDefault();
@@ -1371,7 +1373,7 @@ class Modules extends WireArray {
 				$this->wire('permissions')->save($permission);
 				if($languages) $languages->unsetDefault(); 
 				$this->message(sprintf($this->_('Added Permission: %s'), $permission->name)); 
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 				if($languages) $languages->unsetDefault(); 
 				$error = sprintf($this->_('Error adding permission: %s'), $name);
 				$this->trackException($e, false, $error); 
@@ -1386,7 +1388,7 @@ class Modules extends WireArray {
 				try { 
 					$this->install($name, $dependencyOptions); 
 					$this->message("$label: $name"); 
-				} catch(Exception $e) {
+				} catch(\Exception $e) {
 					$error = "$label: $name - " . $e->getMessage();
 					$this->trackException($e, false, $error); 
 				}
@@ -1419,7 +1421,7 @@ class Modules extends WireArray {
 
 		} else {
 			$this->includeModule($class); 
-			if(!class_exists($class, false)) $reason = $reason1; 
+			if(!class_exists("ProcessWire\\$class", false)) $reason = $reason1; 
 		}
 
 		if(!$reason) { 
@@ -1550,7 +1552,7 @@ class Modules extends WireArray {
 				$dir = array_shift($dirs); 
 				$this->message("Scanning: $dir", Notice::debug); 
 				
-				foreach(new DirectoryIterator($dir) as $file) {
+				foreach(new \DirectoryIterator($dir) as $file) {
 					if($file->isDot()) continue;
 					if($file->isLink()) {
 						$numLinks++;
@@ -1631,7 +1633,7 @@ class Modules extends WireArray {
 				$this->uninstall($name);
 				$this->message("$label: $name");
 
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 				$error = "$label: $name - " . $e->getMessage();
 				$this->trackException($e, false, $error);
 			}
@@ -1670,12 +1672,12 @@ class Modules extends WireArray {
 		}
 		$database = $this->wire('database'); 
 		$query = $database->prepare('DELETE FROM modules WHERE class=:class LIMIT 1'); // QA
-		$query->bindValue(":class", $class, PDO::PARAM_STR); 
+		$query->bindValue(":class", $class, \PDO::PARAM_STR); 
 		$query->execute();
 	
 		// add back to the installable list
 		if(class_exists("ReflectionClass")) {
-			$reflector = new ReflectionClass($class);
+			$reflector = new \ReflectionClass($class);
 			$this->installable[$class] = $reflector->getFileName(); 
 		}
 
@@ -1692,7 +1694,7 @@ class Modules extends WireArray {
 				try { 
 					$this->wire('permissions')->delete($permission); 
 					$this->message(sprintf($this->_('Deleted Permission: %s'), $name)); 
-				} catch(Exception $e) {
+				} catch(\Exception $e) {
 					$error = sprintf($this->_('Error deleting permission: %s'), $name);
 					$this->trackException($e, false, $error);
 				}
@@ -1717,10 +1719,10 @@ class Modules extends WireArray {
 		if(isset($this->moduleFlags[$id])) return $this->moduleFlags[$id]; 
 		if(!$id) return false;
 		$query = $this->wire('database')->prepare('SELECT flags FROM modules WHERE id=:id');
-		$query->bindValue(':id', $id, PDO::PARAM_INT);
+		$query->bindValue(':id', $id, \PDO::PARAM_INT);
 		$query->execute();
 		if(!$query->rowCount()) return false;
-		list($flags) = $query->fetch(PDO::FETCH_NUM);
+		list($flags) = $query->fetch(\PDO::FETCH_NUM);
 		$flags = (int) $flags; 
 		$this->moduleFlags[$id] = $flags;
 		return $flags; 
@@ -1941,10 +1943,10 @@ class Modules extends WireArray {
 			}
 			
 		} else if($module) {
-			if(is_string($module) && !class_exists($module)) $this->includeModule($module);  
+			if(is_string($module) && !class_exists("ProcessWire\\$module")) $this->includeModule($module);  
 			//if(method_exists($module, 'getModuleInfo')) {
-			if(is_callable("$module::getModuleInfo")) {
-				$info = call_user_func(array($module, 'getModuleInfo'));
+			if(is_callable("ProcessWire\\$module::getModuleInfo")) {
+				$info = call_user_func(array("ProcessWire\\$module", 'getModuleInfo'));
 			}
 		}
 		
@@ -2118,7 +2120,7 @@ class Modules extends WireArray {
 			}
 			
 			if(!$fromCache) { 
-				if(class_exists($moduleName, false)) {
+				if(class_exists("ProcessWire\\$moduleName", false)) {
 					// module is already in memory, check external first, then internal
 					$info = $this->getModuleInfoExternal($moduleName);
 					if(!count($info)) $info = $this->getModuleInfoInternal($moduleName);
@@ -2288,7 +2290,7 @@ class Modules extends WireArray {
 		
 		$database = $this->wire('database'); 
 		$query = $database->prepare("SELECT data FROM modules WHERE id=:id", "modules.getModuleConfigData($className)"); // QA
-		$query->bindValue(":id", (int) $id, PDO::PARAM_INT); 
+		$query->bindValue(":id", (int) $id, \PDO::PARAM_INT); 
 		$query->execute();
 		$data = $query->fetchColumn(); 
 		$query->closeCursor();
@@ -2360,10 +2362,10 @@ class Modules extends WireArray {
 		if(!$file) {
 			// if the above two failed, try to get it from Reflection
 			try {
-				$reflector = new ReflectionClass($className);
+				$reflector = new \ReflectionClass($className);
 				$file = $reflector->getFileName();
 				
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 				$file = false;
 			}
 		}
@@ -2456,9 +2458,9 @@ class Modules extends WireArray {
 					$config = null; // include file may override
 					include_once($file);
 					$classConfig = $className . 'Config';
-					if(class_exists($classConfig, false)) {
+					if(class_exists("ProcessWire\\$classConfig", false)) {
 						$interfaces = @class_parents($classConfig, false);
-						if(is_array($interfaces) && isset($interfaces['ModuleConfig'])) {
+						if(is_array($interfaces) && isset($interfaces["ProcessWire\\ModuleConfig"])) {
 							$found = $file;
 							break;
 						}
@@ -2498,12 +2500,12 @@ class Modules extends WireArray {
 	
 			// if we didn't have a module instance, load the file to find what we need to know
 			if(!$configurable) {
-				if(!class_exists($className, false)) $this->includeModule($className);
-				$interfaces = @class_implements($className, false);
-				if(is_array($interfaces) && isset($interfaces['ConfigurableModule'])) {
-					if(method_exists($className, $method)) {
+				if(!class_exists("ProcessWire\\$className", false)) $this->includeModule($className);
+				$interfaces = @class_implements("ProcessWire\\$className", false);
+				if(is_array($interfaces) && isset($interfaces["ProcessWire\\ConfigurableModule"])) {
+					if(method_exists("ProcessWire\\$className", $method)) {
 						$configurable = $method;
-					} else if(method_exists($className, "___$method")) {
+					} else if(method_exists("ProcessWire\\$className", "___$method")) {
 						$configurable = "___$method";
 					}
 				}
@@ -2513,7 +2515,7 @@ class Modules extends WireArray {
 			if(!$configurable) continue;
 			
 			// now determine if static or non-static
-			$ref = new ReflectionMethod($className, $configurable);
+			$ref = new \ReflectionMethod($className, $configurable);
 			
 			if($ref->isStatic()) {
 				// config method is implemented as a static method
@@ -2631,8 +2633,8 @@ class Modules extends WireArray {
 		$json = count($configData) ? wireEncodeJSON($configData, true) : '';
 		$database = $this->wire('database'); 	
 		$query = $database->prepare("UPDATE modules SET data=:data WHERE id=:id", "modules.saveModuleConfigData($className)"); // QA
-		$query->bindValue(":data", $json, PDO::PARAM_STR);
-		$query->bindValue(":id", (int) $id, PDO::PARAM_INT); 
+		$query->bindValue(":data", $json, \PDO::PARAM_STR);
+		$query->bindValue(":id", (int) $id, \PDO::PARAM_INT); 
 		$result = $query->execute();
 		$this->log("Saved module '$className' config data");
 		return $result;
@@ -3299,7 +3301,7 @@ class Modules extends WireArray {
 				$module->upgrade($fromVersion, $toVersion);
 			}
 			unset($this->modulesLastVersions[$moduleID]);
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$this->error("Error upgrading module ($moduleName): " . $e->getMessage());
 		}
 	}
@@ -3373,7 +3375,7 @@ class Modules extends WireArray {
 			$language = $user->language; 
 			try { 
 				if($language && $language->id && !$language->isDefault()) $user->language = $languages->getDefault(); // save
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 				$this->trackException($e, false, true); 
 			}
 		}

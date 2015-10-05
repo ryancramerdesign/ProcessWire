@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 class ProcessFieldExportImport extends Wire {
 	
@@ -197,7 +197,7 @@ class ProcessFieldExportImport extends Wire {
 			$savedFieldData = $field->getExportData();
 			try {
 				$changes = $field->setImportData($fieldData);
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 				$this->error($e->getMessage());
 			}
 			$field->setImportData($savedFieldData); // restore
@@ -368,7 +368,7 @@ class ProcessFieldExportImport extends Wire {
 					$numChangedFields++;
 					$this->message($this->_('Modified field') . ' - ' . $name); 
 				}
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 				$this->error($e->getMessage());
 			}
 			

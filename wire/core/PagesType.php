@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire PagesType
@@ -14,7 +14,7 @@
  *
  */
 
-class PagesType extends Wire implements IteratorAggregate, Countable {
+class PagesType extends Wire implements \IteratorAggregate, \Countable {
 
 	/**
 	 * First template defined for use in this PagesType (legacy)
@@ -348,7 +348,7 @@ class PagesType extends Wire implements IteratorAggregate, Countable {
 		try {
 			$this->save($page); 
 
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$this->trackException($e, false);
 			$page = new NullPage();
 		}
@@ -357,7 +357,7 @@ class PagesType extends Wire implements IteratorAggregate, Countable {
 	}
 
 	/**
-	 * Make it possible to iterate all pages of this type per the IteratorAggregate interface.
+	 * Make it possible to iterate all pages of this type per the \IteratorAggregate interface.
 	 *
 	 * Only recommended for page types that don't contain a lot of pages. 
 	 *

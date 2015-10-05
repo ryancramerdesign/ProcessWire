@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 class SystemUpdate10 extends SystemUpdate {
 
@@ -25,7 +25,7 @@ class SystemUpdate10 extends SystemUpdate {
 			$this->updater->saveSystemVersion(10);
 			if($this->wire('languages')) $this->wire('languages')->unsetDefault();
 			
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$this->error($e->getMessage()); 
 		}
 	}

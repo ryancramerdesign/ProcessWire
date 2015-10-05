@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * Serves as a multi-language value placeholder for field values that contain a value in more than one language. 
@@ -11,7 +11,7 @@
  *
  */
 
-class LanguagesPageFieldValue extends Wire implements LanguagesValueInterface, IteratorAggregate {
+class LanguagesPageFieldValue extends Wire implements LanguagesValueInterface, \IteratorAggregate {
 
 	/**
 	 * Inherit default language value when blank
@@ -171,13 +171,13 @@ class LanguagesPageFieldValue extends Wire implements LanguagesValueInterface, I
 	/**
 	 * Allows iteration of the languages values
 	 *
-	 * Fulfills IteratorAggregate interface.
+	 * Fulfills \IteratorAggregate interface.
 	 *
 	 * @return ArrayObject
 	 *
 	 */
 	public function getIterator() {
-		return new ArrayObject($this->data);
+		return new \ArrayObject($this->data);
 	}
 }
 

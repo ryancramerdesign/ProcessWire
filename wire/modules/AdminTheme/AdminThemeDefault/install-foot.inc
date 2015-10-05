@@ -1,4 +1,4 @@
-<?php if(!defined("PROCESSWIRE_INSTALL")) die(); ?>
+<?php namespace ProcessWire; if(!defined("PROCESSWIRE_INSTALL")) die(); ?>
 <?php if($formAction) echo "</form>"; ?>
 
 		</div>

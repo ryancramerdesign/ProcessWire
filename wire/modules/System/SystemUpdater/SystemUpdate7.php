@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * Add modified and created dates to modules table
@@ -16,7 +16,7 @@ class SystemUpdate7 extends SystemUpdate {
 			$sql = 'ALTER TABLE `modules` ADD `created` timestamp NOT NULL DEFAULT "0000-00-00 00:00:00"';
 			$this->wire('database')->exec($sql);
 			$this->message("Added 'created' column to modules table");
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$this->error($e->getMessage());
 			return false;
 		}

@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire LazyCron Module
@@ -187,7 +187,7 @@ class LazyCron extends WireData implements Module {
 				if(empty($filedata[$n]) || $elapsedTime >= $seconds) {
 					try {
 						$this->$func($elapsedTime);
-					} catch(Exception $e) {
+					} catch(\Exception $e) {
 						$this->error($e->getMessage(), Notice::logOnly); 
 					}
 					$lasttime = $time;
@@ -202,7 +202,7 @@ class LazyCron extends WireData implements Module {
 			foreach($this->timeFuncs as $seconds => $func) {
 				try {
 					$this->$func(0);
-				} catch(Exception $e) {
+				} catch(\Exception $e) {
 					$this->error($e->getMessage(), Notice::logOnly); 
 				}
 				$times[$seconds] = $time;

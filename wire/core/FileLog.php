@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire FileLog
@@ -313,7 +313,7 @@ class FileLog extends Wire {
 		if($options['toFile']) {
 			$toFile = $this->path . basename($options['toFile']); 
 			$fp = fopen($toFile, 'w'); 
-			if(!$fp) throw new Exception("Unable to open file for writing: $toFile"); 
+			if(!$fp) throw new \Exception("Unable to open file for writing: $toFile"); 
 		} else {
 			$toFile = '';
 			$fp = null;

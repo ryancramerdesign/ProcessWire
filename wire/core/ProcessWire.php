@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire API Bootstrap
@@ -16,6 +16,7 @@
  */
 
 define("PROCESSWIRE_CORE_PATH", dirname(__FILE__) . '/');
+define("PROCESSWIRE_NAMESPACE", "ProcessWire");
 
 require(PROCESSWIRE_CORE_PATH . "autoload.php"); 
 require(PROCESSWIRE_CORE_PATH . "Interfaces.php"); 
@@ -36,7 +37,7 @@ class ProcessWire extends Wire {
 	const versionMajor = 2; 
 	const versionMinor = 6; 
 	const versionRevision = 19; 
-	const versionSuffix = 'dev';
+	const versionSuffix = 'devns';
 	
 	const indexVersion = 250; // required version for index.php file (represented by PROCESSWIRE define)
 	
@@ -208,7 +209,7 @@ class ProcessWire extends Wire {
 			$this->wire('database', $database); 
 			$db = new DatabaseMysqli($config);
 			$this->wire('db', $db);
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			// catch and re-throw to prevent DB connect info from ever appearing in debug backtrace
 			$this->trackException($e, true, 'Unable to load WireDatabasePDO');
 			throw new WireDatabaseException($e->getMessage()); 
@@ -226,7 +227,7 @@ class ProcessWire extends Wire {
 			$modules->setSubstitutes($config->substituteModules); 
 			$modules->init();
 			if($this->debug) Debug::saveTimer('boot.load.modules');
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$this->trackException($e, true, 'Unable to load Modules');
 			if(!$modules) throw new WireException($e->getMessage()); 	
 			$this->error($e->getMessage()); 

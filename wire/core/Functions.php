@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Functions
@@ -285,7 +285,7 @@ function wireChmod($path, $recursive = false, $chmod = null) {
 		if($chmodDir) if(!@chmod($path, octdec($chmodDir))) $numFails++;
 
 		// change mode of files in directory, if recursive
-		if($recursive) foreach(new DirectoryIterator($path) as $file) {
+		if($recursive) foreach(new \DirectoryIterator($path) as $file) {
 			if($file->isDot()) continue; 
 			$mod = $file->isDir() ? $chmodDir : $chmodFile;     
 			if($mod) if(!@chmod($file->getPathname(), octdec($mod))) $numFails++;
@@ -383,7 +383,7 @@ function wireUnzipFile($file, $dst) {
 	$chmodFile = wire('config')->chmodFile; 
 	$chmodDir = wire('config')->chmodDir;
 	
-	$zip = new ZipArchive();
+	$zip = new \ZipArchive();
 	$res = $zip->open($file); 
 	if($res !== true) throw new WireException("Unable to open ZIP file, error code: $res"); 
 	
@@ -456,7 +456,7 @@ function wireZipFile($zipfile, $files, array $options = array()) {
 		if(!is_array($files)) $files = array($files);
 		if(!is_array($options['exclude'])) $options['exclude'] = array($options['exclude']);
 		$recursive = false;
-		$zip = new ZipArchive();
+		$zip = new \ZipArchive();
 		if($zip->open($zipfile, ZipArchive::CREATE) !== true) throw new WireException("Unable to create ZIP: $zipfile"); 
 		
 	} else {
@@ -475,7 +475,7 @@ function wireZipFile($zipfile, $files, array $options = array()) {
 		if(count($options['exclude']) && (in_array($name, $options['exclude']) || in_array("$name/", $options['exclude']))) continue; 
 		if(is_dir($file)) {
 			$_files = array();
-			foreach(new DirectoryIterator($file) as $f) if(!$f->isDot()) $_files[] = $f->getPathname();
+			foreach(new \DirectoryIterator($file) as $f) if(!$f->isDot()) $_files[] = $f->getPathname();
 			if(count($_files)) {
 				$zip->addEmptyDir($name); 
 				$options['dir'] = "$name/";
@@ -847,7 +847,7 @@ function wireMail($to = '', $from = '', $subject = '', $body = '', $options = ar
 		}
 		$numSent = $mail->send(); 
 
-	} catch(Exception $e) {
+	} catch(\Exception $e) {
 		if(wire('config')->debug) $mail->error($e->getMessage());
 		$mail->trackException($e, false);
 		$numSent = 0;
@@ -1293,4 +1293,43 @@ function wireBytesStr($size) {
 	return number_format($kb) . " " . __('kB', __FILE__); // kilobytes
 }
 
+function wireClassName($className, $withNamespace = false) {
+	if(is_object($className)) $className = get_class($className);
+	if($withNamespace) {
+		if(defined("PROCESSWIRE_NAMESPACE") && strpos($className, "\\") === false) {
+			$className = PROCESSWIRE_NAMESPACE . "\\$className";
+		}
+	} else {
+		$pos = strrpos($className, "\\");
+		if($pos !== false) {
+			$className = substr($className, $pos+1);
+		}
+	}
+	return $className;
+}
 
+function wireClassExists($className, $autoload = true) {
+	if(!is_object($className)) $className = wireClassName($className, true);
+	return class_exists($className, $autoload);
+}
+
+function wireMethodExists($className, $method) {
+	if(!is_object($className)) $className = wireClassName($className, true);
+	return method_exists($className, $method);
+}
+
+function wireClassImplements($className, $autoload = true) {
+	if(!is_object($className)) $className = wireClassName($className, true);
+	$implements = class_implements($className, $autoload);
+	$a = array();
+	foreach($implements as $k => $v) {
+		$v = wireClassName($k, false);
+		$a[$k] = $v; // values have no namespace
+	}
+	return $a; 
+}
+
+function wireIsCallable($var, $syntaxOnly = false, &$callableName = '') {
+	if(is_string($var)) $var = wireClassName($var, true);
+	return is_callable($var, $syntaxOnly, $callableName);
+}

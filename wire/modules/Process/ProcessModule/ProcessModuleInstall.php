@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * Class ProcessModuleInstall
@@ -68,7 +68,7 @@ class ProcessModuleInstall extends Wire {
 		// find the names of all existing module files, so we can defer to their dirs
 		// if a module is being installed that already exists
 		
-		foreach(new DirectoryIterator($path) as $file) {
+		foreach(new \DirectoryIterator($path) as $file) {
 			
 			if($file->isDot()) continue; 
 			if(substr($file->getBasename(), 0, 1) == '.') continue;
@@ -238,7 +238,7 @@ class ProcessModuleInstall extends Wire {
 			if(is_file($file)) unlink($file);
 			foreach($files as $f) $this->message("Extracted: $f", Notice::debug); 
 
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$this->error($e->getMessage());
 			if(is_file($file)) unlink($file);
 			return false;
@@ -414,7 +414,7 @@ class ProcessModuleInstall extends Wire {
 				$this->modules->resetCache();
 			}
 
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$this->error($e->getMessage());
 			@unlink($tempZIP);
 		}

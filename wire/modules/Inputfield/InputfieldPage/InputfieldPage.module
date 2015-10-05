@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * An Inputfield for handling relational Page inputs
@@ -185,7 +185,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 				if(!$valid && $editPage) $editPage->set('_isValidPage', "Page $page does not have required parent $field->parent_id"); 
 			} else {
 				// PHP version prior to 5.3.8
-				$reflector = new ReflectionClass($field->inputfield); 
+				$reflector = new \ReflectionClass($field->inputfield); 
 				$valid = $reflector->implementsInterface('InputfieldPageListSelection'); 
 			}
 		}
@@ -635,7 +635,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 				$this->trackChange('value'); 
 				$n++;
 
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 				$error = sprintf($this->_('Error adding page "%s"'), $page->title);
 				if($user->isSuperuser()) $error .= " - " . $e->getMessage(); 
 				$this->error($error); 

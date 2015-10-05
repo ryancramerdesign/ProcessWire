@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire WireData
@@ -15,7 +15,7 @@
  *
  */
 
-class WireData extends Wire implements IteratorAggregate {
+class WireData extends Wire implements \IteratorAggregate {
 
 	/**
 	 * Array where get/set properties are stored
@@ -270,13 +270,13 @@ class WireData extends Wire implements IteratorAggregate {
 	}
 
 	/**
-	 * Make the $data array iterable through this object, per the IteratorAggregate interface
+	 * Make the $data array iterable through this object, per the \IteratorAggregate interface
 	 * 
 	 * @return ArrayObject
 	 *
 	 */
 	public function getIterator() {
-		return new ArrayObject($this->data); 
+		return new \ArrayObject($this->data); 
 	}
 
 	/**

@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * Controller for ProcessWire Admin
@@ -107,7 +107,7 @@ if($page->process && $page->process != 'ProcessPageView') {
 			$wire->error($e->getMessage()); 	
 		}
 
-	} catch(Exception $e) {
+	} catch(\Exception $e) {
 		$msg = $e->getMessage(); 
 		if($config->debug) {
 			$msg = $sanitizer->entities($msg);

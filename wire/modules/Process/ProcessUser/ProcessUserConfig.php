@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 class ProcessUserConfig extends ModuleConfig {
 	public function __construct() {

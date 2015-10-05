@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * This init file is called before ProcessWire starts rendering the page or executing the process

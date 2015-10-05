@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * Adds a 'data' column to the fieldgroups_fields table

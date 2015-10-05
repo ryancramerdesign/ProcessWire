@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Page Add Process
@@ -784,7 +784,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 			try { 
 				if(!$item->title) $item->title = $this->_('Unused temp page') . ' - ' . $item->name; 
 				$this->wire('pages')->trash($item); 
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 				$this->error($e->getMessage()); 
 			}
 		}
@@ -834,7 +834,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 		try {
 			$this->wire('pages')->save($page); 
 
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$this->error($e->getMessage()); 
 			return false;
 		}
@@ -933,7 +933,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 		$this->page->setEditor($this->editor); 
 		try {
 			$this->pages->save($this->page, array('adjustName' => true)); 
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$this->error($e->getMessage()); 
 			return false;
 		}

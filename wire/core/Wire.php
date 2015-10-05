@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Base Class "Wire"
@@ -1150,7 +1150,7 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 * @throws Exception If $severe==true and $config->allowExceptions==true
 	 * 
 	 */
-	public function ___trackException(Exception $e, $severe = true, $text = null) {
+	public function ___trackException(\Exception $e, $severe = true, $text = null) {
 		$config = $this->wire('config');
 		$log = $this->wire('log');
 		$msg = $e->getMessage();

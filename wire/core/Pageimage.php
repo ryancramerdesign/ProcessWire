@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Pageimage
@@ -368,7 +368,7 @@ class Pageimage extends Pagefile {
 					} else {
 						$this->error = "ImageSizer::resize($width, $height) failed for $filenameUnvalidated";
 					}
-				} catch(Exception $e) {
+				} catch(\Exception $e) {
 					$this->trackException($e, false); 
 					$this->error = $e->getMessage(); 
 				}
@@ -613,7 +613,7 @@ class Pageimage extends Pagefile {
 		if(!is_null($this->variations)) return $this->variations; 
 
 		$variations = new Pageimages($this->pagefiles->page); 
-		$dir = new DirectoryIterator($this->pagefiles->path); 
+		$dir = new \DirectoryIterator($this->pagefiles->path); 
 		$infos = array();
 
 		foreach($dir as $file) {

@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire PagesSortfields
@@ -38,8 +38,8 @@ class PagesSortfields extends Wire {
 				"ON DUPLICATE KEY UPDATE sortfield=VALUES(sortfield)";
 		
 		$query = $database->prepare($sql);
-		$query->bindValue(":page_id", $page_id, PDO::PARAM_INT);
-		$query->bindValue(":sortfield", $sortfield, PDO::PARAM_STR);
+		$query->bindValue(":page_id", $page_id, \PDO::PARAM_INT);
+		$query->bindValue(":sortfield", $sortfield, \PDO::PARAM_STR);
 		$result = $query->execute();
 		
 		return $result;
@@ -55,7 +55,7 @@ class PagesSortfields extends Wire {
 	public function delete(Page $page) {
 		$database = $this->wire('database');
 		$query = $database->prepare("DELETE FROM pages_sortfields WHERE pages_id=:page_id"); // QA
-		$query->bindValue(":page_id", $page->id, PDO::PARAM_INT); 
+		$query->bindValue(":page_id", $page->id, \PDO::PARAM_INT); 
 		$result = $query->execute();
 		return $result;
 	}

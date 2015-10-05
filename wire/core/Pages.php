@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Pages
@@ -480,7 +480,7 @@ class Pages extends Wire {
 
 			$query = $database->prepare($sql);
 			$result = $this->executeQuery($query);
-			if($result) while($row = $query->fetch(PDO::FETCH_NUM)) {
+			if($result) while($row = $query->fetch(\PDO::FETCH_NUM)) {
 				list($id, $templates_id) = $row;
 				$id = (int) $id;
 				$templates_id = (int) $templates_id;
@@ -568,7 +568,7 @@ class Pages extends Wire {
 					$loaded[$page->id] = $page;
 					if($options['cache']) $this->cache($page);
 				}
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 				$error = $e->getMessage() . " [pageClass=$class, template=$template]";
 				if($this->wire('user')->isSuperuser()) $this->error($error);
 				$this->wire('log')->error($error);
@@ -711,9 +711,9 @@ class Pages extends Wire {
 		$database = $this->wire('database');
 		do {
 			$query = $database->prepare("SELECT parent_id, name FROM pages WHERE id=:parent_id"); // QA
-			$query->bindValue(":parent_id", (int) $parent_id, PDO::PARAM_INT); 
+			$query->bindValue(":parent_id", (int) $parent_id, \PDO::PARAM_INT); 
 			$this->executeQuery($query);
-			list($parent_id, $name) = $query->fetch(PDO::FETCH_NUM);
+			list($parent_id, $name) = $query->fetch(\PDO::FETCH_NUM);
 			$path = $name . '/' . $path;
 		} while($parent_id > 1); 
 
@@ -733,7 +733,7 @@ class Pages extends Wire {
 		if(!strlen($selectorString)) {
 			if(empty($options)) {
 				// optimize away a simple site-wide total count
-				return (int) $this->wire('database')->query("SELECT COUNT(*) FROM pages")->fetch(PDO::FETCH_COLUMN);
+				return (int) $this->wire('database')->query("SELECT COUNT(*) FROM pages")->fetch(\PDO::FETCH_COLUMN);
 			} else {
 				// no selector string, but options specified
 				$selectorString = "id>0";
@@ -881,7 +881,7 @@ class Pages extends Wire {
 				if("$blankValue" !== "$defaultValue") {
 					$page->set($field->name, $defaultValue);
 				}
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 				$this->trackException($e, false, true); 
 			}
 		}
@@ -1140,12 +1140,12 @@ class Pages extends Wire {
 			$query = $database->prepare("INSERT INTO pages SET $sql, created=NOW()");
 		}  else {
 			$query = $database->prepare("UPDATE pages SET $sql WHERE id=:page_id");
-			$query->bindValue(":page_id", (int) $page->id, PDO::PARAM_INT);
+			$query->bindValue(":page_id", (int) $page->id, \PDO::PARAM_INT);
 		}
 
 		foreach($data as $column => $value) {
 			if(is_null($value)) continue; // already bound above
-			$query->bindValue(":$column", $value, is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR);
+			$query->bindValue(":$column", $value, is_int($value) ? \PDO::PARAM_INT : \PDO::PARAM_STR);
 		}
 
 		$n = 0;
@@ -1160,7 +1160,7 @@ class Pages extends Wire {
 				$result = false;
 				$result = $this->executeQuery($query);
 
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 
 				$errorCode = $e->getCode();
 
@@ -1250,7 +1250,7 @@ class Pages extends Wire {
 			if(!$field->type) continue;
 			try {
 				$field->type->savePageField($page, $field);
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 				$error = sprintf($this->_('Error saving field "%s"'), $field->name) . ' - ' . $e->getMessage();
 				$this->trackException($e, true, $error); 
 			}
@@ -1353,8 +1353,8 @@ class Pages extends Wire {
 				$userID = (int) ($user ? $user->id : $this->config->superUserPageID);
 				$database = $this->wire('database');
 				$query = $database->prepare("UPDATE pages SET modified_users_id=:userID, modified=NOW() WHERE id=:pageID"); 
-				$query->bindValue(':userID', $userID, PDO::PARAM_INT);
-				$query->bindValue(':pageID', $page->id, PDO::PARAM_INT);
+				$query->bindValue(':userID', $userID, \PDO::PARAM_INT);
+				$query->bindValue(':pageID', $page->id, \PDO::PARAM_INT);
 				$this->executeQuery($query);
 			}
 			$return = true; 
@@ -1386,7 +1386,7 @@ class Pages extends Wire {
 		$database = $this->wire('database');
 
 		$query = $database->prepare("DELETE FROM pages_parents WHERE pages_id=:pages_id"); 
-		$query->bindValue(':pages_id', $pages_id, PDO::PARAM_INT); 
+		$query->bindValue(':pages_id', $pages_id, \PDO::PARAM_INT); 
 		$query->execute();
 
 		if(!$numChildren) return true; 
@@ -1398,9 +1398,9 @@ class Pages extends Wire {
 
 		do {
 			if($id < 2) break; // home has no parent, so no need to do that query
-			$query->bindValue(":id", $id, PDO::PARAM_INT);
+			$query->bindValue(":id", $id, \PDO::PARAM_INT);
 			$query->execute();
-			list($id) = $query->fetch(PDO::FETCH_NUM); 
+			list($id) = $query->fetch(\PDO::FETCH_NUM); 
 			$id = (int) $id; 
 			if(!$id) break;
 			$insertSql .= "($pages_id, $id),";
@@ -1421,10 +1421,10 @@ class Pages extends Wire {
 				"GROUP BY pages.id ";
 		
 		$query = $database->prepare($sql);
-		$query->bindValue(':pages_id', $pages_id, PDO::PARAM_INT); 
+		$query->bindValue(':pages_id', $pages_id, \PDO::PARAM_INT); 
 		$this->executeQuery($query);
 		
-		while($row = $query->fetch(PDO::FETCH_ASSOC)) {
+		while($row = $query->fetch(\PDO::FETCH_ASSOC)) {
 			$this->saveParents($row['id'], $row['numChildren'], $level+1);
 		}
 		$query->closeCursor();
@@ -1451,14 +1451,14 @@ class Pages extends Wire {
 		$database = $this->wire('database');
 		
 		$query = $database->prepare("UPDATE pages SET status=$sql WHERE id=:page_id"); 
-		$query->bindValue(":page_id", $pageID, PDO::PARAM_INT); 
+		$query->bindValue(":page_id", $pageID, \PDO::PARAM_INT); 
 		$this->executeQuery($query);
 		
 		if($recursive) { 
 			$query = $database->prepare("SELECT id FROM pages WHERE parent_id=:parent_id"); // QA
-			$query->bindValue(":parent_id", $pageID, PDO::PARAM_INT); 
+			$query->bindValue(":parent_id", $pageID, \PDO::PARAM_INT); 
 			$this->executeQuery($query);
-			while($row = $query->fetch(PDO::FETCH_ASSOC)) {
+			while($row = $query->fetch(\PDO::FETCH_ASSOC)) {
 				$this->savePageStatus($row['id'], $status, true, $remove);
 			}
 			$query->closeCursor();
@@ -1615,7 +1615,7 @@ class Pages extends Wire {
 
 		try { 
 			if(PagefilesManager::hasPath($page)) $page->filesManager->emptyAllPaths(); 
-		} catch(Exception $e) { 
+		} catch(\Exception $e) { 
 		}
 		// $page->getCacheFile()->remove();
 
@@ -1625,11 +1625,11 @@ class Pages extends Wire {
 		$database = $this->wire('database');
 			
 		$query = $database->prepare("DELETE FROM pages_parents WHERE pages_id=:page_id"); 
-		$query->bindValue(":page_id", $page->id, PDO::PARAM_INT); 
+		$query->bindValue(":page_id", $page->id, \PDO::PARAM_INT); 
 		$query->execute();
 		
 		$query = $database->prepare("DELETE FROM pages WHERE id=:page_id LIMIT 1"); // QA
-		$query->bindValue(":page_id", $page->id, PDO::PARAM_INT); 
+		$query->bindValue(":page_id", $page->id, \PDO::PARAM_INT); 
 		$query->execute();
 			
 		$this->sortfields->delete($page); 
@@ -1728,7 +1728,7 @@ class Pages extends Wire {
 			$this->cloning = true; 
 			$options['ignoreFamily'] = true; // skip family checks during clone
 			$this->save($copy, $options);
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$this->cloning = false;
 			throw $e;
 		}

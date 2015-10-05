@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire PageRender Module
@@ -446,13 +446,13 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 		$dir = null;
 		$clearNow = Wire::getFuel('input')->post->clearCache ? true : false; 
 
-		try { $dir = new DirectoryIterator($path); } catch(Exception $e) { }
+		try { $dir = new \DirectoryIterator($path); } catch(\Exception $e) { }
 
 		if($dir) foreach($dir as $file) {
 			if(!$file->isDir() || $file->isDot() || !ctype_digit($file->getFilename())) continue; 
 			$numPages++; 
 			if(!$clearNow) continue; 
-			$d = new DirectoryIterator($file->getPathname()); 
+			$d = new \DirectoryIterator($file->getPathname()); 
 			foreach($d as $f) {
 				if(!$f->isDir() && preg_match('/\.cache$/D', $f->getFilename())) {
 					$numFiles++; 

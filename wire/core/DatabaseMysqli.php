@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 /**
  * Temporary wrapper to mysqli Database class for mysqli => PDO transition
  * 

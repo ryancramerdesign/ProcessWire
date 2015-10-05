@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Template Process
@@ -397,7 +397,7 @@ class ProcessTemplate extends Process {
 
 		$this->fuel('breadcrumbs')->add(new Breadcrumb('./', $this->moduleInfo['title'])); 
 		$this->setFuel('processHeadline', $this->_('Add New Templates')); // Headline when adding templates
-		$dir = new DirectoryIterator($this->fuel('config')->paths->templates); 	
+		$dir = new \DirectoryIterator($this->fuel('config')->paths->templates); 	
 		$templateFiles = array();
 		$ext = "." . $this->config->templateExtension; 
 		$prependTemplateFile = $this->config->prependTemplateFile;
@@ -463,7 +463,7 @@ class ProcessTemplate extends Process {
 					$template->roles = array($this->roles->getGuestRole()->id); 
 					$template->save();
 					$this->message(sprintf($this->_('Added template and fieldgroup: %s'), $basename)); 
-				} catch(Exception $e) {
+				} catch(\Exception $e) {
 					$this->error($e->getMessage()); 
 					continue; 
 				}
@@ -2179,7 +2179,7 @@ class ProcessTemplate extends Process {
 		try {
 			$this->template->save();
 			$this->message(sprintf($this->_('Saved template: %s'), $this->template->name)); 
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$this->error($e->getMessage()); 
 		}
 

@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * Make the /processwire/page/edit/ unhidden so that it shows up in Pages nav, plus update the label
@@ -25,7 +25,7 @@ class SystemUpdate13 extends SystemUpdate {
 				$page->save();
 				$this->updater->saveSystemVersion(13);
 			}
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$this->error($e->getMessage());
 		}
 		if($languages) $languages->unsetDefault();

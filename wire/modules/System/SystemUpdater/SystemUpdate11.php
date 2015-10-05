@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * Make the /processwire/page/add/ unhidden so that it shows up in Pages nav
@@ -19,7 +19,7 @@ class SystemUpdate11 extends SystemUpdate {
 				$page->save();
 				$this->updater->saveSystemVersion(11);
 			}
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$this->error($e->getMessage());
 		}
 	}

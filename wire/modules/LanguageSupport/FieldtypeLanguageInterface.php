@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * Interface used to indicate that the Fieldtype supports multiple languages

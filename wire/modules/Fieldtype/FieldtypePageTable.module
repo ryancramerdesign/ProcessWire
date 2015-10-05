@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Page Table Fieldtype
@@ -83,7 +83,7 @@ class FieldtypePageTable extends FieldtypeMulti implements Module {
 					try {
 						$this->wire('pages')->delete($item); 
 						$deleted = true; 
-					} catch(Exception $e) {
+					} catch(\Exception $e) {
 						$this->wire('pages')->error($e->getMessage(), Notice::debug); 
 					}
 				}
@@ -207,7 +207,7 @@ class FieldtypePageTable extends FieldtypeMulti implements Module {
 						$newValue->add($newItem); 
 						$this->wire('pages')->message("Cloned item $item->path", Notice::debug); 
 					}
-				} catch(Exception $e) {
+				} catch(\Exception $e) {
 					$this->wire('pages')->error("Error cloning $item->path"); 
 					$this->wire('pages')->error($e->getMessage(), Notice::debug); 
 				}

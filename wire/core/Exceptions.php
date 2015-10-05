@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Exceptions
@@ -17,7 +17,7 @@
  * Generic ProcessWire exception
  *
  */
-class WireException extends Exception {}
+class WireException extends \Exception {}
 
 /**
  * Triggered when access to a resource is not allowed

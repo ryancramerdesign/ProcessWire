@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 if(!empty($_POST['submit'])) {
 

@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Page Fieldtype
@@ -81,11 +81,11 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 			$table = $database->escapeTable($field->table);
 			// delete references to this page
 			$query = $database->prepare("DELETE FROM `$table` WHERE data=:page_id");
-			$query->bindValue(":page_id", $page_id, PDO::PARAM_INT);
+			$query->bindValue(":page_id", $page_id, \PDO::PARAM_INT);
 			$query->execute();
 			// delete references this page is keeping to other pages
 			$query = $database->prepare("DELETE FROM `$table` WHERE pages_id=:page_id");
-			$query->bindValue(":page_id", $page_id, PDO::PARAM_INT);
+			$query->bindValue(":page_id", $page_id, \PDO::PARAM_INT);
 			$query->execute();
 		}	
 	}
@@ -1014,11 +1014,11 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 				$query->execute();
 				$numCleaned = 0; 
 
-				while($row = $query->fetch(PDO::FETCH_NUM)) {
+				while($row = $query->fetch(\PDO::FETCH_NUM)) {
 					list($pages_id, $data) = $row; 
 					$q = $database->prepare("DELETE FROM $table WHERE pages_id=:pages_id AND data=:data"); 
-					$q->bindValue(':pages_id', $pages_id, PDO::PARAM_INT); 
-					$q->bindValue(':data', $data, PDO::PARAM_INT); 
+					$q->bindValue(':pages_id', $pages_id, \PDO::PARAM_INT); 
+					$q->bindValue(':data', $data, \PDO::PARAM_INT); 
 					$q->execute();
 					$numCleaned++;
 				}
@@ -1089,7 +1089,7 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 			$table = $field->getTable();
 			$sql = "SELECT COUNT(*) FROM `$table` WHERE data=:id";
 			$query = $this->wire('database')->prepare($sql);
-			$query->bindValue(':id', $page->id, PDO::PARAM_INT);
+			$query->bindValue(':id', $page->id, \PDO::PARAM_INT);
 			$query->execute();
 			$cnt = (int) $query->fetchColumn();
 			if($cnt) {

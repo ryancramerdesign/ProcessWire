@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Fuel
@@ -38,7 +38,7 @@
  * @property Fuel $fuel
  *
  */
-class Fuel implements IteratorAggregate {
+class Fuel implements \IteratorAggregate {
 
 	protected $data = array();
 	protected $lock = array();
@@ -81,7 +81,7 @@ class Fuel implements IteratorAggregate {
 	}
 
 	public function getIterator() {
-		return new ArrayObject($this->data); 
+		return new \ArrayObject($this->data); 
 	}
 
 	public function getArray() {

@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire WireUpload
@@ -301,7 +301,7 @@ class WireUpload extends Wire {
 			if(!count($files)) {
 				throw new WireException($this->_('No files found in ZIP file'));
 			}
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$this->error($e->getMessage());
 			wireRmdir($tmpDir, true);
 			unlink($zipFile); 
