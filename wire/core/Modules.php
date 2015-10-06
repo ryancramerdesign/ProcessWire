@@ -3415,7 +3415,7 @@ class Modules extends WireArray {
 				}
 			
 				if(is_null($info['configurable'])) {
-					$info['configurable'] = $this->isConfigurableModule($moduleName, false);
+					$info['configurable'] = $this->isConfigurableModule($module, false);
 				}
 				
 				if($moduleID) $this->updateModuleFlags($moduleID, $info);
