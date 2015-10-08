@@ -33,26 +33,22 @@ if(!defined("PROCESSWIRE")) die();
  *
  */
 function ProcessWireHostSiteConfig() {
-
-        return array(
-
-                /*
-                 * Some Examples (you should remove/replace them if used).
+	return array(
+		/*
+		 * Some Examples (you should remove/replace them if used).
 		 * Just note that the values must begin with 'site-'.
-                 *
-                 */
-                 'mydomain.com' => 'site-mydomain',
-                 'www.mydomain.com' => 'site-mydomain',
-                 'dev.mydomain.com' => 'site-dev',
-                 'www.otherdomain.com' => 'site-other',
+		 *
+		 */
+		 'mydomain.com' => 'site-mydomain',
+		 'www.mydomain.com' => 'site-mydomain',
+		 'dev.mydomain.com' => 'site-dev',
+		 'www.otherdomain.com' => 'site-other',
 
 		/*
 		 * Default for all others (typically /site/)
-	 	 *
+		 *
 		 */
 		'*' => 'site',
-
-                );
-
+	);
 }
 

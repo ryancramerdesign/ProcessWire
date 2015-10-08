@@ -1350,9 +1350,9 @@ function wireMethodExists($className, $method) {
  */
 function wireClassImplements($className, $autoload = true) {
 	if(!is_object($className)) $className = wireClassName($className, true);
-	$implements = class_implements($className, $autoload);
+	$implements = @class_implements(ltrim($className, "\\"), $autoload);
 	$a = array();
-	foreach($implements as $k => $v) {
+	if(is_array($implements)) foreach($implements as $k => $v) {
 		$v = wireClassName($k, false);
 		$a[$k] = $v; // values have no namespace
 	}
@@ -1369,9 +1369,9 @@ function wireClassImplements($className, $autoload = true) {
  */
 function wireClassParents($className, $autoload = true) {
 	if(!is_object($className)) $className = wireClassName($className, true);
-	$parents = class_parents($className, $autoload);
+	$parents = class_parents(ltrim($className, "\\"), $autoload);
 	$a = array();
-	foreach($parents as $k => $v) {
+	if(is_array($parents)) foreach($parents as $k => $v) {
 		$v = wireClassName($k, false);
 		$a[$k] = $v; // values have no namespace
 	}

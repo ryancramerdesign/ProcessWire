@@ -117,6 +117,14 @@ class Pages extends Wire {
 	protected $untitledPageName = 'untitled';
 
 	/**
+	 * Enable 2.x compatibility mode?
+	 * 
+	 * @var bool
+	 * 
+	 */
+	protected $compat2x = false;
+
+	/**
 	 * Create the Pages object
 	 *
 	 */
@@ -124,6 +132,7 @@ class Pages extends Wire {
 		$this->config = $this->wire('config');
 		$this->templates = $this->wire('templates'); 
 		$this->sortfields = new PagesSortfields();
+		$this->compat2x = $this->config->compat2x;
 	}
 
 	public function init() {
@@ -155,24 +164,27 @@ class Pages extends Wire {
 	public function ___find($selectorString, $options = array()) {
 		
 		if(is_string($options)) $options = Selectors::keyValueStringToArray($options); 
+		$loadOptions = isset($options['loadOptions']) && is_array($options['loadOptions']) ? $options['loadOptions'] : array();
 
 		if(is_array($selectorString)) {
 			if(ctype_digit(implode('', array_keys($selectorString))) && ctype_digit(implode('', $selectorString))) {
 				// if given a regular array of page IDs, we delegate that to getById() method, but with access/visibility control
-				return $this->filterListable($this->getById($selectorString), isset($options['include']) ? $options['include'] : ''); 
+				return $this->filterListable(
+					$this->getById($selectorString), 
+					(isset($options['include']) ? $options['include'] : ''), 
+					$loadOptions); 
 			} else {
 				// some other type of array/values that we don't yet recognize
 				// @todo add support for array selectors, per Selectors::arrayToSelectorString()
-				return new PageArray();
+				return $this->newPageArray($loadOptions);
 			}
 		}
 
 		$loadPages = true;
-		$loadOptions = isset($options['loadOptions']) && is_array($options['loadOptions']) ? $options['loadOptions'] : array();
 		$debug = $this->wire('config')->debug;
 
 		if(array_key_exists('loadPages', $options)) $loadPages = (bool) $options['loadPages'];
-		if(!strlen($selectorString)) return new PageArray();
+		if(!strlen($selectorString)) return $this->newPageArray($loadOptions);
 		if($selectorString === '/' || $selectorString === 'path=/') $selectorString = 1;
 
 		if($selectorString[0] == '/') {
@@ -186,7 +198,8 @@ class Pages extends Wire {
 				$s = str_replace("id=", '', $selectorString); 
 				if(ctype_digit("$s")) {
 					$value = $this->getById(array((int) $s), $loadOptions);
-					if(empty($options['findOne'])) $value = $this->filterListable($value, isset($options['include']) ? $options['include'] : '');
+					if(empty($options['findOne'])) $value = $this->filterListable(
+						$value, (isset($options['include']) ? $options['include'] : ''), $loadOptions);
 					if($debug) $this->debugLog('find', $selectorString . " [optimized]", $value); 
 					return $value; 
 				}
@@ -238,7 +251,7 @@ class Pages extends Wire {
 
 			if(count($idsByTemplate) > 1) {
 				// perform a load for each template, which results in unsorted pages
-				$unsortedPages = new PageArray();
+				$unsortedPages = $this->newPageArray($loadOptions);
 				foreach($idsByTemplate as $tpl_id => $ids) {
 					$opt = $loadOptions; 
 					$opt['template'] = $this->templates->get($tpl_id); 
@@ -247,7 +260,7 @@ class Pages extends Wire {
 				}
 
 				// put pages back in the order that the selectorEngine returned them in, while double checking that the selector matches
-				$pages = new PageArray();
+				$pages = $this->newPageArray($loadOptions);
 				foreach($idsSorted as $id) {
 					foreach($unsortedPages as $page) { 
 						if($page->id == $id) {
@@ -258,7 +271,7 @@ class Pages extends Wire {
 				}
 			} else {
 				// there is only one template used, so no resorting is necessary	
-				$pages = new PageArray();
+				$pages = $this->newPageArray($loadOptions);
 				reset($idsByTemplate); 
 				$opt = $loadOptions; 
 				$opt['template'] = $this->templates->get(key($idsByTemplate)); 
@@ -267,7 +280,7 @@ class Pages extends Wire {
 			}
 
 		} else {
-			$pages = new PageArray();
+			$pages = $this->newPageArray($loadOptions);
 		}
 
 		$pages->setTotal($total); 
@@ -390,7 +403,7 @@ class Pages extends Wire {
 			'pageClass' => '',  // blank = auto detect
 			'pageArrayClass' => 'PageArray', 
 			);
-
+		
 		if(is_array($template)) {
 			// $template property specifies an array of options
 			$options = array_merge($options, $template); 
@@ -399,9 +412,7 @@ class Pages extends Wire {
 		} else if(!is_null($template) && !$template instanceof Template) {
 			throw new WireException('getById argument 2 must be Template or $options array'); 
 		}
-	
-		$pageArrayClass = wireClassName($options['pageArrayClass'], true);
-	
+
 		if(!is_null($parent_id) && !is_int($parent_id)) {
 			// convert Page object or string to integer id
 			$parent_id = (int) ((string) $parent_id);
@@ -422,7 +433,7 @@ class Pages extends Wire {
 		
 		if(!WireArray::iterable($_ids) || !count($_ids)) {
 			// return blank if $_ids isn't iterable or is empty
-			return $options['getOne'] ? new NullPage() : new $pageArrayClass();
+			return $options['getOne'] ? $this->newNullPage() : $this->newPageArray($options);
 		}
 		
 		if(is_object($_ids)) $_ids = $_ids->getArray(); // ArrayObject or the like
@@ -457,7 +468,7 @@ class Pages extends Wire {
 		if(!$idCnt) {
 			// if there are no more pages left to load, we can return what we've got
 			if($options['getOne']) return count($loaded) ? reset($loaded) : new NullPage();
-			$pages = new $pageArrayClass();
+			$pages = $this->newPageArray($options);
 			$pages->import($loaded);
 			return $pages; 
 		}
@@ -557,6 +568,7 @@ class Pages extends Wire {
 				$this->error("Class '$class' for Pages::getById() does not exist", Notice::log);
 				$class = 'Page';
 			}
+			if($this->compat2x && class_exists("\\$class")) $class = "\\$class";
 
 			try {
 				$_class = wireClassName($class, true);
@@ -581,7 +593,7 @@ class Pages extends Wire {
 		}
 		
 		if($options['getOne']) return count($loaded) ? reset($loaded) : new NullPage();
-		$pages = new $pageArrayClass();
+		$pages = $this->newPageArray($options);
 		return $pages->import($loaded); 
 	}
 	
@@ -593,12 +605,13 @@ class Pages extends Wire {
 	 * 	- 'hidden': Allow pages with 'hidden' status'
 	 * 	- 'unpublished': Allow pages with 'unpublished' or 'hidden' status
 	 * 	- 'all': Allow all pages (not much point in calling this method)
+	 * @param array $options loadOptions 
 	 * @return PageArray
 	 *
 	 */
-	protected function filterListable(PageArray $items, $includeMode = '') {
+	protected function filterListable(PageArray $items, $includeMode = '', array $options = array()) {
 		if($includeMode === 'all') return $items;
-		$itemsAllowed = new PageArray();
+		$itemsAllowed = $this->newPageArray($options);
 		foreach($items as $item) {
 			if($includeMode === 'unpublished') {
 				$allow = $item->status < Page::statusTrash;
@@ -2055,6 +2068,59 @@ class Pages extends Wire {
 		} while($tryAgain && !$result); 
 		
 		return $result;
+	}
+
+	/**
+	 * Return a new/blank PageArray
+	 * 
+	 * @param array $options Optionally specify array('pageArrayClass' => 'YourPageArrayClass')
+	 * @return PageArray
+	 * 
+	 */
+	public function newPageArray(array $options = array()) {
+		$class = 'PageArray';
+		if(!empty($options['pageArrayClass'])) $class = $options['pageArrayClass'];
+		if($this->compat2x && strpos($class, "\\") === false) {
+			if(class_exists("\\$class")) $class = "\\$class";
+		}
+		$class = wireClassName($class, true);
+		$pageArray = new $class();
+		if(!$pageArray instanceof PageArray) $pageArray = new PageArray();
+		return $pageArray;
+	}
+
+	/**
+	 * Return a new/blank Page object (in memory only)
+	 *
+	 * @param array $options Optionally specify array('pageClass' => 'YourPageClass')
+	 * @return Page
+	 *
+	 */
+	public function newPage(array $options = array()) {
+		$class = 'Page';
+		if(!empty($options['pageClass'])) $class = $options['pageClass'];
+		if($this->compat2x && strpos($class, "\\") === false) {
+			if($class_exists("\\$class")) $class = "\\$class";
+		}
+		$class = wireClassName($class, true);
+		$page = new $class();
+		if(!$page instanceof Page) $page = new Page();
+		return $page;
+	}
+
+	/**
+	 * Return a new NullPage
+	 * 
+	 * @return mixed
+	 * 
+	 */
+	public function newNullPage() {
+		if($this->compat2x && class_exists("\\NullPage")) {
+			$class = "\\NullPage";
+		} else {
+			$class = wireClassName("NullPage", true);
+		}
+		return new $class();
 	}
 
 	/**

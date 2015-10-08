@@ -114,7 +114,17 @@ $config->advanced = false;
  */
 $config->demo = false;
 
-
+/**
+ * Enable compatibility with ProcessWire 2.x template files and modules? 
+ *
+ * When true, many common ProcessWire functions and classes are duplicated in the root namespace.
+ * You should still plan to update for 3.x compatibility but enabling this may enable you to 
+ * continue using most existing 2.x modules and template files.
+ * 
+ * @var bool
+ *
+ */
+$config->compat2x = true;
 
 
 /*** 2. DATES & TIMES *************************************************************************/

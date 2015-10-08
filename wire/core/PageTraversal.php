@@ -65,7 +65,7 @@ class PageTraversal {
 	 *
 	 */
 	public function children(Page $page, $selector = '', $options = array()) {
-		if(!$page->numChildren) return new PageArray();
+		if(!$page->numChildren) return $page->wire('pages')->newPageArray();
 		$defaults = array('caller' => 'page.children'); 
 		$options = array_merge($defaults, $options); 
 		if($selector) $selector .= ", ";
@@ -90,13 +90,13 @@ class PageTraversal {
 	 *
 	 */
 	public function child(Page $page, $selector = '', $options = array()) {
-		if(!$page->numChildren) return new NullPage();
+		if(!$page->numChildren) return $page->wire('pages')->newNullPage();
 		$defaults = array('getTotal' => false, 'caller' => 'page.child'); 
 		$options = array_merge($defaults, $options); 
 		$selector .= ($selector ? ', ' : '') . "limit=1";
 		if(strpos($selector, 'start=') === false) $selector .= ", start=0"; // prevent pagination
 		$children = $this->children($page, $selector, $options); 
-		return count($children) ? $children->first() : new NullPage();
+		return count($children) ? $children->first() : $page->wire('pages')->newNullPage();
 	}
 
 	/**
@@ -108,7 +108,7 @@ class PageTraversal {
 	 *
 	 */
 	public function parents(Page $page, $selector = '') {
-		$parents = new PageArray();
+		$parents = $page->wire('pages')->newPageArray();
 		$parent = $page->parent();
 		while($parent && $parent->id) {
 			$parents->prepend($parent); 	
@@ -129,7 +129,7 @@ class PageTraversal {
 	public function parentsUntil(Page $page, $selector = '', $filter = '') {
 
 		$parents = $this->parents($page); 
-		$matches = new PageArray();
+		$matches = $page->wire('pages')->newPageArray();
 		$stop = false;
 
 		foreach($parents->reverse() as $parent) {
@@ -224,7 +224,7 @@ class PageTraversal {
 			$next = $siblings->getNext($next, false); 
 			if(!strlen($selector) || !$next || $next->matches($selector)) break;
 		} while($next && $next->id); 
-		if(is_null($next)) $next = new NullPage();
+		if(is_null($next)) $next = $page->wire('pages')->newNullPage();
 		return $next; 
 	}
 
@@ -234,7 +234,7 @@ class PageTraversal {
 		if(!$sortfield) $sortfield = 'sort';
 		$descending = strpos($sortfield, '-') === 0;
 		if($descending) $sortfield = ltrim($sortfield, '-');
-		$value = $this->wire('sanitizer')->selectorValue($page->getUnformatted($sortfield)); 
+		$value = $page->wire('sanitizer')->selectorValue($page->getUnformatted($sortfield)); 
 		$operator = $descending ? "<=" : ">=";
 		$selector .= ", sortfield$operator$value, id!=$page->id";
 		// experimental/work in progress
@@ -273,7 +273,7 @@ class PageTraversal {
 			$prev = $siblings->getPrev($prev, false); 
 			if(!strlen($selector) || !$prev || $prev->matches($selector)) break;
 		} while($prev && $prev->id); 
-		if(is_null($prev)) $prev = new NullPage();
+		if(is_null($prev)) $prev = $page->wire('pages')->newNullPage();
 		return $prev;
 	}
 
@@ -292,7 +292,7 @@ class PageTraversal {
 			else if(!$siblings->has($page)) $siblings->prepend($page);
 
 		$id = $page->id;
-		$all = new PageArray();
+		$all = $page->wire('pages')->newPageArray();
 		$rec = false;
 
 		foreach($siblings as $sibling) {
@@ -322,7 +322,7 @@ class PageTraversal {
 			else if(!$siblings->has($page)) $siblings->add($page);
 
 		$id = $page->id;
-		$all = new PageArray();
+		$all = $page->wire('pages')->newPageArray();
 
 		foreach($siblings as $sibling) {
 			if($sibling->id == $id) break;
@@ -350,7 +350,7 @@ class PageTraversal {
 
 		$siblings = $this->nextAll($page, '', $siblings); 
 
-		$all = new PageArray();
+		$all = $page->wire('pages')->newPageArray();
 		$stop = false;
 
 		foreach($siblings as $sibling) {
@@ -391,7 +391,7 @@ class PageTraversal {
 
 		$siblings = $this->prevAll($page, '', $siblings); 
 
-		$all = new PageArray();
+		$all = $page->wire('pages')->newPageArray();
 		$stop = false;
 
 		foreach($siblings->reverse() as $sibling) {

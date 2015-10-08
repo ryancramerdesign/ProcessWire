@@ -1,4 +1,4 @@
-<?php 
+<?php namespace ProcessWire;
 
 /**
  * Admin template just loads the admin application controller, 

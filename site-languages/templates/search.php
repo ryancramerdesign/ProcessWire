@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 // look for a GET variable named 'q' and sanitize it
 $q = $sanitizer->text($input->get->q); 

@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * Demo site header include file (HTML5)
@@ -34,8 +34,7 @@
 	<!--
 	This website is powered by ProcessWire CMF/CMS.
 	ProcessWire is a free open source content management framework licensed under the GNU GPL.
-	ProcessWire is Copyright 2012 by Ryan Cramer / Ryan Cramer Design, LLC.
-	Learn more about ProcessWire at: http://processwire.com
+	ProcessWire is Copyright 2015. Learn more about ProcessWire at: https://processwire.com
 	-->
 
 </head>

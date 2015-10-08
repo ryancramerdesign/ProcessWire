@@ -217,6 +217,8 @@ class ProcessWire extends Wire {
 		$cache = new WireCache(); 
 		$this->wire('cache', $cache); 
 		$cache->preload($config->preloadCacheNames); 
+		
+		if($config->compat2x) $this->loadCompat2x($config);
 
 		try { 		
 			if($this->debug) Debug::timer('boot.load.modules');
@@ -284,6 +286,17 @@ class ProcessWire extends Wire {
 
 		if($this->debug) Debug::saveTimer('boot.load', 'includes all boot.load timers');
 		$this->setStatus(self::statusInit);
+	}
+
+	/**
+	 * Load ProcessWire 2.x compatibility mode
+	 * 
+	 * @param Config $config
+	 * 
+	 */
+	protected function loadCompat2x(Config $config) {
+		include_once($config->paths->core . 'compat2x/Classes.php');
+		include_once($config->paths->core . 'compat2x/Functions.php');
 	}
 	
 	/**

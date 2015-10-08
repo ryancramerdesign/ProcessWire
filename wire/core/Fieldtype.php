@@ -54,6 +54,8 @@ abstract class Fieldtype extends WireData implements Module {
 			); 
 	}
 	 */
+	
+	public function __construct() { }
 
 	/**
 	 * Per Module interface, this template method is called when all system classes are loaded and ready for API usage

@@ -1221,7 +1221,7 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 *
 	 */
 	public function find($selector = '', $options = array()) {
-		if(!$this->numChildren) return new PageArray();
+		if(!$this->numChildren) return $this->wire('pages')->newPageArray();
 		$selector = "has_parent={$this->id}, $selector"; 
 		return $this->wire('pages')->find(trim($selector, ", "), $options); 
 	}
@@ -1296,11 +1296,11 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 *
 	 */
 	public function parent($selector = '') {
-		if(!$this->parent) return new NullPage();
+		if(!$this->parent) return $this->wire('pages')->newNullPage();
 		if(!strlen($selector)) return $this->parent; 
 		if($this->parent->matches($selector)) return $this->parent; 
 		if($this->parent->parent_id) return $this->parent->parent($selector); // recursive, in a way
-		return new NullPage();
+		return $this->wire('pages')->newNullPage();
 	}
 
 	/**

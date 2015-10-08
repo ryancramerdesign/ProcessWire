@@ -376,6 +376,9 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 *
 	 */
 	public function runHooks($method, $arguments, $type = 'method') {
+		
+		static $compat2x = null;
+		if(is_null($compat2x)) $compat2x = $this->wire('config')->compat2x;
 
 		$result = array(
 			'return' => null, 
@@ -444,7 +447,7 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 					if(!$matches) continue; // don't run hook
 				}
 
-				$event = new HookEvent(); 
+				$event = $compat2x ? new \HookEvent() : new HookEvent(); 
 				$event->object = $this;
 				$event->method = $method;
 				$event->arguments = $arguments;  

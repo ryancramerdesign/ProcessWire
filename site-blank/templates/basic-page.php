@@ -1,3 +1,4 @@
+<?php namespace ProcessWire; ?>
 <!DOCTYPE html>
 <html lang="en">
 	<head>

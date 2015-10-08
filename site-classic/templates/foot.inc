@@ -1,23 +1,22 @@
-				
-				<?php 
+<?php namespace ProcessWire; 
 
-				// Output navigation for any children below the bodycopy.
-				// This navigation cycles through the page's children and prints
-				// a link and summary: 
+// Output navigation for any children below the bodycopy.
+// This navigation cycles through the page's children and prints
+// a link and summary: 
 
-				if($page->numChildren) {
+if($page->numChildren) {
 
-					echo "<ul class='nav'>";
+	echo "<ul class='nav'>";
 
-					foreach($page->children as $child) {
-						echo "<li><p><a href='{$child->url}'>{$child->title}</a><br /><span class='summary'>{$child->summary}</span></p></li>"; 
-					}
+	foreach($page->children as $child) {
+		echo "<li><p><a href='{$child->url}'>{$child->title}</a><br />";
+		echo "<span class='summary'>{$child->summary}</span></p></li>"; 
+	}
 
-					echo "</ul>";
-				}
+	echo "</ul>";
+}
 
-				?>
-
+?>
 
 			</div><!--/bodycopy-->
 
@@ -27,7 +26,7 @@
 
 	<div id="footer" class="footer">
 		<div class="container">
-			<p>Powered by <a href='http://processwire.com'>ProcessWire Open Source CMS/CMF</a> &copy; <?php echo date("Y"); ?> <a href="http://www.ryancramer.com">Ryan Cramer Design, LLC</a></p>
+			<p>Powered by <a href='http://processwire.com'>ProcessWire Open Source CMS/CMF</a></p>
 		</div>
 	</div>
 

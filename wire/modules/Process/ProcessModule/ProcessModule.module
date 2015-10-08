@@ -1260,8 +1260,14 @@ class ProcessModule extends Process {
 			// someone please tell me if there is a better way to do this. I suspect there is, so
 			// will leave it out here in the open rather hide it in ProcessModule.css
 			'<span style="display:inline-block;width:1px;overflow:hidden;"> </span>/', $filename))); 
-		
-		$table->row(array($this->_x('ID', 'edit'), $moduleId)); 
+	
+		if($this->wire('config')->debug) {
+			if($moduleInfo['namespace'] === '') $namespace = "\\" . __NAMESPACE__ . ' ' . $this->_('(default namespace)'); 
+				else if($moduleInfo['namespace'] === "\\") $namespace = $this->_('None (root namespace)');
+				else $namespace = $moduleInfo['namespace'];
+			$table->row(array($this->_x('Namespace', 'edit'), $namespace)); 
+			$table->row(array($this->_x('ID', 'edit'), $moduleId)); 
+		}
 		$table->row(array($this->_x('Version', 'edit'), $version)); 
 		if(!empty($moduleInfo['created'])) $table->row(array($this->labels['installed_date'], wireRelativeTimeStr($moduleInfo['created'])));
 		if(!empty($moduleInfo['author'])) $table->row(array($this->_x('Author', 'edit'), $moduleInfo['author'])); 
