@@ -238,7 +238,7 @@ class InputfieldPageTable extends Inputfield {
 	 */
 	protected function renderTableHead(array $columns, array $labels) {
 
-		$out = "<table class='AdminDataTable AdminDataList'><thead><tr>";
+		$out = "<table class='AdminDataTable AdminDataList AdminDataTableResponsive AdminDataTableResponsiveAlt'><thead><tr>";
 
 		foreach($columns as $column => $width) {
 			$attr = $width ? " style='width: $width%'" : '';
