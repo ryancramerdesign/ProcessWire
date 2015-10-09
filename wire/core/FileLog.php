@@ -304,9 +304,9 @@ class FileLog extends Wire {
 		$hasFilters = !empty($options['text']);
 
 		if($options['dateFrom'] || $options['dateTo']) {
+			if(!$options['dateTo']) $options['dateTo'] = time();
 			if(!ctype_digit("$options[dateFrom]")) $options['dateFrom'] = strtotime($options['dateFrom']);
 			if(!ctype_digit("$options[dateTo]")) $options['dateTo'] = strtotime($options['dateTo']);
-			if(!$options['dateTo']) $options['dateTo'] = time();
 			$hasFilters = true; 
 		}
 		
@@ -341,7 +341,7 @@ class FileLog extends Wire {
 				$valid = !isset($chunkLineHashes[$hash]);
 				$chunkLineHashes[$hash] = 1; 
 				if($valid) $valid = $this->isValidLine($line, $options, $stopNow);
-				if(!$hasFilters && count($lines) >= $limit) $stopNow = true; 
+				if(!$hasFilters && $limit && count($lines) >= $limit) $stopNow = true; 
 				if($stopNow) break;
 				if(!$valid) continue; 
 				
@@ -478,12 +478,10 @@ class FileLog extends Wire {
 			'dateFrom' => $oldestDate, 
 			'dateTo' => time(),
 		));
-		if($qty && file_exists($toFile)) {
+		if(file_exists($toFile)) {
 			unlink($this->logFilename); 
 			rename($toFile, $this->logFilename); 
 			return $qty; 
-		} else if(file_exists($toFile)) {
-			unlink($toFile);
 		}
 		return 0;
 	}
