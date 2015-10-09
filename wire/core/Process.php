@@ -358,7 +358,7 @@ abstract class Process extends WireData implements Module {
 				'icon' => $icon, 
 			);
 		}
-		if($options['sort']) ksort($data['list']); // sort alpha
+		if($options['sort']) uksort($data['list'], 'strcasecmp'); // sort alpha, case insensitive
 		$data['list'] = array_values($data['list']); 
 
 		if($this->wire('config')->ajax) header("Content-Type: application/json");
