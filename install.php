@@ -1,4 +1,4 @@
-<?php
+<?php namespace ProcessWire;
 
 /**
  * ProcessWire Installer
@@ -163,7 +163,7 @@ class Installer {
 			'templates/admin.php',
 			'install/install.sql',
 			);
-		foreach(new DirectoryIterator(dirname(__FILE__)) as $dir) {
+		foreach(new \DirectoryIterator(dirname(__FILE__)) as $dir) {
 			if($dir->isDot() || !$dir->isDir()) continue; 
 			$name = $dir->getBasename();
 			$path = rtrim($dir->getPathname(), '/') . '/';
@@ -328,7 +328,7 @@ class Installer {
 			}
 		}
 		
-		if(class_exists('ZipArchive')) {
+		if(class_exists('\ZipArchive')) {
 			$this->ok("ZipArchive support"); 
 		} else {
 			$this->warn("ZipArchive support was not found. This is recommended, but not required to complete installation."); 
@@ -565,14 +565,14 @@ class Installer {
 			
 			$dsn = "mysql:dbname=$values[dbName];host=$values[dbHost];port=$values[dbPort]";
 			$driver_options = array(
-				PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES 'UTF8'",
-				PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+				\PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES 'UTF8'",
+				\PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION
 				);
 			
 			try {
-				$database = new PDO($dsn, $values['dbUser'], $values['dbPass'], $driver_options);
+				$database = new \PDO($dsn, $values['dbUser'], $values['dbPass'], $driver_options);
 				
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 				
 				if($e->getCode() == 1049) {
 					// If schema does not exist, try to create it
@@ -626,13 +626,13 @@ class Installer {
 
 			try {
 				$dsn2 = "mysql:host=$values[dbHost];port=$values[dbPort]";
-				$database = new PDO($dsn2, $values['dbUser'], $values['dbPass'], $driver_options);
+				$database = new \PDO($dsn2, $values['dbUser'], $values['dbPass'], $driver_options);
 				$database->exec("CREATE SCHEMA IF NOT EXISTS `$dbName` DEFAULT CHARACTER SET `$dbCharset`");
 				// reconnect
-				$database = new PDO($dsn, $values['dbUser'], $values['dbPass'], $driver_options);
+				$database = new \PDO($dsn, $values['dbUser'], $values['dbPass'], $driver_options);
 				if($database) $this->ok("Created database: $dbName"); 
 
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 				$this->err("Failed to create database with name $dbName");
 				$this->err($e->getMessage()); 
 				$database = null;
@@ -733,7 +733,7 @@ class Installer {
 		try {
 			$query = $database->prepare("SHOW COLUMNS FROM pages"); 
 			$result = $query->execute();
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$result = false;
 		}
 
@@ -787,7 +787,7 @@ class Installer {
 			return;
 		}
 
-		$dir = new DirectoryIterator($fromPath);
+		$dir = new \DirectoryIterator($fromPath);
 
 		foreach($dir as $file) {
 
@@ -1016,7 +1016,7 @@ class Installer {
 				$wire->pages->save($admin);
 			}
 
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$this->err($e->getMessage()); 
 			return $this->adminAccount($wire); 
 		}

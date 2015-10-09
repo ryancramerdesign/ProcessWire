@@ -1,4 +1,6 @@
-<?php include("./_head.php"); ?>
+<?php namespace ProcessWire;
+
+include("./_head.php"); ?>
 
 <div id='content'>
 

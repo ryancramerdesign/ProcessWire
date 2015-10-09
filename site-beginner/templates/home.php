@@ -1,4 +1,6 @@
-<?php include('./_head.php'); // include header markup ?>
+<?php namespace ProcessWire; 
+
+include('./_head.php'); // include header markup ?>
 
 	<div id='content'><?php
 	

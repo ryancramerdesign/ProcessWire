@@ -1,3 +1,4 @@
+<?php namespace ProcessWire; ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,7 +9,7 @@
 	<link href='//fonts.googleapis.com/css?family=Lusitana:400,700|Quattrocento:400,700' rel='stylesheet' type='text/css' />
 	<link rel="stylesheet" type="text/css" href="<?php echo $config->urls->templates?>styles/main.css" />
 </head>
-<body>
+<body class='has-sidebar'>
 
 	<!-- top navigation -->
 	<ul class='topnav'><?php 
