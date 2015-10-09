@@ -1014,14 +1014,20 @@ function InputfieldStates($target) {
 			$li.addClass('InputfieldStateWasCollapsed'); // this class only used here
 			$li.trigger(isCollapsed ? 'openReady' : 'closeReady'); 
 			$li.toggleClass('InputfieldStateCollapsed', 100, function() {
-				$li.trigger(isCollapsed ? 'opened' : 'closed');
-				if($li.hasClass('InputfieldNoFocus')) return;
-				var $input = $li.find(":input:visible");
-				if($input.length == 1 && !$input.is('button')) { 
-					var t = $input.attr('type'); 
-					if($input.is('textarea') || t == 'text' || t == 'email' || t == 'url' || t == 'number') {
-						$input.focus();
+				if(isCollapsed) {
+					$li.trigger('opened');
+					if($li.hasClass('InputfieldColumnWidth')) $li.children('.InputfieldContent').show();
+					if($li.hasClass('InputfieldNoFocus')) return;
+					var $input = $li.find(":input:visible");
+					if($input.length == 1 && !$input.is('button')) {
+						var t = $input.attr('type');
+						if($input.is('textarea') || t == 'text' || t == 'email' || t == 'url' || t == 'number') {
+							$input.focus();
+						}
 					}
+				} else {
+					$li.trigger('closed');
+					if($li.hasClass('InputfieldColumnWidth')) $li.children('.InputfieldContent').hide();
 				}
 			});
 			$icon.toggleClass($icon.attr('data-to')); // data-to=classes to toggle
