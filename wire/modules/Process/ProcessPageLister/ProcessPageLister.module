@@ -1422,7 +1422,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		
 		$actions = $pageListRender->getPageActions($p);
 		
-		if(isset($actions['edit']) && $this->editURL && strpos($actions['edit'], '/page/edit/') !== false) {
+		if(isset($actions['edit']) && $this->editURL && strpos($actions['edit']['url'], '/page/edit/') !== false) {
 			list($path, $queryString) = explode('?', $actions['edit']['url']);
 			$actions['edit']['url'] = $this->editURL . '?' . $queryString;
 		}
