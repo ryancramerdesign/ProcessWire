@@ -17,9 +17,15 @@
 
 define("PROCESSWIRE_CORE_PATH", dirname(__FILE__) . '/');
 
-require(PROCESSWIRE_CORE_PATH . "autoload.php"); 
-require(PROCESSWIRE_CORE_PATH . "Interfaces.php"); 
-require(PROCESSWIRE_CORE_PATH . "Exceptions.php"); 
+require(PROCESSWIRE_CORE_PATH . "Fuel.php");
+require(PROCESSWIRE_CORE_PATH . "Interfaces.php");
+require(PROCESSWIRE_CORE_PATH . "Exceptions.php");
+require(PROCESSWIRE_CORE_PATH . "Wire.php");
+require(PROCESSWIRE_CORE_PATH . "WireData.php");
+require(PROCESSWIRE_CORE_PATH . "WireClassLoader.php");
+require(PROCESSWIRE_CORE_PATH . "FilenameArray.php");
+require(PROCESSWIRE_CORE_PATH . "Paths.php");
+require(PROCESSWIRE_CORE_PATH . "Config.php");
 require(PROCESSWIRE_CORE_PATH . "Functions.php"); 
 require(PROCESSWIRE_CORE_PATH . "LanguageFunctions.php");
 require(PROCESSWIRE_CORE_PATH . "shutdown.php"); 
@@ -88,6 +94,11 @@ class ProcessWire extends Wire {
 	 */ 
 	public function __construct(Config $config) {
 		$this->debug = $config->debug; 
+		
+		$classLoader = new WireClassLoader();
+		$classLoader->addNamespace(__NAMESPACE__, PROCESSWIRE_CORE_PATH);
+		$this->wire('classLoader', $classLoader);
+
 		$this->config($config); 
 		$this->load($config);
 	}

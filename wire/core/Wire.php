@@ -110,6 +110,7 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 *
 	 */
 	public static function getFuel($name = '') {
+		if(is_null(self::$fuel)) self::$fuel = new Fuel();
 		if(empty($name)) return self::$fuel;
 		return self::$fuel->$name;
 	}

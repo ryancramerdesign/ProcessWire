@@ -1299,18 +1299,35 @@ function wireBytesStr($size) {
  * Can also be used in an equivalent way to PHP's get_class() function. 
  * 
  * @param string|object $className
- * @param bool $withNamespace Should return value include namespace? (default=false)
- * @return string
+ * @param bool|int|string $withNamespace Should return value include namespace? (default=false) 
+ * 	or specify integer 1 to return only namespace (i.e. "ProcessWire", no leading or trailing backslashes)
+ * @return string|null Returns string or NULL if namespace-only requested and unable to determine
  * 
  */
 function wireClassName($className, $withNamespace = false) {
+	
 	if(is_object($className)) $className = get_class($className);
 	$pos = strrpos($className, "\\");
-	if($withNamespace) {
+	
+	if($withNamespace === true) {
+		// return class with namespace, substituting ProcessWire namespace if none present
 		if($pos === false && __NAMESPACE__) $className = __NAMESPACE__ . "\\$className";
+		
+	} else if($withNamespace === 1) {
+		// return namespace only
+		if($pos !== false) {
+			// there is a namespace
+			$className = substr($className, 0, $pos);
+		} else {
+			// there is no namespace in given className
+			$className = null;
+		}
+			
 	} else {
+		// return className without namespace
 		if($pos !== false) $className = substr($className, $pos+1);
 	}
+	
 	return $className;
 }
 

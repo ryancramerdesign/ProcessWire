@@ -162,6 +162,14 @@ class Modules extends WireArray {
 	 *
 	 */
 	protected $modulesTableCache = array();
+
+	/**
+	 * Cache of namespace => path for unique module namespaces
+	 * 
+	 * @var array|null Becomes an array once populated
+	 * 
+	 */
+	protected $moduleNamespaceCache = null;
 	
 	/**
 	 * Last known versions of modules, for version change tracking
@@ -1166,20 +1174,44 @@ class Modules extends WireArray {
 	 *
 	 */
 	public function includeModule($module, $file = '') {
-		$className = '';
-		if(is_object($module)) $className = $module->className();
-			else if(is_string($module)) $className = $module; 
-		if($className && wireClassExists($className, false)) return true; // already included
+		
+		if(is_string($module)) {
+			$className = $module;
+		} else if(is_object($module)) {
+			if($module instanceof ModulePlaceholder) {
+				$className = $module->className();
+			} else if($module instanceof Module) {
+				return true; // already included
+			}
+		} else {
+			$className = $this->getModuleClass($module);
+		}
+		
+		if(!$className) return false;
+		
+		if(class_exists($className, false)) {
+			// already included
+			return true; 
+		}
+	
+		// determine if namespace was requested with module
+		$namespace = wireClassName($className, 1);
+		
+		// moduleName is className without namespace
+		$moduleName = $namespace === null ? $className : wireClassName($className, false);
 		
 		// attempt to retrieve module
-		if(is_string($module)) $module = parent::get($module); 
+		$module = parent::get($moduleName); 
 		
-		if(!$module && $className) {
-			// unable to retrieve module, must be an uninstalled module
-			if(!$file) $file = $this->getModuleFile($className); 
+		if(!$module && $moduleName) {
+			// unable to retrieve module, may be an uninstalled module
+			if(!$file) $file = $this->getModuleFile($moduleName); 
 			if($file) {
 				$this->includeModuleFile($file);
-				if(wireClassExists($className, false)) return true;
+				if(class_exists($className, false)) {
+					// successful include module
+					return true;
+				}
 			}
 		}
 		
@@ -1187,12 +1219,21 @@ class Modules extends WireArray {
 
 		if($module instanceof ModulePlaceholder) {
 			$this->includeModuleFile($module->file);
+		} else if($module instanceof Module) {
+			// it's already been included, since we have a real module
 		} else {
-			// it's already been included, no doubt
+			return false;
 		}
+		
 		return true; 
 	}
-	
+
+	/**
+	 * Include the given filename while accounting for 2.x compatibility if $config->compat2x is active
+	 * 
+	 * @param string $file
+	 * 
+	 */
 	protected function includeModuleFile($file) {
 		static $compat2x = null;
 		if(is_null($compat2x)) $compat2x = $this->compat2x && $this->wire('config')->debug;
@@ -2340,6 +2381,10 @@ class Modules extends WireArray {
 			if(!$options['verbose']) foreach($this->moduleInfoVerboseKeys as $key) unset($info[$key]); 
 		} 
 		
+		if(is_null($info['namespace'])) {
+			$info['namespace'] = "\\" . __NAMESPACE__ . "\\";
+		}
+		
 		if(empty($info['created']) && isset($this->createdDates[$moduleID])) {
 			$info['created'] = strtotime($this->createdDates[$moduleID]);
 		}
@@ -2369,6 +2414,25 @@ class Modules extends WireArray {
 		$options['verbose'] = true; 
 		$info = $this->getModuleInfo($module, $options); 
 		return $info;
+	}
+
+	/**
+	 * Get an array of all unique, non-default, non-root module namespaces mapped to directory names
+	 * 
+	 * @return array
+	 * 
+	 */
+	public function getNamespaces() {
+		if(!is_null($this->moduleNamespaceCache)) return $this->moduleNamespaceCache;
+		$defaultNamespace = "\\" . __NAMESPACE__ . "\\";
+		$namespaces = array();
+		foreach($this->moduleInfoCache as $moduleID => $info) {
+			if(!isset($info['namespace']) || $info['namespace'] === $defaultNamespace || $info['namespace'] === "\\") continue;
+			$moduleName = $info['name'];
+			$namespaces[$info['namespace']] = $this->wire('config')->paths->$moduleName;
+		}
+		$this->moduleNamespaceCache = $namespaces; 
+		return $namespaces; 
 	}
 
 	/**
@@ -3007,12 +3071,45 @@ class Modules extends WireArray {
 	}
 
 	/**
+	 * Does the given module name resolve to a module in the system (installed or uninstalled)
+	 * 
+	 * @param $moduleName
+	 * @return bool
+	 * 
+	 */
+	public function isModule($moduleName) {
+		if(!is_string($moduleName)) {
+			if(is_object($moduleName)) {
+				if($moduleName instanceof Module) return true;
+				return false;
+			}
+			$moduleName = $this->getModuleClass($moduleName);
+		}
+		if(strpos($moduleName, "\\") !== false) $moduleName = wireClassName($moduleName, false);
+		if(isset($this->moduleIDs[$moduleName])) return true; 
+		if(isset($this->installable[$moduleName])) return true;
+		return false;
+	}
+
+	/**
+	 * Is the given namespace a unique recognized module namespace? If yes, returns the path to it. If not, returns boolean false;
+	 * 
+	 * @param string $namespace
+	 * @return bool|string
+	 * 
+	 */
+	public function getNamespacePath($namespace) {
+		if(is_null($this->moduleNamespaceCache)) $this->getNamespaces();
+		$namespace = "\\" . trim($namespace, "\\") . "\\";
+		return isset($this->moduleNamespaceCache[$namespace]) ? $this->moduleNamespaceCache[$namespace] : false;	
+	}
+	
+	/**
 	 * Reset the cache that stores module files by recreating it
 	 *
 	 */
 	public function resetCache() {
 		if($this->wire('config')->systemVersion < 6) {
-			echo "old system version";
 			return;
 		}
 		$this->clearModuleInfoCache();
@@ -3616,7 +3713,6 @@ class Modules extends WireArray {
 					$verboseKeys = $this->moduleInfoVerboseKeys; 
 					$verboseInfo = array();
 					
-					
 					foreach($verboseKeys as $key) {
 						if(!empty($info[$key])) $verboseInfo[$key] = $info[$key]; 
 						unset($info[$key]); // remove from regular moduleInfo 
@@ -3656,7 +3752,11 @@ class Modules extends WireArray {
 						|| (is_array($value) && !count($value))) {
 						// no need to store these false, null, 0, or blank array properties
 						unset($data[$moduleID][$key]);
-					} 
+						
+					} else if($key == 'namespace' && $value == "\\" . __NAMESPACE__ . "\\") {
+						// no need to cache default namespace in module info
+						unset($data[$moduleID][$key]);
+					}
 				}
 			}
 			$this->wire('cache')->save($cacheName, $data, WireCache::expireNever); 
