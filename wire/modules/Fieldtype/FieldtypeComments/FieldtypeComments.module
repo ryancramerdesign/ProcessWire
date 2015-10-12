@@ -382,6 +382,7 @@ class FieldtypeComments extends FieldtypeMulti {
 		$downvoteSchema = "int unsigned NOT NULL default 0";
 		
 		$schemaVersion = (int) $field->schemaVersion;
+		$updateSchema = true;
 
 		if(!$schemaVersion) {
 			// add website field for PW 2.3+ 
@@ -390,7 +391,9 @@ class FieldtypeComments extends FieldtypeMulti {
 			try { 
 				$database->query("ALTER TABLE `$table` ADD website $websiteSchema");
 				$schemaVersion = 1;
-			} catch(Exception $e) { }
+			} catch(Exception $e) { 
+				$updateSchema = false;
+			}
 		}
 		
 		if($schemaVersion < 2) {
@@ -401,7 +404,9 @@ class FieldtypeComments extends FieldtypeMulti {
 				$database->query("ALTER TABLE `$table` ADD parent_id $parentSchema");
 				$database->query("ALTER TABLE `$table` ADD flags $flagSchema");
 				$schemaVersion = 2;
-			} catch(Exception $e) { }
+			} catch(Exception $e) { 
+				$updateSchema = false;
+			}
 		}
 		
 		if($schemaVersion < 3) {
@@ -412,7 +417,9 @@ class FieldtypeComments extends FieldtypeMulti {
 				$database->query("ALTER TABLE `$table` ADD `code` $codeSchema");
 				$database->query("ALTER TABLE `$table` ADD $codeIndexSchema"); 
 				$schemaVersion = 3;
-			} catch(Exception $e) { }
+			} catch(Exception $e) { 
+				$updateSchema = false;
+			}
 		}
 		
 		if($schemaVersion < 4) {
@@ -423,10 +430,12 @@ class FieldtypeComments extends FieldtypeMulti {
 				$database->query("ALTER TABLE `$table` ADD `subcode` $subcodeSchema");
 				$database->query("ALTER TABLE `$table` ADD $subcodeIndexSchema");
 				$schemaVersion = 4;
-			} catch(Exception $e) { }
+			} catch(Exception $e) { 
+				$updateSchema = false;
+			}
 		}
 		
-		if($schemaVersion < 5) {
+		if($schemaVersion < 5 && $updateSchema) {
 			// add upvote/downvote columns 
 			$database = $this->wire('database');
 			$table = $database->escapeTable($field->getTable());
