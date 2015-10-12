@@ -1832,10 +1832,18 @@ class Pages extends Wire {
 
 		// if there are children, then recurisvely clone them too
 		if($page->numChildren && $recursive) {
-			foreach($page->children("include=all") as $child) {
-				/** @var Page $child */
-				$this->clone($child, $copy, true, array('recursionLevel' => $options['recursionLevel']+1)); 	
-			}	
+			$start = 0;
+			$limit = 200;
+			do {
+				$children = $page->children("include=all, start=$start, limit=$limit");
+				$numChildren = $children->count();
+				foreach($children as $child) {
+					/** @var Page $child */
+					$this->clone($child, $copy, true, array('recursionLevel' => $options['recursionLevel'] + 1));
+				}
+				$start += $limit;
+				$this->uncacheAll();
+			} while($numChildren);
 		}
 
 		$copy->parentPrevious = null;
