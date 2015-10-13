@@ -309,7 +309,7 @@
             "text": "W\u00e4hlen Sie das\/die Template(s), welche(s) Elternseiten von Seiten, die dieses Template verwenden, haben d\u00fcrfen. Benutzen Sie dies nur, falls Sie die Platzierung von Seiten, die dieses Template verwenden, spezifisch einschr\u00e4nken m\u00f6chten."
         },
         "dc70febc65985c326b6d7a85502ddc0a": {
-            "text": "Falls keine ausgew\u00e4hlt werden, ist jedes Eltern-Template (innerhalb des Zugriffsrechte eines Benutzers) erlaubt. Zum Beispiel k\u00f6nnte ein Template 'angestellte' existieren, das nur Seiten mit dem Template 'firmen-uebersicht' als Elternseite haben darf."
+            "text": "Falls keine ausgew\u00e4hlt werden, ist jedes Eltern-Template (innerhalb der Zugriffsrechte eines Benutzers) erlaubt. Zum Beispiel k\u00f6nnte ein Template 'angestellte' existieren, das nur Seiten mit dem Template 'firmen-uebersicht' als Elternseite haben darf."
         },
         "1e791aefe4014d2551110c4348279487": {
             "text": "Zul\u00e4ssige(s) Template(s) f\u00fcr Unterseiten"
@@ -318,7 +318,7 @@
             "text": "W\u00e4hlen Sie das\/die Template(s), welche(s) Unterseiten von Seiten, die dieses Template verwenden, haben d\u00fcrfen. Benutzen Sie dies nur, falls Sie die Platzierung von Seiten, die dieses Template verwenden, spezifisch einschr\u00e4nken m\u00f6chten."
         },
         "9927f70231db8b53612513d00b934a7c": {
-            "text": "Falls keine ausgew\u00e4hlt werden, ist jedes Template (innerhalb des Zugriffsrechte eines Benutzers) erlaubt. Zum Beispiel k\u00f6nnte ein Template 'news-liste' existieren, das nur Seiten mit dem Template 'news-meldung' oder 'presse-mitteilung' als Unterseiten haben darf."
+            "text": "Falls keine ausgew\u00e4hlt werden, ist jedes Template (innerhalb der Zugriffsrechte eines Benutzers) erlaubt. Zum Beispiel k\u00f6nnte ein Template 'news-liste' existieren, das nur Seiten mit dem Template 'news-meldung' oder 'presse-mitteilung' als Unterseiten haben darf."
         },
         "67c0041f81951ac9b6b46dd2311fb9aa": {
             "text": "Sortierungseinstellungen f\u00fcr Unterseiten"
