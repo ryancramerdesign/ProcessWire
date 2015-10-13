@@ -1351,7 +1351,7 @@ class Pages extends Wire {
 		if(is_string($options)) $options = Selectors::keyValueStringToArray($options);
 		if($page->isNew()) throw new WireException("Can't save field from a new page - please save the entire page first"); 
 		if(!$this->isSaveable($page, $reason, $field, $options)) throw new WireException("Can't save field from page {$page->id}: {$page->path}: $reason"); 
-		if($field && (is_string($field) || is_int($field))) $field = $this->fuel('fields')->get($field);
+		if($field && (is_string($field) || is_int($field))) $field = $this->wire('fields')->get($field);
 		if(!$field instanceof Field) throw new WireException("Unknown field supplied to saveField for page {$page->id}");
 		if(!$page->fields->has($field)) throw new WireException("Page {$page->id} does not have field {$field->name}"); 
 

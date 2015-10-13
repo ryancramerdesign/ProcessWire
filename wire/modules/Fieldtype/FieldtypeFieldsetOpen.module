@@ -87,7 +87,7 @@ class FieldtypeFieldsetOpen extends Fieldtype {
 
 	public function ___getCompatibleFieldtypes(Field $field) {
 		$fieldtypes = new Fieldtypes();
-		foreach($this->fuel('fieldtypes') as $fieldtype) {
+		foreach($this->wire('fieldtypes') as $fieldtype) {
 			if($fieldtype instanceof FieldtypeFieldsetOpen) $fieldtypes->add($fieldtype); 
 		}
 		return $fieldtypes; 
@@ -137,10 +137,10 @@ class FieldtypeFieldsetOpen extends Fieldtype {
 		$field = $event->arguments[0]; 
 		if(!$this->isFieldset($field)) return; 
 
-		$closer = $this->fuel('fields')->get($field->name . self::fieldsetCloseIdentifier); 
+		$closer = $this->wire('fields')->get($field->name . self::fieldsetCloseIdentifier); 
 		if(!$closer) return; 
 
-		$this->fuel('fields')->delete($closer); 
+		$this->wire('fields')->delete($closer); 
 		$this->message("Delete also issued for field '$closer'"); 
 	}
 
@@ -151,7 +151,7 @@ class FieldtypeFieldsetOpen extends Fieldtype {
 	public function hookTemplateFieldAdded($event) {
 		list($field, $template) = $event->arguments; 
 		if(!$this->isFieldset($field)) return; 
-		$closer = $this->fuel('fields')->get($field->name . self::fieldsetCloseIdentifier); 
+		$closer = $this->wire('fields')->get($field->name . self::fieldsetCloseIdentifier); 
 		if(!$closer) return; 
 		$template->fieldgroup->add($closer); 
 		$this->message("Also added field '$closer', which should be placed where you want to close fieldset '$field'"); 
@@ -164,7 +164,7 @@ class FieldtypeFieldsetOpen extends Fieldtype {
 	public function hookTemplateFieldRemoved($event) {
 		list($field, $template) = $event->arguments; 
 		if(!$this->isFieldset($field)) return; 
-		$closer = $this->fuel('fields')->get($field->name . self::fieldsetCloseIdentifier); 
+		$closer = $this->wire('fields')->get($field->name . self::fieldsetCloseIdentifier); 
 		if(!$closer) return; 
 		$template->fieldgroup->remove($closer); 
 		$this->message("Also removed '$closer', which accompanies '$field'"); 

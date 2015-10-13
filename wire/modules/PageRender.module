@@ -55,7 +55,7 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 	 *
 	 */
 	public function init() {
-		$this->config = $this->fuel('config'); 
+		$this->config = $this->wire('config'); 
 		$this->addHook('Page::render', $this, 'renderPage');
 		$this->pages->addHookAfter('save', $this, 'clearCacheFile'); 
 		$this->pages->addHookAfter('delete', $this, 'clearCacheFile'); 
@@ -439,12 +439,12 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 	 */
 	static public function getModuleConfigInputfields(array $data) {
 
-		$path = Wire::getFuel('config')->paths->cache . self::cacheDirName . '/';
+		$path = wire('config')->paths->cache . self::cacheDirName . '/';
 		$numPages = 0;
 		$numFiles = 0;
 		$inputfields = new InputfieldWrapper();
 		$dir = null;
-		$clearNow = Wire::getFuel('input')->post->clearCache ? true : false; 
+		$clearNow = wire('input')->post->clearCache ? true : false; 
 
 		try { $dir = new \DirectoryIterator($path); } catch(\Exception $e) { }
 
@@ -468,7 +468,7 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 		}
 
 		$name = "clearCache";
-		$f = Wire::getFuel('modules')->get('InputfieldCheckbox');
+		$f = wire('modules')->get('InputfieldCheckbox');
 		$f->attr('name', $name);
 		$f->attr('value', 1);
 		$f->label = __('Clear the Page Render Disk Cache?'); 

@@ -185,7 +185,7 @@ class WireData extends Wire implements \IteratorAggregate {
 			// dot not present
 			$keys = array();
 		}
-		if(Wire::getFuel($key) !== null) return null; // don't allow API vars to be retrieved this way
+		if(wire($key) !== null) return null; // don't allow API vars to be retrieved this way
 		if($from instanceof WireData) $value = $from->get($key);
 			else if($from instanceof WireArray) $value = $from->getProperty($key);
 			else $value = $from->$key;

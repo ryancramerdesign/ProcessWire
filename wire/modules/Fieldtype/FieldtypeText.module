@@ -93,7 +93,7 @@ class FieldtypeText extends Fieldtype {
 
 		if($this->allowTextFormatters() && is_array($field->textformatters)) {
 			foreach($field->textformatters as $name) {
-				if(!$textformatter = $this->fuel('modules')->get($name)) continue; 
+				if(!$textformatter = $this->wire('modules')->get($name)) continue; 
 				$textformatter->formatValue($page, $field, $value); 
 			}
 		}

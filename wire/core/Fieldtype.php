@@ -293,7 +293,7 @@ abstract class Fieldtype extends WireData implements Module {
 	 */
 	public function ___getCompatibleFieldtypes(Field $field) {
 		$fieldtypes = new Fieldtypes();
-		foreach($this->fuel('fieldtypes') as $fieldtype) {
+		foreach($this->wire('fieldtypes') as $fieldtype) {
 			if(!$fieldtype instanceof FieldtypeMulti) $fieldtypes->add($fieldtype); 
 		}
 		return $fieldtypes; 
@@ -978,7 +978,7 @@ abstract class Fieldtype extends WireData implements Module {
 	public function ___uninstall() {
 
 		$names = array();
-		$fields = $this->getFuel('fields'); 
+		$fields = $this->wire('fields'); 
 
 		foreach($fields as $field) {
 			if($field->type === $this->name) $names[] = $field->name; 

@@ -24,8 +24,8 @@
  *
  */
 function __($text, $textdomain = null, $context = '') {
-	if(!Wire::getFuel('languages')) return $text; 
-	if(!$language = Wire::getFuel('user')->language) return $text; 
+	if(!wire('languages')) return $text; 
+	if(!$language = wire('user')->language) return $text; 
 	if(!$language->id) return $text; 
 	if(is_null($textdomain)) {
 		if(defined('DEBUG_BACKTRACE_IGNORE_ARGS')) $traces = @debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);

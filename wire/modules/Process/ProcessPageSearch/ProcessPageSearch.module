@@ -970,8 +970,9 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 	static public function getModuleConfigInputfields(array $data) {
 
 		$inputfields = new InputfieldWrapper();
+		$modules = wire('modules');
 
-		$inputfield = Wire::getFuel('modules')->get("InputfieldText");
+		$inputfield = $modules->get("InputfieldText");
 		$inputfield->attr('name', 'searchFields');
 		if(!isset($data['searchFields'])) $data['searchFields'] = 'title body';
 		if(is_array($data['searchFields'])) $data['searchFields'] = implode(' ', $data['searchFields']);
@@ -981,7 +982,7 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 		$inputfield->description = $description; 
 		$inputfields->append($inputfield);
 		
-		$inputfield = Wire::getFuel('modules')->get("InputfieldText");
+		$inputfield = $modules->get("InputfieldText");
 		$inputfield->attr('name', 'searchFields2');
 		if(!isset($data['searchFields2'])) $data['searchFields2'] = 'title';
 		if(is_array($data['searchFields2'])) $data['searchFields2'] = implode(' ', $data['searchFields2']);
@@ -991,14 +992,14 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 		$inputfield->notes = __("We recommend limiting this to 1 or 2 fields at the most since results populate a live autocomplete field. Typically you would just search the title."); // Fields to search description
 		$inputfields->append($inputfield);
 
-		$inputfield = Wire::getFuel('modules')->get("InputfieldText");
+		$inputfield = $modules->get("InputfieldText");
 		$inputfield->attr('name', 'displayField');
 		$inputfield->attr('value', isset($data['displayField']) ? $data['displayField'] : 'name');
 		$inputfield->label = __("Default field name(s) to display in search results");
 		$inputfield->description = __("If specifying more than one field, separate each with a space.");
 		$inputfields->append($inputfield);
 
-		$inputfield = Wire::getFuel('modules')->get("InputfieldSelect");
+		$inputfield = $modules->get("InputfieldSelect");
 		$inputfield->attr('name', 'operator');
 		$inputfield->attr('value', isset($data['operator']) ? $data['operator'] : self::defaultOperator);
 		$inputfield->label = __("Default search operator");

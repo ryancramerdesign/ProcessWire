@@ -435,7 +435,7 @@ class WireUpload extends Wire {
 	}
 
 	public function setName($name) {
-		$this->name = $this->fuel('sanitizer')->fieldName($name); 
+		$this->name = $this->wire('sanitizer')->fieldName($name); 
 		return $this; 
 	}
 

@@ -156,7 +156,7 @@ class Fieldgroups extends WireSaveableItemsLookup {
 	public function getTemplates(Fieldgroup $fieldgroup) {
 		$templates = new TemplatesArray();
 		$cnt = 0;
-		foreach($this->fuel('templates') as $tpl) {
+		foreach($this->wire('templates') as $tpl) {
 			if($tpl->fieldgroup->id == $fieldgroup->id) $templates->add($tpl); 
 		}
 		return $templates; 
@@ -244,7 +244,7 @@ class Fieldgroups extends WireSaveableItemsLookup {
 	public function ___delete(Saveable $item) {
 
 		$templates = array();
-		foreach($this->fuel('templates') as $template) {
+		foreach($this->wire('templates') as $template) {
 			if($template->fieldgroup->id == $item->id) $templates[] = $template->name; 
 		}
 

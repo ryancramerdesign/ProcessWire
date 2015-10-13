@@ -766,7 +766,7 @@ class Template extends WireData implements Saveable, Exportable {
 		$tableData = $this->settings; 
 		$data = $this->getArray();
 		// ensure sortfield is a signed integer or native name, rather than a custom fieldname
-		if(!empty($data['sortfield'])) $data['sortfield'] = $this->fuel('pages')->sortfields()->encode($data['sortfield'], ''); 
+		if(!empty($data['sortfield'])) $data['sortfield'] = $this->wire('pages')->sortfields()->encode($data['sortfield'], ''); 
 		$tableData['data'] = $data; 
 		
 		return $tableData; 

@@ -39,7 +39,7 @@ class InputfieldURL extends InputfieldText {
 		if(strlen($value)) {
 			$value = trim($value); 
 			$unsanitized = $value; 
-			$value = $this->fuel('sanitizer')->url($value, $this->noRelative ? false : true); 	
+			$value = $this->wire('sanitizer')->url($value, $this->noRelative ? false : true); 	
 
 			if(!$value || $unsanitized != $value && "http://$unsanitized" != $value) {
 				$this->error($this->name . ': ' . $this->_("Error found - please check that it is a valid URL")); // Error message when invalid URL found

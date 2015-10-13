@@ -1017,7 +1017,7 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 			$formRoot = $form;
 		}
 
-		$languages = $this->fuel('languages'); 
+		$languages = $this->wire('languages'); 
 
 		foreach($form as $inputfield) {
 
@@ -1168,8 +1168,8 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 			return false; 
 		}
 
-		$afterDeleteRedirect = $this->fuel('config')->urls->admin . "page/?open={$this->parent->id}";
-		if($this->fuel('page')->process != $this->className()) $afterDeleteRedirect = "../";
+		$afterDeleteRedirect = $this->wire('config')->urls->admin . "page/?open={$this->parent->id}";
+		if($this->wire('page')->process != $this->className()) $afterDeleteRedirect = "../";
 
 		if($this->isTrash || $this->page->template->noTrash) {
 			$this->session->message(sprintf($this->_('Deleted page: %s'), $this->page->url)); // Page deleted message
@@ -1300,7 +1300,7 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 		$form->append($f); 
 
 		$page = $this->masterPage ? $this->masterPage : $this->page; 
-		$this->fuel('breadcrumbs')->add(new Breadcrumb("./?id={$page->id}", $page->get("title|name"))); 
+		$this->wire('breadcrumbs')->add(new Breadcrumb("./?id={$page->id}", $page->get("title|name"))); 
 
 		return $form->render();
 	}
@@ -1340,7 +1340,7 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 		if(is_array($this->allowedTemplates)) return $this->allowedTemplates;
 
 		$templates = array();
-		$user = $this->fuel('user');
+		$user = $this->wire('user');
 		$isSuperuser = $user->isSuperuser();
 		$page = $this->masterPage ? $this->masterPage : $this->page;
 		$parent = $page->parent; 

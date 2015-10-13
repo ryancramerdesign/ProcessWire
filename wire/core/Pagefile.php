@@ -134,7 +134,7 @@ class Pagefile extends WireData {
 	public function set($key, $value) {
 		if($key == 'basename') $value = $this->pagefiles->cleanBasename($value, false); 
 		if($key == 'description') return $this->setDescription($value); 
-		if($key == 'tags') $value = $this->fuel('sanitizer')->text($value);
+		if($key == 'tags') $value = $this->wire('sanitizer')->text($value);
 		if($key == 'modified') $value = ctype_digit("$value") ? (int) $value : strtotime($value); 
 		if($key == 'created') $value = ctype_digit("$value") ? (int) $value : strtotime($value); 
 

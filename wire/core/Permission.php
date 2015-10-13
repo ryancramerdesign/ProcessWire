@@ -46,8 +46,8 @@ class Permission extends Page {
 	 *
 	 */
 	public function __construct(Template $tpl = null) {
-		if(is_null($tpl)) $tpl = $this->fuel('templates')->get('permission'); 
-		$this->parent = $this->fuel('pages')->get($this->fuel('config')->permissionsPageID); 
+		if(is_null($tpl)) $tpl = $this->wire('templates')->get('permission'); 
+		$this->parent = $this->wire('pages')->get($this->wire('config')->permissionsPageID); 
 		parent::__construct($tpl); 
 	}
 

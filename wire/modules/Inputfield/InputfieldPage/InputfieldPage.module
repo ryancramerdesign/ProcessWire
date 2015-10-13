@@ -242,7 +242,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 			if($children instanceof Page) $children = $children->children(); // @teppokoivula
 
 		} else if($this->parent_id) {
-			$parent = $this->fuel('pages')->get($this->parent_id); 
+			$parent = $this->wire('pages')->get($this->parent_id); 
 			if($parent) $children = $this->template_id ? $parent->children("templates_id={$this->template_id}, check_access=0, status<$statusUnder") : $parent->children("check_access=0, status<$statusUnder");
 
 		} else if($this->template_id) {
@@ -731,7 +731,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		$field->addOption('.', $this->_('Custom format (multiple fields)' . ' ...'));
 		$field->columnWidth = 50;
 
-		if($this->fuel('fields')->get('title')) {
+		if($this->wire('fields')->get('title')) {
 			$field->addOption('title', 'title' . $defaultLabel);
 			$field->addOption('name', 'name');
 			$titleIsDefault = true;
@@ -741,7 +741,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		}
 		$field->addOption('path', 'path'); 
 
-		foreach($this->fuel('fields') as $f) {
+		foreach($this->wire('fields') as $f) {
 			if(!$f->type instanceof FieldtypeText) continue;
 			if($f->type instanceof FieldtypeTextarea) continue; 
 			if($titleIsDefault && $f->name == 'title') continue;
@@ -819,10 +819,10 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 
 		if(!isset($data[$name]) || !is_array($data[$name])) $data[$name] = self::$defaultInputfieldClasses; 
 		$fields = new InputfieldWrapper();
-		$modules = Wire::getFuel('modules');
+		$modules = wire('modules');
 		$field = $modules->get("InputfieldAsmSelect");
 		$field->attr('name', $name);
-		foreach(Wire::getFuel('modules')->find('className^=Inputfield') as $inputfield) {
+		foreach($modules->find('className^=Inputfield') as $inputfield) {
 			$field->addOption($inputfield->className(), str_replace('Inputfield', '', $inputfield->className())); 
 		}
 		$field->attr('value', $data[$name]); 

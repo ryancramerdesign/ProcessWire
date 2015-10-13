@@ -70,7 +70,7 @@ abstract class FieldtypeMulti extends Fieldtype {
 	 */
 	public function ___getCompatibleFieldtypes(Field $field) {
 		$fieldtypes = new Fieldtypes();
-		foreach($this->fuel('fieldtypes') as $fieldtype) {
+		foreach($this->wire('fieldtypes') as $fieldtype) {
 			if($fieldtype instanceof FieldtypeMulti) $fieldtypes->add($fieldtype); 
 		}
 		return $fieldtypes; 

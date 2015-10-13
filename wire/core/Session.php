@@ -475,7 +475,7 @@ class Session extends Wire implements \IteratorAggregate {
 				$this->set('_user', 'fingerprint', $this->getFingerprint()); 
 			}
 
-			$this->setFuel('user', $user); 
+			$this->wire('user', $user); 
 			$this->get('CSRF')->resetAll();
 			$this->loginSuccess($user); 
 

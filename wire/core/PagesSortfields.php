@@ -80,7 +80,7 @@ class PagesSortfields extends Wire {
 		}
 
 		if(ctype_digit("$sortfield") || !Fields::isNativeName($sortfield)) {
-			$field = $this->fuel('fields')->get($sortfield);
+			$field = $this->wire('fields')->get($sortfield);
 			if($field) $sortfield = $field->name; 
 				else $sortfield = '';
 		}
@@ -111,7 +111,7 @@ class PagesSortfields extends Wire {
 		}
 
 		if($sortfield && !Fields::isNativeName($sortfield)) { 
-			if($field = $this->fuel('fields')->get($sortfield)) $sortfield = $field->id; 
+			if($field = $this->wire('fields')->get($sortfield)) $sortfield = $field->id; 
 				else $sortfield = '';
 		}
 

@@ -949,13 +949,13 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 	 *
 	 */
 	public function setupBreadcrumbs() {
-		if($this->fuel('page')->process != $this->className()) return;
+		if($this->wire('page')->process != $this->className()) return;
 		$breadcrumbs = new Breadcrumbs();
 		$breadcrumbs->add(new Breadcrumb($this->config->urls->admin . 'page/list/', "Pages"));
 		foreach($this->parent->parents()->append($this->parent) as $p) {
 			$breadcrumbs->add(new Breadcrumb($this->config->urls->admin . "page/list/?open=" . $p->id, $p->get("title|name"))); 
 		}
-		$this->setFuel('breadcrumbs', $breadcrumbs); 
+		$this->wire('breadcrumbs', $breadcrumbs); 
 	}
 
 	/**

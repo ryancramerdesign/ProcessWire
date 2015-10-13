@@ -272,7 +272,7 @@ abstract class Inputfield extends WireData implements Module {
 		}
 		if($key == 'attributes') return $this->attributes; 
 		if($key == 'parent') return $this->parent; 
-		if(($value = $this->getFuel($key)) !== null) return $value; 
+		if(($value = $this->wire($key)) !== null) return $value; 
 		if(array_key_exists($key, $this->attributes)) return $this->attributes[$key]; 
 		return parent::get($key); 
 	}

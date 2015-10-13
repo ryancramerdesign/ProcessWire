@@ -40,7 +40,7 @@ class FieldtypePageTitle extends FieldtypeText implements FieldtypePageTitleComp
 
 	public function ___getCompatibleFieldtypes(Field $field) {
 		$fieldtypes = new Fieldtypes();
-		foreach($this->fuel('fieldtypes') as $fieldtype) {
+		foreach($this->wire('fieldtypes') as $fieldtype) {
 			if($fieldtype instanceof FieldtypePageTitleCompatible) {
 				$fieldtypes->add($fieldtype);
 			}

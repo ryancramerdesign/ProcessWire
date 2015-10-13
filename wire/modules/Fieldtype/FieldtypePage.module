@@ -54,8 +54,7 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 	 *
 	 */
 	public function init() {
-		$pages = $this->getFuel('pages');
-		$pages->addHookAfter('delete', $this, 'hookPagesDelete');
+		$this->wire('pages')->addHookAfter('delete', $this, 'hookPagesDelete');
 	}
 
 	/**
@@ -76,7 +75,7 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 		if(!$event->return) return; // if delete failed, then don't continue
 		$page_id = $event->arguments[0]->id; 
 		$database = $this->wire('database');
-		foreach($this->fuel('fields') as $field) {
+		foreach($this->wire('fields') as $field) {
 			if(!$field->type instanceof FieldtypePage) continue; 
 			$table = $database->escapeTable($field->table);
 			// delete references to this page
@@ -103,7 +102,7 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 	 *
 	 */
 	public function getInputfield(Page $page, Field $field) {
-		$inputfield = $this->fuel('modules')->get("InputfieldPage"); 
+		$inputfield = $this->wire('modules')->get("InputfieldPage"); 
 		$inputfield->class = $this->className();
 		return $inputfield; 
 	}
@@ -122,7 +121,7 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 		$template = null;
 		$parent_id = null; 
 		
-		if($field->template_id) $template = $this->fuel('templates')->get($field->template_id); 
+		if($field->template_id) $template = $this->wire('templates')->get($field->template_id); 
 		if($field->parent_id) $parent_id = $field->parent_id; 
 		
 		// handle $value if it's blank, Page, or PageArray
@@ -180,7 +179,7 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 		} else {
 			// we're going to return a PageArray
 			if(!count($value)) return $this->getBlankValue($page, $field); 
-			$pageArray = $this->fuel('pages')->getById($value, $template); 
+			$pageArray = $this->wire('pages')->getById($value, $template); 
 			foreach($pageArray as $pg) {
 				// remove any pages that have an unpublished status
 				if($pg->status >= Page::statusUnpublished && !$field->allowUnpub) $pageArray->remove($pg); 

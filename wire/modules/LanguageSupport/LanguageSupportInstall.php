@@ -268,7 +268,7 @@ class LanguageSupportInstall extends Wire {
 			$this->fields->delete($field);
 		}
 
-		Wire::setFuel('languages', null); 
+		$this->wire('languages', false);
 		$uninstallModules = array('ProcessLanguage', 'ProcessLanguageTranslator'); 
 		foreach($uninstallModules as $name) {
 			$this->modules->uninstall($name); 

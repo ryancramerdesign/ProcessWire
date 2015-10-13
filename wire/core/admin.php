@@ -67,7 +67,7 @@ $breadcrumbs = new Breadcrumbs();
 foreach($page->parents() as $p) {
 	if($p->id > 1) $breadcrumbs->add(new Breadcrumb($p->url, $p->get("title|name"))); 
 }
-Wire::setFuel('breadcrumbs', $breadcrumbs); 
+$wire->wire('breadcrumbs', $breadcrumbs); 
 $controller = null;
 $content = '';
 

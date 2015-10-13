@@ -136,7 +136,7 @@ class PageArray extends PaginatedArray implements WirePaginatable {
 			return $this->import($page);
 
 		} else if(ctype_digit("$page")) {
-			if($page = $this->getFuel('pages')->findOne("id=$page")) {
+			if($page = $this->wire('pages')->findOne("id=$page")) {
 				parent::add($page); 
 				$this->numTotal++;
 			}

@@ -30,7 +30,7 @@
  *
  */
 function wire($name = 'wire') {
-	return \ProcessWire\Wire::getFuel($name);
+	return \ProcessWire\wire($name);
 }
 
 /**

@@ -181,7 +181,7 @@ class ProcessField extends Process implements ConfigurableModule {
 		$field->attr('value', $value); 
 		if($value && $template = $this->templates->get($value)) {
 			$form->description = sprintf($this->_('Showing fields from template: %s'), $template);
-			$this->setFuel('processHeadline', $this->_('Fields by Template')); // Page headline when filtering by template
+			$this->wire('processHeadline', $this->_('Fields by Template')); // Page headline when filtering by template
 			$fieldset->collapsed = Inputfield::collapsedNo;
 		} else {
 			$template = null;
@@ -945,7 +945,7 @@ class ProcessField extends Process implements ConfigurableModule {
 			$form->add($field); 
 		}
 
-		$languages = $this->fuel('languages');
+		$languages = $this->wire('languages');
 		$languageFields = array();
 	
 		$field = $this->modules->get('InputfieldText');
@@ -1560,12 +1560,12 @@ class ProcessField extends Process implements ConfigurableModule {
 
 		$this->buildEditForm();
 
-		$this->setFuel('processHeadline', sprintf($this->_('Change type for field: %s'), $this->field->name)); // Page headline when changing type
-		$this->fuel('breadcrumbs')->add(new Breadcrumb('./', 'Fields'))->add(new Breadcrumb("./edit?id={$this->field->id}", $this->field->name)); 
+		$this->wire('processHeadline', sprintf($this->_('Change type for field: %s'), $this->field->name)); // Page headline when changing type
+		$this->wire('breadcrumbs')->add(new Breadcrumb('./', 'Fields'))->add(new Breadcrumb("./edit?id={$this->field->id}", $this->field->name)); 
 
 		if(!$this->input->get->type) $this->session->redirect('./'); 
-		$newType = $this->fuel('sanitizer')->name($this->input->get->type); 
-		$newType = $this->fuel('fieldtypes')->get($newType); 
+		$newType = $this->wire('sanitizer')->name($this->input->get->type); 
+		$newType = $this->wire('fieldtypes')->get($newType); 
 		if(!$newType) $this->session->redirect('./'); 
 
 		$form = $this->modules->get("InputfieldForm"); 
@@ -1613,7 +1613,7 @@ class ProcessField extends Process implements ConfigurableModule {
 			$this->session->redirect('./'); 
 		}
 
-		$type = $this->fuel('sanitizer')->name($this->input->post->confirm_type); 
+		$type = $this->wire('sanitizer')->name($this->input->post->confirm_type); 
 		if($type = $this->fieldtypes->get($type)) {
 			$this->session->CSRF->validate();
 			$this->message($this->_("Field type changed")); 
@@ -1970,7 +1970,7 @@ class ProcessField extends Process implements ConfigurableModule {
 	static public function getModuleConfigInputfields(array $data) {
 
 		$fields = new InputfieldWrapper();
-		$modules = Wire::getFuel('modules');
+		$modules = wire('modules');
 
 		$field = $modules->get("InputfieldCheckbox");
 		$field->attr('name', 'showListFilters');

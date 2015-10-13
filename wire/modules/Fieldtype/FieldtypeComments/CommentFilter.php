@@ -35,7 +35,7 @@ abstract class CommentFilter extends WireData {
 
 	public function setComment(Comment $comment) {
 		$this->comment = $comment; 
-		$this->set('pageUrl', $this->homeURL . $this->fuel('page')->url); 
+		$this->set('pageUrl', $this->homeURL . $this->wire('page')->url); 
 		if(!$comment->ip) $comment->ip = $_SERVER['REMOTE_ADDR']; 
 		if(!$comment->user_agent) $comment->user_agent = $_SERVER['HTTP_USER_AGENT']; 
 	}

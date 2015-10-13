@@ -98,7 +98,7 @@ class CommentFilterAkismet extends CommentFilter implements Module, Configurable
 
 		$name = "apiKey";
 		if(!isset($data[$name])) $data[$name] = '';
-		$f = Wire::getFuel('modules')->get('InputfieldText'); 
+		$f = wire('modules')->get('InputfieldText'); 
 		$f->attr('name', $name); 
 		$f->attr('value', $data[$name]); 
 		$f->label = __('Akismet Key');

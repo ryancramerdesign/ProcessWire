@@ -120,7 +120,8 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 	 */
 	public function get($key) {
 		if($inputfield = $this->getChildByName($key)) return $inputfield;
-		if($this->fuel($key)) return $this->fuel($key); 
+		$value = $this->wire($key);
+		if($value) return $value; 
 		if($key == 'children') return $this->children; 
 		if(($value = parent::get($key)) !== null) return $value; 
 		return null;

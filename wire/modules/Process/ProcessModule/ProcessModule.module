@@ -1100,8 +1100,8 @@ class ProcessModule extends Process {
 			($this->wire('config')->debug && $this->wire('config')->advanced && ($flags & Modules::flagsAutoload)) ||
 			($flags & Modules::flagsDisabled);
 
-		$this->fuel('breadcrumbs')->add(new Breadcrumb('./', $sinfo['title'])); 
-		$this->setFuel('processHeadline', $moduleInfo['title']); 
+		$this->wire('breadcrumbs')->add(new Breadcrumb('./', $sinfo['title'])); 
+		$this->wire('processHeadline', $moduleInfo['title']); 
 
 		/** @var InputfieldForm $form */
 		$form = $this->modules->get("InputfieldForm"); 

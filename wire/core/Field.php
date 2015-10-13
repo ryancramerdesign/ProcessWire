@@ -462,12 +462,12 @@ class Field extends WireData implements Saveable, Exportable {
 	 *
 	 */
 	public function setName($name) {
-		$name = $this->fuel('sanitizer')->fieldName($name);
+		$name = $this->wire('sanitizer')->fieldName($name);
 
 		if(Fields::isNativeName($name))
 			throw new WireException("Field may not be named '$name' because it is a reserved word");
 
-		if($this->fuel('fields') && ($f = $this->fuel('fields')->get($name)) && $f->id != $this->id)
+		if($this->wire('fields') && ($f = $this->wire('fields')->get($name)) && $f->id != $this->id)
 			throw new WireException("Field may not be named '$name' because it is already used by another field");
 
 		if(strpos($name, '__') !== false)
@@ -503,7 +503,7 @@ class Field extends WireData implements Saveable, Exportable {
 
 		} else if(is_string($type)) {
 			$typeStr = $type;
-			$fieldtypes = $this->fuel('fieldtypes');
+			$fieldtypes = $this->wire('fieldtypes');
 			if(!$type = $fieldtypes->get($type)) {
 				$this->error("Fieldtype '$typeStr' does not exist");
 				return $this;
@@ -606,7 +606,7 @@ class Field extends WireData implements Saveable, Exportable {
 	 *
 	 */
 	public function save() {
-		$fields = $this->getFuel('fields'); 
+		$fields = $this->wire('fields'); 
 		return $fields->save($this); 
 	}
 
@@ -629,7 +629,7 @@ class Field extends WireData implements Saveable, Exportable {
 	 */ 
 	public function getFieldgroups() {
 		$fieldgroups = new FieldgroupsArray();
-		foreach($this->fuel('fieldgroups') as $fieldgroup) {
+		foreach($this->wire('fieldgroups') as $fieldgroup) {
 			foreach($fieldgroup as $field) {
 				if($field->id == $this->id) {
 					$fieldgroups->add($fieldgroup); 

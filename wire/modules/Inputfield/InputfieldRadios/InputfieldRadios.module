@@ -43,7 +43,7 @@ class InputfieldRadios extends InputfieldSelect {
 		foreach($options as $key => $value) {
 			$checked = '';
 
-			$id = $this->id . "_" . $this->fuel('sanitizer')->name($key); 
+			$id = $this->id . "_" . $this->wire('sanitizer')->name($key); 
 
 			$attrs = $this->getOptionAttributes($key);
 			if($this->isOptionSelected($key)) $checked = " checked='checked'";

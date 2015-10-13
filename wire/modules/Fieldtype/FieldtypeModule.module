@@ -43,8 +43,8 @@ class FieldtypeModule extends Fieldtype {
 	}
 
 	public function ___wakeupValue(Page $page, Field $field, $value) {
-		if($field->instantiateModule) return $this->fuel('modules')->get($value); 
-		return $this->fuel('modules')->getModuleClass((int) $value); 
+		if($field->instantiateModule) return $this->wire('modules')->get($value); 
+		return $this->wire('modules')->getModuleClass((int) $value); 
 	}
 
 	public function ___sleepValue(Page $page, Field $field, $value) {
@@ -154,7 +154,7 @@ class FieldtypeModule extends Fieldtype {
 
 	public function ___getCompatibleFieldtypes(Field $field) {
 		$fieldtypes = new Fieldtypes();
-		foreach($this->fuel('fieldtypes') as $fieldtype) {
+		foreach($this->wire('fieldtypes') as $fieldtype) {
 			if($fieldtype instanceof FieldtypeModule) $fieldtypes->add($fieldtype);
 		}
 		return $fieldtypes;

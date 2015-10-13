@@ -125,7 +125,7 @@ abstract class Process extends WireData implements Module {
 	 *
 	 */
 	public function get($key) {
-		if(($value = $this->getFuel($key)) !== null) return $value; 
+		if(($value = $this->wire($key)) !== null) return $value; 
 		return parent::get($key); 
 	}
 

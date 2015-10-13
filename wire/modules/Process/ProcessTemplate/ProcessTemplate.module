@@ -395,9 +395,9 @@ class ProcessTemplate extends Process {
 	 */
 	public function ___executeAdd() {
 
-		$this->fuel('breadcrumbs')->add(new Breadcrumb('./', $this->moduleInfo['title'])); 
-		$this->setFuel('processHeadline', $this->_('Add New Templates')); // Headline when adding templates
-		$dir = new \DirectoryIterator($this->fuel('config')->paths->templates); 	
+		$this->wire('breadcrumbs')->add(new Breadcrumb('./', $this->moduleInfo['title'])); 
+		$this->wire('processHeadline', $this->_('Add New Templates')); // Headline when adding templates
+		$dir = new \DirectoryIterator($this->wire('config')->paths->templates); 	
 		$templateFiles = array();
 		$ext = "." . $this->config->templateExtension; 
 		$prependTemplateFile = $this->config->prependTemplateFile;
@@ -411,7 +411,7 @@ class ProcessTemplate extends Process {
 			if(substr($filename, -1 * strlen($ext)) != $ext) continue; 
 			if($ignoreRegex && preg_match($ignoreRegex, $filename)) continue;
 			$basename = basename($file->getFilename(), $ext); 
-			if(count($this->fuel('templates')->find("name=$basename"))) continue; 
+			if(count($this->wire('templates')->find("name=$basename"))) continue; 
 			$templateFiles[] = $basename; 
 		}
 
@@ -496,7 +496,7 @@ class ProcessTemplate extends Process {
 	 */ 
 	protected function buildAddForm($templateFiles) {
 
-		$templateUrl = $this->fuel('config')->urls->templates; 
+		$templateUrl = $this->wire('config')->urls->templates; 
 		$form = $this->modules->get('InputfieldForm');
 
 		$form->attr('id', 'ProcessTemplateAdd'); 
@@ -539,7 +539,7 @@ class ProcessTemplate extends Process {
 	 */
 	public function ___executeEdit() {
 
-		$this->fuel('breadcrumbs')->add(new Breadcrumb('./', $this->moduleInfo['title'])); 
+		$this->wire('breadcrumbs')->add(new Breadcrumb('./', $this->moduleInfo['title'])); 
 		$min = $this->wire('config')->debug ? '' : '.min';
 		$this->wire('config')->scripts->add($this->wire('config')->urls->ProcessTemplate . "ProcessTemplateFieldCreator$min.js?v=1");
 		if(!$this->template) throw new WireException("No Template specified");
@@ -727,10 +727,10 @@ class ProcessTemplate extends Process {
 		$field->attr('value', $template->id); 
 		$field->icon = 'times-circle';
 
-		$fieldgroup = $this->fuel('fieldgroups')->get($template->name); 
+		$fieldgroup = $this->wire('fieldgroups')->get($template->name); 
 		$numFieldgroupTemplates = 0;
 		if($fieldgroup) {
-			foreach($this->fuel('templates') as $tpl) {
+			foreach($this->wire('templates') as $tpl) {
 				if($tpl->id == $template->id) continue; 
 				if($tpl->fieldgroup && $tpl->fieldgroup->id == $fieldgroup->id) $numFieldgroupTemplates++;
 			}
@@ -2033,11 +2033,11 @@ class ProcessTemplate extends Process {
 		}
 		$this->template->cache_time = $cacheTime;
 		$this->template->setIcon($form->get('pageLabelIcon')->attr('value'));
-		$this->template->childNameFormat = $this->fuel('sanitizer')->text($form->get('childNameFormat')->attr('value')); 
+		$this->template->childNameFormat = $this->wire('sanitizer')->text($form->get('childNameFormat')->attr('value')); 
 		
 		$this->template->useCacheForUsers = (int) $form->get('useCacheForUsers')->attr('value');
-		$this->template->noCacheGetVars = $this->fuel('sanitizer')->names($form->get('noCacheGetVars')->attr('value'), ' ', array('-', '_', '.', '*')); 
-		$this->template->noCachePostVars = $this->fuel('sanitizer')->names($form->get('noCachePostVars')->attr('value'), ' ', array('-', '_', '.', '*')); 
+		$this->template->noCacheGetVars = $this->wire('sanitizer')->names($form->get('noCacheGetVars')->attr('value'), ' ', array('-', '_', '.', '*')); 
+		$this->template->noCachePostVars = $this->wire('sanitizer')->names($form->get('noCachePostVars')->attr('value'), ' ', array('-', '_', '.', '*')); 
 		$this->template->cacheExpire = (int) $form->get('cacheExpire')->attr('value');
 		$this->template->tags = $this->sanitizer->text($form->get('tags')->attr('value'));
 		$this->template->noUnpublish = (int) $form->get('noUnpublish')->attr('value');
@@ -2291,7 +2291,7 @@ class ProcessTemplate extends Process {
 	 */
 	public function ___executeFieldgroup() {
 
-		$this->fuel('breadcrumbs')->add(new Breadcrumb('./', $this->moduleInfo['title']))->add(new Breadcrumb("./edit?id={$this->template->id}", $this->template)); 
+		$this->wire('breadcrumbs')->add(new Breadcrumb('./', $this->moduleInfo['title']))->add(new Breadcrumb("./edit?id={$this->template->id}", $this->template)); 
 
 		if(!isset($_GET['fieldgroup'])) $this->session->redirect('./'); 
 		$fieldgroup = $this->fieldgroups->get((int) $_GET['fieldgroup']); 
@@ -2336,7 +2336,7 @@ class ProcessTemplate extends Process {
 		$form->append($field); 
 
 		$form->description = sprintf($this->_('Please confirm that you want to change the Fieldgroup from "%1$s" to "%2$s"'), $this->template->fieldgroup, $fieldgroup); 	
-		$this->setFuel('processHeadline', sprintf($this->_('Change Fieldgroup for Template: %s'), $this->template)); 
+		$this->wire('processHeadline', sprintf($this->_('Change Fieldgroup for Template: %s'), $this->template)); 
 
 		return $form->render();
 	}
@@ -2391,10 +2391,10 @@ class ProcessTemplate extends Process {
 		if(!isset($_GET['fields'])) $this->session->redirect('./'); 
 
 		$fieldgroup = $this->template->fieldgroup; 
-		$this->setFuel('processHeadline', sprintf($this->_('Remove Fields from Template: %s'), $this->template->name)); 
+		$this->wire('processHeadline', sprintf($this->_('Remove Fields from Template: %s'), $this->template->name)); 
 
-		$this->fuel('breadcrumbs')->add(new Breadcrumb("./", $this->moduleInfo['title'])); 
-		$this->fuel('breadcrumbs')->add(new Breadcrumb("edit?id={$this->template->id}", $this->template->name)); 
+		$this->wire('breadcrumbs')->add(new Breadcrumb("./", $this->moduleInfo['title'])); 
+		$this->wire('breadcrumbs')->add(new Breadcrumb("edit?id={$this->template->id}", $this->template->name)); 
 
 		$form = $this->modules->get("InputfieldForm"); 
 		$form->attr('method', 'post'); 
@@ -2436,8 +2436,8 @@ class ProcessTemplate extends Process {
 
 		if($this->template->flags & Template::flagSystem) throw new WireException($this->_('This template cannot be renamed because it is a system template')); 
 
-		$this->fuel('breadcrumbs')->add(new Breadcrumb('./', $this->moduleInfo['title']));
-		$this->fuel('breadcrumbs')->add(new Breadcrumb('./?id=' . $this->template->id, $this->template->name)); 
+		$this->wire('breadcrumbs')->add(new Breadcrumb('./', $this->moduleInfo['title']));
+		$this->wire('breadcrumbs')->add(new Breadcrumb('./?id=' . $this->template->id, $this->template->name)); 
 
 		$redirectUrl = $this->template ? "edit?id={$this->template->id}" : "../";
 

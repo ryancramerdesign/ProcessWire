@@ -238,7 +238,7 @@ class Fields extends WireSaveableItems {
 		if($item->flags & Field::flagSystem) throw new WireException("Unable to delete field '{$item->name}' because it is a system field."); 
 
 		// delete entries in fieldgroups_fields table. Not really necessary since the above exception prevents this, but here in case that changes. 
-		$this->fuel('fieldgroups')->deleteField($item); 
+		$this->wire('fieldgroups')->deleteField($item); 
 
 		// drop the field's table
 		if($item->type) $item->type->deleteField($item); 

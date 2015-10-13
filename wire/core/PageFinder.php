@@ -118,7 +118,7 @@ class PageFinder extends Wire {
 	 *
 	 */
 	public function __construct() {
-		$this->fieldgroups = $this->fuel('fieldgroups'); 
+		$this->fieldgroups = $this->wire('fieldgroups'); 
 	}
 
 	/**
@@ -1000,7 +1000,7 @@ class PageFinder extends Wire {
 
 		$field = is_array($selector->field) ? reset($selector->field) : $selector->field; 
 		$values = is_array($selector->value) ? $selector->value : array($selector->value); 	
-		$fields = $this->fuel('fields'); 
+		$fields = $this->wire('fields'); 
 		$database = $this->wire('database');
 		$user = $this->wire('user'); 
 		$language = $this->wire('languages') && $user->language ? $user->language : null;
@@ -1307,7 +1307,7 @@ class PageFinder extends Wire {
 					// allows selectors like 'template=my_template_name'
 					$field = 'templates_id';
 					if(count($values) == 1 && $selector->getOperator() === '=') $this->templates_id = reset($values);
-					if(!ctype_digit("$value")) $value = (($template = $this->fuel('templates')->get($value)) ? $template->id : 0); 
+					if(!ctype_digit("$value")) $value = (($template = $this->wire('templates')->get($value)) ? $template->id : 0); 
 				}
 
 				if(in_array($field, array('created', 'modified', 'published'))) {

@@ -109,7 +109,7 @@ if(!$browserTitle) $browserTitle = __(strip_tags($page->get('title|name')), __FI
 			<?php if(!$user->isGuest()): ?>
 
 			<ul id='breadcrumb' class='nav'><?php
-				foreach($this->fuel('breadcrumbs') as $breadcrumb) {
+				foreach($this->wire('breadcrumbs') as $breadcrumb) {
 					$title = __($breadcrumb->title, __FILE__); 
 					echo "\n\t\t\t\t<li><a href='{$breadcrumb->url}'>{$title}</a> &gt;</li>";
 				}

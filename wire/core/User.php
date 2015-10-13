@@ -84,7 +84,7 @@ class User extends Page {
 	 *
 	 */
 	public function addRole($role) {
-		if(is_string($role) || is_int($role)) $role = $this->fuel('roles')->get($role); 
+		if(is_string($role) || is_int($role)) $role = $this->wire('roles')->get($role); 
 		if(is_object($role) && $role instanceof Role) {
 			$this->get('roles')->add($role); 
 			return true; 
@@ -102,7 +102,7 @@ class User extends Page {
 	 *
 	 */
 	public function removeRole($role) {
-		if(is_string($role) || is_int($role)) $role = $this->fuel('roles')->get($role); 
+		if(is_string($role) || is_int($role)) $role = $this->wire('roles')->get($role); 
 		if(is_object($role) && $role instanceof Role) {
 			$this->get('roles')->remove($role); 
 			return true; 

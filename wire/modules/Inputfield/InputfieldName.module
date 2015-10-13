@@ -33,7 +33,7 @@ class InputfieldName extends InputfieldText {
 	}
 
 	protected function setAttributeValue($value) {
-		$value = call_user_func(array($this->fuel('sanitizer'), $this->sanitizeMethod), $value); 
+		$value = call_user_func(array($this->wire('sanitizer'), $this->sanitizeMethod), $value); 
 		return $value; 
 	}
 
