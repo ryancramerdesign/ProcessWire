@@ -1788,7 +1788,7 @@ class Modules extends WireArray {
 	
 		// add back to the installable list
 		if(class_exists("ReflectionClass")) {
-			$reflector = new \ReflectionClass($class);
+			$reflector = new \ReflectionClass($this->getModuleClass($module, true));
 			$this->installable[$class] = $reflector->getFileName(); 
 		}
 
@@ -1975,10 +1975,12 @@ class Modules extends WireArray {
 	public function getModuleClass($module, $withNamespace = false) {
 		
 		$className = '';
+		$namespace = '';
 
 		if($module instanceof Module) {
 			if(wireMethodExists($module, 'className')) {
-				return wireClassName($module->className(), $withNamespace);
+				if($withNamespace) return $module->className(true);
+				return $module->className();
 			} else {
 				return wireClassName($module, $withNamespace);
 			}
@@ -1987,10 +1989,17 @@ class Modules extends WireArray {
 			$className = array_search((int) $module, $this->moduleIDs); 
 
 		} else if(is_string($module)) {
+			
+			if(strpos($module, "\\") !== false) {
+				$namespace = wireClassName($module, 1);
+				$className = wireClassName($module, false);
+			}
+
 			// remove extensions if they were included in the module name
 			if(strpos($module, '.') !== false) {
 				$module = basename(basename($module, '.php'), '.module');
 			}
+			
 			if(array_key_exists($module, $this->moduleIDs)) {
 				$className = $module;
 			} else if(array_key_exists($module, $this->installable)) {
@@ -2000,7 +2009,11 @@ class Modules extends WireArray {
 		
 		if($className) {
 			if($withNamespace) {
-				$className = $this->getModuleNamespace($className) . $className;
+				if($namespace) {
+					$className = "$namespace\\$className";
+				} else {
+					$className = $this->getModuleNamespace($className) . $className;
+				}
 			}
 			return $className;
 		}
@@ -2482,15 +2495,17 @@ class Modules extends WireArray {
 		
 		$namespace = "\\"; // root namespace, if no namespace found
 		$fp = fopen($options['file'], 'r');
-		$data = fread($fp, 2048);
-		fclose($fp);
-		if(strpos($data, 'namespace') !== false) {
-			if(preg_match('/namespace\s+([^;]+);/', $data, $matches)) {
-				$namespace = trim($matches[1]);
-				$namespace = "\\" . trim($namespace, "\\") . "\\";
+		if($fp) {
+			$data = fread($fp, 2048);
+			fclose($fp);
+			if(strpos($data, 'namespace') !== false) {
+				if(preg_match('/namespace\s+([^;]+);/', $data, $matches)) {
+					$namespace = trim($matches[1]);
+					$namespace = "\\" . trim($namespace, "\\") . "\\";
+				}
 			}
 		}
-		
+			
 		return $namespace;
 	}
 	
@@ -2547,25 +2562,26 @@ class Modules extends WireArray {
 		if(is_object($className)) {
 			$module = $className; 
 			if($module instanceof ModulePlaceholder) $file = $module->file; 
-			$className = $module->className();
-		} 
-		
-		$className = wireClassName($className, false);
+			$moduleName = $module->className();
+			$className = $module->className(true);
+		} else {
+			$moduleName = wireClassName($className, false);
+		}
 	
 		// next see if we've already got the module filename cached locally
-		if(!$file && isset($this->installable[$className])) {
-			$file = $this->installable[$className]; 
+		if(!$file && isset($this->installable[$moduleName])) {
+			$file = $this->installable[$moduleName]; 
 		} 
 		
 		if(!$file) {
-			$dupFile = $this->duplicates()->getCurrent($className);
+			$dupFile = $this->duplicates()->getCurrent($moduleName);
 			if($dupFile) {
 				$rootPath = $this->wire('config')->paths->root;
 				$file = rtrim($rootPath, '/') . $dupFile;
 				if(!file_exists($file)) {
 					// module in use may have been deleted, find the next available one that exist
 					$file = '';
-					$dups = $this->duplicates()->getDuplicates($className); 
+					$dups = $this->duplicates()->getDuplicates($moduleName); 
 					foreach($dups['files'] as $pathname) {
 						$pathname = rtrim($rootPath, '/') . $pathname;
 						if(file_exists($pathname)) {
@@ -2579,11 +2595,11 @@ class Modules extends WireArray {
 		
 		if(!$file) {
 			// next see if we can determine it from already stored paths
-			$path = $this->wire('config')->paths->$className; 
+			$path = $this->wire('config')->paths->$moduleName; 
 			if(file_exists($path)) {
-				$file = "$path$className.module";
+				$file = "$path$moduleName.module";
 				if(!file_exists($file)) {
-					$file = "$path$className.module.php";
+					$file = "$path$moduleName.module.php";
 					if(!file_exists($file)) $file = false;
 				}
 			}
@@ -2592,7 +2608,16 @@ class Modules extends WireArray {
 		if(!$file) {
 			// if the above two failed, try to get it from Reflection
 			try {
-				$reflector = new \ReflectionClass(wireClassName($className, true));
+				// note we don't call getModuleClass() here because it may result in a circular reference
+				if(strpos($className, "\\") === false) {
+					$moduleID = $this->getModuleID($moduleName);
+					if(!empty($this->moduleInfoCache[$moduleID]['namespace'])) {
+						$className = rtrim($this->moduleInfoCache[$moduleID]['namespace'], "\\") . "\\$moduleName";
+					} else {
+						$className = "\\" . __NAMESPACE__ . "\\$moduleName";
+					}
+				}
+				$reflector = new \ReflectionClass($className);
 				$file = $reflector->getFileName();
 				
 			} catch(\Exception $e) {

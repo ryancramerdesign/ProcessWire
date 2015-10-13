@@ -623,7 +623,7 @@ class FieldtypeFile extends FieldtypeMulti {
 		
 		foreach($this->wire('modules') as $fm) {
 			if(strpos($fm->className(), 'Inputfield') !== 0) continue;
-			if("$fm" == $baseClass || is_subclass_of("$fm", $baseClass))
+			if("$fm" == $baseClass || is_subclass_of($fm->className(true), __NAMESPACE__ . "\\$baseClass"))
 				$f->addOption("$fm", str_replace("Inputfield", '', "$fm"));
 		}
 		

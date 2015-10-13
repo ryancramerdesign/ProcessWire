@@ -237,7 +237,7 @@ class FieldtypeTextarea extends FieldtypeText {
 
 		$baseClass = "InputfieldTextarea";
 		foreach($this->wire('modules')->find("className^=Inputfield") as $fm) {
-			if("$fm" == $baseClass || is_subclass_of("$fm", $baseClass)) 
+			if("$fm" == $baseClass || is_subclass_of($fm->className(true), __NAMESPACE__ . "\\$baseClass")) 
 				$f->addOption("$fm", str_replace("Inputfield", '', "$fm")); 
 		}
 

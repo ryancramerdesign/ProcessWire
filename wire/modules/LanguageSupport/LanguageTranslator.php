@@ -139,7 +139,15 @@ class LanguageTranslator extends Wire {
 
 			// core classes at which translations are no longer applicable
 			// $stopClasses = array('Wire', 'WireData', 'WireArray', 'Fieldtype', 'FieldtypeMulti', 'Inputfield', 'Process');
-			$stopClasses = array('Wire', 'WireData', 'WireArray', 'Process');
+			$stopClasses = array(
+				'Wire', 
+				'WireData', 
+				'WireArray', 
+				'Process'
+			);
+			foreach($stopClasses as $class) {
+				$stopClass[] = __NAMESPACE__ . "\\$class";
+			}
 
 			while($parentClass = $reflection->getParentClass()) { 
 				if(in_array($parentClass->getName(), $stopClasses)) break;

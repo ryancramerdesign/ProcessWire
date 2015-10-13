@@ -174,7 +174,9 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 
 		if($field->parent_id && $field->parent_id != $page->parent_id) {
 			if(version_compare(PHP_VERSION, '5.3.8') >= 0) {
-				if(is_subclass_of($field->inputfield, 'InputfieldPageListSelection')) {
+				$interfaces = wireClassImplements($field->inputfield);
+				// if(is_subclass_of($field->inputfield, 'InputfieldPageListSelection')) {
+				if(in_array('InputfieldPageListSelection', $interfaces)) {
 					// parent_id represents a root parent
 					$rootParent = wire('pages')->get($field->parent_id); 
 					if(!$page->parents()->has($rootParent)) $valid = false;
@@ -185,6 +187,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 				if(!$valid && $editPage) $editPage->set('_isValidPage', "Page $page does not have required parent $field->parent_id"); 
 			} else {
 				// PHP version prior to 5.3.8
+				// @deprecated
 				$reflector = new \ReflectionClass($field->inputfield); 
 				$valid = $reflector->implementsInterface('InputfieldPageListSelection'); 
 			}
@@ -776,7 +779,8 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 			$module = $this->modules->get($class); 
 			$label = str_replace("Inputfield", '', $class);
 			if($module instanceof InputfieldHasArrayValue) $label .= "*"; 
-			if(is_subclass_of($module, 'InputfieldPageListSelection')) $label .= "+";
+			if($module instanceof InputfieldPageListSelection) $label .= "+";
+			// if(is_subclass_of($module, 'InputfieldPageListSelection')) $label .= "+";
 			$field->addOption($class, $label); 
 		}
 

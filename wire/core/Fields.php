@@ -495,15 +495,21 @@ class Fields extends WireSaveableItems {
 
 		// first we need to determine if the $field->type module has its own
 		// deletePageField method separate from base: Fieldtype/FieldtypeMulti
-		$reflector = new \ReflectionClass($field->type->className());
+		$reflector = new \ReflectionClass($field->type->className(true));
 		$hasDeletePageField = false;
 
 		foreach($reflector->getMethods() as $method) {
 			$methodName = $method->getName();
-			if($methodName != '___deletePageField') continue;
+			if(strpos($methodName, '___deletePageField') === false) continue;
 			try {
 				new \ReflectionMethod($reflector->getParentClass()->getName(), $methodName);
-				if(!in_array($method->getDeclaringClass()->getName(), array('Fieldtype', 'FieldtypeMulti'))) $hasDeletePageField = true;
+				if(!in_array($method->getDeclaringClass()->getName(), array(
+					'Fieldtype', 
+					'FieldtypeMulti', 
+					__NAMESPACE__ . "\\Fieldtype", 
+					__NAMESPACE__ . "\\FieldtypeMulti"))) {
+					$hasDeletePageField = true;
+				}
 
 			} catch(\Exception $e) {
 				// not there
