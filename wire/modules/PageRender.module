@@ -262,7 +262,7 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 				}
 			} else if($cacheExpire == Template::cacheExpireSelector && $page->template->cacheExpireSelector) {
 				// expire pages matching a selector
-				$finder = new PageFinder();
+				$finder = $this-wire(new PageFinder());
 				$pageIDs = $finder->findIDs(new Selectors($page->template->cacheExpireSelector), array(
 					'getTotal'   => false,
 					'findHidden' => true

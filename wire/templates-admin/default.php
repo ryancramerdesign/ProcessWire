@@ -19,7 +19,7 @@ $config->styles->append($config->urls->root . "wire/templates-admin/styles/font-
 $config->scripts->append($config->urls->adminTemplates . "scripts/inputfields.js?v=5"); 
 $config->scripts->append($config->urls->adminTemplates . "scripts/main.js?v=4"); 
 
-$browserTitle = wire('processBrowserTitle'); 
+$browserTitle = $this->wire('processBrowserTitle'); 
 if(!$browserTitle) $browserTitle = __(strip_tags($page->get('title|name')), __FILE__) . ' &bull; ProcessWire';
 
 /*

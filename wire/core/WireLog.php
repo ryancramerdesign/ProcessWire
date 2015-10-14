@@ -262,8 +262,8 @@ class WireLog extends Wire {
 			);
 		}
 		
-		$entry['date'] = wireDate(wire('config')->dateFormat, strtotime($entry['date']));
-		$entry['user'] = wire('sanitizer')->pageName($entry['user']); 
+		$entry['date'] = wireDate($this->wire('config')->dateFormat, strtotime($entry['date']));
+		$entry['user'] = $this->wire('sanitizer')->pageName($entry['user']); 
 		
 		if($entry['url'] == 'page?') $entry['url'] = false;
 		if($entry['user'] == 'user?') $entry['user'] = false;
@@ -353,7 +353,7 @@ class WireLog extends Wire {
 	 * 
 	 */
 	public function getFileLog($name, array $options = array()) {
-		$log = new FileLog($this->getFilename($name));
+		$log = $this->wire(new FileLog($this->getFilename($name)));
 		if(isset($options['delimiter'])) $log->setDelimeter($options['delimiter']);
 			else $log->setDelimeter("\t");
 		return $log;

@@ -38,7 +38,7 @@ abstract class ProcessPageListRender extends Wire {
 			'restore' => $this->_('Restore'), // Restore from trash action
 		);
 		require_once(dirname(__FILE__) . '/ProcessPageListActions.php');
-		$this->actions = new ProcessPageListActions($this);
+		$this->actions = $this->wire(new ProcessPageListActions($this));
 		$this->actions->setActionLabels($this->actionLabels);
 	}
 

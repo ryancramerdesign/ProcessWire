@@ -249,7 +249,7 @@ class Modules extends WireArray {
 	 * 
 	 */
 	public function duplicates() {
-		if(is_null($this->duplicates)) $this->duplicates = new ModulesDuplicates();
+		if(is_null($this->duplicates)) $this->duplicates = $this->wire(new ModulesDuplicates());
 		return $this->duplicates; 
 	}
 
@@ -321,7 +321,7 @@ class Modules extends WireArray {
 	 */
 	public function makeNew() {
 		// ensures that find(), etc. operations don't initalize a new Modules() class
-		return new WireArray();
+		return $this->wire(new WireArray());
 	}
 
 	/**
@@ -432,7 +432,7 @@ class Modules extends WireArray {
 		}
 		
 		try {
-			$module = new $className();
+			$module = $this->wire(new $className());
 		} catch(Exception $e) {
 			$this->error(sprintf($this->_('Failed to construct module: %s'), $className) . " - " . $e->getMessage());
 			$module = null;
@@ -452,7 +452,7 @@ class Modules extends WireArray {
 	 *
 	 */
 	protected function newModulePlaceholder($className, $file, $singular, $autoload) { 
-		$module = new ModulePlaceholder();
+		$module = $this->wire(new ModulePlaceholder());
 		$module->setClass($className);
 		$module->singular = $singular;
 		$module->autoload = $autoload;
@@ -1546,7 +1546,7 @@ class Modules extends WireArray {
 			}
 
 			if(!$reason && in_array('Fieldtype', wireClassParents($class))) {
-				foreach(wire('fields') as $field) {
+				foreach($this->wire('fields') as $field) {
 					$fieldtype = wireClassName($field->type, false);
 					if($fieldtype == $class) { 
 						$reason = "This module is a Fieldtype currently in use by one or more fields";
@@ -1767,7 +1767,7 @@ class Modules extends WireArray {
 		}
 
 		// remove all hooks attached to other ProcessWire objects
-		$hooks = array_merge(wire()->getHooks('*'), Wire::$allLocalHooks);
+		$hooks = array_merge($this->wire()->getHooks('*'), Wire::$allLocalHooks);
 		foreach($hooks as $hook) {
 			$toClass = wireClasName($hook['toObject'], false);
 			$toMethod = $hook['toMethod'];
@@ -2842,7 +2842,7 @@ class Modules extends WireArray {
 			if(wireClassExists($nsClassName)) {
 				$parents = wireClassParents($nsClassName, false);
 				if(is_array($parents) && in_array('ModuleConfig', $parents)) { 
-					$moduleConfig = new $nsClassName();
+					$moduleConfig = $this->wire(new $nsClassName());
 					if($moduleConfig instanceof ModuleConfig) {
 						$defaults = $moduleConfig->getDefaults();
 						$data = array_merge($defaults, $data);
@@ -2854,7 +2854,7 @@ class Modules extends WireArray {
 				if(is_null($config)) include($configurable);
 				if(is_array($config)) {
 					// alternatively, file may just specify a $config array
-					$moduleConfig = new ModuleConfig();
+					$moduleConfig = $this->wire(new ModuleConfig());
 					$moduleConfig->add($config);
 					$defaults = $moduleConfig->getDefaults();
 					$data = array_merge($defaults, $data);
@@ -2916,7 +2916,7 @@ class Modules extends WireArray {
 		$configurable = $this->isConfigurableModule($moduleName);
 		if(!$configurable) return null;
 		
-		if(is_null($form)) $form = new InputfieldWrapper();
+		if(is_null($form)) $form = $this->wire(new InputfieldWrapper());
 		$data = $this->modules->getModuleConfigData($moduleName);
 		
 		// check for configurable module interface
@@ -2935,19 +2935,19 @@ class Modules extends WireArray {
 				} else if($configurableInterface === 4) {
 					// requires InputfieldWrapper
 					// we allow for option of no return statement in the method
-					$fields = new InputfieldWrapper();
+					$fields = $this->wire(new InputfieldWrapper());
 					$_fields = $module->getModuleConfigInputfields($fields);
 					if($_fields instanceof InputfieldWrapper) $fields = $_fields;
 					unset($_fields);
 				} else if($configurableInterface === 19) {
 					// non-static getModuleConfigArray method
-					$fields = new InputfieldWrapper();
+					$fields = $this->wire(new InputfieldWrapper());
 					$fields->importArray($module->getModuleConfigArray());
 					$fields->populateValues($module);
 				}
 			} else if($configurableInterface === 20) {
 				// static getModuleConfigArray method
-				$fields = new InputfieldWrapper();
+				$fields = $this->wire(new InputfieldWrapper());
 				$fields->importArray(call_user_func(array(wireClassName($moduleName, true), 'getModuleConfigArray')));
 				$fields->populateValues($data);
 			} else if($configurableInterface) {
@@ -2977,13 +2977,13 @@ class Modules extends WireArray {
 		
 		if(wireClassExists($configClass)) {
 			// file contains a ModuleNameConfig class
-			$configModule = new $configClass();
+			$configModule = $this->wire(new $configClass());
 			
 		} else {
 			if(is_null($config)) include($file); // in case of previous include_once 
 			if(is_array($config)) {
 				// file contains a $config array
-				$configModule = new ModuleConfig();
+				$configModule = $this->wire(new ModuleConfig());
 				$configModule->add($config);
 			}
 		} 
@@ -3035,7 +3035,7 @@ class Modules extends WireArray {
 			$this->includeModule($module); 
 			$module = wireClassName($module, true);
 			if(method_exists($module, 'isSingular')) {
-				$moduleInstance = new $module();
+				$moduleInstance = $this->wire(new $module());
 				return $moduleInstance->isSingular();
 			}
 		}
@@ -3074,7 +3074,7 @@ class Modules extends WireArray {
 				// include for method exists call
 				$this->includeModule($module);
 				$module = wireClassName($module, true);
-				$module = new $module();
+				$module = $this->wire(new $module());
 			}
 		}
 	

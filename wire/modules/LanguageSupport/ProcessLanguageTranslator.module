@@ -71,14 +71,14 @@ class ProcessLanguageTranslator extends Process {
 	 */
 	public function setLanguage($language) {
 
-		$languages = wire('languages');
+		$languages = $this->wire('languages');
 		if(!$languages) return;
 
 		if(is_int($language)) $language = $languages->get($language); 
 		if(!$language instanceof Language || !$language->id) throw new WireException("Unknown/invalid language"); 
 		$this->language = $language; 	
 		$this->session->translateLanguageID = $language->id; 
-		$this->translator = new LanguageTranslator($this->language);
+		$this->translator = $this->wire(new LanguageTranslator($this->language));
 	}
 
 	/**
@@ -456,7 +456,7 @@ class ProcessLanguageTranslator extends Process {
 	 */
 	protected function parseTranslatableFile($file) {
 		require_once($this->config->paths->ProcessLanguageTranslator . 'LanguageParser.php'); 
-		$parser = new LanguageParser($this->translator, $file); 
+		$parser = $this->wire(new LanguageParser($this->translator, $file)); 
 		$this->comments = $parser->getComments();
 		$this->untranslated = $parser->getUntranslated();
 		return $parser->getNumFound(); 

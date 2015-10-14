@@ -99,7 +99,7 @@ class RepeaterPageArray extends PageArray {
 	 */
 	public function makeNew() {
 		$class = get_class($this);
-		$newArray = new $class($this->parent, $this->field);
+		$newArray = $this->wire(new $class($this->parent, $this->field));
 		return $newArray;
 	}
 

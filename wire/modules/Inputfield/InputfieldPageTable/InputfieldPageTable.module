@@ -409,7 +409,7 @@ class InputfieldPageTable extends Inputfield {
 		$deleteIDs = explode('|', $input->$deleteName); 
 		$ids = explode('|', $input->$name); 
 		$value = $this->attr('value'); 
-		$sorted = new PageArray();	
+		$sorted = $this->wire('pages')->newPageArray();	
 		$changed = false; 
 
 		// trash items that have been deleted
@@ -503,7 +503,7 @@ class InputfieldPageTable extends Inputfield {
 	 */
 	public function setAttribute($key, $value) {
 		if($key == 'value') {
-			if($value === null) $value = new PageArray();
+			if($value === null) $value = $this->wire('pages')->newPageArray();
 			if(!$value instanceof PageArray) throw new WireException('This Inputfield only accepts a PageArray for its value attribute.'); 
 		}
 		return parent::setAttribute($key, $value); 

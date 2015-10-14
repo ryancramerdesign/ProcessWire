@@ -94,7 +94,7 @@ class PageBookmarks extends Wire {
 				$options['add'] = null;
 			}
 		} else if($this->wire('user')->isSuperuser()) {
-			$add = new WireData();
+			$add = $this->wire(new WireData());
 			$add->set('_icon', 'bookmark-o');
 			$add->set('title', $this->labels['bookmarks']);
 			$add->set('id', 'bookmark');
@@ -182,7 +182,7 @@ class PageBookmarks extends Wire {
 		$this->process->breadcrumb('../', $moduleInfo['title']);
 		$this->process->breadcrumb('./', $this->labels['bookmarks']);
 		
-		$role = $roleID ? $this->wire('roles')->get($roleID) : new NullPage();
+		$role = $roleID ? $this->wire('roles')->get($roleID) : $this->wire('pages')->newNullPage();
 		if($roleID && !$role->id) throw new WireException("Unknown role");
 		$allLabel = $this->_('everyone'); // All roles
 		$data = $modules->getModuleConfigData($this->process);

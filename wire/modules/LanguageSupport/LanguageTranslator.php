@@ -76,7 +76,7 @@ class LanguageTranslator extends Wire {
 	 */
 	public function __construct(Language $currentLanguage) {
 		$this->setCurrentLanguage($currentLanguage);
-		$this->rootPath = wire('config')->paths->root; 
+		$this->rootPath = $this->wire('config')->paths->root; 
 		$file = __FILE__; 
 		$pos = strpos($file, '/wire/modules/LanguageSupport/'); 
 		$this->rootPath2 = $pos ? substr($file, 0, $pos+1) : '';

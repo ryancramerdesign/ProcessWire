@@ -149,7 +149,7 @@ class NotificationArray extends WireArray {
 	 */
 	public function getNew($flag = 'message', $addNow = true) {
 		
-		$notification = new Notification();
+		$notification = $this->wire(new Notification());
 		
 		$notification->setFlags($flag, true); 
 		$notification->created = time();
@@ -265,7 +265,7 @@ class NotificationArray extends WireArray {
 		
 		$clear = in_array('clear', $options);
 		
-		$value = new NotificationArray($this->page);
+		$value = $this->wire(new NotificationArray($this->page));
 		
 		foreach($this as $notification) {
 			if(!$notification->is($type)) continue;

@@ -128,7 +128,7 @@ class LanguageSupportFields extends WireData implements Module {
 		$field = $event->arguments[1]; 
 		if($field->name == 'language') return;
 
-		$language = wire('user')->get('language'); 
+		$language = $this->wire('user')->get('language'); 
 		if(!$language || !$language->id || $language->isDefault()) return;
 
 		// exit quickly if we can determine now we don't need to continue
@@ -172,7 +172,7 @@ class LanguageSupportFields extends WireData implements Module {
 		if($language->template->name != LanguageSupport::languageTemplateName) return; 
 
 		foreach($this->multilangFields as $name) {
-			$field = wire('fields')->get($name); 	
+			$field = $this->wire('fields')->get($name); 	
 			if($field) $this->fieldLanguageAdded($field, $language); 
 		}
 
@@ -197,7 +197,7 @@ class LanguageSupportFields extends WireData implements Module {
 		if($language->template->name != LanguageSupport::languageTemplateName) return; 
 
 		foreach($this->multilangFields as $name) {
-			$field = wire('fields')->get($name); 	
+			$field = $this->wire('fields')->get($name); 	
 			if($field) $this->fieldLanguageRemoved($field, $language); 
 		}
 
@@ -343,7 +343,7 @@ class LanguageSupportFields extends WireData implements Module {
 		$field = $event->arguments[1];
 		$value = $event->return; 
 		if($value instanceof LanguagesPageFieldValue) return; 
-		$v = new LanguagesPageFieldValue($value); 
+		$v = $this->wire(new LanguagesPageFieldValue($value)); 
 		$v->setField($field); 
 		$event->return = $v;
 	}
@@ -365,7 +365,7 @@ class LanguageSupportFields extends WireData implements Module {
 			$value->setField($field); 
 			// good
 		} else if(is_array($value)) {
-			$value = new LanguagesPageFieldValue($value); 
+			$value = $this->wire(new LanguagesPageFieldValue($value)); 
 			$value->setTrackChanges(true); 
 			$value->setField($field); 
 			$event->return = $value;
@@ -415,7 +415,7 @@ class LanguageSupportFields extends WireData implements Module {
 		$field = $event->arguments(0); 
 		$inputfields = $event->return;		
 		
-		$f = wire('modules')->get('InputfieldRadios'); 
+		$f = $this->wire('modules')->get('InputfieldRadios'); 
 		$f->attr('name', 'langBlankInherit'); 
 		$f->label = $this->_('Language Support / Blank Behavior'); 
 		$f->description = $this->_("What should happen when this field's value is blank?"); 
@@ -457,7 +457,7 @@ class LanguageSupportFields extends WireData implements Module {
 		if(isset($this->multilangAlternateFields[$parentName]) && in_array($altFieldName, $this->multilangAlternateFields[$parentName])) {
 			if(!$returnLanguage) return $parentName; 
 			$languageName = substr($altFieldName, $pos+1); 
-			return wire('languages')->get($languageName); 
+			return $this->wire('languages')->get($languageName); 
 		}
 		return '';
 	}

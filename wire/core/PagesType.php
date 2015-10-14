@@ -258,7 +258,7 @@ class PagesType extends Wire implements \IteratorAggregate, \Countable {
 				$options['template'] = $this->template;
 				$options['parent_id'] = $this->parent_id; 
 				$page = $this->wire('pages')->getById(array((int) $selectorString), $options);
-				return $page ? $page : new NullPage();
+				return $page ? $page : $this->wire('pages')->newNullPage();
 			} else {
 				// multiple possible templates/parents
 				$page = $this->wire('pages')->getById(array((int) $selectorString), $options); 
@@ -280,7 +280,7 @@ class PagesType extends Wire implements \IteratorAggregate, \Countable {
 		}
 
 		$page = $this->pages->findOne($this->selectorString($selectorString), array('loadOptions' => $options)); 
-		if($page->id && !$this->isValid($page)) $page = new NullPage();
+		if($page->id && !$this->isValid($page)) $page = $this->wire('pages')->newNullPage();
 		if($page->id) $this->loaded($page);
 		
 		return $page; 
@@ -336,10 +336,9 @@ class PagesType extends Wire implements \IteratorAggregate, \Countable {
 	 */
 	public function ___add($name) {
 		
-		$className = wireClassName($this->getPageClass(), true);
 		$parent = $this->getParent();
 
-		$page = new $className(); 
+		$page = $this->wire('pages')->newPage(array('pageClass' => $className)); 
 		$page->template = $this->template; 
 		$page->parent = $parent; 
 		$page->name = $name; 
@@ -350,7 +349,7 @@ class PagesType extends Wire implements \IteratorAggregate, \Countable {
 
 		} catch(\Exception $e) {
 			$this->trackException($e, false);
-			$page = new NullPage();
+			$page = $this->wire('pages')->newNullPage();
 		}
 
 		return $page; 
@@ -391,7 +390,7 @@ class PagesType extends Wire implements \IteratorAggregate, \Countable {
 			return $this->wire('pages')->getById($this->parents);
 		} else {
 			$parent = $this->getParent();
-			$parents = new PageArray();
+			$parents = $this->wire('pages')->newPageArray();
 			$parents->add($parent);
 			return $parents; 
 		}

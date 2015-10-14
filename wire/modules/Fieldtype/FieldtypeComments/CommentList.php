@@ -279,7 +279,7 @@ class CommentList extends Wire implements CommentListInterface {
 		if(!$this->field) return '';
 
 		require_once(dirname(__FILE__) . '/CommentNotifications.php');
-		$no = new CommentNotifications($this->page, $this->field);
+		$no = $this->wire(new CommentNotifications($this->page, $this->field));
 		$info = $no->checkActions();
 		if($info['valid']) { 
 			$url = $this->page->url . '?'; 

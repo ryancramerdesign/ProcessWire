@@ -211,7 +211,7 @@ class ProcessPageView extends Process {
 		if($config->externalPageID) {
 			$page = $this->wire('pages')->get((int) $config->externalPageID); 
 		} else {
-			$page = new NullPage();
+			$page = $this->wire('pages')->newNullPage();
 		}
 		$this->wire('page', $page);
 		$this->ready();
@@ -353,7 +353,7 @@ class ProcessPageView extends Process {
 			} else {
 				// request was to something in /site/assets/files/ but we don't recognize it
 				// tell caller that this should be a 404
-				return new NullPage();
+				return $this->wire('pages')->newNullPage();
 			}
 		}
 
@@ -516,7 +516,7 @@ class ProcessPageView extends Process {
 			// this is something that viewable() does not echeck
 			if($page->editable()) return $page;
 			if($this->checkAccessDelegated($page)) return $page; 
-			if($page->status < Page::statusUnpublished && wire('user')->hasPermission('page-view', $page)) return $page;
+			if($page->status < Page::statusUnpublished && $this->wire('user')->hasPermission('page-view', $page)) return $page;
 		}
 
 		$accessTemplate = $page->getAccessTemplate();

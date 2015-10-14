@@ -25,7 +25,7 @@ class FieldtypeNotifications extends FieldtypeMulti {
 	 *
 	 */
 	public function getInputfield(Page $page, Field $field) {
-		return new InputfieldWrapper();
+		return $this->wire(new InputfieldWrapper());
 	}
 
 	/**
@@ -33,7 +33,7 @@ class FieldtypeNotifications extends FieldtypeMulti {
 	 *
 	 */
 	public function getBlankValue(Page $page, Field $field) {
-		$notifications = new NotificationArray($page);
+		$notifications = $this->wire(new NotificationArray($page));
 		$notifications->setTrackChanges(true); 
 		return $notifications; 
 	}
@@ -60,7 +60,7 @@ class FieldtypeNotifications extends FieldtypeMulti {
 	
 		// create new Notification objects from each item in the array
 		foreach($value as $v) {
-			$notification = new Notification();
+			$notification = $this->wire(new Notification());
 			$notification->title = $v['title'];
 			$notification->flags = $v['flags']; 
 			$notification->created = $v['created']; 

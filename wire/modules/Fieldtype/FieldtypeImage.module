@@ -30,14 +30,14 @@ class FieldtypeImage extends FieldtypeFile {
 	}
 
 	public function getBlankValue(Page $page, Field $field) {
-		$pageimages = new Pageimages($page);
+		$pageimages = $this->wire(new Pageimages($page));
 		$pageimages->setField($field);
 		$pageimages->setTrackChanges(true); 
 		return $pageimages; 
 	}
 
 	protected function getBlankPagefile(Pagefiles $pagefiles, $filename) {
-		return new Pageimage($pagefiles, $filename); 
+		return $this->wire(new Pageimage($pagefiles, $filename)); 
 	}
 
 	/*

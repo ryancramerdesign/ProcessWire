@@ -236,7 +236,7 @@ class Session extends Wire implements \IteratorAggregate {
 	 */
 	public function get($key, $_key = null) {
 		if($key == 'CSRF') {
-			if(is_null($this->CSRF)) $this->CSRF = new SessionCSRF();
+			if(is_null($this->CSRF)) $this->CSRF = $this->wire(new SessionCSRF());
 			return $this->CSRF; 
 		} else if(!is_null($_key)) {
 			// namespace
@@ -462,7 +462,7 @@ class Session extends Wire implements \IteratorAggregate {
 
 			if($this->config->sessionChallenge) {
 				// create new challenge
-				$pass = new Password();
+				$pass = $this->wire(new Password());
 				$challenge = $pass->randomBase64String(32);
 				$this->set('_user', 'challenge', $challenge); 
 				$secure = $this->config->sessionCookieSecure ? (bool) $this->config->https : false;

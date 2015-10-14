@@ -76,7 +76,7 @@ class AdminThemeRenoHelpers extends AdminThemeDefaultHelpers {
 		$items = array();
 		$class = '';
 		$user = $this->wire('user');
-		$config = wire("config");
+		$config = $this->wire("config");
 		$adminTheme = $this->wire('adminTheme');
 		$fieldName = "avatar_field_" . $user->template->name;
 		$adminTheme->$fieldName != '' ?  $avatarField = $adminTheme->$fieldName : $avatarField = '';
@@ -265,10 +265,10 @@ class AdminThemeRenoHelpers extends AdminThemeDefaultHelpers {
 				} else {
 					// $c is a Page object
 					$list = array(
-						wire('config')->urls->admin . "page/",
-						wire('config')->urls->admin . "page/edit/"
+						$this->wire('config')->urls->admin . "page/",
+						$this->wire('config')->urls->admin . "page/edit/"
 					);
-					in_array($currentPagePath, $list) ? $currentPagePath = wire('config')->urls->admin . "page/list/" : '';
+					in_array($currentPagePath, $list) ? $currentPagePath = $this->wire('config')->urls->admin . "page/list/" : '';
 					$class = strpos($currentPagePath, $c->url) === 0 ? 'current' : ''; // child current class
 					$name = $c->name;
 

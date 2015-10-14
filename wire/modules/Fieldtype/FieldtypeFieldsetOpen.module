@@ -63,7 +63,7 @@ class FieldtypeFieldsetOpen extends Fieldtype {
 	}
 
 	public function getInputfield(Page $page, Field $field) {
-		$inputfield = new InputfieldFieldsetOpen();
+		$inputfield = $this->wire(new InputfieldFieldsetOpen());
 		$inputfield->class = $this->className();
 		return $inputfield; 
 	}
@@ -86,7 +86,7 @@ class FieldtypeFieldsetOpen extends Fieldtype {
 	}
 
 	public function ___getCompatibleFieldtypes(Field $field) {
-		$fieldtypes = new Fieldtypes();
+		$fieldtypes = $this->wire(new Fieldtypes());
 		foreach($this->wire('fieldtypes') as $fieldtype) {
 			if($fieldtype instanceof FieldtypeFieldsetOpen) $fieldtypes->add($fieldtype); 
 		}
@@ -118,8 +118,8 @@ class FieldtypeFieldsetOpen extends Fieldtype {
 		$field = $event->arguments[0]; 
 		if(!$this->isFieldset($field)) return; 
 
-		$closer = new Field();
-		$closer->type = new FieldtypeFieldsetClose();
+		$closer = $this->wire(new Field());
+		$closer->type = $this->wire(new FieldtypeFieldsetClose());
 		$closer->name = $field->name . self::fieldsetCloseIdentifier;
 		$closer->label = "Close an open fieldset";
 		$closer->description = "This field was added automatically to accompany fieldset '$field'. It should be placed in your template/fieldgroup wherever you want the fieldset to end.";

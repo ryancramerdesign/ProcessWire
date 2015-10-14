@@ -381,7 +381,7 @@ class ProcessLogger extends Process {
 			$table->row($row);
 		}
 
-		$entries = new LogEntriesArray();
+		$entries = $this->wire(new LogEntriesArray());
 		
 		if(count($items)) {
 			reset($items);

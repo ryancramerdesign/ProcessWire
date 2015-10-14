@@ -88,8 +88,20 @@ class Users extends PagesType {
 	public function getGuestUser() {
 		if($this->guestUser) return $this->guestUser; 
 		$this->guestUser = $this->get($this->config->guestUserPageID); 
-		if(defined("PROCESSWIRE_UPGRADE") && !$this->guestUser || !$this->guestUser->id) $this->guestUser = new User(); // needed during upgrade
+		if(defined("PROCESSWIRE_UPGRADE") && !$this->guestUser || !$this->guestUser->id) {
+			$this->guestUser = $this->newUser(); // needed during upgrade
+		}
 		return $this->guestUser; 
+	}
+
+	/**
+	 * Return new User instance
+	 * 
+	 * @return User
+	 * 
+	 */
+	public function newUser() {
+		return $this->wire('pages')->newPage(array('pageClass' => 'User'));
 	}
 
 }

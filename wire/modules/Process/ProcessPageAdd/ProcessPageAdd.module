@@ -576,7 +576,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 		if(count($this->predefinedParents)) {
 			$parents = $this->predefinedParents;
 		} else {
-			$parents = new PageArray();
+			$parents = $this->wire('pages')->newPageArray();
 			if($this->parent) $parents->add($this->parent);
 		}
 		foreach($parents as $parent) {
@@ -616,7 +616,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 		$form->attr('data-dup-note',  $this->_('The name entered is already in use. If you do not modify it, the name will be made unique automatically after you save.')); 
 		$form->attr('method', 'post');
 
-		$page = new NullPage(); // for getInputfield
+		$page = $this->wire('pages')->newNullPage(); // for getInputfield
 		if(is_null($this->template) || !$this->template->noGlobal) {
 			foreach($this->wire('fields') as $field) {
 				if($field->flags & Field::flagGlobal && ($field->type instanceof FieldtypePageTitle || $field->type instanceof FieldtypePageTitleLanguage)) {
@@ -753,8 +753,8 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 	 */
 	protected function getTemplateLabel(Template $template) {
 		$label = '';
-		$user = wire('user'); 
-		$language = wire('languages') && $user->language->id && !$user->language->isDefault ? wire('user')->language : null;
+		$user = $this->wire('user'); 
+		$language = $this->wire('languages') && $user->language->id && !$user->language->isDefault ? $user->language : null;
 		if($language) $label = $template->get('label' . $language->id);
 		if(!$label) $label = $template->label ? $template->label : $template->name; 
 		return $label;
@@ -813,8 +813,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 			$nameFormat = $nameFormatTemplate;
 		}
 		$class = $template->pageClass ? $template->pageClass : 'Page';
-		$class = wireClassName($class, true);
-		$page = new $class(); 
+		$page = $this->wire('pages')->newPage(array('pageClass' => $class)); 
 		$page->template = $template;	
 		$page->parent = $parent; 
 		$this->wire('pages')->setupNew($page); 
@@ -904,7 +903,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 		$this->page->sort = $this->parent->numChildren; 
 
 		$publishNow = $this->page->publishable() && $this->wire('input')->post('submit_publish');
-		$languages = wire('languages'); 
+		$languages = $this->wire('languages'); 
 
 		foreach($this->page->fields as $field) {
 			$f = $form->children->get($field->name); 
@@ -950,7 +949,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 	 */
 	public function setupBreadcrumbs() {
 		if($this->wire('page')->process != $this->className()) return;
-		$breadcrumbs = new Breadcrumbs();
+		$breadcrumbs = $this->wire(new Breadcrumbs());
 		$breadcrumbs->add(new Breadcrumb($this->config->urls->admin . 'page/list/', "Pages"));
 		foreach($this->parent->parents()->append($this->parent) as $p) {
 			$breadcrumbs->add(new Breadcrumb($this->config->urls->admin . "page/list/?open=" . $p->id, $p->get("title|name"))); 
@@ -963,7 +962,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 	 *
 	 */
 	public function getPage() {
-		return $this->page ? $this->page : new NullPage(); 
+		return $this->page ? $this->page : $this->wire('pages')->newNullPage(); 
 	}
 	
 	public function setEditor(WirePageEditor $editor) {
@@ -998,7 +997,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 	 */
 	protected function getPageBookmarks() {
 		require_once($this->wire('config')->paths->ProcessPageEdit . 'PageBookmarks.php');
-		return new PageBookmarks($this);
+		return $this->wire(new PageBookmarks($this));
 	}
 
 	/**

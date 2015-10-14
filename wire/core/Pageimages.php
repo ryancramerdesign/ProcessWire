@@ -34,7 +34,7 @@ class Pageimages extends Pagefiles {
 	 *
 	 */
 	public function add($item) {
-		if(is_string($item)) $item = new Pageimage($this, $item); 
+		if(is_string($item)) $item = $this->wire(new Pageimage($this, $item)); 
 		return parent::add($item); 
 	}
 
@@ -43,7 +43,7 @@ class Pageimages extends Pagefiles {
 	 *
 	 */
 	public function makeBlankItem() {
-		return new Pageimage($this, ''); 
+		return $this->wire(new Pageimage($this, '')); 
 	}
 
 	/**

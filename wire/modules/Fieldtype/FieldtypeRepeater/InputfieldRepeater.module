@@ -76,8 +76,8 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 	 */
 	public function init() {
 		parent::init();
-		if(is_null($this->page)) $this->page = new NullPage();
-		$this->attr('value', new PageArray()); 
+		if(is_null($this->page)) $this->page = $this->wire('pages')->newNullPage();
+		$this->attr('value', $this->wire('pages')->newPageArray()); 
 	}
 
 	/**
@@ -112,10 +112,10 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 		if(!$this->page || !$this->page->id) throw new WireException("You must set a 'page' (type Page) property to {$this->className} that has a repeater field assigned to its template"); 
 
 		$out = '';
-		$form = new InputfieldWrapper();
+		$form = $this->wire(new InputfieldWrapper());
 		$value = $this->attr('value'); 
-		$language = wire('user')->language; 
-		$languages = wire('languages'); 
+		$language = $this->wire('user')->language; 
+		$languages = $this->wire('languages'); 
 
 		// locate and remove any unpublished+hidden items so we can ensure they are at the end
 		$appendItems = array();
@@ -151,25 +151,25 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 			$this->wrappers[$page->id] = $inputfields; 
 
 			// also add a delete checkbox to the repeater page fields
-			$delete = wire('modules')->get('InputfieldCheckbox'); 
+			$delete = $this->wire('modules')->get('InputfieldCheckbox'); 
 			$delete->attr('id+name', "delete_repeater{$page->id}"); 
 			$delete->class = 'InputfieldRepeaterDelete';
 			$delete->label = $this->_('Delete'); 
 			$delete->attr('value', $page->id); 
 
-			$sort = wire('modules')->get('InputfieldHidden'); 
+			$sort = $this->wire('modules')->get('InputfieldHidden'); 
 			$sort->attr('id+name', "sort_repeater{$page->id}"); 
 			$sort->class = 'InputfieldRepeaterSort';
 			$sort->label = $this->_('Sort');
 			$sort->attr('value', $cnt);
 
-			$wrap = wire('modules')->get('InputfieldFieldset'); 
+			$wrap = $this->wire('modules')->get('InputfieldFieldset'); 
 			$wrap->addClass('InputfieldRepeaterItem');
 			$wrap->label = $this->renderRepeaterLabel($label, ++$cnt, $page); 
 
 			// add a hidden field that will be populated with a positive value for all visible repeater items
 			// this is so that processInput can see this item should be a published item
-			$f = wire('modules')->get('InputfieldHidden');
+			$f = $this->wire('modules')->get('InputfieldHidden');
 			$f->attr('name', "publish_repeater{$page->id}"); 
 			$f->attr('class', 'InputfieldRepeaterPublish'); 
 			$f->attr('value', $page->hasStatus(Page::statusHidden) ? 0 : 1); 
@@ -181,7 +181,7 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 
 				// add a hidden field that will be removed upon revealing it with JS
 				// this is so fields can have default values (like Datetime today's date)
-				$f = wire('modules')->get('InputfieldHidden');
+				$f = $this->wire('modules')->get('InputfieldHidden');
 				$f->attr('name', "_disable_repeater{$page->id}"); 
 				$f->attr('class', 'InputfieldRepeaterDisabled'); 
 				$f->attr('value', $page->id); 
@@ -201,7 +201,7 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 		}	
 
 		// create a new/blank item to be used as a template for any new items added
-		$wrap = wire('modules')->get('InputfieldFieldset'); 
+		$wrap = $this->wire('modules')->get('InputfieldFieldset'); 
 		$wrap->label = $this->renderRepeaterLabel($label, ++$cnt, new NullPage()); 
 		$wrap->description = $this->_('This item will become editable after you save.');
 		$wrap->class = 'InputfieldRepeaterItem InputfieldRepeaterNewItem';
@@ -320,7 +320,7 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 	 */
 	protected function formToPage(InputfieldWrapper $wrapper, Page $page, $level = 0) {
 
-		$languages = wire('languages'); 
+		$languages = $this->wire('languages'); 
 
 		foreach($wrapper as $inputfield) {
 

@@ -282,7 +282,7 @@ class MarkupFieldtype extends WireData implements Module {
 		$inputfield->attr('value', $value);
 		if(method_exists($inputfield, 'setField')) $inputfield->setField($field);
 		if(method_exists($inputfield, 'setPage')) $inputfield->setPage($page);
-		$wrapper = new InputfieldWrapper();
+		$wrapper = $this->wire(new InputfieldWrapper());
 		$wrapper->quietMode = true; 
 		$wrapper->add($inputfield);
 		$out = $wrapper->renderValue();
@@ -301,7 +301,7 @@ class MarkupFieldtype extends WireData implements Module {
 	
 	public function setPage(Page $page) { $this->_page = $page;  }
 	public function setField(Field $field) { $this->_field = $field;  }
-	public function getPage() { return $this->_page ? $this->_page : new NullPage(); }
+	public function getPage() { return $this->_page ? $this->_page : $this->wire('pages')->newNullPage(); }
 	public function getField() { return $this->_field; }
 
 	/**

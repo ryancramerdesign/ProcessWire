@@ -194,7 +194,7 @@ class MarkupPagerNav extends Wire implements Module {
 				else if(!empty($this->options['getVars'])) $this->setGetVars($this->getVars); 
 		}
 
-		$pagerNav = new PagerNav($this->totalItems, $this->itemsPerPage, $this->pageNum); 
+		$pagerNav = $this->wire(new PagerNav($this->totalItems, $this->itemsPerPage, $this->pageNum)); 
 		$pagerNav->setLabels($this->options['previousItemLabel'], $this->options['nextItemLabel']); 
 		$pagerNav->setNumPageLinks($this->numPageLinks); 
 		$pager = $pagerNav->getPager();

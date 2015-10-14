@@ -44,6 +44,6 @@ class FieldsArray extends WireArray {
 	 *
 	 */
 	public function makeBlankItem() {
-		return new Field();
+		return $this->wire(new Field());
 	}
 }

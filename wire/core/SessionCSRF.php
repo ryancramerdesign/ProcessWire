@@ -51,7 +51,7 @@ class SessionCSRF extends Wire {
 		$tokenValue = $this->session->get($this, $tokenName);
 		if(empty($tokenValue)) {
 			// $tokenValue = md5($this->page->path() . mt_rand() . microtime()) . md5($this->page->name . $this->config->userAuthSalt . mt_rand());
-			$pass = new Password();
+			$pass = $this->wire(new Password());
 			$tokenValue = $pass->randomBase64String(32);
 			$this->session->set($this, $tokenName, $tokenValue); 
 		}

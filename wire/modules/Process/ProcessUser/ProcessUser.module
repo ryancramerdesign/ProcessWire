@@ -60,7 +60,7 @@ class ProcessUser extends ProcessPageType {
 
 		if(empty($options) && $this->pages->count("id>0") > $max) {
 			$user = $this->wire('user');
-			$userAdminAll = $user->isSuperuser() ? new NullPage() : $this->wire('permissions')->get('user-admin-all');
+			$userAdminAll = $user->isSuperuser() ? $this->wire('pages')->newNullPage() : $this->wire('permissions')->get('user-admin-all');
 			/** @var PagePermissions $pagePermissions */
 			$pagePermissions = $this->wire('modules')->get('PagePermissions');
 			$items = array();

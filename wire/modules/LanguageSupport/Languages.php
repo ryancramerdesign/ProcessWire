@@ -76,7 +76,7 @@ class Languages extends PagesType {
 	 *
 	 */
 	public function translator(Language $language) {
-		if(is_null($this->translator)) $this->translator = new LanguageTranslator($language); 
+		if(is_null($this->translator)) $this->translator = $this->wire(new LanguageTranslator($language)); 
 			else $this->translator->setCurrentLanguage($language);
 		return $this->translator; 
 	}
@@ -120,7 +120,7 @@ class Languages extends PagesType {
 	 */
 	public function getIterator() {
 		if($this->languages && count($this->languages)) return $this->languages; 
-		$languages = new PageArray();
+		$languages = $this->wire('pages')->newPageArray();
 		foreach($this->getAll() as $language) { 
 			if($language->hasStatus(Page::statusUnpublished) || $language->hasStatus(Page::statusHidden)) continue; 
 			$languages->add($language); 

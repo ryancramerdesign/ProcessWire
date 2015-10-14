@@ -577,7 +577,7 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 
 	public function ___processInput(WireInputData $input) {
 		
-		if(is_null($this->value)) $this->value = new Pagefiles($this->wire('page'));
+		if(is_null($this->value)) $this->value = $this->wire(new Pagefiles($this->wire('page')));
 		if(!$this->destinationPath) $this->destinationPath = $this->value->path();
 		if(!$this->destinationPath || !is_dir($this->destinationPath)) return $this->error($this->_("destinationPath is empty or does not exist"));
 		if(!is_writable($this->destinationPath)) return $this->error($this->_("destinationPath is not writable"));
@@ -672,7 +672,7 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 	 *
 	 */
 	public function getWireUpload() {
-		if(is_null($this->wireUpload)) $this->wireUpload = new WireUpload($this->attr('name')); 
+		if(is_null($this->wireUpload)) $this->wireUpload = $this->wire(new WireUpload($this->attr('name'))); 
 		return $this->wireUpload; 
 	}
 

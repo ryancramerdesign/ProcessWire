@@ -444,7 +444,7 @@ class InputfieldSelect extends Inputfield {
 
 			$isInputfieldSelect = $this->className() == 'InputfieldSelect';
 
-			$f = wire('modules')->get('InputfieldTextarea'); 
+			$f = $this->wire('modules')->get('InputfieldTextarea'); 
 			$f->attr('name', 'options'); 
 			$value = implode("\n", $this->options); 
 			if(empty($value)) {

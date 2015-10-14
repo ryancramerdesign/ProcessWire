@@ -254,7 +254,7 @@ class CommentForm extends Wire implements CommentFormInterface {
 		$id = $attrs['id'];
 		$submitKey = $id . "_submit";
 		$inputValues = array('cite' => '', 'email' => '', 'website' => '', 'text' => '', 'notify' => ''); 
-		$user = wire('user'); 
+		$user = $this->wire('user'); 
 
 		if($user->isLoggedin()) {
 			$inputValues['cite'] = $user->name; 
@@ -454,7 +454,7 @@ class CommentForm extends Wire implements CommentFormInterface {
 			if(empty($data[$key])) return false; 
 		}
 
-		$comment = new Comment(); 
+		$comment = $this->wire(new Comment()); 
 		$comment->user_agent = $_SERVER['HTTP_USER_AGENT']; 
 		$comment->ip = $this->wire('session')->getIP();
 		$comment->created_users_id = $this->user->id; 

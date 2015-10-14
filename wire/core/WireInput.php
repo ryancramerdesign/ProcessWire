@@ -60,12 +60,13 @@
  * 
  *
  */
-class WireInputData implements \ArrayAccess, \IteratorAggregate, \Countable {
+class WireInputData extends Wire implements \ArrayAccess, \IteratorAggregate, \Countable {
 
 	protected $stripSlashes = false;
 	protected $data = array();
 
 	public function __construct(array $input = array()) {
+		$this->useFuel(false);
 		$this->stripSlashes = get_magic_quotes_gpc();
 		$this->setArray($input); 
 	}
@@ -155,7 +156,7 @@ class WireInputData implements \ArrayAccess, \IteratorAggregate, \Countable {
 	 * 
 	 */
 	public function __call($method, $arguments) {
-		$sanitizer = wire('sanitizer'); 
+		$sanitizer = $this->wire('sanitizer'); 
 		$methodName = $method; 
 		$method = ltrim($method, '_');
 		if(!method_exists($sanitizer, $method)) {
@@ -202,7 +203,7 @@ class WireInputData implements \ArrayAccess, \IteratorAggregate, \Countable {
  * @property string $urlSegment5 Fifth URL segment, and so on...
  *
  */
-class WireInput {
+class WireInput extends Wire {
 
 	protected $getVars = null;
 	protected $postVars = null;
@@ -210,7 +211,11 @@ class WireInput {
 	protected $whitelist = null;
 	protected $urlSegments = array();
 	protected $pageNum = 1; 
-
+	
+	public function __construct() {
+		$this->useFuel(false);
+	}
+	
 	/**
 	 * Retrieve a GET value or all GET values
 	 *
@@ -222,7 +227,7 @@ class WireInput {
 	 */
 	public function get($key = '') {
 		if(is_null($this->getVars)) {
-			$this->getVars = new WireInputData($_GET);
+			$this->getVars = $this->wire(new WireInputData($_GET));
 			$this->getVars->offsetUnset('it');
 		}
 		return $key ? $this->getVars->__get($key) : $this->getVars; 
@@ -238,7 +243,7 @@ class WireInput {
 	 *
 	 */
 	public function post($key = '') {
-		if(is_null($this->postVars)) $this->postVars = new WireInputData($_POST); 
+		if(is_null($this->postVars)) $this->postVars = $this->wire(new WireInputData($_POST)); 
 		return $key ? $this->postVars->__get($key) : $this->postVars; 
 	}
 
@@ -252,7 +257,7 @@ class WireInput {
 	 *
 	 */
 	public function cookie($key = '') {
-		if(is_null($this->cookieVars)) $this->cookieVars = new WireInputData($_COOKIE); 
+		if(is_null($this->cookieVars)) $this->cookieVars = $this->wire(new WireInputData($_COOKIE)); 
 		return $key ? $this->cookieVars->__get($key) : $this->cookieVars; 
 	}
 
@@ -277,7 +282,7 @@ class WireInput {
 	 *
 	 */
 	public function whitelist($key = '', $value = null) {
-		if(is_null($this->whitelist)) $this->whitelist = new WireInputData(); 
+		if(is_null($this->whitelist)) $this->whitelist = $this->wire(new WireInputData()); 
 		if(!$key) return $this->whitelist; 
 		if(is_array($key)) return $this->whitelist->setArray($key); 
 		if(is_null($value)) return $this->whitelist->__get($key); 
@@ -322,7 +327,7 @@ class WireInput {
 			$this->urlSegments = $urlSegments; 
 		} else {
 			// set
-			$this->urlSegments[$num] = wire('sanitizer')->name($value); 	
+			$this->urlSegments[$num] = $this->wire('sanitizer')->name($value); 	
 		}
 	}
 
@@ -386,7 +391,7 @@ class WireInput {
 		} else {
 			// Like PHP's $_REQUEST where accessing $input->var considers get/post/cookie/whitelist
 			// what it actually considers depends on what's set in the $config->wireInputOrder variable
-			$order = (string) wire('config')->wireInputOrder; 
+			$order = (string) $this->wire('config')->wireInputOrder; 
 			if(!$order) return null;
 			$types = explode(' ', $order); 
 			foreach($types as $t) {
@@ -426,16 +431,16 @@ class WireInput {
 
 		$url = '';
 		/** @var Page $page */
-		$page = wire('page'); 
+		$page = $this->wire('page'); 
 		
 		if($page && $page->id) {
 			// pull URL from page
-			$url = wire('page')->url;
+			$url = $page->url;
 			$segmentStr = $this->urlSegmentStr();
 			$pageNum = $this->pageNum();
 			if(strlen($segmentStr) || $pageNum > 1) {
 				if($segmentStr) $url = rtrim($url, '/') . '/' . $segmentStr;
-				if($pageNum > 1) $url = rtrim($url, '/') . '/' . wire('config')->pageNumUrlPrefix . $pageNum;
+				if($pageNum > 1) $url = rtrim($url, '/') . '/' . $this->wire('config')->pageNumUrlPrefix . $pageNum;
 				if(isset($_SERVER['REQUEST_URI'])) {
 					$info = parse_url($_SERVER['REQUEST_URI']);
 					if(!empty($info['path']) && substr($info['path'], -1) == '/') $url .= '/'; // trailing slash
@@ -459,7 +464,7 @@ class WireInput {
 			// page not yet available, attempt to pull URL from request uri
 			$parts = explode('/', $_SERVER['REQUEST_URI']); 
 			foreach($parts as $part) {
-				$url .= "/" . wire('sanitizer')->pageName($part);
+				$url .= "/" . $this->wire('sanitizer')->pageName($part);
 			}
 			$info = parse_url($_SERVER['REQUEST_URI']);
 			if(!empty($info['path']) && substr($info['path'], -1) == '/') {
@@ -477,7 +482,7 @@ class WireInput {
 	 * 
 	 */
 	public function httpUrl() {
-		return $this->scheme() . '://' . wire('config')->httpHost . $this->url();
+		return $this->scheme() . '://' . $this->wire('config')->httpHost . $this->url();
 	}
 
 	/**
@@ -516,7 +521,7 @@ class WireInput {
 	 *
 	 */
 	public function scheme() {
-		return wire('config')->https ? 'https' : 'http'; 
+		return $this->wire('config')->https ? 'https' : 'http'; 
 	}
 }
 

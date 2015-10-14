@@ -133,7 +133,7 @@ class WireUpload extends Wire {
 
 		if(!$filename = $_SERVER['HTTP_X_FILENAME']) return false; 
 
-		$dir = wire('config')->uploadTmpDir;
+		$dir = $this->wire('config')->uploadTmpDir;
 		if(!$dir || !is_writable($dir)) $dir = ini_get('upload_tmp_dir');
 		if(!$dir || !is_writable($dir)) $dir = sys_get_temp_dir();
 		if(!$dir || !is_writable($dir)) throw new WireException("Error writing to $dir. Please define \$config->uploadTmpDir and ensure it is writable."); 

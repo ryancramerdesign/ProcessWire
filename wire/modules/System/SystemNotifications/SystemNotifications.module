@@ -624,7 +624,7 @@ class SystemNotifications extends WireData implements Module {
 			throw new WireException("There is already a field named '" . self::fieldName . "'"); 
 		}
 		if(!$field) {
-			$field = new Field();
+			$field = $this->wire(new Field());
 			$field->name = self::fieldName;
 			$field->label = 'Notifications';
 			$field->type = $fieldtype; 

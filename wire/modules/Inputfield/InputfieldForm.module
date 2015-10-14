@@ -142,7 +142,7 @@ class InputfieldForm extends InputfieldWrapper {
 			}
 			
 			$this->debugNote("showIf selector: $selectorString"); 
-			$selectors = new Selectors($selectorString); 
+			$selectors = $this->wire(new Selectors($selectorString)); 
 			
 			// whether we should process $child now or not
 			$processNow = true; 
@@ -287,7 +287,7 @@ class InputfieldForm extends InputfieldWrapper {
 			if(strlen($selectorString)) {
 				$this->debugNote("requiredIf selector: $selectorString");
 					
-				$selectors = new Selectors($selectorString);
+				$selectors = $this->wire(new Selectors($selectorString));
 		
 				foreach($selectors as $selector) {
 		

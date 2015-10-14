@@ -314,7 +314,7 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 
 		if($field->derefAsPage == FieldtypePage::derefAsPageArray) {
 			// multi page blank value
-			$pageArray = new PageArray();
+			$pageArray = $this->wire('pages')->newPageArray();
 			$pageArray->setTrackChanges(true);
 			return $pageArray;
 
@@ -324,7 +324,7 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 
 		} else if($field->derefAsPage == FieldtypePage::derefAsPageOrNullPage) {
 			// single page possible blank values
-			return new NullPage(); 
+			return $this->wire('pages')->newNullPage(); 
 		}
 
 	}
@@ -374,7 +374,7 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 			foreach($values as $str) {
 				$v = $this->sanitizeValueString($page, $field, $str); // recursive
 				if($v && $v->id) {
-					if(!$result) $result = new PageArray();
+					if(!$result) $result = $this->wire('pages')->newPageArray();
 					$result->add($v); 
 				}
 			}
@@ -691,7 +691,7 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 		if(in_array($subfield, $this->nativeNames)) {
 			// fine then, we can handle that here when needed (like !=)
 		} else {
-			$subfield = wire('fields')->get($subfield);
+			$subfield = $this->wire('fields')->get($subfield);
 			if(!$subfield) return false; // not a custom field
 			$subfield = $subfield->name; 
 		}
@@ -702,7 +702,7 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 		$table = $database->escapeTable($table);
 
 		// perform a separate find() operation for the subfield
-		$pageFinder = new PageFinder();
+		$pageFinder = $this->wire(new PageFinder());
 		$value = $this->wire('sanitizer')->selectorValue($value);
 
 		// build a selector to find matching pagerefs 
@@ -763,7 +763,7 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 		} else {
 
 			$selector .= "{$subfield}$operator$value, ";
-			$selectors = new Selectors(trim($selector, ', '));
+			$selectors = $this->wire(new Selectors(trim($selector, ', ')));
 			$matches = $pageFinder->find($selectors, $pageFinderOptions);
 
 			// use the IDs found from the separate find() as our getMatchQuery
@@ -1103,7 +1103,7 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 		if($getCount) return $byField ? $fieldCounts : $total;
 
 		// no references found and PageArray requested, return blank PageArray
-		if(!$total) return new PageArray();
+		if(!$total) return $this->wire('pages')->newPageArray();
 
 		if($byField) {
 			// return array of PageArrays indexed by fieldName

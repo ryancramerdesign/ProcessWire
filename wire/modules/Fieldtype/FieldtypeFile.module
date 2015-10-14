@@ -77,7 +77,7 @@ class FieldtypeFile extends FieldtypeMulti {
 	}
 
 	public function ___getCompatibleFieldtypes(Field $field) {
-		$fieldtypes = new Fieldtypes();
+		$fieldtypes = $this->wire(new Fieldtypes());
 		foreach($this->wire('fieldtypes') as $fieldtype) {
 			if($fieldtype instanceof FieldtypeFile) $fieldtypes->add($fieldtype); 
 		}
@@ -201,7 +201,7 @@ class FieldtypeFile extends FieldtypeMulti {
 	}
 
 	public function getBlankValue(Page $page, Field $field) {
-		$pagefiles = new Pagefiles($page);
+		$pagefiles = $this->wire(new Pagefiles($page));
 		$pagefiles->setField($field); 
 		$pagefiles->setTrackChanges(true); 
 		return $pagefiles; 
@@ -218,7 +218,7 @@ class FieldtypeFile extends FieldtypeMulti {
 	 *
 	 */
 	protected function getBlankPagefile(Pagefiles $pagefiles, $filename) {
-		return new Pagefile($pagefiles, $filename); 
+		return $this->wire(new Pagefile($pagefiles, $filename)); 
 	}
 
 	public function sanitizeValue(Page $page, Field $field, $value) {
@@ -337,7 +337,7 @@ class FieldtypeFile extends FieldtypeMulti {
 
 		if(in_array($operator, array("*=", "~=", "%=", "^=", "$="))) {
 			// fulltext match filename or description
-			$ft = new DatabaseQuerySelectFulltext($query); 
+			$ft = $this->wire(new DatabaseQuerySelectFulltext($query)); 
 			$ft->match($table, $subfield, $operator, $value); 
 
 		} else {

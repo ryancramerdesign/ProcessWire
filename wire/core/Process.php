@@ -279,7 +279,7 @@ abstract class Process extends WireData implements Module {
 		if(!$parent || !$parent->id) $parent = $adminPage; // default
 		$page = $parent->child("include=all, name=$name"); // does it already exist?
 		if($page->id && $page->process == $this) return $page; // return existing copy
-		$page = new Page();
+		$page = $this->wire('pages')->newPage();
 		$page->template = $template ? $template : 'admin';
 		$page->name = $name; 
 		$page->parent = $parent; 

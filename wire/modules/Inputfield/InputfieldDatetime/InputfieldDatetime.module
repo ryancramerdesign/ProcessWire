@@ -187,7 +187,7 @@ class InputfieldDatetime extends Inputfield {
 	public function ___getConfigInputfields() {
 
 		$inputfields = parent::___getConfigInputfields();
-		$languages = wire('languages');
+		$languages = $this->wire('languages');
 
 		$f = $this->modules->get('InputfieldInteger');
 		$f->setAttribute('name', 'size'); 

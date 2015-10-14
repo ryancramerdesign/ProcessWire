@@ -69,7 +69,7 @@ class InputfieldText extends Inputfield {
 
 	protected function setAttributeValue($value) {
 		if($this->maxlength) { 
-			$value = wire('sanitizer')->text($value, array(
+			$value = $this->wire('sanitizer')->text($value, array(
 				'maxLength' => $this->maxlength, 
 				'maxBytes' => $this->maxlength*3, 
 				'stripTags' => false,

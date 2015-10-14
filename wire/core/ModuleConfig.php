@@ -81,7 +81,7 @@ class ModuleConfig extends WireData {
 		foreach($this->getDefaults() as $key => $value) {
 			$this->set($key, $value);
 		}
-		$inputfields = new InputfieldWrapper();
+		$inputfields = $this->wire(new InputfieldWrapper());
 		if(count($this->inputfieldsArray)) {
 			$inputfields->add($this->inputfieldsArray); 
 		}

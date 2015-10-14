@@ -81,7 +81,7 @@ class Role extends Page {
 		} else if($name == "page-add" || $name == "page-create") {
 			// runtime permissions that don't have associated permission pages
 			if(empty($context)) return false;
-			$permission = new Permission();
+			$permission = $this->wire(new Permission());
 			$permission->name = $name;
 
 		} else if(is_string($name)) {

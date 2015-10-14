@@ -13,7 +13,7 @@ class ProcessTemplateExportImport extends Wire {
 	}
 	
 	protected function getNewItem() {
-		$item = new Template();
+		$item = $this->wire(new Template());
 		return $item;
 	}
 
@@ -215,7 +215,7 @@ class ProcessTemplateExportImport extends Wire {
 
 			if(!$template) {
 				$new = true;
-				$template = new Template();
+				$template = $this->wire(new Template());
 				$template->name = $name;
 				$fieldset->icon = 'sun-o';
 				$fieldset->label .= " [" . $this->_('new') . "]";

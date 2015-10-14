@@ -70,7 +70,7 @@ class ProcessPageEditLink extends Process implements ConfigurableModule {
 		$id = (int) $this->input->get->id; 
 		if($id) $this->page = $this->pages->get($id); 
 		if($this->page && $this->page->id && !$this->user->hasPermission("page-view", $this->page)) throw new WireException("You don't have access to this page"); 
-		if(!$this->page) $this->page = new NullPage();
+		if(!$this->page) $this->page = $this->wire('pages')->newNullPage();
 
 		//$target = $this->sanitizer->name($this->input->get->target); 
 		//$this->config->js('ProcessPageEditLinkTarget', $target); 
@@ -106,7 +106,7 @@ class ProcessPageEditLink extends Process implements ConfigurableModule {
 		
 		$this->wire('modules')->get('JqueryWireTabs'); 
 		
-		$fieldset = new InputfieldWrapper();
+		$fieldset = $this->wire(new InputfieldWrapper());
 		$fieldset->attr('title', $this->_('Link')); 
 		$fieldset->addClass('WireTab');
 		$form->add($fieldset); 
@@ -170,7 +170,7 @@ class ProcessPageEditLink extends Process implements ConfigurableModule {
 
 		$fieldset->append($this->getFilesField()); 
 		
-		$fieldset = new InputfieldWrapper();
+		$fieldset = $this->wire(new InputfieldWrapper());
 		$fieldset->attr('title', $this->_('Attributes'));
 		$fieldset->attr('id', 'link_attributes'); 
 		$fieldset->addClass('WireTab'); 

@@ -358,7 +358,7 @@ class PagefilesManager extends Wire {
 	 */
 	static public function _path(Page $page, $extended = false) {
 
-		$config = wire('config');
+		$config = $page->wire('config');
 		$path = $config->paths->files; 
 		
 		$securePrefix = $config->pagefileSecurePathPrefix; 
@@ -469,7 +469,7 @@ class PagefilesManager extends Wire {
 	 */
 	public function getTempPath() {
 		static $wtd = null;
-		if(is_null($wtd)) $wtd = new WireTempDir($this->className() . $this->page->id);
+		if(is_null($wtd)) $wtd = $this->wire(new WireTempDir($this->className() . $this->page->id));
 		return $wtd->get();
 	}
 

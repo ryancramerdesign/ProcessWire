@@ -144,7 +144,7 @@ class PagePaths extends WireData implements Module {
 				$error = "NOT mode isn't yet supported with path/url and '$selector->operator' operator";
 				throw new PageFinderSyntaxException($error);
 			}
-			$ft = new DatabaseQuerySelectFulltext($query);
+			$ft = $this->wire(new DatabaseQuerySelectFulltext($query));
 			$ft->match($alias, 'path', $selector->operator, trim($value, '/'));
 		}
 	}

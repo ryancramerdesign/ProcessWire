@@ -149,11 +149,11 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 				// extended asset path format: 1/2/3/filename.jpg
 				$id = PagefilesManager::dirToPageID($matches[1]); 
 
-			} else if(preg_match('{^' . wire('config')->urls->root . '([-_./a-zA-Z0-9]*/)' . wire('config')->pagefileUrlPrefix . '[^/]+\.(' . $this->extensions . ')$}iD', $this->input->get->file, $matches)) {
+			} else if(preg_match('{^' . $this->wire('config')->urls->root . '([-_./a-zA-Z0-9]*/)' . $this->wire('config')->pagefileUrlPrefix . '[^/]+\.(' . $this->extensions . ')$}iD', $this->input->get->file, $matches)) {
 				// .............................../....................path/to/page.........................-?....................filename..........ext
 				// legacy pagefileSecure URL format: /path/to/page/filename.jpg
 				// @todo: does this still need to be here or can it be dropped?
-				$this->page = wire('pages')->get('/' . $matches[1]);
+				$this->page = $this->wire('pages')->get('/' . $matches[1]);
 				$id = $this->page->id;
 			}
 		}
@@ -254,7 +254,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		$original = $images[$file]; 
 		$variationPathname = $original->pagefiles->path() . $variationFilename; 
 		$pageimage = null;
-		if(is_file($variationPathname)) $pageimage = new Pageimage($original->pagefiles, $variationPathname); 
+		if(is_file($variationPathname)) $pageimage = $this->wire(new Pageimage($original->pagefiles, $variationPathname)); 
 		if(!$pageimage) throw new WireException("Unrecognized variation file: $file"); 
 		
 		return $pageimage; 

@@ -28,7 +28,7 @@ require(PROCESSWIRE_CORE_PATH . "Paths.php");
 require(PROCESSWIRE_CORE_PATH . "Config.php");
 require(PROCESSWIRE_CORE_PATH . "Functions.php"); 
 require(PROCESSWIRE_CORE_PATH . "LanguageFunctions.php");
-require(PROCESSWIRE_CORE_PATH . "shutdown.php"); 
+require(PROCESSWIRE_CORE_PATH . "WireShutdown.php"); 
 
 
 /**
@@ -70,7 +70,7 @@ class ProcessWire extends Wire {
 	 * @var Fuel|null
 	 *
 	 */
-	protected $_fuel = null;
+	protected $fuel = null;
 
 	/**
 	 * Saved path, for includeFile() method
@@ -87,18 +87,39 @@ class ProcessWire extends Wire {
 	protected $updater = null;
 
 	/**
+	 * ID for this instance of ProcessWire
+	 * 
+	 * @var int
+	 * 
+	 */
+	protected $instanceID = 0;
+
+	/**
+	 * @var WireShutdown
+	 * 
+	 */
+	protected $shutdown = null;
+	
+	/**
 	 * Given a Config object, instantiates ProcessWire and it's API
 	 * 
 	 * @param Config $config
  	 *
 	 */ 
 	public function __construct(Config $config) {
-		$this->debug = $config->debug; 
 		
-		$classLoader = new WireClassLoader();
-		$classLoader->addNamespace(__NAMESPACE__, PROCESSWIRE_CORE_PATH);
-		$this->wire('classLoader', $classLoader);
+		$this->debug = $config->debug; 
+		$this->instanceID = self::addInstance($this);
+		$this->setWire($this);
+		
+		$this->fuel = new Fuel();
+		$this->fuel->set('wire', $this, true);
 
+		$classLoader = $this->wire('classLoader', new WireClassLoader(), true);
+		$classLoader->addNamespace(__NAMESPACE__, PROCESSWIRE_CORE_PATH);
+	
+		$this->shutdown = $this->wire(new WireShutdown());
+		
 		$this->config($config); 
 		$this->load($config);
 	}
@@ -116,6 +137,8 @@ class ProcessWire extends Wire {
 	protected function config(Config $config) {
 
 		$this->wire('config', $config, true); 
+		$this->wire($config->paths);
+		$this->wire($config->urls);
 
 		ini_set('date.timezone', $config->timezone);
 		ini_set('default_charset','utf-8');
@@ -209,33 +232,28 @@ class ProcessWire extends Wire {
 			Debug::timer('boot.load'); 
 		}
 
-		$this->wire('wire', $this, true);
 		$this->wire('log', new WireLog(), true); 
 		$this->wire('notices', new Notices(), true); 
 		$this->wire('sanitizer', new Sanitizer()); 
 
 		try {
-			$database = WireDatabasePDO::getInstance($config);
-			$this->wire('database', $database); 
-			$db = new DatabaseMysqli($config);
-			$this->wire('db', $db);
+			$database = $this->wire('database', WireDatabasePDO::getInstance($config), true);
+			$db = $this->wire('db', new DatabaseMysqli($config), true);
 		} catch(\Exception $e) {
 			// catch and re-throw to prevent DB connect info from ever appearing in debug backtrace
 			$this->trackException($e, true, 'Unable to load WireDatabasePDO');
 			throw new WireDatabaseException($e->getMessage()); 
 		}
 		
-		$cache = new WireCache(); 
-		$this->wire('cache', $cache); 
+		$cache = $this->wire('cache', new WireCache(), true); 
 		$cache->preload($config->preloadCacheNames); 
 		
 		if($config->compat2x) $this->loadCompat2x($config);
 
 		try { 		
 			if($this->debug) Debug::timer('boot.load.modules');
-			$modules = new Modules($config->paths->modules);
+			$modules = $this->wire('modules', new Modules($config->paths->modules), true);
 			$modules->addPath($config->paths->siteModules);
-			$this->wire('modules', $modules, true); 
 			$modules->setSubstitutes($config->substituteModules); 
 			$modules->init();
 			if($this->debug) Debug::saveTimer('boot.load.modules');
@@ -250,18 +268,11 @@ class ProcessWire extends Wire {
 			$this->updater = $modules->get('SystemUpdater');
 		}
 
-		$fieldtypes = new Fieldtypes();
-		$fields = new Fields();
-		$fieldgroups = new Fieldgroups();
-		$templates = new Templates($fieldgroups, $config->paths->templates); 
-
-		$this->wire('fieldtypes', $fieldtypes, true); 
-		$this->wire('fields', $fields, true); 
-		$this->wire('fieldgroups', $fieldgroups, true); 
-		$this->wire('templates', $templates, true); 
-		
-		$pages = new Pages();
-		$this->wire('pages', $pages, true);
+		$fieldtypes = $this->wire('fieldtypes', new Fieldtypes(), true);
+		$fields = $this->wire('fields', new Fields(), true);
+		$fieldgroups = $this->wire('fieldgroups', new Fieldgroups(), true);
+		$templates = $this->wire('templates', new Templates($fieldgroups, $config->paths->templates), true); 
+		$pages = $this->wire('pages', new Pages(), true);
 
 		$this->initVar('fieldtypes', $fieldtypes);
 		$this->initVar('fields', $fields);
@@ -271,24 +282,20 @@ class ProcessWire extends Wire {
 	
 		if($this->debug) Debug::timer('boot.load.permissions'); 
 		if(!$t = $templates->get('permission')) throw new WireException("Missing system template: 'permission'"); 
-		$permissions = new Permissions($t, $config->permissionsPageID); 
-		$this->wire('permissions', $permissions, true);
+		$permissions = $this->wire('permissions', new Permissions($t, $config->permissionsPageID), true); 
 		if($this->debug) Debug::saveTimer('boot.load.permissions');
 
 		if($this->debug) Debug::timer('boot.load.roles'); 
 		if(!$t = $templates->get('role')) throw new WireException("Missing system template: 'role'"); 
-		$roles = new Roles($t, $config->rolesPageID); 
-		$this->wire('roles', $roles, true);
+		$roles = $this->wire('roles', new Roles($t, $config->rolesPageID), true); 
 		if($this->debug) Debug::saveTimer('boot.load.roles');
 
 		if($this->debug) Debug::timer('boot.load.users'); 
-		$users = new Users($config->userTemplateIDs, $config->usersPageIDs); 
-		$this->wire('users', $users, true);
+		$users = $this->wire('users', new Users($config->userTemplateIDs, $config->usersPageIDs), true); 
 		if($this->debug) Debug::saveTimer('boot.load.users'); 
 
 		// the current user can only be determined after the session has been initiated
-		$session = new Session(); 
-		$this->wire('session', $session, true); 
+		$session = $this->wire('session', new Session(), true); 
 		$this->wire('user', $users->getCurrentUser()); 
 		$this->wire('input', new WireInput(), true); 
 
@@ -427,6 +434,115 @@ class ProcessWire extends Wire {
 		$value = $this->__get($method);
 		if(is_object($value)) return call_user_func_array(array($value, '__invoke'), $arguments); 
 		return parent::__call($method, $arguments);
+	}
+	
+	public function fuel($name = '') {
+		if(empty($name)) return $this->fuel;
+		return $this->fuel->$name;
+	}
+	
+	/*** MULTI-INSTANCE *************************************************************************************/
+	
+	/**
+	 * Instances of ProcessWire
+	 *
+	 * @var array
+	 *
+	 */
+	static protected $instances = array();
+
+	/**
+	 * Current ProcessWire instance
+	 * 
+	 * @var null
+	 * 
+	 */
+	static protected $currentInstance = null;
+
+	/**
+	 * Instance ID of this ProcessWire instance
+	 * 
+	 * @return int
+	 * 
+	 */
+	public function getInstanceID() {
+		return $this->instanceID;
+	}
+
+	/**
+	 * Add a ProcessWire instance and return the instance ID
+	 * 
+	 * @param ProcessWire $wire
+	 * @return int
+	 * 
+	 */
+	protected static function addInstance(ProcessWire $wire) {
+		$id = 0;
+		while(isset(self::$instances[$id])) $id++;
+		self::$instances[$id] = $wire;
+		return $id;
+	}
+
+	/**
+	 * Get all ProcessWire instances
+	 * 
+	 * @return array
+	 * 
+	 */
+	public static function getInstances() {
+		return self::$instances;
+	}
+
+	/**
+	 * Get a ProcessWire instance by ID
+	 * 
+	 * @param int|null $instanceID Omit this argument to return the current instance
+	 * @return null|ProcessWire
+	 * 
+	 */
+	public static function getInstance($instanceID = null) {
+		if(is_null($instanceID)) return self::getCurrentInstance();
+		return isset(self::$instances[$instanceID]) ? self::$instances[$instanceID] : null;
+	}
+	
+	/**
+	 * Get the current ProcessWire instance
+	 * 
+	 * @return ProcessWire|null
+	 * 
+	 */
+	public static function getCurrentInstance() {
+		if(is_null(self::$currentInstance)) {
+			$wire = reset(self::$instances);
+			self::setCurrentInstance($wire);
+		}
+		return self::$currentInstance;
+	}
+
+	/**
+	 * Set the current ProcessWire instance
+	 * 
+	 * @param ProcessWire $wire
+	 * 
+	 */
+	public static function setCurrentInstance(ProcessWire $wire) {
+		self::$currentInstance = $wire;	
+	}
+
+	/**
+	 * Remove a ProcessWire instance
+	 * 
+	 * @param ProcessWire $wire
+	 * 
+	 */
+	public static function removeInstance(ProcessWire $wire) {
+		foreach(self::$instances as $key => $instance) {
+			if($instance === $wire) {
+				unset(self::$instances[$key]);
+				if(self::$currentInstance === $wire) self::$currentInstance = null;
+				break;
+			}
+		}
 	}
 
 }

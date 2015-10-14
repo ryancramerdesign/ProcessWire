@@ -262,7 +262,7 @@ class Template extends WireData implements Saveable, Exportable {
 		if(strpos($type, 'page-') === 0) $type = str_replace('page-', '', $type);
 		
 		if($type != 'view') {
-			$roles = new PageArray();
+			$roles = $this->wire('pages')->newPageArray();
 			$roleIDs = null;
 			if($type == 'edit') $roleIDs = $this->editRoles;	
 				else if($type == 'create') $roleIDs = $this->createRoles;
@@ -275,14 +275,14 @@ class Template extends WireData implements Saveable, Exportable {
 		// type=view assumed from this point forward
 		
 		if(is_null($this->_roles)) {
-			return new PageArray();
+			return $this->wire('pages')->newPageArray();
 
 		} else if($this->_roles instanceof PageArray) {
 			return $this->_roles;
 		
 		} else if(is_array($this->_roles)) {
 			$errors = array();
-			$roles = new PageArray();
+			$roles = $this->wire('pages')->newPageArray();
 			if(count($this->_roles)) {
 				$test = implode('0', $this->_roles); // test to see if it's all digits (IDs)
 				if(ctype_digit("$test")) {
@@ -303,7 +303,7 @@ class Template extends WireData implements Saveable, Exportable {
 			$this->_roles = $roles;
 			return $this->_roles;
 		} else {
-			return new PageArray();
+			return $this->wire('pages')->newPageArray();
 		}
 	}
 

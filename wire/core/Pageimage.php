@@ -302,7 +302,7 @@ class Pageimage extends Pagefile {
 			);
 
 		$this->error = '';
-		$configOptions = wire('config')->imageSizerOptions; 
+		$configOptions = $this->wire('config')->imageSizerOptions; 
 		if(!is_array($configOptions)) $configOptions = array();
 		$options = array_merge($defaultOptions, $configOptions, $options); 
 
@@ -361,7 +361,7 @@ class Pageimage extends Pagefile {
 			if(file_exists($filenameUnvalidated)) @unlink($filenameUnvalidated);
 			if(@copy($this->filename(), $filenameUnvalidated)) {
 				try { 
-					$sizer = new ImageSizer($filenameUnvalidated);
+					$sizer = $this->wire(new ImageSizer($filenameUnvalidated));
 					$sizer->setOptions($options);
 					if($sizer->resize($width, $height) && @rename($filenameUnvalidated, $filenameFinal)) {
 						wireChmod($filenameFinal); 
@@ -612,7 +612,7 @@ class Pageimage extends Pagefile {
 
 		if(!is_null($this->variations)) return $this->variations; 
 
-		$variations = new Pageimages($this->pagefiles->page); 
+		$variations = $this->wire(new Pageimages($this->pagefiles->page)); 
 		$dir = new \DirectoryIterator($this->pagefiles->path); 
 		$infos = array();
 

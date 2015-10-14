@@ -430,7 +430,7 @@ class AdminThemeDefaultHelpers extends WireData {
 	 */
 	public function renderBrowserTitle() {
 		$browserTitle = $this->wire('processBrowserTitle'); 
-		if(!$browserTitle) $browserTitle = $this->_(strip_tags(wire('page')->get('title|name'))) . ' &bull; ProcessWire';
+		if(!$browserTitle) $browserTitle = $this->_(strip_tags($this->wire('page')->get('title|name'))) . ' &bull; ProcessWire';
 		if(strpos($browserTitle, '&') !== false) $browserTitle = html_entity_decode($browserTitle, ENT_QUOTES, 'UTF-8'); // we don't want to make assumptions here
 		$browserTitle = $this->wire('sanitizer')->entities($browserTitle, ENT_QUOTES, 'UTF-8'); 
 		if(!$this->wire('input')->get('modal')) {

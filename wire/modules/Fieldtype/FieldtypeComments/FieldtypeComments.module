@@ -77,7 +77,7 @@ class FieldtypeComments extends FieldtypeMulti {
 	}
 	
 	public function getBlankValue(Page $page, Field $field) {
-		$commentArray = new CommentArray(); 
+		$commentArray = $this->wire(new CommentArray()); 
 		$commentArray->setPage($page); 
 		$commentArray->setField($field); 
 		$commentArray->setTrackChanges(true);
@@ -108,7 +108,7 @@ class FieldtypeComments extends FieldtypeMulti {
 	public function getMatchQuery($query, $table, $subfield, $operator, $value) {
 		if($subfield == 'text') $subfield = 'data';
 		if(empty($subfield) || $subfield === 'data') { 
-			$ft = new DatabaseQuerySelectFulltext($query);
+			$ft = $this->wire(new DatabaseQuerySelectFulltext($query));
 			$ft->match($table, $subfield, $operator, $value);
 			return $query;
 		} 
@@ -141,7 +141,7 @@ class FieldtypeComments extends FieldtypeMulti {
 			// don't load non-approved comments if the user can't edit them
 			if(!$editable && $item['status'] < Comment::statusApproved) continue; 
 		
-			$comment = new Comment();
+			$comment = $this->wire(new Comment());
 			$comment->setPage($page);
 			$comment->setField($field); 
 			foreach($item as $key => $val) {
@@ -267,7 +267,7 @@ class FieldtypeComments extends FieldtypeMulti {
 	protected function checkCommentCodes(Comment $comment) {
 		// assign code and subcode
 		if(!$comment->code || !$comment->subcode) {
-			$pass = new Password();
+			$pass = $this->wire(new Password());
 			if(!strlen($comment->code)) {
 				// code: visible to admin only
 				$code = $pass->randomBase64String(128, true);
@@ -329,7 +329,7 @@ class FieldtypeComments extends FieldtypeMulti {
 		}
 
 		require_once(dirname(__FILE__) . '/CommentNotifications.php'); 
-		$no = new CommentNotifications($page, $field); 
+		$no = $this->wire(new CommentNotifications($page, $field)); 
 		$no->sendAdminNotificationEmail($comment); 
 		$this->commentMaintenance($field);
 
@@ -931,7 +931,7 @@ class FieldtypeComments extends FieldtypeMulti {
 		$table = $database->escapeTable($field->getTable());
 		$sql =  "SELECT * FROM `$table` WHERE id>0 ";
 		$sqlCount = "SELECT COUNT(*) FROM `$table` WHERE id>0 ";
-		$selectors = new Selectors($selectorString);
+		$selectors = $this->wire(new Selectors($selectorString));
 
 		foreach($selectors as $selector) {
 
@@ -975,7 +975,7 @@ class FieldtypeComments extends FieldtypeMulti {
 		$sql .= "ORDER BY $sort " . ($desc ? "DESC" : "ASC") . " ";
 		$sql .= "LIMIT $start, $limit";
 
-		$comments = new CommentArray();
+		$comments = $this->wire(new CommentArray());
 		$comments->setField($field);
 		$comments->setStart($start);
 		$comments->setLimit($limit);
@@ -985,7 +985,7 @@ class FieldtypeComments extends FieldtypeMulti {
 		$commentPages = array();
 
 		while($row = $query->fetch(\PDO::FETCH_ASSOC)) {
-			$comment = new Comment();
+			$comment = $this->wire(new Comment());
 			$comment->setField($field); 
 			foreach($row as $key => $value) {
 				if($key == 'data') $key = 'text';
@@ -1077,7 +1077,7 @@ class FieldtypeComments extends FieldtypeMulti {
 	 * 
 	 */
 	protected function makeComment($page, $field, array $data) {
-		$comment = new Comment();
+		$comment = $this->wire(new Comment());
 		$comment->setPage($page);
 		$comment->setField($field);
 		foreach($data as $key => $val) {
@@ -1234,7 +1234,7 @@ class FieldtypeComments extends FieldtypeMulti {
 			// emails array contains email address => subcode to send notifications to
 			if(count($emails)) {
 				require_once(dirname(__FILE__) . '/CommentNotifications.php'); 	
-				$no = new CommentNotifications($page, $field); 
+				$no = $this->wire(new CommentNotifications($page, $field)); 
 				foreach($emails as $email => $subcode) {
 					$no->sendNotificationEmail($comment, $email, $subcode);
 				}

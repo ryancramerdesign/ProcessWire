@@ -96,7 +96,7 @@ class SessionLoginThrottle extends WireData implements Module, ConfigurableModul
 				$elapsedSeconds = $time - $lastAttempt; 
 				if($elapsedSeconds < $requireSeconds) {
 					$error = sprintf($this->_("Please wait at least %d seconds before attempting another login."), $requireSeconds); 
-					if(wire('process') == 'ProcessLogin') parent::error($error); 
+					if($this->wire('process') == 'ProcessLogin') parent::error($error); 
 						else throw new WireException($error); // ensures the error can't be missed in unknown API usage
 				} else {
 					$allowed = true; 

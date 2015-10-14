@@ -49,7 +49,7 @@ class FieldgroupsArray extends WireArray {
 	 *
 	 */
 	public function makeBlankItem() {
-		return new Fieldgroup();
+		return $this->wire(new Fieldgroup());
 	}
 
 }
@@ -67,7 +67,7 @@ class Fieldgroups extends WireSaveableItemsLookup {
 	protected $fieldgroupsArray; 
 	
 	public function init() {
-		$this->fieldgroupsArray = new FieldgroupsArray();
+		$this->fieldgroupsArray = $this->wire(new FieldgroupsArray());
 		$this->load($this->fieldgroupsArray);
 	}
 
@@ -114,7 +114,7 @@ class Fieldgroups extends WireSaveableItemsLookup {
 	 *
 	 */
 	public function makeBlankItem() {
-		return new Fieldgroup(); 
+		return $this->wire(new Fieldgroup()); 
 	}
 
 	/**
@@ -154,7 +154,7 @@ class Fieldgroups extends WireSaveableItemsLookup {
 	 *
 	 */
 	public function getTemplates(Fieldgroup $fieldgroup) {
-		$templates = new TemplatesArray();
+		$templates = $this->wire(new TemplatesArray());
 		$cnt = 0;
 		foreach($this->wire('templates') as $tpl) {
 			if($tpl->fieldgroup->id == $fieldgroup->id) $templates->add($tpl); 

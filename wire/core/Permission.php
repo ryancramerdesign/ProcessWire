@@ -82,7 +82,7 @@ class Permission extends Page {
 			$permission = $permissions->get($name); 
 		} while(!$permission->id); 
 		
-		if(is_null($permission)) $permission = new NullPage();
+		if(is_null($permission)) $permission = $this->wire('pages')->newNullPage();
 		
 		return $permission;
 	}
@@ -90,14 +90,14 @@ class Permission extends Page {
 	public function getRootParentPermission() {
 		if(isset(self::$parentPermissions[$this->name])) {
 			$name = self::$parentPermissions[$this->name]; 
-			if($name == 'none') return new NullPage();
+			if($name == 'none') return $this->wire('pages')->newNullPage();
 		}
 		$parts = explode('-', $this->name);	
-		if(count($parts) < 2) return new NullPage();
+		if(count($parts) < 2) return $this->wire('pages')->newNullPage();
 		$name = "$parts[0]-$parts[1]";
 		if(isset(self::$parentPermissions[$name])) {
 			$name = self::$parentPermissions[$name];
-			if($name == 'none') return new NullPage();
+			if($name == 'none') return $this->wire('pages')->newNullPage();
 			return $this->wire('permissions')->get($name);
 		}
 		if($parts[0] == 'page') $name = 'page-edit';

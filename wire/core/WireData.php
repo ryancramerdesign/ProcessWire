@@ -313,7 +313,7 @@ class WireData extends Wire implements \IteratorAggregate {
 			// single item
 			$className = $this->className(true) . 'Array';
 			if(!class_exists($className)) $className = wireClassName('WireArray', true);		
-			$a = new $className(); 
+			$a = $this->wire(new $className()); 
 			$a->add($this);
 			$a->add($items); 
 		} else {

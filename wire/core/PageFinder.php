@@ -151,13 +151,13 @@ class PageFinder extends Wire {
 				}
 				$not = false;
 				if(($selector->operator == '!=' && !$selector->not) || ($selector->not && $selector->operator == '=')) {
-					$s = new SelectorBitwiseAnd('status', $selector->value);
+					$s = $this->wire(new SelectorBitwiseAnd('status', $selector->value));
 					$s->not = true;
 					$not = true;
 					$selectors[$key] = $s;
 	
 				} else if($selector->operator == '=' || ($selector->operator == '!=' && $selector->not)) {
-					$selectors[$key] = new SelectorBitwiseAnd('status', $selector->value);
+					$selectors[$key] = $this->wire(new SelectorBitwiseAnd('status', $selector->value));
 					
 				} else {
 					$not = $selector->not;
@@ -374,7 +374,7 @@ class PageFinder extends Wire {
 				// i.e. field=[id>0, name=something, this=that]
 				// selector contains another embedded selector that we need to convert to page IDs
 				
-				$selectors = new Selectors($selector->value); 
+				$selectors = $this->wire(new Selectors($selector->value)); 
 				$hasTemplate = false; 
 				$hasParent = false; 
 				foreach($selectors as $s) {
@@ -408,7 +408,7 @@ class PageFinder extends Wire {
 					if($findSelector) foreach(new Selectors($findSelector) as $s) $selectors->append($s); 
 				}
 				
-				$pageFinder = new PageFinder();
+				$pageFinder = $this->wire(new PageFinder());
 				$ids = $pageFinder->findIDs($selectors); 
 				// populate selector value with array of page IDs
 				if(count($ids) == 0) {
@@ -443,7 +443,7 @@ class PageFinder extends Wire {
 				// selector contains an quoted selector. At least one () quoted selector must match for each field specified in front of it
 				$fieldName = $selector->field ? $selector->field : 'none';
 				if(!isset($this->extraOrSelectors[$fieldName])) $this->extraOrSelectors[$fieldName] = array();
-				$this->extraOrSelectors[$fieldName][] = new Selectors($selector->value); 
+				$this->extraOrSelectors[$fieldName][] = $this->wire(new Selectors($selector->value)); 
 				return false;
 			}
 		}
@@ -474,7 +474,7 @@ class PageFinder extends Wire {
 		$startLimit = false; // true when the start/limit part of the query generation is done
 		$database = $this->wire('database');
 
-		$query = new DatabaseQuerySelect();
+		$query = $this->wire(new DatabaseQuerySelect());
 		$query->select($options['returnVerbose'] ? array('pages.id', 'pages.parent_id', 'pages.templates_id') : array('pages.id')); 
 		$query->from("pages"); 
 		$query->groupby("pages.id"); 
@@ -578,7 +578,7 @@ class PageFinder extends Wire {
 					} 
 					
 					if(isset($subqueries[$tableAlias])) $q = $subqueries[$tableAlias];
-						else $q = new DatabaseQuerySelect();
+						else $q = $this->wire(new DatabaseQuerySelect());
 
 					$q->set('field', $field); // original field if required by the fieldtype
 					$q->set('group', $group); // original group of the field, if required by the fieldtype
@@ -696,7 +696,7 @@ class PageFinder extends Wire {
 				$n = 0;
 				$sql = "\tpages.id IN (\n";
 				foreach($selectorGroup as $selectors) {
-					$pageFinder = new PageFinder();	
+					$pageFinder = $this->wire(new PageFinder());	
 					$query = $pageFinder->find($selectors, array(
 						'returnQuery' => true, 
 						'returnVerbose' => false,
@@ -1022,7 +1022,7 @@ class PageFinder extends Wire {
 
 			} else if($value == 'num_children' || $value == 'numChildren' || ($value == 'children' && $subValue == 'count')) { 
 				// sort by quantity of children
-				$value = $this->getQueryNumChildren($query, new SelectorGreaterThan('num_children', "-1")); 
+				$value = $this->getQueryNumChildren($query, $this->wire(new SelectorGreaterThan('num_children', "-1"))); 
 
 			} else if($value == 'parent') {
 				// sort by parent native field. does not work with non-native parent fields. 
@@ -1152,9 +1152,9 @@ class PageFinder extends Wire {
 		$database = $this->wire('database'); 
 
 		// determine whether we will include use of multi-language page names
-		if($this->modules->isInstalled('LanguageSupportPageNames') && count(wire('languages'))) {
+		if($this->modules->isInstalled('LanguageSupportPageNames') && count($this->wire('languages'))) {
 			$langNames = array();
-			foreach(wire('languages') as $language) {
+			foreach($this->wire('languages') as $language) {
 				if(!$language->isDefault()) $langNames[$language->id] = "name" . (int) $language->id;
 			}
 		} else {
@@ -1178,7 +1178,7 @@ class PageFinder extends Wire {
 			$query->where("pages.id=1");
 		} else {
 			$selectorValue = $selector->value;
-			if($langNames) $selectorValue = wire('modules')->get('LanguageSupportPageNames')->updatePath($selectorValue); 
+			if($langNames) $selectorValue = $this->wire('modules')->get('LanguageSupportPageNames')->updatePath($selectorValue); 
 			$parts = explode('/', rtrim($selectorValue, '/')); 
 			$part = $database->escapeStr(array_pop($parts)); 
 			$sql = "pages.name='$part'";
@@ -1269,7 +1269,7 @@ class PageFinder extends Wire {
 					// matching by a parent's native or custom field (subfield)
 
 					if(!$this->wire('fields')->isNative($subfield)) {
-						$finder = new PageFinder();
+						$finder = $this->wire(new PageFinder());
 						$s = $field == 'children' ? '' : 'children.count>0, ';
 						$IDs = $finder->findIDs(new Selectors("include=all, $s$subfield{$operator}" . implode('|', $values)));
 						if(!count($IDs)) $IDs[] = -1; // forced non match
@@ -1384,7 +1384,7 @@ class PageFinder extends Wire {
 
 			if(!ctype_digit("$parent_id")) {
 				// parent_id is a path, convert a path to a parent
-				$parent = new NullPage();
+				$parent = $this->wire('pages')->newNullPage();
 				$path = $this->wire('sanitizer')->path($parent_id);
 				if($path) $parent = $this->wire('pages')->get('/' . trim($path, '/') . '/');
 				$parent_id = $parent->id;

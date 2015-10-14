@@ -253,10 +253,10 @@ class Password extends Wire {
 		$salt1 = $this->data['salt'];
 
 		// static salt stored in config.php
-		$salt2 = (string) wire('config')->userAuthSalt; 
+		$salt2 = (string) $this->wire('config')->userAuthSalt; 
 
 		// auto-detect the hash type based on the format of the salt
-		$hashType = $this->isBlowfish($salt1) ? 'blowfish' : wire('config')->userAuthHashType;
+		$hashType = $this->isBlowfish($salt1) ? 'blowfish' : $this->wire('config')->userAuthHashType;
 
 		if(!$hashType) {
 			// If there is no defined hash type, and the system doesn't support blowfish, then just use md5 (ancient backwards compatibility)

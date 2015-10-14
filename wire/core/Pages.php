@@ -131,7 +131,7 @@ class Pages extends Wire {
 	public function __construct() {
 		$this->config = $this->wire('config');
 		$this->templates = $this->wire('templates'); 
-		$this->sortfields = new PagesSortfields();
+		$this->sortfields = $this->wire(new PagesSortfields());
 		$this->compat2x = $this->config->compat2x;
 	}
 
@@ -223,7 +223,7 @@ class Pages extends Wire {
 		// if(strpos($selectorString, 'parent_id') === false) $selectorString .= ", status<" . Page::statusUnsearchable; 
 
 		$caller = isset($options['caller']) ? $options['caller'] : 'pages.find';
-		$selectors = new Selectors($selectorString); 
+		$selectors = $this->wire(new Selectors($selectorString)); 
 		$pageFinder = $this->getPageFinder();
 		if($debug) Debug::timer("$caller($selectorString)", true); 
 		$pagesInfo = $pageFinder->find($selectors, $options); 
@@ -321,7 +321,7 @@ class Pages extends Wire {
 	 *
 	 */
 	public function findOne($selectorString, $options = array()) {
-		if(empty($selectorString)) return new NullPage();
+		if(empty($selectorString)) return $this->newNullPage();
 		if($page = $this->getCache($selectorString)) return $page; 
 		if(is_string($options)) $options = Selectors::keyValueStringToArray($options);
 		$defaults = array(
@@ -331,7 +331,7 @@ class Pages extends Wire {
 		); 
 		$options = array_merge($defaults, $options); 
 		$page = $this->find($selectorString, $options)->first();
-		if(!$page) $page = new NullPage();
+		if(!$page) $page = $this->newNullPage();
 		return $page; 
 	}
 
@@ -454,9 +454,12 @@ class Pages extends Wire {
 			} else if(isset(Page::$loadingStack[$id])) {
 				// if the page is already in the process of being loaded, point to it rather than attempting to load again.
 				// the point of this is to avoid a possible infinite loop with autojoin fields referencing each other.
-				$loaded[$id] = Page::$loadingStack[$id];
-				// cache the pre-loaded version so that other pages referencing it point to this instance rather than loading again
-				$this->cache($loaded[$id]); 
+				$p = Page::$loadingStack[$id];
+				if($p) {
+					$loaded[$id] = $p;
+					// cache the pre-loaded version so that other pages referencing it point to this instance rather than loading again
+					$this->cache($loaded[$id]);
+				}
 
 			} else {
 				$loaded[$id] = ''; // reserve the spot, in this order
@@ -467,7 +470,7 @@ class Pages extends Wire {
 		$idCnt = count($ids); // idCnt contains quantity of remaining page ids to load
 		if(!$idCnt) {
 			// if there are no more pages left to load, we can return what we've got
-			if($options['getOne']) return count($loaded) ? reset($loaded) : new NullPage();
+			if($options['getOne']) return count($loaded) ? reset($loaded) : $this->newNullPage();
 			$pages = $this->newPageArray($options);
 			$pages->import($loaded);
 			return $pages; 
@@ -521,7 +524,7 @@ class Pages extends Wire {
 				$fields = $this->wire('fields'); 
 			}
 			
-			$query = new DatabaseQuerySelect();
+			$query = $this->wire(new DatabaseQuerySelect());
 			$sortfield = $template ? $template->sortfield : ''; 
 			$joinSortfield = empty($sortfield) && $options['joinSortfield'];
 
@@ -583,7 +586,8 @@ class Pages extends Wire {
 				}
 			} catch(\Exception $e) {
 				$error = $e->getMessage() . " [pageClass=$class, template=$template]";
-				if($this->wire('user')->isSuperuser()) $this->error($error);
+				$user = $this->wire('user');
+				if($user && $user->isSuperuser()) $this->error($error);
 				$this->wire('log')->error($error);
 				$this->trackException($e, false);
 			}
@@ -592,7 +596,7 @@ class Pages extends Wire {
 			$template = null;
 		}
 		
-		if($options['getOne']) return count($loaded) ? reset($loaded) : new NullPage();
+		if($options['getOne']) return count($loaded) ? reset($loaded) : $this->newNullPage();
 		$pages = $this->newPageArray($options);
 		return $pages->import($loaded); 
 	}
@@ -655,8 +659,8 @@ class Pages extends Wire {
 		}
 
 		$pageClass = wireClassName($template->pageClass ? $template->pageClass : 'Page', true);	
-		
-		$page = new $pageClass();	
+	
+		$page = $this->newPage(array('pageClass' => $pageClass));
 		$page->template = $template;
 		$page->parent = $parent; 
 		
@@ -1297,7 +1301,7 @@ class Pages extends Wire {
 
 		// determine whether the pages_access table needs to be updated so that pages->find()
 		// operations can be access controlled. 
-		if($isNew || $page->parentPrevious || $page->templatePrevious) new PagesAccess($page);
+		if($isNew || $page->parentPrevious || $page->templatePrevious) $this->wire(new PagesAccess($page));
 
 		// lastly determine whether the pages_parents table needs to be updated for the find() cache
 		// and call upon $this->saveParents where appropriate. 
@@ -1633,7 +1637,7 @@ class Pages extends Wire {
 		}
 		// $page->getCacheFile()->remove();
 
-		$access = new PagesAccess();	
+		$access = $this->wire(new PagesAccess());	
 		$access->deletePage($page); 
 
 		$database = $this->wire('database');
@@ -1750,7 +1754,7 @@ class Pages extends Wire {
 		$copy->setOutputFormatting($o); 
 
 		// check to make sure the clone has worked so far
-		if(!$copy->id || $copy->id == $page->id) return new NullPage(); 
+		if(!$copy->id || $copy->id == $page->id) return $this->newNullPage();
 
 		// copy $page's files over to new page
 		if(PagefilesManager::hasFiles($page)) {
@@ -1839,7 +1843,7 @@ class Pages extends Wire {
 		$this->pageFinder = null;
 
 		unset($this->sortfields); 
-		$this->sortfields = new PagesSortfields();
+		$this->sortfields = $this->wire(new PagesSortfields());
 
 		if($this->config->debug) $this->debugLog('uncacheAll', 'pageIdCache=' . count($this->pageIdCache) . ', pageSelectorCache=' . count($this->pageSelectorCache)); 
 
@@ -1988,7 +1992,7 @@ class Pages extends Wire {
 	 *
 	 */
 	public function getPageFinder() {
-		return new PageFinder();
+		return $this->wire(new PageFinder());
 	}
 
 	/**
@@ -2084,8 +2088,8 @@ class Pages extends Wire {
 			if(class_exists("\\$class")) $class = "\\$class";
 		}
 		$class = wireClassName($class, true);
-		$pageArray = new $class();
-		if(!$pageArray instanceof PageArray) $pageArray = new PageArray();
+		$pageArray = $this->wire(new $class());
+		if(!$pageArray instanceof PageArray) $pageArray = $this->wire(new PageArray());
 		return $pageArray;
 	}
 
@@ -2103,8 +2107,8 @@ class Pages extends Wire {
 			if($class_exists("\\$class")) $class = "\\$class";
 		}
 		$class = wireClassName($class, true);
-		$page = new $class();
-		if(!$page instanceof Page) $page = new Page();
+		$page = $this->wire(new $class());
+		if(!$page instanceof Page) $page = $this->wire(new Page());
 		return $page;
 	}
 
@@ -2120,7 +2124,7 @@ class Pages extends Wire {
 		} else {
 			$class = wireClassName("NullPage", true);
 		}
-		return new $class();
+		return $this->wire(new $class());
 	}
 
 	/**

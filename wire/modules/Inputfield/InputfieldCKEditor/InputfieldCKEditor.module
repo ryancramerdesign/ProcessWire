@@ -620,10 +620,10 @@ class InputfieldCKEditor extends InputfieldTextarea {
 			if($f) $inputfields->remove($f);
 		}
 
-		$wrapper = wire('modules')->get('InputfieldFieldset'); 
+		$wrapper = $this->wire('modules')->get('InputfieldFieldset'); 
 		$wrapper->label = $this->_('CKEditor Settings'); 
 
-		$f = wire('modules')->get('InputfieldTextarea'); 
+		$f = $this->wire('modules')->get('InputfieldTextarea'); 
 		$f->attr('name', 'toolbar'); 
 		$f->attr('value', $this->toolbar);
 		$f->label = $this->_('CKEditor Toolbar'); 
@@ -631,9 +631,9 @@ class InputfieldCKEditor extends InputfieldTextarea {
 		$f->description .= ' ' . $this->_('Insert a hash "#" at the beginning of a line if you want it to be ignored.');
 		$wrapper->add($f); 
 
-		$purifierInstalled = wire('modules')->isInstalled('MarkupHTMLPurifier'); 
+		$purifierInstalled = $this->wire('modules')->isInstalled('MarkupHTMLPurifier'); 
 
-		$f = wire('modules')->get('InputfieldRadios'); 
+		$f = $this->wire('modules')->get('InputfieldRadios'); 
 		$f->attr('name', 'inlineMode'); 
 		$f->label = $this->_('Editor Mode');
 		$f->addOption(0, $this->_('Regular Editor')); 

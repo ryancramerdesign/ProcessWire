@@ -54,7 +54,7 @@ class SelectableOptionArray extends WireArray {
 	 * 
 	 */
 	public function getPage() {
-		return $this->page ? $this->page : new NullPage();
+		return $this->page ? $this->page : $this->wire('pages')->newNullPage();
 	}
 
 	/**
@@ -179,7 +179,7 @@ class SelectableOptionArray extends WireArray {
 	}
 
 	public function makeBlankItem() {
-		return new SelectableOption();
+		return $this->wire(new SelectableOption());
 	}
 
 	/**

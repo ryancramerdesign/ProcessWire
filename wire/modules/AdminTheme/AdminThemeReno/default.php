@@ -39,7 +39,7 @@ $config->scripts->append($config->urls->root . "wire/templates-admin/scripts/inp
 $config->scripts->append($config->urls->adminTemplates . "scripts/main.$ext?v=$version");
 
 require_once(dirname(__FILE__) . "/AdminThemeRenoHelpers.php");
-$helpers = new AdminThemeRenoHelpers();
+$helpers = $this->wire(new AdminThemeRenoHelpers());
 $extras = $adminTheme->getExtraMarkup();
 
 ?>

@@ -43,11 +43,13 @@ class Breadcrumbs extends WireArray {
 
 		if($item instanceof Page) {
 			$page = $item; 
-			$item = new Breadcrumb();
+			$item = $this->wire(new Breadcrumb());
 			$item->title = $page->get("title|name"); 
 			$item->url = $page->url;
-		} 
-
+		} else if($item instanceof Breadcrumb) {
+			$this->wire($item);
+		}
+		
 		return parent::add($item); 
 	}
 

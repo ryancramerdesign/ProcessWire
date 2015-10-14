@@ -69,7 +69,7 @@ abstract class FieldtypeMulti extends Fieldtype {
 	 *
 	 */
 	public function ___getCompatibleFieldtypes(Field $field) {
-		$fieldtypes = new Fieldtypes();
+		$fieldtypes = $this->wire(new Fieldtypes());
 		foreach($this->wire('fieldtypes') as $fieldtype) {
 			if($fieldtype instanceof FieldtypeMulti) $fieldtypes->add($fieldtype); 
 		}
@@ -81,7 +81,7 @@ abstract class FieldtypeMulti extends Fieldtype {
 	 *
 	 */
 	public function getBlankValue(Page $page, Field $field) {
-		return new WireArray();
+		return $this->wire(new WireArray());
 	}
 
 	/**
@@ -91,7 +91,7 @@ abstract class FieldtypeMulti extends Fieldtype {
 	 *
 	 */
 	public function sanitizeValue(Page $page, Field $field, $value) {
-		return $value instanceof WireArray ? $value : new WireArray();
+		return $value instanceof WireArray ? $value : $this->wire(new WireArray());
 	}
 
 	/**

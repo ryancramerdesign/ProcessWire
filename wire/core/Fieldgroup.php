@@ -74,7 +74,7 @@ class Fieldgroup extends WireArray implements Saveable, Exportable, HasLookupIte
 	 *
 	 */
 	public function makeBlankItem() {
-		return new Field();
+		return $this->wire(new Field());
 	}
 
 	/**
@@ -120,7 +120,7 @@ class Fieldgroup extends WireArray implements Saveable, Exportable, HasLookupIte
 
 		// Make note of any fields that were removed so that Fieldgroups::save()
 		// can delete data for those fields
-		if(is_null($this->removedFields)) $this->removedFields = new FieldsArray();
+		if(is_null($this->removedFields)) $this->removedFields = $this->wire(new FieldsArray());
 		$this->removedFields->add($field); 
 		$this->trackChange("remove:$field", $field, null); 
 
@@ -396,7 +396,7 @@ class Fieldgroup extends WireArray implements Saveable, Exportable, HasLookupIte
 	 */
 	public function getPageInputfields(Page $page, $contextStr = '', $fieldName = '') {
 
-		$container = new InputfieldWrapper();
+		$container = $this->wire(new InputfieldWrapper());
 		$inFieldset = false;
 		$inModalGroup = '';
 

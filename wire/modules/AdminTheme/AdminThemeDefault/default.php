@@ -25,7 +25,7 @@ $config->scripts->append($config->urls->root . "wire/templates-admin/scripts/inp
 $config->scripts->append($config->urls->adminTemplates . "scripts/main.$ext?v=$version");
 	
 require_once(dirname(__FILE__) . "/AdminThemeDefaultHelpers.php");
-$helpers = new AdminThemeDefaultHelpers();
+$helpers = $this->wire(new AdminThemeDefaultHelpers());
 $extras = $adminTheme->getExtraMarkup();
 
 ?><!DOCTYPE html>

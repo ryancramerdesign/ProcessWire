@@ -38,10 +38,10 @@ class FieldtypePageTitleLanguage extends FieldtypeTextLanguage implements Fieldt
 	}
 
 	public function ___getCompatibleFieldtypes(Field $field) {
-		$fieldtypes = new Fieldtypes();
-		$fieldtypes->add(wire('fieldtypes')->get('FieldtypePageTitle')); 
+		$fieldtypes = $this->wire(new Fieldtypes());
+		$fieldtypes->add($this->wire('fieldtypes')->get('FieldtypePageTitle')); 
 	
-		foreach(wire('fieldtypes') as $fieldtype) {
+		foreach($this->wire('fieldtypes') as $fieldtype) {
 			if($fieldtype instanceof FieldtypePageTitleCompatible) $fieldtypes->add($fieldtype);
 		}
 	

@@ -1705,11 +1705,11 @@ class Page extends WireData implements \Countable, WireMatchable {
 	public function output($forceNew = false) {
 		if($this->output && !$forceNew) return $this->output; 
 		if(!$this->template) return null;
-		$this->output = new TemplateFile();
+		$this->output = $this->wire(new TemplateFile());
 		$this->output->setThrowExceptions(false); 
 		$this->output->setFilename($this->template->filename); 
-		$fuel = self::getAllFuel();
-		$this->output->set('wire', $fuel); 
+		$fuel = $this->wire('fuel')->getArray();
+		$this->output->set('wire', $this->wire()); 
 		foreach($fuel as $key => $value) $this->output->set($key, $value); 
 		$this->output->set('page', $this); 
 		return $this->output; 
@@ -2037,7 +2037,7 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 */
 	public function filesManager() {
 		if($this->hasStatus(Page::statusDeleted)) return null;
-		if(is_null($this->filesManager)) $this->filesManager = new PagefilesManager($this); 
+		if(is_null($this->filesManager)) $this->filesManager = $this->wire(new PagefilesManager($this)); 
 		return $this->filesManager; 
 	}
 
@@ -2180,13 +2180,35 @@ class Page extends WireData implements \Countable, WireMatchable {
 	}
 
 	/**
+	 * Return a Page helper class instance that's common among all Page objects in this ProcessWire instance
+	 * 
+	 * @param $className
+	 * @return object
+	 * 
+	 */
+	protected function getHelperInstance($className) {
+		static $helpers = array();
+		$instanceID = $this->wire()->getInstanceID();
+		if(!isset($helpers[$instanceID])) {
+			$helpers[$instanceID] = array();
+		}
+		if(!isset($helpers[$instanceID][$className])) {
+			$nsClassName = __NAMESPACE__ . "\\$className";
+			$helper = new $nsClassName();
+			if($helper instanceof WireFuelable) $this->wire($helper);
+			$helpers[$instanceID][$className] = $helper;
+		} else {
+			$helper = $helpers[$instanceID][$className];
+		}
+		return $helper;
+	}
+
+	/**
 	 * @return PageComparison
 	 *
 	 */
 	protected function comparison() {
-		static $comparison = null;
-		if(is_null($comparison)) $comparison = new PageComparison();
-		return $comparison;
+		return $this->getHelperInstance('PageComparison');
 	}
 
 	/**
@@ -2194,9 +2216,7 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 *
 	 */
 	protected function access() {
-		static $access = null;
-		if(is_null($access)) $access = new PageAccess();
-		return $access;
+		return $this->getHelperInstance('PageAccess');
 	}
 
 	/**
@@ -2204,9 +2224,7 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 *
 	 */
 	protected function traversal() {
-		static $traversal = null;
-		if(is_null($traversal)) $traversal = new PageTraversal();
-		return $traversal;
+		return $this->getHelperInstance('PageTraversal');
 	}
 
 	/**

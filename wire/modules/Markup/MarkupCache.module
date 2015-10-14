@@ -100,7 +100,7 @@ class MarkupCache extends Wire implements Module, ConfigurableModule {
 	 *
 	 */
 	public function get($uniqueName, $seconds = 3600) {
-		$cache = new CacheFile($this->path, $uniqueName, $seconds);
+		$cache = $this->wire(new CacheFile($this->path, $uniqueName, $seconds));
 		if(!$cache) throw new WireException("Unable to create cache '{$this->path}/$uniqueName'"); 
 		$this->cache = $cache; 
 		return $this->cache->get();
@@ -135,7 +135,7 @@ class MarkupCache extends Wire implements Module, ConfigurableModule {
 		if($this->cleared) return; 
 
 		if($this->cache) $cache = $this->cache; 
-			else $cache = new CacheFile($this->path, '', 0); 
+			else $cache = $this->wire(new CacheFile($this->path, '', 0)); 
 		$cache->expireAll(); 
 		$this->cleared = true; 
 	}

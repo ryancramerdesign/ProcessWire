@@ -83,7 +83,7 @@ class Fields extends WireSaveableItems {
 	 *
 	 */
 	public function __construct() {
-		$this->fieldsArray = new FieldsArray();
+		$this->fieldsArray = $this->wire(new FieldsArray());
 	}
 
 	/**
@@ -99,7 +99,7 @@ class Fields extends WireSaveableItems {
 	 *
 	 */
 	public function makeBlankItem() {
-		return new Field();
+		return $this->wire(new Field());
 	}
 
 	/**
@@ -167,13 +167,13 @@ class Fields extends WireSaveableItems {
 
 		if($item->flags & Field::flagGlobal) {
 			// make sure that all template fieldgroups contain this field and add to any that don't. 
-			foreach(wire('templates') as $template) {
+			foreach($this->wire('templates') as $template) {
 				if($template->noGlobal) continue; 
 				$fieldgroup = $template->fieldgroup; 
 				if(!$fieldgroup->hasField($item)) {
 					$fieldgroup->add($item); 
 					$fieldgroup->save();
-					if(wire('config')->debug) $this->message("Added field '{$item->name}' to template/fieldgroup '{$fieldgroup->name}'"); 
+					if($this->wire('config')->debug) $this->message("Added field '{$item->name}' to template/fieldgroup '{$fieldgroup->name}'"); 
 				}
 			}	
 		}

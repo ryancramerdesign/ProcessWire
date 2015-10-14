@@ -53,7 +53,7 @@ class FieldtypePageTable extends FieldtypeMulti implements Module {
 			if(!$field->type instanceof FieldtypePageTable) continue; 
 			$table = $this->wire('database')->escapeTable($field->table); 
 			$sql = "DELETE FROM `$table` WHERE pages_id=:pages_id OR data=:data";
-			$query = wire('database')->prepare($sql); 
+			$query = $this->wire('database')->prepare($sql); 
 			$query->bindValue(':pages_id', (int) $page->id); 
 			$query->bindValue(':data', (int) $page->id); 
 			$query->execute();
@@ -193,7 +193,7 @@ class FieldtypePageTable extends FieldtypeMulti implements Module {
 			$parent = $field->parent_id ? $this->wire('pages')->get($field->parent_id) : $copy; 
 			$value = $copy->getUnformatted($field->name); 
 			if(!count($value)) continue; 
-			$newValue = new PageArray();
+			$newValue = $this->wire('pages')->newPageArray();
 			foreach($value as $item) {
 				try { 
 					$newItem = null;
@@ -297,7 +297,7 @@ class FieldtypePageTable extends FieldtypeMulti implements Module {
 	 */
 	public function sanitizeValue(Page $page, Field $field, $value) {
 		if(is_array($value) && count($value)) $value = $this->wakeupValue($page, $field, $value); 
-		if(!$value instanceof PageArray) return new PageArray();	
+		if(!$value instanceof PageArray) return $this->wire('pages')->newPageArray();	
 		foreach($value as $item) {
 			if($this->isValidItem($page, $field, $item)) continue; 
 			$value->remove($item); 
@@ -334,7 +334,7 @@ class FieldtypePageTable extends FieldtypeMulti implements Module {
 	 * 
 	 */
 	public function getBlankValue(Page $page, Field $field) {
-		return new PageArray();
+		return $this->wire('pages')->newPageArray();
 	}
 
 	/**
@@ -347,7 +347,7 @@ class FieldtypePageTable extends FieldtypeMulti implements Module {
 	 *
 	 */
 	public function ___formatValue(Page $page, Field $field, $value) {
-		$formatted = new PageArray();
+		$formatted = $this->wire('pages')->newPageArray();
 		if(!$value instanceof PageArray) return $formatted; 
 		foreach($value as $item) {
 			if($item->status >= Page::statusHidden) continue; 
@@ -476,13 +476,13 @@ class FieldtypePageTable extends FieldtypeMulti implements Module {
 	 *
 	 */
 	public function findOrphans(Page $page, Field $field) { 
-		$orphans = new PageArray();
+		$orphans = $this->wire('pages')->newPageArray();
 		if($field->parent_id) return $orphans;
 		$templateID = $field->template_id; 
 		if(!$templateID) return $orphans; // we need at least a template to do this
 		if(!is_array($templateID)) $templateID = array($templateID); 
 		$value = $page->getUnformatted($field->name); 
-		if(!$value instanceof PageArray) $value = new PageArray();
+		if(!$value instanceof PageArray) $value = $this->wire('pages')->newPageArray();
 		if($page->numChildren <= $value->count()) return $orphans; // nothing new
 		$templateNames = array();
 		foreach($templateID as $id) {

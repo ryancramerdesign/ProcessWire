@@ -65,7 +65,7 @@ class PageExport extends Wire {
 		
 		if(is_null($data)) {
 			$data = $page;
-			$page = new Page();
+			$page = $this->wire('pages')->newPage();
 		}
 
 		if(empty($data['core_version'])) throw new WireException("Invalid import data"); 

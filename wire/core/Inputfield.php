@@ -716,7 +716,7 @@ abstract class Inputfield extends WireData implements Module {
 		$conditionsText = $this->_('Conditions are expressed with a "field=value" selector containing fields and values to match. Multiple conditions should be separated by a comma.');
 		$conditionsNote = $this->_('Read more about [how to use this](http://processwire.com/api/selectors/inputfield-dependencies/).'); 
 
-		$fields = new InputfieldWrapper();
+		$fields = $this->wire(new InputfieldWrapper());
 
 		$fieldset = $this->modules->get('InputfieldFieldset');
 		$fieldset->label = $this->_('Visibility'); 

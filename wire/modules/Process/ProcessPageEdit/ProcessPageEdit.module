@@ -403,7 +403,7 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 					// open new tab
 					$tabOpen = $inputfield; 
 					$tabViewable = $this->page->viewable($inputfield->name);
-					$tabWrap = new InputfieldWrapper();
+					$tabWrap = $this->wire(new InputfieldWrapper());
 					$tabWrap->attr('title', $tabOpen->label);
 					$tabWrap->id = $tabOpen->id;
 					$tabWrap->collapsed = $tabOpen->collapsed;
@@ -541,7 +541,7 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 
 		$settings = $this->wire('config')->pageEdit;
 		$page = $this->masterPage ? $this->masterPage : $this->page; 
-		$wrapper = new InputfieldWrapper();
+		$wrapper = $this->wire(new InputfieldWrapper());
 		$id = $this->className() . 'Children';
 		$wrapper->attr('id+name', $id);
 		if(!empty($settings['ajaxChildren'])) $wrapper->collapsed = Inputfield::collapsedYesAjax;
@@ -609,10 +609,10 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 	 */
 	public static function buildFormSortfield($sortfield, Process $caller) {
 
-		$fieldset = wire('modules')->get("InputfieldFieldset"); 
+		$fieldset = $caller->wire('modules')->get("InputfieldFieldset"); 
 		if(!$sortfield) $fieldset->collapsed = Inputfield::collapsedYes; 
 
-		$field = wire('modules')->get('InputfieldSelect');
+		$field = $caller->wire('modules')->get('InputfieldSelect');
 		$field->name = 'sortfield'; 
 		$field->value = ltrim($sortfield, '-'); 
 		$field->columnWidth = 60; 
@@ -635,7 +635,7 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 
 		$customOptions = array();
 
-		foreach(wire('fields') as $f) {
+		foreach($caller->wire('fields') as $f) {
 			//if(!($f->flags & Field::flagAutojoin)) continue; 
 			if($f->flags & Field::flagSystem && $f->name != 'title') continue; 
 			if($f->type instanceof FieldtypeFieldsetOpen) continue; 
@@ -646,7 +646,7 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 		$field->addOption(__('Custom Fields', __FILE__), $customOptions); // Optgroup label for sorting by custom fields
 		$fieldset->append($field); 
 
-		$f = wire('modules')->get('InputfieldCheckbox');
+		$f = $caller->wire('modules')->get('InputfieldCheckbox');
 		$f->value = 1; 
 		$f->attr('id+name', 'sortfield_reverse'); 
 		$f->label = __('Reverse sort direction?', __FILE__); // Checkbox labe to reverse the sort direction
@@ -665,7 +665,7 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 	 */
 	protected function ___buildFormSettings() {
 
-		$wrapper = new InputfieldWrapper();
+		$wrapper = $this->wire(new InputfieldWrapper());
 		$id = $this->className() . 'Settings';
 		$title = $this->_('Settings'); // Tab Label: Settings
 		$wrapper->attr('id', $id); 
@@ -693,8 +693,8 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 		// template
 		if($this->page->editable('template', false)) { 
 
-			$languages = wire('languages');
-			$language = wire('user')->language; 
+			$languages = $this->wire('languages');
+			$language = $this->wire('user')->language; 
 
 			$field = $this->modules->get('InputfieldSelect');
 			$field->attr('id+name', 'template'); 
@@ -842,7 +842,7 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 		$isTrash = $this->page->isTrash();
 		$isRestorable = $isTrash && $this->page->parent_id == $this->config->trashPageID; 
 
-		$wrapper = new InputfieldWrapper();
+		$wrapper = $this->wire(new InputfieldWrapper());
 		$id = $this->className() . 'Delete';
 		$deleteLabel = $this->_('Delete'); // Tab Label: Delete
 		$wrapper->attr('id', $id); 
@@ -1443,7 +1443,7 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 		if(!$this->ajaxEditable($page)) throw new WirePermissionException($this->noticeNoAccess); 
 		$this->session->CSRF->validate(); // throws exception when invalid
 
-		$form = new InputfieldWrapper();
+		$form = $this->wire(new InputfieldWrapper());
 		$form->useDependencies = false; 
 		$keys = array();
 
@@ -1588,7 +1588,7 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 	
 	protected function getPageBookmarks() {
 		require_once(dirname(__FILE__) . '/PageBookmarks.php');
-		return new PageBookmarks($this);
+		return $this->wire(new PageBookmarks($this));
 	}
 
 	public function ___executeNavJSON(array $options = array()) {

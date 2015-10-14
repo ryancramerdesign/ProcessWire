@@ -96,7 +96,7 @@ class Pagefiles extends WireArray {
 	 */
 	public function makeNew() {
 		$class = get_class($this); 
-		$newArray = new $class($this->page); 
+		$newArray = $this->wire(new $class($this->page)); 
 		$newArray->setField($this->field); 
 		return $newArray; 
 	}
@@ -153,7 +153,7 @@ class Pagefiles extends WireArray {
 	 *
 	 */
 	public function makeBlankItem() {
-		return new Pagefile($this, ''); 
+		return $this->wire(new Pagefile($this, '')); 
 	}
 
 	/**
@@ -208,7 +208,7 @@ class Pagefiles extends WireArray {
 	public function add($item) {
 
 		if(is_string($item)) {
-			$item = new Pagefile($this, $item); 
+			$item = $this->wire(new Pagefile($this, $item)); 
 		}
 
 		return parent::add($item); 

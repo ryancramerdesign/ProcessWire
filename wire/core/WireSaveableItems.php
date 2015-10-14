@@ -60,7 +60,7 @@ abstract class WireSaveableItems extends Wire implements \IteratorAggregate {
 			// iterable selectors
 		} else if($selectors && is_string($selectors)) {
 			// selector string, convert to iterable selectors
-			$selectors = new Selectors($selectors); 
+			$selectors = $this->wire(new Selectors($selectors)); 
 
 		} else {
 			// nothing provided, load all assumed
@@ -122,7 +122,7 @@ abstract class WireSaveableItems extends Wire implements \IteratorAggregate {
 			$fields[$k] = "$table.$v"; 
 		}
 
-		$query = new DatabaseQuerySelect();
+		$query = $this->wire(new DatabaseQuerySelect());
 		$query->select($fields)->from($table);
 		if($sort = $this->getSort()) $query->orderby($sort); 
 		$this->getLoadQuerySelectors($selectors, $query); 

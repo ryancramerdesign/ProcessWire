@@ -135,7 +135,7 @@ class FieldtypeTextarea extends FieldtypeText {
 	 */
 	protected function htmlReplacements(Page $page, Field $field, &$value, $sleep = true) {
 		if(is_null($this->markupQA)) {
-			$this->markupQA = new MarkupQA($page, $field); 
+			$this->markupQA = $this->wire(new MarkupQA($page, $field)); 
 		} else {
 			$this->markupQA->setPage($page);
 			$this->markupQA->setField($field);

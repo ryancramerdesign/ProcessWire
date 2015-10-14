@@ -20,12 +20,12 @@
  * Like the fuel() function, except that ommitting $name returns the current ProcessWire instance rather than the fuel.
  * The distinction may not matter in most cases.
  *
- * @param string $name If ommitted, returns a Fuel object with references to all the fuel.
+ * @param string $name If omitted, returns a Fuel object with references to all the fuel.
  * @return mixed Fuel value if available, NULL if not. 
  *
  */
 function wire($name = 'wire') {
-	return Wire::getFuel($name); 
+	return ProcessWire::getCurrentInstance()->wire($name); 
 }
 
 /**
@@ -41,8 +41,7 @@ function wire($name = 'wire') {
  *
  */
 function fuel($name = '') {
-	if(!$name) return Wire::getAllFuel();
-	return Wire::getFuel($name); 
+	return wire($name);
 }
 
 
@@ -1137,7 +1136,7 @@ function wireIncludeFile($filename, array $vars = array(), array $options = arra
 	if(!file_exists($filename)) throw new WireException("File does not exist: $filename"); 
 	
 	// extract all API vars
-	$fuel = array_merge(Wire::getAllFuel()->getArray(), $vars); 
+	$fuel = array_merge(wire('fuel')->getArray(), $vars); 
 	extract($fuel);
 
 	// include the file

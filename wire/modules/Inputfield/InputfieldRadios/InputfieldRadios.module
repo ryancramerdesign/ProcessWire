@@ -81,7 +81,7 @@ class InputfieldRadios extends InputfieldSelect {
 
 	public function ___getConfigInputfields() {
 		$inputfields = parent::___getConfigInputfields(); 
-		$f = wire('modules')->get('InputfieldInteger');
+		$f = $this->wire('modules')->get('InputfieldInteger');
 		$f->label = $this->_('Columns of Radio Buttons');
 		$f->description = $this->_('If you want the radio buttons to display in columns (rather than stacked), enter the number of columns you want to use (up to 10). To display buttons side-by-side (inline) enter 1.'); 
 		$f->notes = $this->_('If no number is specified here, then each radio button will display on its own line.'); 

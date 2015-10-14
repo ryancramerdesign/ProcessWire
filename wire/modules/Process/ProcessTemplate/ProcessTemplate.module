@@ -165,7 +165,7 @@ class ProcessTemplate extends Process {
 
 		$tagCnt = count($templatesByTag);
 		if($tagCnt > 1) {
-			$form = new InputfieldWrapper();
+			$form = $this->wire(new InputfieldWrapper());
 			ksort($templatesByTag);
 			foreach($templatesByTag as $tag => $templates) {
 				ksort($templates);
@@ -454,9 +454,9 @@ class ProcessTemplate extends Process {
 				// if(!in_array($basename, $templateFiles)) continue; 
 				
 				try {
-					$template = new Template();
+					$template = $this->wire(new Template());
 					$template->name = $this->wire('sanitizer')->name($basename); 
-					$fieldgroup = new Fieldgroup();
+					$fieldgroup = $this->wire(new Fieldgroup());
 					$fieldgroup->name = $template->name;
 					$fieldgroup->save();
 					$template->fieldgroup = $fieldgroup;
@@ -569,13 +569,13 @@ class ProcessTemplate extends Process {
 			$this->message(sprintf($this->_('Pages using this template are not viewable because the template file (%s) does not exist [no-file].'), $template->name . '.' . $this->config->templateExtension)); 
 		}
 
-		$t = new InputfieldWrapper();
+		$t = $this->wire(new InputfieldWrapper());
 		$t->attr('title', $this->_x('Basics', 'tab'));
 		$t->attr('class', 'WireTab');
 		$this->buildEditFormBasics($template, $t);
 		$form->add($t);
 		
-		$t = new InputfieldWrapper();
+		$t = $this->wire(new InputfieldWrapper());
 		$t->attr('title', $this->_x('Access', 'tab'));
 		$t->attr('id', 'tab_access');
 		// $t->head = $this->_('Manage template access');
@@ -585,7 +585,7 @@ class ProcessTemplate extends Process {
 		if($overrides) $t->add($overrides);
 		$form->add($t); 
 
-		$t = new InputfieldWrapper();
+		$t = $this->wire(new InputfieldWrapper());
 		$t->attr('title', $this->_x('Family', 'tab'));
 		// $t->head = $this->_('Optional usage and placement in the page tree');
 		$t->attr('class', 'WireTab'); 
@@ -593,20 +593,20 @@ class ProcessTemplate extends Process {
 		$t->add($this->buildEditFormFamily($template)); 
 		$form->add($t); 
 
-		$t = new InputfieldWrapper();
+		$t = $this->wire(new InputfieldWrapper());
 		$t->attr('title', $this->_x('URLs', 'tab'));
 		// $t->head = $this->_('Optional settings for URLs of pages using this template');
 		$t->attr('class', 'WireTab'); 
 		$t->add($this->buildEditFormURLs($template)); 
 		$form->add($t);
 		
-		$t = new InputfieldWrapper();
+		$t = $this->wire(new InputfieldWrapper());
 		$t->attr('title', $this->_x('Files', 'tab'));
 		$t->attr('class', 'WireTab');
 		$t->add($this->buildEditFormFile($template));
 		$form->add($t); 
 
-		$t = new InputfieldWrapper();
+		$t = $this->wire(new InputfieldWrapper());
 		$t->attr('title', $this->_x('Cache', 'tab'));
 		// $t->head = $this->_("Output caching");
 		$t->attr('class', 'WireTab'); 
@@ -614,7 +614,7 @@ class ProcessTemplate extends Process {
 		$t->add($this->buildEditFormCache($template)); 
 		$form->add($t); 
 
-		$t = new InputfieldWrapper();
+		$t = $this->wire(new InputfieldWrapper());
 		$t->attr('title', $this->_x('Advanced', 'tab'));
 		// $t->head = $this->_('Optional advanced template settings');
 		$t->attr('class', 'WireTab'); 
@@ -622,7 +622,7 @@ class ProcessTemplate extends Process {
 		$form->add($t); 
 
 		if($this->config->advanced) {
-			$t = new InputfieldWrapper();
+			$t = $this->wire(new InputfieldWrapper());
 			$t->attr('title', $this->_x('System', 'tab'));
 			// $t->head = $this->_('System-specific template settings');
 			$t->attr('class', 'WireTab'); 
@@ -630,14 +630,14 @@ class ProcessTemplate extends Process {
 			$form->add($t); 
 		}
 
-		$t = new InputfieldWrapper();
+		$t = $this->wire(new InputfieldWrapper());
 		$t->attr('class', 'WireTab'); 
 		$t->attr('title', $this->_x('Import', 'tab'));
 		// $t->head = $this->_('Import fields from another template');
 		$t->add($this->buildEditFormImport());
 		$form->add($t);
 
-		$t = new InputfieldWrapper();
+		$t = $this->wire(new InputfieldWrapper());
 		$t->attr('title', $this->_x('Delete', 'tab'));
 		$t->attr('id', 'WireTabDelete'); 
 		// $t->head = $this->_('Delete template');
@@ -823,7 +823,7 @@ class ProcessTemplate extends Process {
 		$select->attr('id', 'fieldgroup_fields'); 
 		$select->attr('title', $this->_('Add Field')); 
 		$select->setAsmSelectOption('sortable', true); 
-		$select->setAsmSelectOption('editLink', wire('config')->urls->admin . "setup/field/edit?id={value}&fieldgroup_id={$template->fieldgroup->id}&modal=1&process_template=1"); 
+		$select->setAsmSelectOption('editLink', $this->wire('config')->urls->admin . "setup/field/edit?id={value}&fieldgroup_id={$template->fieldgroup->id}&modal=1&process_template=1"); 
 		$select->setAsmSelectOption('hideDeleted', false);
 
 		foreach($template->fieldgroup as $field) {
@@ -886,7 +886,7 @@ class ProcessTemplate extends Process {
 
 	protected function buildEditFormImport() {
 
-		$form = new InputfieldWrapper();
+		$form = $this->wire(new InputfieldWrapper());
 
 		$field = $this->modules->get("InputfieldSelect"); 
 		$field->label = $this->_('Duplicate fields used by another template'); 
@@ -909,7 +909,7 @@ class ProcessTemplate extends Process {
 
 	protected function buildEditFormCache(Template $template) {
 
-		$form = new InputfieldWrapper();
+		$form = $this->wire(new InputfieldWrapper());
 		
 		$field = $this->modules->get('InputfieldRadios');
 		$field->attr('name', '_cache_status');
@@ -1039,7 +1039,7 @@ class ProcessTemplate extends Process {
 
 	protected function buildEditFormAdvanced(Template $template) {
 
-		$form = new InputfieldWrapper();
+		$form = $this->wire(new InputfieldWrapper());
 		$languages = $this->wire('languages');
 
 		// --------------------
@@ -1230,7 +1230,7 @@ class ProcessTemplate extends Process {
 
 	protected function buildEditFormSystem(Template $template) {
 
-		$form = new InputfieldWrapper();
+		$form = $this->wire(new InputfieldWrapper());
 		$form->id = 'system';
 		$form->notes = $this->_('Please note that all of these system settings are intended for ProcessWire system development (not site development). Use them at your own risk.'); // System tab notes
 
@@ -1354,7 +1354,7 @@ class ProcessTemplate extends Process {
 
 	protected function buildEditFormFamily(Template $template) {
 
-		$form = new InputfieldWrapper();
+		$form = $this->wire(new InputfieldWrapper());
 		$form->attr('id', 'family'); 	
 
 		// --------------------
@@ -1523,7 +1523,7 @@ class ProcessTemplate extends Process {
 
 	protected function buildEditFormURLs(Template $template) {
 
-		$form = new InputfieldWrapper();
+		$form = $this->wire(new InputfieldWrapper());
 		$form->attr('id', 'urls'); 	
 
 		// --------------------
@@ -1633,7 +1633,7 @@ class ProcessTemplate extends Process {
 
 	protected function buildEditFormFile(Template $template) {
 
-		$form = new InputfieldWrapper();
+		$form = $this->wire(new InputfieldWrapper());
 		$form->attr('id', 'files');
 		
 		// --------------------
@@ -1718,7 +1718,7 @@ class ProcessTemplate extends Process {
 
 	protected function buildEditFormAccess(Template $template) {
 
-		$form = new InputfieldWrapper();
+		$form = $this->wire(new InputfieldWrapper());
 		$form->attr('id', 'access'); 	
 
 		// --------------------
@@ -1737,7 +1737,7 @@ class ProcessTemplate extends Process {
 
 		// --------------------
 
-		$fieldset = new InputfieldWrapper();
+		$fieldset = $this->wire(new InputfieldWrapper());
 		$fieldset->attr('id', 'useRolesYes'); 
 		$form->add($fieldset); 
 
@@ -1963,7 +1963,7 @@ class ProcessTemplate extends Process {
 	 */
 	protected function ___executeSave() {
 
-		$languages = wire('languages');	
+		$languages = $this->wire('languages');	
 		$redirectUrl = '';
 		if(!$this->template) throw new WireException("No template specified"); 
 		$form = $this->buildEditForm($this->template);
@@ -2231,7 +2231,7 @@ class ProcessTemplate extends Process {
 	 */
 	protected function saveFields() {
 
-		$removedFields = new FieldsArray();
+		$removedFields = $this->wire(new FieldsArray());
 
 		$fieldgroup = $this->template->fieldgroup;
 		if($fieldgroup->name != $this->template->name) return;
@@ -2543,7 +2543,7 @@ class ProcessTemplate extends Process {
 		$this->wire('breadcrumbs')->add(new Breadcrumb('../', $this->moduleInfo['title']));
 
 		require(dirname(__FILE__) . '/ProcessTemplateExportImport.php');
-		$o = new ProcessTemplateExportImport();
+		$o = $this->wire(new ProcessTemplateExportImport());
 		$form = $o->buildImport();
 		return $form->render();
 	}
@@ -2560,7 +2560,7 @@ class ProcessTemplate extends Process {
 		$this->wire('breadcrumbs')->add(new Breadcrumb('../', $this->moduleInfo['title']));
 
 		require(dirname(__FILE__) . '/ProcessTemplateExportImport.php');
-		$o = new ProcessTemplateExportImport();
+		$o = $this->wire(new ProcessTemplateExportImport());
 		$form = $o->buildExport();
 		return $form->render();
 	}

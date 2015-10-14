@@ -126,7 +126,7 @@ class CommentArray extends PaginatedArray implements WirePaginatable {
 	 *
 	 */
 	public function getCommentList(array $options = array()) {
-		return new CommentList($this, $options); 	
+		return $this->wire(new CommentList($this, $options)); 	
 	}
 
 	/**
@@ -139,7 +139,7 @@ class CommentArray extends PaginatedArray implements WirePaginatable {
 	 */
 	public function getCommentForm(array $options = array()) {
 		if(!$this->page) throw new WireException("You must set a page to this CommentArray before using it i.e. \$ca->setPage(\$page)"); 
-		return new CommentForm($this->page, $this, $options); 
+		return $this->wire(new CommentForm($this->page, $this, $options)); 
 	}
 
 	/**

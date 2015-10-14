@@ -70,13 +70,13 @@ class PageAccess {
 			// found an access parent
 			if($type != 'view' && $level > 0 && $page->template->noInherit != 0) {
 				// access parent prohibits inheritance of edit-related permissions
-				return new NullPage();
+				return $page->wire('pages')->newNullPage();
 			}
 			return $page;
 		}
 		$parent = $page->parent();	
 		if($parent->id) return $this->getAccessParent($parent, $type, $level+1); 
-		return new NullPage();
+		return $page->wire('pages')->newNullPage();
 	}
 
 	/**
@@ -107,7 +107,7 @@ class PageAccess {
 	public function getAccessRoles(Page $page, $type = 'view') {
 		$template = $this->getAccessTemplate($page, $type);
 		if($template) return $template->getRoles($this->getType($type)); 
-		return new PageArray();
+		return $page->wire('pages')->newPageArray();
 	}
 
 	/**

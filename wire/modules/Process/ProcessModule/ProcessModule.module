@@ -367,7 +367,7 @@ class ProcessModule extends Process {
 		
 		// site 
 		
-		$tab = new InputfieldWrapper();
+		$tab = $this->wire(new InputfieldWrapper());
 		$tab->attr('id', 'tab_site_modules'); 
 		$tab->attr('title', $this->labels['site']);
 		$tab->attr('class', 'WireTab');
@@ -383,7 +383,7 @@ class ProcessModule extends Process {
 		
 		// core
 		
-		$tab = new InputfieldWrapper();
+		$tab = $this->wire(new InputfieldWrapper());
 		$tab->attr('id', 'tab_core_modules'); 
 		$tab->attr('title', $this->labels['core']);
 		$tab->attr('class', 'WireTab');
@@ -397,7 +397,7 @@ class ProcessModule extends Process {
 		
 		// configurable
 		
-		$tab = new InputfieldWrapper();
+		$tab = $this->wire(new InputfieldWrapper());
 		$tab->attr('id', 'tab_configurable_modules');
 		$tab->attr('title', $this->labels['configure']);
 		$tab->attr('class', 'WireTab');
@@ -411,7 +411,7 @@ class ProcessModule extends Process {
 
 		// installable
 
-		$tab = new InputfieldWrapper();
+		$tab = $this->wire(new InputfieldWrapper());
 		$tab->attr('id', 'tab_install_modules');
 		$tabLabel = $this->labels['install']; 
 		$tab->attr('title', $tabLabel); 
@@ -427,7 +427,7 @@ class ProcessModule extends Process {
 
 		// new
 		
-		$tab = new InputfieldWrapper();
+		$tab = $this->wire(new InputfieldWrapper());
 		$tab->attr('id', 'tab_new_modules'); 
 		$tab->attr('title', $this->_('New'));
 		$tab->attr('class', 'WireTab');
@@ -749,7 +749,7 @@ class ProcessModule extends Process {
 		$redirectURL = $update ? "./edit?name=$name" : "./";
 		$className = $name; 
 		$url = trim($this->wire('config')->moduleServiceURL, '/') . "/$className/?apikey=" . $this->wire('sanitizer')->name($this->wire('config')->moduleServiceKey);
-		$http = new WireHttp();
+		$http = $this->wire(new WireHttp());
 		$data = $http->get($url); 
 		if(empty($data)) {
 			$this->error($this->_('Error retrieving data from web service URL') . ' - ' . $http->getError());
@@ -761,7 +761,7 @@ class ProcessModule extends Process {
 			return $this->session->redirect($redirectURL);
 		}
 		if($data['status'] !== 'success') {
-			$this->error($this->_('Error reported by web service:') . ' ' . wire('sanitizer')->entities($data['error']));
+			$this->error($this->_('Error reported by web service:') . ' ' . $this->wire('sanitizer')->entities($data['error']));
 			return $this->session->redirect($redirectURL);	
 		}
 	
@@ -874,23 +874,23 @@ class ProcessModule extends Process {
 
 		$links = array();
 
-		$moduleName = wire('sanitizer')->entities1($data['name']);
+		$moduleName = $this->wire('sanitizer')->entities1($data['name']);
 		$links[] = "<a target='_blank' href='http://modules.processwire.com/modules/$moduleName/'>" . $this->_('More Information') . "</a>";
 
 		if($data['project_url']) {
-			$projectURL = wire('sanitizer')->entities($data['project_url']);
+			$projectURL = $this->wire('sanitizer')->entities($data['project_url']);
 			$links[] = "<a target='_blank' href='$projectURL'>" . $this->_('Project Page') . "</a>";
 		}
 
 		if($data['forum_url']) {
-			$forumURL = wire('sanitizer')->entities($data['forum_url']);
+			$forumURL = $this->wire('sanitizer')->entities($data['forum_url']);
 			$links[] = "<a target='_blank' href='$forumURL'>" . $this->_('Support Page') . "</a>";
 		}
 
 		if(count($links)) $table->row(array($this->_x('Links', 'install-table'), implode(' &nbsp;/&nbsp; ', $links)));
 
 		if($data['download_url']) {
-			$downloadURL = wire('sanitizer')->entities($data['download_url']);
+			$downloadURL = $this->wire('sanitizer')->entities($data['download_url']);
 			$table->row(array($this->_x('ZIP file', 'install-table'), $downloadURL));
 			$warnings[] = $this->_('Ensure that you trust the source of the ZIP file above before continuing!');
 		} else {
@@ -958,7 +958,7 @@ class ProcessModule extends Process {
 		if(!$className) throw new WireException("No class name specified");
 
 		$destinationDir = $this->wire('config')->paths->siteModules . $className . '/';
-		$install = new ProcessModuleInstall();
+		$install = $this->wire(new ProcessModuleInstall());
 		
 		$completedDir = $install->downloadModule($url, $destinationDir);
 		if($completedDir) {
@@ -1037,14 +1037,14 @@ class ProcessModule extends Process {
 	
 	public function ___executeUpload($inputName = '') {
 		if(!$inputName) throw new WireException("This URL may be be accessed directly"); 
-		$install = new ProcessModuleInstall();
+		$install = $this->wire(new ProcessModuleInstall());
 		$install->uploadModule($inputName);
 		$this->session->redirect('./?reset=1'); 
 	}
 	
 	public function ___executeDownloadURL($url = '') {
 		if(!$url) throw new WireException("This URL may be be accessed directly");
-		$install = new ProcessModuleInstall();
+		$install = $this->wire(new ProcessModuleInstall());
 		$install->downloadModule($url);
 		$this->session->redirect('./?reset=1'); 
 	}

@@ -19,7 +19,7 @@ class ProcessModuleInstall extends Wire {
 	 * 
 	 */
 	public function getTempDir() { 
-		if(empty($this->tempDir)) $this->tempDir = new WireTempDir($this); 
+		if(empty($this->tempDir)) $this->tempDir = $this->wire(new WireTempDir($this)); 
 		return $this->tempDir->get(); 
 	}
 
@@ -352,7 +352,7 @@ class ProcessModuleInstall extends Wire {
 
 		$tempDir = $this->getTempDir();
 
-		$ul = new WireUpload($inputName);
+		$ul = $this->wire(new WireUpload($inputName));
 		$ul->setValidExtensions(array('zip'));
 		$ul->setMaxFiles(1);
 		$ul->setOverwrite(true);
@@ -403,7 +403,7 @@ class ProcessModuleInstall extends Wire {
 
 		// download the zip file and save it in assets directory
 		$success = false;
-		$http = new WireHttp();
+		$http = $this->wire(new WireHttp());
 
 		try {
 			$file = $http->download($url, $tempZIP); // throws exceptions on any error

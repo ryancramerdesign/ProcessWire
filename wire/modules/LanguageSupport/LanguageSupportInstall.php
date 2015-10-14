@@ -36,7 +36,7 @@ class LanguageSupportInstall extends Wire {
 		if(!$setupPage->id) throw new WireException("Unable to locate {$adminPage->path}setup/"); 
 
 		// create the languages parent page
-		$languagesPage = new Page(); 
+		$languagesPage = $this->wire(new Page()); 
 		$languagesPage->parent = $setupPage; 
 		$languagesPage->template = $this->templates->get('admin'); 
 		$languagesPage->process = $this->modules->get('ProcessLanguage'); // INSTALL ProcessLanguage module
@@ -50,7 +50,7 @@ class LanguageSupportInstall extends Wire {
 		
 
 		// create the fieldgroup to be used by the language template
-		$fieldgroup = new Fieldgroup(); 
+		$fieldgroup = $this->wire(new Fieldgroup()); 
 		$fieldgroup->name = LanguageSupport::languageTemplateName;
 		$fieldgroup->add($this->fields->get('title'));
 		$fieldgroup->save();
@@ -59,7 +59,7 @@ class LanguageSupportInstall extends Wire {
 		$this->addFilesFields($fieldgroup);
 
 		// create the template used by Language pages
-		$template = new Template();	
+		$template = $this->wire(new Template());	
 		$template->name = LanguageSupport::languageTemplateName;
 		$template->fieldgroup = $fieldgroup; 
 		$template->parentTemplates = array($adminPage->template->id); 
@@ -77,7 +77,7 @@ class LanguageSupportInstall extends Wire {
 		$this->message("Created Template: " . LanguageSupport::languageTemplateName); 
 
 		// create the default language page
-		$default = new Language();
+		$default = $this->wire(new Language());
 		$default->template = $template; 
 		$default->parent = $languagesPage; 
 		$default->name = 'default';
@@ -89,7 +89,7 @@ class LanguageSupportInstall extends Wire {
 		$this->message("Created Default Language Page: {$default->path}"); 
 
 		// create the translator page and process
-		$translatorPage = new Page(); 
+		$translatorPage = $this->wire(new Page()); 
 		$translatorPage->parent = $setupPage; 
 		$translatorPage->template = $this->templates->get('admin'); 
 		$translatorPage->status = Page::statusHidden | Page::statusSystem; 
@@ -105,7 +105,7 @@ class LanguageSupportInstall extends Wire {
 		$this->modules->saveModuleConfigData('LanguageSupport', $configData); 
 		
 		// install 'language' field that will be added to the user fieldgroup
-		$field = new Field(); 
+		$field = $this->wire(new Field()); 
 		$field->type = $this->modules->get("FieldtypePage"); 
 		$field->name = LanguageSupport::languageFieldName; 
 		$field->label = 'Language';
@@ -148,7 +148,7 @@ class LanguageSupportInstall extends Wire {
 		// create the 'language_files_site' field used by the 'language' fieldgroup
 		$field = $this->wire('fields')->get('language_files_site');
 		if(!$field) {
-			$field = new Field();
+			$field = $this->wire(new Field());
 			$field->type = $this->modules->get("FieldtypeFile");
 			$field->name = 'language_files_site';
 			$field->label = 'Site Translation Files';
@@ -170,7 +170,7 @@ class LanguageSupportInstall extends Wire {
 		// create the 'language_files' field used by the 'language' fieldgroup
 		$field = $this->wire('fields')->get('language_files');
 		if(!$field) {
-			$field = new Field();
+			$field = $this->wire(new Field());
 			$field->type = $this->modules->get("FieldtypeFile");
 			$field->name = 'language_files';
 			$field->label = 'Core Translation Files';
@@ -198,11 +198,11 @@ class LanguageSupportInstall extends Wire {
 	 */
 	public function ___uninstall() {
 
-		$language = wire('user')->language; 
+		$language = $this->wire('user')->language; 
 		if($language && $language->id && !$language->isDefault) throw new WireException("Please switch your language back to the default language before uninstalling"); 
 
 		// uninstall the components 1 by 1
-		$configData = wire('modules')->getModuleConfigData('LanguageSupport'); 
+		$configData = $this->wire('modules')->getModuleConfigData('LanguageSupport'); 
 
 		$field = $this->fields->get(LanguageSupport::languageFieldName); 
 		if($field) { 
@@ -225,7 +225,7 @@ class LanguageSupportInstall extends Wire {
 			);
 
 		// remove any language pages that are in the trash		
-		$trashLanguages = wire('pages')->get(wire('config')->trashPageID)->find("include=all, template=" . LanguageSupport::languageTemplateName); 
+		$trashLanguages = $this->wire('pages')->get($this->wire('config')->trashPageID)->find("include=all, template=" . LanguageSupport::languageTemplateName); 
 		foreach($trashLanguages as $p) $deletePageIDs[] = $p->id; 
 
 		foreach($deletePageIDs as $id) {

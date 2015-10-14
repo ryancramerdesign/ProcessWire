@@ -37,7 +37,7 @@ class FieldtypeSelector extends Fieldtype {
 	}	
 
 	public function ___getCompatibleFieldtypes(Field $field) {
-		$fieldtypes = new Fieldtypes();
+		$fieldtypes = $this->wire(new Fieldtypes());
 		foreach($this->wire('fieldtypes') as $fieldtype) {
 			if($fieldtype instanceof FieldtypeText || $fieldtype instanceof FieldtypeSelector) {
 				$fieldtypes->add($fieldtype);
@@ -87,7 +87,7 @@ class FieldtypeSelector extends Fieldtype {
 	 *
 	 */
 	public function getMatchQuery($query, $table, $subfield, $operator, $value) {
-		$ft = new DatabaseQuerySelectFulltext($query);
+		$ft = $this->wire(new DatabaseQuerySelectFulltext($query));
 		$ft->match($table, $subfield, $operator, $value);
 		return $query;
 	}

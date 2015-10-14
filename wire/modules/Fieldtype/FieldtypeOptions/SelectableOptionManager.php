@@ -159,7 +159,7 @@ class SelectableOptionManager extends Wire {
 			}
 		}
 
-		$options = new SelectableOptionArray();
+		$options = $this->wire(new SelectableOptionArray());
 		$options->setField($field); 
 		foreach($sorted as $option) {
 			if(!empty($option)) $options->add($option);
@@ -187,17 +187,17 @@ class SelectableOptionManager extends Wire {
 			return $this->getOptions($field, array($property => $value));
 		}
 		
-		$query = new DatabaseQuerySelect();
+		$query = $this->wire(new DatabaseQuerySelect());
 		$query->select('*'); 
 		$query->from(self::optionsTable); 
 		$query->where("fields_id=:fields_id"); 
 		$query->bindValue(':fields_id', $field->id); 
 		
-		$ft = new DatabaseQuerySelectFulltext($query);
+		$ft = $this->wire(new DatabaseQuerySelectFulltext($query));
 		$ft->match(self::optionsTable, $property, $operator, $value);
 	
 		$result = $query->execute();
-		$options = new SelectableOptionArray();
+		$options = $this->wire(new SelectableOptionArray());
 		$options->setField($field); 
 		
 		while($row = $result->fetch(\PDO::FETCH_ASSOC)) {
@@ -218,7 +218,7 @@ class SelectableOptionManager extends Wire {
 	 * 
 	 */
 	protected function arrayToOption(array $a) {
-		$option = new SelectableOption();
+		$option = $this->wire(new SelectableOption());
 		if(isset($a['id'])) $option->set('id', (int) $a['id']); 
 		if(isset($a['option_id'])) $option->set('id', (int) $a['option_id']);
 		if(isset($a['title'])) $option->set('title', $a['title']);
@@ -307,9 +307,9 @@ class SelectableOptionManager extends Wire {
 	 * 
 	 */
 	protected function optionsArrayToObjects(array $value) {
-		$options = new SelectableOptionArray();
+		$options = $this->wire(new SelectableOptionArray());
 		foreach($value as $o) {
-			$option = new SelectableOption();
+			$option = $this->wire(new SelectableOption());
 			foreach($o as $k => $v) {
 				$option->set($k, $v); 
 			}

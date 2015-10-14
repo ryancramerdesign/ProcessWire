@@ -57,10 +57,10 @@ class RepeaterPage extends Page {
 		if(strpos($parentName, $prefix) === 0) {
 			// determine owner page from parent name in format: for-page-1234
 			$forID = (int) substr($parentName, strlen($prefix));
-			$this->forPage = wire('pages')->get($forID); 
+			$this->forPage = $this->wire('pages')->get($forID); 
 		} else {
 			// this probably can't occur, but here just in case
-			$this->forPage = new NullPage();
+			$this->forPage = $this->wire('pages')->newNullPage();
 		}
 
 		return $this->forPage;
@@ -93,7 +93,7 @@ class RepeaterPage extends Page {
 		if(strpos($grandparentName, $prefix) === 0) {
 			// determine field from grandparent name in format: for-field-1234
 			$forID = (int) substr($grandparentName, strlen($prefix));
-			$this->forField = wire('fields')->get($forID); 
+			$this->forField = $this->wire('fields')->get($forID); 
 		}
 
 		return $this->forPage;

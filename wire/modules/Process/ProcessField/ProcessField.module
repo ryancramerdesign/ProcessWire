@@ -99,7 +99,7 @@ class ProcessField extends Process implements ConfigurableModule {
 			else $this->id = $this->input->get->id ? (int) $this->input->get->id : 0;
 
 		if($this->id) $this->field = $this->fields->get($this->id);
-			else $this->field = new Field();
+			else $this->field = $this->wire(new Field());
 
 		return parent::init();
 	}
@@ -278,7 +278,7 @@ class ProcessField extends Process implements ConfigurableModule {
 
 		$tagCnt = count($fieldsByTag);
 		if($tagCnt > 1) {
-			$form = new InputfieldWrapper();
+			$form = $this->wire(new InputfieldWrapper());
 			ksort($fieldsByTag);
 			foreach($fieldsByTag as $tag => $fields) {
 				ksort($fields);
@@ -545,7 +545,7 @@ class ProcessField extends Process implements ConfigurableModule {
 			return null;
 		}
 		
-		$form = new InputfieldWrapper();
+		$form = $this->wire(new InputfieldWrapper());
 		$form->attr('class', 'WireTab');
 		$form->attr('id', 'alert');
 		$form->attr('title', $this->_x('Alert', 'tab'));
@@ -586,9 +586,9 @@ class ProcessField extends Process implements ConfigurableModule {
 
 		if(!$this->fieldgroup) return;
 
-		$fieldOriginal = wire('fields')->get($this->field->id);
+		$fieldOriginal = $this->wire('fields')->get($this->field->id);
 		$context = $this->fieldgroup->getFieldContextArray($this->field->id); 
-		$languages = wire('languages');
+		$languages = $this->wire('languages');
 
 		foreach($context as $key => $value) {
 
@@ -677,7 +677,7 @@ class ProcessField extends Process implements ConfigurableModule {
 		$this->form = $form;
 
 		if($fieldgroup_id && $this->field->id) {
-			$this->fieldgroup = wire('fieldgroups')->get($fieldgroup_id); 
+			$this->fieldgroup = $this->wire('fieldgroups')->get($fieldgroup_id); 
 			if(!$this->fieldgroup) throw new WireException("Invalid fieldgroup"); 
 			if(!$this->fieldgroup->has($this->field)) throw new WireException("Fieldgroup '{$this->fieldgroup->name}' does not have field '{$this->field->name}'"); 
 			$this->field = $this->fieldgroup->getField($this->field->id, true);  // get the field in context of the fieldgroup
@@ -761,7 +761,7 @@ class ProcessField extends Process implements ConfigurableModule {
 		}
 		if(!count($allChanges)) return;
 		
-		$tab = new InputfieldWrapper();
+		$tab = $this->wire(new InputfieldWrapper());
 		$tab->attr('title', $this->_('Overrides'));
 		$tab->attr('class', 'WireTab');
 		$form->add($tab); 
@@ -866,7 +866,7 @@ class ProcessField extends Process implements ConfigurableModule {
 
 		$deleteLabel = $this->_('Delete field');
 
-		$form = new InputfieldWrapper();
+		$form = $this->wire(new InputfieldWrapper());
 		$form->attr('id', 'delete');
 		$form->attr('class', 'WireTab');
 		//$form->head = $deleteLabel;
@@ -896,7 +896,7 @@ class ProcessField extends Process implements ConfigurableModule {
 	 */
 	protected function ___buildEditFormBasics() {
 
-		$form = new InputfieldWrapper();
+		$form = $this->wire(new InputfieldWrapper());
 		$form->attr('id', 'basics');
 		$form->attr('class', 'WireTab');
 		$form->attr('title', $this->_x('Basics', 'tab')); 
@@ -997,7 +997,7 @@ class ProcessField extends Process implements ConfigurableModule {
 	 */
 	protected function ___buildEditFormInfo() {
 
-		$form = new InputfieldWrapper();
+		$form = $this->wire(new InputfieldWrapper());
 		$form->attr('class', 'WireTab');
 		$form->attr('id', 'info');
 		$form->attr('title', $this->_x('Actions', 'tab'));
@@ -1087,7 +1087,7 @@ class ProcessField extends Process implements ConfigurableModule {
 
 		$config = $this->wire('config');
 
-		$tab = new InputfieldWrapper();
+		$tab = $this->wire(new InputfieldWrapper());
 		$tab->attr('class', 'WireTab');
 		$tab->attr('id', 'access');
 		$tab->attr('title', $this->_x('Access', 'tab'));
@@ -1171,7 +1171,7 @@ class ProcessField extends Process implements ConfigurableModule {
 		if($this->field->type) {
 			$form = $this->field->type->getConfigAdvancedInputfields($this->field); 
 		} else {
-			$form = new InputfieldWrapper();
+			$form = $this->wire(new InputfieldWrapper());
 		} 
 
 		$form->attr('id', 'advanced');
@@ -1647,7 +1647,7 @@ class ProcessField extends Process implements ConfigurableModule {
 		$this->wire('breadcrumbs')->add(new Breadcrumb('../', $this->moduleInfo['title']));
 		
 		require(dirname(__FILE__) . '/ProcessFieldExportImport.php');
-		$o = new ProcessFieldExportImport();
+		$o = $this->wire(new ProcessFieldExportImport());
 		$form = $o->buildImport();
 		return $form->render();
 	}
@@ -1664,7 +1664,7 @@ class ProcessField extends Process implements ConfigurableModule {
 		$this->wire('breadcrumbs')->add(new Breadcrumb('../', $this->moduleInfo['title'])); 
 		
 		require(dirname(__FILE__) . '/ProcessFieldExportImport.php'); 
-		$o = new ProcessFieldExportImport();
+		$o = $this->wire(new ProcessFieldExportImport());
 		$form = $o->buildExport();
 		return $form->render();
 	}

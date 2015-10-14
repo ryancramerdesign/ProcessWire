@@ -125,7 +125,7 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 
 		// document which pages were already cached at this point, as their values may need 
 		// to be reloaded to account for language fields. 
-		foreach(wire('pages')->getCache() as $id => $value) $this->earlyCachedPages[$id] = $value;
+		foreach($this->wire('pages')->getCache() as $id => $value) $this->earlyCachedPages[$id] = $value;
 
 		// prevent possible double init
 		if($this->initialized) return; 
@@ -147,7 +147,7 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 		// prevent fields like 'title' from autojoining until languages are fully loaded
 		$this->wire('pages')->setAutojoin(false); 
 		
-		$languages = new Languages($languageTemplate, $this->languagesPageID); 
+		$languages = $this->wire(new Languages($languageTemplate, $this->languagesPageID)); 
 		$_default = null; // just in case
 
 		// ensure all languages are loaded and get instantiated versions of system/default languages
@@ -202,7 +202,7 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 		
 
 		if($this->wire('modules')->isInstalled('LanguageSupportFields')) {
-			$this->LanguageSupportFields = wire('modules')->get('LanguageSupportFields'); 
+			$this->LanguageSupportFields = $this->wire('modules')->get('LanguageSupportFields'); 
 			$this->LanguageSupportFields->LS_init();
 			if($languages->getPageEditPermissions('none') && !$this->user->hasPermission('page-edit-lang-none')) {
 				$this->addHookBefore('InputfieldWrapper::renderInputfield', $this, 'hookInputfieldWrapperBeforeRenderInputfield');
@@ -242,7 +242,7 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 		if($this->LanguageSupportFields) {
 			$fieldNames = array();
 			// save the names of all fields that support languages
-			foreach(wire('fields') as $field) {
+			foreach($this->wire('fields') as $field) {
 				if($field->type instanceof FieldtypeLanguageInterface) $fieldNames[] = $field->name;
 			}
 			// unset the values from all the early cached pages since they didn't recognize languages
@@ -613,7 +613,7 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 
 		// save this as a known language page with module settings
 		// this is a shortcut used to identify language pages before the API is fully ready
-		$configData = wire('modules')->getModuleConfigData('LanguageSupport'); 
+		$configData = $this->wire('modules')->getModuleConfigData('LanguageSupport'); 
 		$configData['otherLanguagePageIDs'][] = $page->id; 
 		wire('modules')->saveModuleConfigData('LanguageSupport', $configData); 
 
@@ -630,7 +630,7 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 		$language = $page; 
 
 		// remove any language-specific values from any fields
-		foreach(wire('fields') as $field) {
+		foreach($this->wire('fields') as $field) {
 
 			$changed = false;
 
@@ -646,7 +646,7 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 		}
 
 		// remove template labels
-		foreach(wire('templates') as $template) {
+		foreach($this->wire('templates') as $template) {
 			$name = 'label' . $page->id; 
 			if(isset($template->$name)) {
 				$template->remove($name); 
@@ -659,11 +659,11 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 		wire('languages')->deleted($page);
 
 		// update the other language module IDs to remove the uninstalled language
-		$configData = wire('modules')->getModuleConfigData('LanguageSupport'); 
+		$configData = $this->wire('modules')->getModuleConfigData('LanguageSupport'); 
 		$key = array_search($page->id, $configData['otherLanguagePageIDs']); 
 		if($key !== false) {
-			unset($configData['otherLanguagePageIDs'][$key]); 
-			wire('modules')->saveModuleConfigData('LanguageSupport', $configData); 
+			unset($configData['otherLanguagePageIDs'][$key]);
+			$this->wire('modules')->saveModuleConfigData('LanguageSupport', $configData); 
 		}
 	}
 
@@ -822,7 +822,7 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 	 */
 	protected function installer($install = true) {
 		require_once($this->config->paths->LanguageSupport . 'LanguageSupportInstall.php'); 
-		$installer = new LanguageSupportInstall();
+		$installer = $this->wire(new LanguageSupportInstall());
 		if($install) $installer->install();
 			else $installer->uninstall();
 	}

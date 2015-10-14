@@ -51,7 +51,7 @@ class LanguagesPageFieldValue extends Wire implements LanguagesValueInterface, \
 	 */
 	public function __construct($values = null) { // #98
 
-		$languageSupport = wire('modules')->get('LanguageSupport');
+		$languageSupport = $this->wire('modules')->get('LanguageSupport');
 		$this->defaultLanguagePageID = $languageSupport->defaultLanguagePageID; 
 
 		if(!is_array($values)) $values = array('data' => $values); 
@@ -99,7 +99,7 @@ class LanguagesPageFieldValue extends Wire implements LanguagesValueInterface, \
 	 */
 	public function setFromInputfield(Inputfield $inputfield) {
 
-		foreach(wire('languages') as $language) {
+		foreach($this->wire('languages') as $language) {
 			if($language->isDefault) {
 				$key = 'value';
 			} else {

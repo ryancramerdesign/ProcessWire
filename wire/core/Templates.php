@@ -32,7 +32,7 @@ class TemplatesArray extends WireArray {
 	}
 
 	public function makeBlankItem() {
-		return new Template();
+		return $this->wire(new Template());
 	}
 
 }
@@ -83,6 +83,7 @@ class Templates extends WireSaveableItems {
 	 *
 	 */
 	public function init() {
+		$this->wire($this->templatesArray);
 		$this->load($this->templatesArray); 
 	}
 
@@ -99,7 +100,7 @@ class Templates extends WireSaveableItems {
 	 *
 	 */
 	public function makeBlankItem() {
-		return new Template(); 
+		return $this->wire(new Template()); 
 	}
 
 	/**
@@ -161,7 +162,7 @@ class Templates extends WireSaveableItems {
 		if($result && !$isNew && $item->fieldgroupPrevious && $item->fieldgroupPrevious->id != $item->fieldgroup->id) {
 			// the fieldgroup has been changed
 			// remove data from all fields that are not part of the new fieldgroup
-			$removeFields = new FieldsArray();
+			$removeFields = $this->wire(new FieldsArray());
 			foreach($item->fieldgroupPrevious as $field) {
 				if(!$item->fieldgroup->has($field)) {
 					$removeFields->add($field); 
@@ -184,7 +185,7 @@ class Templates extends WireSaveableItems {
 		}
 
 		if($rolesChanged) { 
-			$access = new PagesAccess();
+			$access = $this->wire(new PagesAccess());
 			$access->updateTemplate($item); 
 		}
 		
@@ -378,7 +379,7 @@ class Templates extends WireSaveableItems {
 			if($key == 'fieldgroups_id' && !ctype_digit("$value")) {
 				$fieldgroup = $this->wire('fieldgroups')->get($value);
 				if(!$fieldgroup) {
-					$fieldgroup = new Fieldgroup();
+					$fieldgroup = $this->wire(new Fieldgroup());
 					$fieldgroup->name = $value;
 				}
 				$oldValue = $template->fieldgroup ? $template->fieldgroup->name : '';
@@ -463,7 +464,7 @@ class Templates extends WireSaveableItems {
 	public function getParentPage(Template $template, $checkAccess = false, $getAll = false) {
 		
 		$foundParent = null;
-		$foundParents = $getAll ? new PageArray() : null;
+		$foundParents = $getAll ? $this->wire('pages')->newPageArray() : null;
 
 		if($template->noShortcut || !count($template->parentTemplates)) return $foundParents;
 		if($template->noParents == -1) {
@@ -497,7 +498,7 @@ class Templates extends WireSaveableItems {
 				continue;
 			} else if($numParentPages > 1) {
 				// multiple possible parents
-				$parentPage = new NullPage();
+				$parentPage = $this->wire('pages')->newNullPage();
 			} else {
 				// one possible parent
 				$parentPage = $parentPages->first();
@@ -506,7 +507,7 @@ class Templates extends WireSaveableItems {
 			if($checkAccess) {
 				if($parentPage->id) {
 					// single defined parent
-					$p = new Page();
+					$p = $this->wire('pages')->newPage();
 					$p->template = $template;
 					if(!$parentPage->addable($p)) continue;
 				} else {
@@ -520,7 +521,7 @@ class Templates extends WireSaveableItems {
 		}
 		
 		if($checkAccess && $foundParents && $foundParents->count()) {
-			$p = new Page();
+			$p = $this->wire('pages')->newPage();
 			$p->template = $template; 
 			foreach($foundParents as $parentPage) {
 				if(!$parentPage->addable($p)) $foundParents->remove($parentPage);

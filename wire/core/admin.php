@@ -63,11 +63,10 @@ $modules->get("JqueryUI");
 $pages->setOutputFormatting(false); 
 
 // setup breadcrumbs to current page, and the Process may modify, add to or replace them as needed
-$breadcrumbs = new Breadcrumbs();
+$breadcrumbs = $wire->wire('breadcrumbs', new Breadcrumbs()); 
 foreach($page->parents() as $p) {
 	if($p->id > 1) $breadcrumbs->add(new Breadcrumb($p->url, $p->get("title|name"))); 
 }
-$wire->wire('breadcrumbs', $breadcrumbs); 
 $controller = null;
 $content = '';
 

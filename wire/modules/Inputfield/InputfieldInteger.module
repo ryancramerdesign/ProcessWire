@@ -124,7 +124,7 @@ class InputfieldInteger extends Inputfield {
 	public function getConfigInputfields() {
 		$inputfields = parent::getConfigInputfields();
 
-		$f = wire('modules')->get('InputfieldRadios');
+		$f = $this->wire('modules')->get('InputfieldRadios');
 		$f->attr('name', 'inputType');
 		$f->label = $this->_('Numeric Input Type'); 
 		$f->addOption('text', $this->_('Text')); 
@@ -134,7 +134,7 @@ class InputfieldInteger extends Inputfield {
 		$f->description = $this->_('Choosing the "Number" type enables some additional client-side validation in browsers that support it.');
 		$inputfields->add($f);
 
-		$f = wire('modules')->get('InputfieldText');
+		$f = $this->wire('modules')->get('InputfieldText');
 		$f->attr('name', 'min');
 		$f->attr('value', $this->attr('min')); 
 		$f->label = $this->_('Minimum Value'); 
@@ -142,7 +142,7 @@ class InputfieldInteger extends Inputfield {
 		$f->columnWidth = 50;
 		$inputfields->add($f);
 
-		$f = wire('modules')->get('InputfieldText');
+		$f = $this->wire('modules')->get('InputfieldText');
 		$f->attr('name', 'max');
 		$f->attr('value', $this->attr('max')); 
 		$f->label = $this->_('Maximum Value'); 
@@ -151,7 +151,7 @@ class InputfieldInteger extends Inputfield {
 		$inputfields->add($f);
 	
 		if($this->hasFieldtype === false) {
-			$f = wire('modules')->get('InputfieldText');
+			$f = $this->wire('modules')->get('InputfieldText');
 			$f->attr('name', 'initValue');
 			$f->attr('value', $this->initValue);
 			$f->label = $this->_('Initial value');

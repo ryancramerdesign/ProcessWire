@@ -167,7 +167,7 @@ class SystemUpdater extends WireData implements Module, ConfigurableModule {
 		if(is_file($filename)) {
 			try {
 				include($filename); 
-				$update = new $className($this); 
+				$update = $this->wire(new $className($this)); 
 				$update->message('Initializing update'); 
 				$success = $update->execute();
 			} catch(\Exception $e) {

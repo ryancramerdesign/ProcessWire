@@ -125,7 +125,7 @@
 			</thead>
 			<tbody>
 			<?php 
-			$hooks = array_merge(wire()->getHooks('*'), Wire::$allLocalHooks); 
+			$hooks = array_merge($this->wire()->getHooks('*'), Wire::$allLocalHooks); 
 			ksort($hooks); 
 			foreach($hooks as $key => $hook) {
 				$suffix = $hook['options']['type'] == 'method' ? '()' : '';

@@ -140,7 +140,7 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	 */
 	public function makeNew() {
 		$class = get_class($this); 
-		$newArray = new $class(); 
+		$newArray = $this->wire(new $class()); 
 		return $newArray; 
 	}
 
@@ -1089,7 +1089,7 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 			// fantastic
 		} else {
 			if(ctype_digit("$selectors")) $selectors = "id=$selectors";
-			$selectors = new Selectors($selectors); 
+			$selectors = $this->wire(new Selectors($selectors)); 
 		}
 		$this->filterDataSelectors($selectors); 
 

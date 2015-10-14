@@ -32,7 +32,7 @@ class TextformatterStripTags extends Textformatter implements ConfigurableModule
 		$str = strip_tags($str, $this->data['allowedTags']); 
 	}
 
-        public static function getModuleConfigInputfields(array $data) {
+	public static function getModuleConfigInputfields(array $data) {
 		$inputfields = new InputfieldWrapper();
 		$name = "allowedTags";
 		if(!isset($data[$name])) $data[$name] = '';
@@ -48,11 +48,11 @@ class TextformatterStripTags extends Textformatter implements ConfigurableModule
 		return $inputfields;
 	}
 
-        public function __get($key) {
+	public function __get($key) {
 		return isset($this->data[$key]) ? $this->data[$key] : null;
 	}
 
-        public function __set($key, $value) {
+	public function __set($key, $value) {
 		$this->data[$key] = $value; 
 	}
 

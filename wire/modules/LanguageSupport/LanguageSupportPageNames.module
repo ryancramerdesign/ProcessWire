@@ -138,9 +138,9 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 
 		// verify that page path doesn't have mixed languages where it shouldn't
 		$redirectURL = $this->verifyPath($this->requestPath);
-		if($redirectURL) return wire('session')->redirect($redirectURL); 
+		if($redirectURL) return $this->wire('session')->redirect($redirectURL); 
 
-		$page = wire('page'); 
+		$page = $this->wire('page'); 
 
 		if($page->template == 'admin' && $page->process && in_array('WirePageEditor', wireClassImplements($page->process))) { 
 			// when in admin, add inputs for each language's page name
@@ -313,13 +313,13 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 		
 		if(trim($expectedPath, '/') != trim($requestPath, '/')) {
 			if($expectedPathLength && $useSlashURL) $expectedPath .= '/';
-			$redirectURL = wire('config')->urls->root . ltrim($expectedPath, '/');
+			$redirectURL = $this->wire('config')->urls->root . ltrim($expectedPath, '/');
 			
 		} else if($useSlashURL && !$hasSlashURL && strlen($expectedPath)) {
-			$redirectURL = wire('config')->urls->root . $expectedPath . '/';
+			$redirectURL = $this->wire('config')->urls->root . $expectedPath . '/';
 			
 		} else if(!$useSlashURL && $hasSlashURL && $pageNum == 1) {
-			$redirectURL = wire('config')->urls->root . $expectedPath; 
+			$redirectURL = $this->wire('config')->urls->root . $expectedPath; 
 		}
 
 		return $redirectURL; 	
@@ -403,7 +403,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 		// if(wire('user')->isSuperuser() || $page->editable()) return;
 		$language = $event->arguments(0);
 		if(!$language) return;
-		if(is_string($language)) $language = wire('languages')->get(wire('sanitizer')->pageName($language));
+		if(is_string($language)) $language = $this->wire('languages')->get($this->wire('sanitizer')->pageName($language));
 		if(!$language instanceof Language) return; // some other non-language argument
 		if($language->isDefault()) return; // we accept the result of the original viewable() call
 		$status = $page->get("status$language");
@@ -433,8 +433,8 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 		$inputfield = $event->object; 
 		if($inputfield->languageSupportLabel) return; // prevent recursion
 
-		$user = wire('user');
-		$page = $this->process instanceof WirePageEditor ? $this->process->getPage() : new NullPage();
+		$user = $this->wire('user');
+		$page = $this->process instanceof WirePageEditor ? $this->process->getPage() : $this->wire('pages')->newNullPage();
 		/** @var Languages $languages */
 		$languages = $this->wire('languages');
 		$savedLanguage = $user->language; 
@@ -546,7 +546,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 		// don't apply exclusions when output formatting is off
 		if(!wire('pages')->outputFormatting) return;
 
-		$language = wire('user')->language; 
+		$language = $this->wire('user')->language; 
 		if(!$language || $language->isDefault()) return;
 
 		$status = "status" . (int) $language->id;	
@@ -604,7 +604,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 	public function hookPageLocalUrl(HookEvent $event) {
 		$page = $event->object; 
 		$language = $this->getLanguage($event->arguments(0)); 
-		$event->return = wire('config')->urls->root . ltrim($this->getPagePath($page, $language), '/'); 	
+		$event->return = $this->wire('config')->urls->root . ltrim($this->getPagePath($page, $language), '/'); 	
 	}
 	
 	/**
@@ -636,12 +636,12 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 
 		if($language && (is_string($language) || is_int($language))) {
 			if(ctype_digit("$language")) $language = (int) $language; 
-				else $language = wire('sanitizer')->pageName($language); 
-			$language = wire("languages")->get($language); 
+				else $language = $this->wire('sanitizer')->pageName($language); 
+			$language = $this->wire("languages")->get($language); 
 		}
 
 		if(!$language || !$language->id || !$language instanceof Language) {
-			$language = wire('languages')->get('default'); 
+			$language = $this->wire('languages')->get('default'); 
 		}
 
 		return $language; 
@@ -847,9 +847,9 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 
 		// save module version in config data
 		if($info['version'] != $this->moduleVersion) {
-			$data = wire('modules')->getModuleConfigData($this); 
+			$data = $this->wire('modules')->getModuleConfigData($this); 
 			$data['moduleVersion'] = $info['version'];
-			wire('modules')->saveModuleConfigData($this, $data);
+			$this->wire('modules')->saveModuleConfigData($this, $data);
 		}
 
 	}

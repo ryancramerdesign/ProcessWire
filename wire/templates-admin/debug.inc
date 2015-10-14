@@ -45,7 +45,7 @@
 				<?php 
 				foreach($fuel as $key => $value) {
 					if(!is_object($value)) continue; 
-					echo "\n<tr><td><a target='_blank' href='http://processwire.com/api/variables/$key/'>\$$key</a></td>" . 
+					echo "\n<tr><td><a target='_blank' href='https://processwire.com/api/variables/$key/'>\$$key</a></td>" . 
 						"<td>" . get_class($value) . "</td></tr>"; 
 				}
 				?>
@@ -136,7 +136,7 @@
 				</thead>
 				<tbody>
 				<?php 
-				$hooks = array_merge(wire()->getHooks('*'), Wire::$allLocalHooks); 
+				$hooks = array_merge($this->wire()->getHooks('*'), Wire::$allLocalHooks); 
 				$hooksSorted = array();
 				foreach($hooks as $hook) {
 					$whenKey = $hook['options']['before'] ? '0' : '1';

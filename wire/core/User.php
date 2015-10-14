@@ -297,7 +297,7 @@ class User extends Page {
 	 */
 	public function getPermissions(Page $page = null) {
 		if($this->isSuperuser()) return $this->wire('permissions')->getIterator(); // all permissions
-		$permissions = new PageArray();
+		$permissions = $this->wire('pages')->newPageArray();
 		$roles = $this->get('roles'); 
 		if(empty($roles)) return $permissions; 
 		foreach($roles as $key => $role) {

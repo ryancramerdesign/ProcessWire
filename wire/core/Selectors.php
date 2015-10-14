@@ -144,7 +144,7 @@ class Selectors extends WireArray {
 	 *
 	 */
 	public function makeBlankItem() {
-		return new SelectorEqual('','');
+		return $this->wire(new SelectorEqual('',''));
 	}
 
 	/**
@@ -283,7 +283,7 @@ class Selectors extends WireArray {
 			throw new WireException("Unknown Selector operator: '$operator' -- was your selector value properly escaped? $debug"); 
 		}
 		$class = wireClassName(self::$selectorTypes[$operator], true); 
-		$selector = new $class($field, $value); 
+		$selector = $this->wire(new $class($field, $value)); 
 		return $selector; 		
 	}
 

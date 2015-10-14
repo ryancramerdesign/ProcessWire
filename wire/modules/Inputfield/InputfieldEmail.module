@@ -47,7 +47,7 @@ class InputfieldEmail extends InputfieldText {
 
 	protected function setAttributeValue($value) {
 		if(strlen($value)) { 
-			$value = wire('sanitizer')->email($value); 	
+			$value = $this->wire('sanitizer')->email($value); 	
 			if(!$value) $this->error($this->_("Please enter a valid e-mail address")); // Error message when email address is invalid
 		}
 		return $value; 
@@ -57,7 +57,7 @@ class InputfieldEmail extends InputfieldText {
 		parent::___processInput($input);
 		if($this->confirm) {
 			$value1 = $this->attr('value');
-			$value2 = wire('sanitizer')->email($input["_{$this->name}_confirm"]); 
+			$value2 = $this->wire('sanitizer')->email($input["_{$this->name}_confirm"]); 
 			if((strlen($value1) || strlen($value2)) && strtolower($value1) !== strtolower($value2)) {
 				$this->attr('value', '');
 				$this->error($this->_('The emails you entered did not match, please enter again'));
@@ -75,7 +75,7 @@ class InputfieldEmail extends InputfieldText {
 			if($f) $inputfields->remove($f);
 		}
 
-		$f = wire('modules')->get('InputfieldCheckbox');
+		$f = $this->wire('modules')->get('InputfieldCheckbox');
 		$f->attr('name', 'confirm');
 		$f->label = $this->_('Confirm email address?');
 		$f->description = $this->_('When checked, two email inputs will appear and the user will have to enter their email address twice to confirm it. This helps reduce the possibility of typos.');

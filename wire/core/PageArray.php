@@ -66,7 +66,7 @@ class PageArray extends PaginatedArray implements WirePaginatable {
 	 *
 	 */
 	public function makeBlankItem() {
-		return new Page();
+		return $this->wire('pages')->newPage();
 	}
 
 	/**

@@ -153,7 +153,7 @@ class FieldtypeModule extends Fieldtype {
 	}
 
 	public function ___getCompatibleFieldtypes(Field $field) {
-		$fieldtypes = new Fieldtypes();
+		$fieldtypes = $this->wire(new Fieldtypes());
 		foreach($this->wire('fieldtypes') as $fieldtype) {
 			if($fieldtype instanceof FieldtypeModule) $fieldtypes->add($fieldtype);
 		}

@@ -56,7 +56,7 @@ class FieldtypeFieldsetTabOpen extends FieldtypeFieldsetOpen {
 	}
 	
 	public function getInputfield(Page $page, Field $field) {
-		$inputfield = new InputfieldFieldsetTabOpen();
+		$inputfield = $this->wire(new InputfieldFieldsetTabOpen());
 		$inputfield->class = $this->className();
 		if($field->modal) {
 			$inputfield->modal = true;

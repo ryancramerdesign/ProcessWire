@@ -578,7 +578,7 @@ class WireCache extends Wire {
 					$data = json_decode($row['data'], true);
 					if($data !== false && isset($data['selector'])) {
 						$name = $row['name'];
-						$selectors = new Selectors($data['selector']);
+						$selectors = $this->wire(new Selectors($data['selector']));
 						$this->cacheNameSelectors[$name] = $selectors;
 					}
 				}
@@ -655,8 +655,8 @@ class WireCache extends Wire {
 		$pageArrayClass = isset($data['pageArrayClass']) ? $data['pageArrayClass'] : 'PageArray';
 
 		if(!isset($data['PageArray']) || !is_array($data['PageArray'])) {
-			$pageArrayClass = wireClassName($pageArrayClass, true);
-			return new $pageArrayClass();
+			$class = wireClassName($pageArrayClass, true);
+			return $this->wire(new $class());
 		}
 
 		$options = array();

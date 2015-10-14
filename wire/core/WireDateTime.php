@@ -166,7 +166,7 @@ class WireDateTime {
 			$a = date_parse_from_format($format, $str);
 			if(isset($a['warnings']) && count($a['warnings'])) {
 				foreach($a['warnings'] as $warning) {
-					if(function_exists('wire')) {
+					if(function_exists(__NAMESPACE__ . "\\wire")) {
 						wire()->warning($warning . " (value='$str', format='$format')");
 					} else {
 						// some other warning system, outside of ProcessWire usage

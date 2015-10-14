@@ -130,7 +130,7 @@ class Notices extends WireArray {
 	}	
 
 	public function makeBlankItem() {
-		return new NoticeMessage(''); 
+		return $this->wire(new NoticeMessage('')); 
 	}
 
 	public function add($item) {
@@ -160,7 +160,7 @@ class Notices extends WireArray {
 		if(($item->flags & Notice::warning) && !$item instanceof NoticeWarning) {
 			// if given a warning of either NoticeMessage or NoticeError, convert it to a NoticeWarning
 			// this is in support of legacy code, as NoticeWarning didn't used to exist
-			$warning = new NoticeWarning($item->text, $item->flags);
+			$warning = $this->wire(new NoticeWarning($item->text, $item->flags));
 			$warning->class = $item->class;
 			$warning->timestamp = $item->timestamp;
 			$item = $warning;

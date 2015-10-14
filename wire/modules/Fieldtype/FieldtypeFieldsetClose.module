@@ -43,7 +43,7 @@ class FieldtypeFieldsetClose extends FieldtypeFieldsetOpen {
 	}
 
 	public function getInputfield(Page $page, Field $field) {
-		return new InputfieldFieldsetClose();
+		return $this->wire(new InputfieldFieldsetClose());
 	}
 
 	public function ___getConfigInputfields(Field $field) {

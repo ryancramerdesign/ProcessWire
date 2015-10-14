@@ -1431,7 +1431,7 @@ class ImageSizer extends Wire {
 	 * @return mixed, null or bool
 	 *
 	 */
-	static public function imageResetIPTC($image) {
+	public function imageResetIPTC($image) {
 		if($image instanceof Pageimage) {
 			$fn = $image->filename;
 		} elseif(is_readable($image)) {
@@ -1439,7 +1439,7 @@ class ImageSizer extends Wire {
 		} else {
 			return null;
 		}
-		$is = new ImageSizer($fn);
+		$is = $this->wire(new ImageSizer($fn));
 		$result = false !== $is->writeBackIptc() ? true : false;
 		unset($is);
 		return $result;

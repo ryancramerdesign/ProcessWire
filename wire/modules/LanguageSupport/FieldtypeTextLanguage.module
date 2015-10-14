@@ -37,8 +37,8 @@ class FieldtypeTextLanguage extends FieldtypeText implements FieldtypeLanguageIn
 			// convert it to a LanguagesPageFieldValue
 			$str = (string) $value; 
 			$value = $page->getUnformatted($field->name); 
-			if(is_string($value)) $value = new LanguagesPageFieldValue($value); // #98
-			$value->setLanguageValue(wire('user')->language->id, $str); 
+			if(is_string($value)) $value = $this->wire(new LanguagesPageFieldValue($value)); // #98
+			$value->setLanguageValue($this->wire('user')->language->id, $str); 
 		}
 		return $value; 
 	}
@@ -50,7 +50,7 @@ class FieldtypeTextLanguage extends FieldtypeText implements FieldtypeLanguageIn
 	public function getDatabaseSchema(Field $field) {
 	
 		$schema = parent::getDatabaseSchema($field);
-		$languageSupport = wire('modules')->get('LanguageSupport'); 
+		$languageSupport = $this->wire('modules')->get('LanguageSupport'); 
 	
 		// note that we use otherLanguagePageIDs rather than wire('languages') because
 		// it's possible that this method may be called before the languages are known 

@@ -628,7 +628,7 @@ class Field extends WireData implements Saveable, Exportable {
 	 *
 	 */ 
 	public function getFieldgroups() {
-		$fieldgroups = new FieldgroupsArray();
+		$fieldgroups = $this->wire(new FieldgroupsArray());
 		foreach($this->wire('fieldgroups') as $fieldgroup) {
 			foreach($fieldgroup as $field) {
 				if($field->id == $this->id) {
@@ -647,7 +647,7 @@ class Field extends WireData implements Saveable, Exportable {
 	 *
 	 */ 
 	public function getTemplates() {
-		$templates = new TemplatesArray();
+		$templates = $this->wire(new TemplatesArray());
 		$fieldgroups = $this->getFieldgroups();
 		foreach($this->templates as $template) {
 			foreach($fieldgroups as $fieldgroup) {
@@ -748,7 +748,7 @@ class Field extends WireData implements Saveable, Exportable {
 	 */
 	public function ___getConfigInputfields() {
 
-		$wrapper = new InputfieldWrapper();
+		$wrapper = $this->wire(new InputfieldWrapper());
 		$fieldgroupContext = $this->flags & Field::flagFieldgroupContext; 
 		
 		if($fieldgroupContext) {
@@ -760,16 +760,16 @@ class Field extends WireData implements Saveable, Exportable {
 
 		if(!$fieldgroupContext || count($allowContext)) {
 			
-			$inputfields = new InputfieldWrapper();
+			$inputfields = $this->wire(new InputfieldWrapper());
 			if(!$fieldgroupContext) $inputfields->head = $this->_('Field type details');
 			$inputfields->attr('title', $this->_('Details'));
 
 			try {
 				$fieldtypeInputfields = $this->type->getConfigInputfields($this); 
-				if(!$fieldtypeInputfields) $fieldtypeInputfields = new InputfieldWrapper();
+				if(!$fieldtypeInputfields) $fieldtypeInputfields = $this->wire(new InputfieldWrapper());
 				$configArray = $this->type->getConfigArray($this); 
 				if(count($configArray)) {
-					$w = new InputfieldWrapper();
+					$w = $this->wire(new InputfieldWrapper());
 					$w->importArray($configArray);
 					$w->populateValues($this);
 					$fieldtypeInputfields->import($w);
@@ -785,7 +785,7 @@ class Field extends WireData implements Saveable, Exportable {
 			if(count($inputfields)) $wrapper->append($inputfields); 
 		}
 
-		$inputfields = new InputfieldWrapper();
+		$inputfields = $this->wire(new InputfieldWrapper());
 		$dummyPage = $this->wire('pages')->get("/"); // only using this to satisfy param requirement 
 
 		if($inputfield = $this->getInputfield($dummyPage)) {
@@ -798,10 +798,10 @@ class Field extends WireData implements Saveable, Exportable {
 			}
 			$inputfields->attr('title', $this->_('Input')); 
 			$inputfieldInputfields = $inputfield->getConfigInputfields();
-			if(!$inputfieldInputfields) $inputfieldInputfields = new InputfieldWrapper();
+			if(!$inputfieldInputfields) $inputfieldInputfields = $this->wire(new InputfieldWrapper());
 			$configArray = $inputfield->getConfigArray(); 
 			if(count($configArray)) {
-				$w = new InputfieldWrapper();
+				$w = $this->wire(new InputfieldWrapper());
 				$w->importArray($configArray);
 				$w->populateValues($this);
 				$inputfieldInputfields->import($w);

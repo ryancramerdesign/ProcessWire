@@ -750,8 +750,8 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		if(empty($s2)) return $s1; 
 		if(empty($s1)) return $s2; 
 		
-		$selectors1 = new Selectors($s1); 
-		$selectors2 = new Selectors($s2); 
+		$selectors1 = $this->wire(new Selectors($s1)); 
+		$selectors2 = $this->wire(new Selectors($s2)); 
 		
 		foreach($selectors1 as $key1 => $selector1) {
 			//$value = $selector1->value; 
@@ -866,7 +866,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 			}
 		}
 		
-		$selectors = new Selectors($selector);
+		$selectors = $this->wire(new Selectors($selector));
 		$templates = array();
 		$changed = false;
 		$templateSelector = null;
@@ -945,7 +945,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 				// user specified 1 or more templates
 				$numEditable = 0;
 				// determine how many templates are editable
-				$test = new Page();
+				$test = $this->wire('pages')->newPage();
 				foreach($templates as $template) {
 					$test->template = $template;
 					$test->id = 999; // required (any ID number works)
@@ -1177,7 +1177,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 				}
 				$inputfield->attr('value', $value);
 				$inputfield->skipLabel = Inputfield::skipLabelHeader;
-				$wrapper = new InputfieldWrapper();
+				$wrapper = $this->wire(new InputfieldWrapper());
 				$wrapper->add($inputfield);
 				$value = $wrapper->renderValue();
 			} else {
@@ -1417,7 +1417,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		
 		if(is_null($pageListRender)) {
 			require_once($this->wire('config')->paths->ProcessPageList . 'ProcessPageListRenderJSON.php');
-			$pageListRender = new ProcessPageListRenderJSON($this->wire('page'), new PageArray()); 
+			$pageListRender = $this->wire(new ProcessPageListRenderJSON($this->wire('page'), $this->wire('pages')->newPageArray())); 
 		}
 		
 		$actions = $pageListRender->getPageActions($p);
@@ -1478,11 +1478,11 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		$this->finalSelector = $selector; 
 
 		try {
-			$results = $selector ? $this->wire('pages')->find($selector) : new PageArray();
+			$results = $selector ? $this->wire('pages')->find($selector) : $this->wire('pages')->newPageArray();
 			
 		} catch(\Exception $e) {
 			$this->error($e->getMessage());
-			$results = new PageArray();
+			$results = $this->wire('pages')->newPageArray();
 		}
 
 		if(is_null($this->knownTotal['total'])) {
@@ -1832,7 +1832,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		static $bookmarks = null;
 		if(is_null($bookmarks)) {
 			require_once(dirname(__FILE__) . '/ProcessPageListerBookmarks.php');
-			$bookmarks = new ProcessPageListerBookmarks($this);
+			$bookmarks = $this->wire(new ProcessPageListerBookmarks($this));
 		}
 		return $bookmarks;
 	}

@@ -1084,7 +1084,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 						
 					} else {
 						// page field, non-autocomplete, no options specified, and no existing selector string exists
-						$page = new NullPage();
+						$page = $this->wire('pages')->newNullPage();
 						$inputfield = $field->getInputfield($page, $field); 
 						
 						if($inputfield instanceof InputfieldPage) { 
@@ -1567,7 +1567,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		// convert the value attribute to a Selectors object
 		try {
 			$value = trim($this->attr('value')); 
-			$this->selectors = new Selectors(); 
+			$this->selectors = $this->wire(new Selectors()); 
 			if(!$this->parseVars) $this->selectors->setParseVars(false);
 			$this->selectors->setSelectorString($value); 
 		} catch(\Exception $e) {
@@ -1704,8 +1704,8 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 	 */
 	public function sanitizeSelectorString($selectorString, $parseVars = true) {
 		
-		$initSelectors = new Selectors(); 
-		$userSelectors = new Selectors(); 
+		$initSelectors = $this->wire(new Selectors()); 
+		$userSelectors = $this->wire(new Selectors()); 
 		
 		if(!$parseVars) {
 			$initSelectors->setParseVars(false); 

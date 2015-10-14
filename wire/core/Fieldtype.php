@@ -106,7 +106,7 @@ abstract class Fieldtype extends WireData implements Module {
 	 */
 	public function getInputfield(Page $page, Field $field) {
 		// TODO make this abstract
-		$inputfield = wire('modules')->get('InputfieldText'); 
+		$inputfield = $this->wire('modules')->get('InputfieldText'); 
 		$inputfield->class = $this->className();
 		return $inputfield; 
 	}
@@ -127,7 +127,7 @@ abstract class Fieldtype extends WireData implements Module {
 	 *
 	 */
 	public function ___getConfigInputfields(Field $field) {
-		$inputfields = new InputfieldWrapper();	
+		$inputfields = $this->wire(new InputfieldWrapper());	
 		/* 
 		// EXAMPLE
 		$f = $this->modules->get("InputfieldCheckbox"); 
@@ -183,9 +183,9 @@ abstract class Fieldtype extends WireData implements Module {
 	 */
 	public function ___getConfigAdvancedInputfields(Field $field) {
 		// advanced settings
-		$inputfields = new InputfieldWrapper();	
+		$inputfields = $this->wire(new InputfieldWrapper());	
 
-		if($this->getLoadQueryAutojoin($field, new DatabaseQuerySelect())) {
+		if($this->getLoadQueryAutojoin($field, $this->wire(new DatabaseQuerySelect()))) {
 			$f = $this->modules->get('InputfieldCheckbox');
 			$f->label = $this->_('Autojoin');
 			$f->icon = 'sign-in';
@@ -292,7 +292,7 @@ abstract class Fieldtype extends WireData implements Module {
 	 *
 	 */
 	public function ___getCompatibleFieldtypes(Field $field) {
-		$fieldtypes = new Fieldtypes();
+		$fieldtypes = $this->wire(new Fieldtypes());
 		foreach($this->wire('fieldtypes') as $fieldtype) {
 			if(!$fieldtype instanceof FieldtypeMulti) $fieldtypes->add($fieldtype); 
 		}
@@ -360,7 +360,7 @@ abstract class Fieldtype extends WireData implements Module {
 	 *
 	 */
 	public function ___markupValue(Page $page, Field $field, $value = null, $property = '') {
-		$m = new MarkupFieldtype($page, $field, $value); 	
+		$m = $this->wire(new MarkupFieldtype($page, $field, $value)); 	
 		if(strlen($property)) return $m->render($property); 
 		return $m;
 	}
@@ -634,7 +634,7 @@ abstract class Fieldtype extends WireData implements Module {
 	 *
 	 */
 	public function ___getSelectorInfo(Field $field, array $data = array()) {
-		$selectorInfo = new FieldSelectorInfo(); 
+		$selectorInfo = $this->wire(new FieldSelectorInfo()); 
 		return $selectorInfo->getSelectorInfo($field); 
 	}
 
@@ -660,7 +660,7 @@ abstract class Fieldtype extends WireData implements Module {
 		$isMulti = $field->type instanceof FieldtypeMulti;
 		$page_id = (int) $page->id; 
 		$table = $database->escapeTable($field->table); 
-		$query = new DatabaseQuerySelect();
+		$query = $this->wire(new DatabaseQuerySelect());
 		$query = $this->getLoadQuery($field, $query); 
 		$query->where("$table.pages_id='$page_id'"); 
 		$query->from($table); 

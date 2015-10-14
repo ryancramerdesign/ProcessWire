@@ -370,23 +370,11 @@ interface WireHookable {
 interface WireFuelable {
 	
 	/**
-	 * Get or inject a ProcessWire API variable
+	 * Get or inject a ProcessWire API variable or fuel a new object instance
 	 *
-	 * 1. As a getter (option 1):
-	 * Usage: $this->wire('name'); // name is an API variable name
-	 * If 'name' does not exist, a WireException will be thrown.
+	 * See Wire::wire() for explanation of all options. 
 	 *
-	 * 2. As a getter (option 2):
-	 * Usage: $this->wire()->name; // name is an API variable name
-	 * Null will be returned if API var does not exist (no Exception thrown).
-	 *
-	 * 3. As a setter:
-	 * $this->wire('name', $value);
-	 * $this->wire('name', $value, true); // lock the API variable so nothing else can overwrite it
-	 * $this->wire()->set('name', $value);
-	 * $this->wire()->set('name', $value, true); // lock the API variable so nothing else can overwrite it
-	 *
-	 * @param string $name Name of API variable to retrieve, set, or omit to retrieve entire Fuel object.
+	 * @param string|WireFuelable $name Name of API variable to retrieve, set, or omit to retrieve entire Fuel object.
 	 * @param null|mixed $value Value to set if using this as a setter, otherwise omit.
 	 * @param bool $lock When using as a setter, specify true if you want to lock the value from future changes (default=false)
 	 * @return mixed|Fuel
@@ -394,6 +382,23 @@ interface WireFuelable {
 	 *
 	 */
 	public function wire($name = '', $value = null, $lock = false);
+
+	/**
+	 * Set the ProcessWire instance
+	 * 
+	 * @param ProcessWire $wire
+	 * 
+	 */
+	public function setWire(ProcessWire $wire);
+
+	/**
+	 * Get the ProcessWire instance
+	 * 
+	 * @return ProcessWire
+	 * 
+	 */
+	public function getWire(); 
+	
 }
 
 /**

@@ -68,8 +68,8 @@ class ProcessLanguage extends ProcessPageType {
 
 	protected function translationUrl() {
 		if(!$this->translationUrl) {
-			$support = wire('modules')->get('LanguageSupport'); 
-			$this->translationUrl = wire('pages')->get($support->languageTranslatorPageID)->url;
+			$support = $this->wire('modules')->get('LanguageSupport'); 
+			$this->translationUrl = $this->wire('pages')->get($support->languageTranslatorPageID)->url;
 		}
 		return $this->translationUrl; 
 	}
@@ -106,10 +106,10 @@ class ProcessLanguage extends ProcessPageType {
 
 		$data = $page->translator->getTextdomain($textdomain);
 		$file = $data['file']; 
-		$pathname = wire('config')->paths->root . $file;
+		$pathname = $this->wire('config')->paths->root . $file;
 		$translations =& $data['translations'];
 		$total = count($translations); 
-		$parser = new LanguageParser($page->translator, $pathname);
+		$parser = $this->wire(new LanguageParser($page->translator, $pathname));
 		$untranslated = $parser->getUntranslated();
 		$numPending = 0;
 		$numAbandoned = 0;
@@ -201,7 +201,7 @@ class ProcessLanguage extends ProcessPageType {
 		// check if 2.5 update needed to add new language_files_site field
 		if(!$this->wire('fields')->get('language_files_site')) {
 			require_once(dirname(__FILE__) . '/LanguageSupportInstall.php');
-			$installer = new LanguageSupportInstall();
+			$installer = $this->wire(new LanguageSupportInstall());
 			$installer->addFilesFields($this->wire('fieldgroups')->get(LanguageSupport::languageTemplateName));
 		}
 		return parent::___execute();

@@ -147,7 +147,7 @@ class InputfieldCheckbox extends Inputfield {
 
 		if($this->hasFieldtype) return $inputfields;
 
-		$f = wire('modules')->get('InputfieldText');
+		$f = $this->wire('modules')->get('InputfieldText');
 		$f->attr('name', 'checkedValue');
 		$f->attr('value', $this->checkedValue);
 		$f->label = $this->_('Checked Value');
@@ -156,7 +156,7 @@ class InputfieldCheckbox extends Inputfield {
 		$f->required = true; 
 		$inputfields->add($f);
 
-		$f = wire('modules')->get('InputfieldText');
+		$f = $this->wire('modules')->get('InputfieldText');
 		$f->attr('name', 'uncheckedValue');
 		$f->attr('value', "$this->uncheckedValue");
 		$f->label = $this->_('Unchecked Value');

@@ -265,7 +265,7 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 
 		if($this->InputfieldWrapper_isPreRendered) return $this->children; 
 
-		$children = new InputfieldWrapper(); 
+		$children = $this->wire(new InputfieldWrapper()); 
 		$wrappers = array($children);
 
 		foreach($this->children as $inputfield) {
@@ -827,7 +827,7 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 	 *
 	 */
 	public function getAll() {
-		$all = new InputfieldsArray();
+		$all = $this->wire(new InputfieldsArray());
 		foreach($this->children as $child) {
 			if($child instanceof InputfieldWrapper) {
 				foreach($child->getAll() as $c) {

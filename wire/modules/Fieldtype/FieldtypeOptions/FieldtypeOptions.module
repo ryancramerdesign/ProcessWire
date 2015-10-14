@@ -38,7 +38,7 @@ class FieldtypeOptions extends FieldtypeMulti implements Module {
 		require_once($path . 'SelectableOption.php');
 		require_once($path . 'SelectableOptionArray.php');
 		require_once($path . 'SelectableOptionManager.php');	
-		$this->manager = new SelectableOptionManager();
+		$this->manager = $this->wire(new SelectableOptionManager());
 		parent::__construct();
 	}
 
@@ -63,7 +63,7 @@ class FieldtypeOptions extends FieldtypeMulti implements Module {
 	 * 
 	 */
 	public function getBlankValue(Page $page, Field $field) {
-		$a = new SelectableOptionArray();
+		$a = $this->wire(new SelectableOptionArray());
 		$a->setPage($page);
 		$a->setField($field);
 		return $a; 
@@ -129,7 +129,7 @@ class FieldtypeOptions extends FieldtypeMulti implements Module {
 	 * 
 	 */
 	public function ___getCompatibleFieldtypes(Field $field) {
-		$fieldtypes = new Fieldtypes();
+		$fieldtypes = $this->wire(new Fieldtypes());
 		foreach($this->wire('fieldtypes') as $fieldtype) {
 			if($fieldtype instanceof FieldtypeOptions) $fieldtypes->add($fieldtype);
 		}
@@ -422,7 +422,7 @@ class FieldtypeOptions extends FieldtypeMulti implements Module {
 	public function ___getConfigInputfields(Field $field) {
 		$inputfields = parent::___getConfigInputfields($field); 
 		include_once(dirname(__FILE__) . '/SelectableOptionConfig.php'); 
-		$cfg = new SelectableOptionConfig($field, $inputfields); 
+		$cfg = $this->wire(new SelectableOptionConfig($field, $inputfields)); 
 		$inputfields = $cfg->getConfigInputfields();
 		return $inputfields; 
 	}

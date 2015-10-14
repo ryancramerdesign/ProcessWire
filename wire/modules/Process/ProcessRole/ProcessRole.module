@@ -140,7 +140,7 @@ class ProcessRole extends ProcessPageType {
 			if($name == 'page-add' || $name == 'page-create') {
 				$parent = $this->wire('permissions')->get('page-edit');
 				$rootParent = $parent;
-				$permission = new NullPage();
+				$permission = $this->wire('pages')->newNullPage();
 				if($name == 'page-add') $title = $this->_('Add children to pages using template');
 					else $title = $this->_('Create pages using template');
 				$alert = $this->_('This permission can only be assigned by template access settings.');

@@ -72,8 +72,8 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 * @var Fuel|null
 	 * @deprecated
 	 *
-	 */
 	protected static $fuel = null;
+	 */
 
 	/**
 	 * Whether this class may use fuel variables in local scope, like $this->item
@@ -95,8 +95,8 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 *
 	 */
 	public static function setFuel($name, $value, $lock = false) {
-		if(is_null(self::$fuel)) self::$fuel = new Fuel();
-		self::$fuel->set($name, $value, $lock); 
+		$wire = ProcessWire::getCurrentInstance();
+		$wire->fuel()->set($name, $value, $lock);
 	}
 
 	/**
@@ -110,9 +110,9 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 *
 	 */
 	public static function getFuel($name = '') {
-		if(is_null(self::$fuel)) self::$fuel = new Fuel();
-		if(empty($name)) return self::$fuel;
-		return self::$fuel->$name;
+		$wire = ProcessWire::getCurrentInstance();
+		if(empty($name)) return $wire->fuel();	
+		return $wire->fuel()->$name;
 	}
 
 	/**
@@ -124,21 +124,24 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 *
 	 */
 	public static function getAllFuel() {
-		return self::$fuel;
+		$wire = ProcessWire::getCurrentInstance();
+		return $wire->fuel();	
 	}
 
 	/**
-	 * Get the Fuel specified by $name or NULL if it doesn't exist
+	 * Get the Fuel specified by $name or NULL if it doesn't exist (DEPRECATED)
+	 * 
+	 * DO NOT USE THIS METHOD: It is deprecated and only used by the ProcessWire class. 
+	 * It is here in the Wire class for legacy support only. Use the wire() method instead.
 	 *
-	 * @deprecated Fuel is now an internal-only keyword and this method will be going away. 
-	 * 	Use $this->wire(name) or $this->wire()->name instead
 	 * @param string $name
 	 * @return mixed|null
-	 * @deprecated
 	 *
 	 */
-	public function fuel($name) {
-		return self::$fuel->$name;
+	public function fuel($name = '') {
+		$wire = $this->wire();
+		if(empty($name)) return $wire->fuel();
+		return $wire->fuel()->$name;
 	}
 	
 	/**
@@ -449,6 +452,7 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 				}
 
 				$event = $compat2x ? new \HookEvent() : new HookEvent(); 
+				$this->wire($event);
 				$event->object = $this;
 				$event->method = $method;
 				$event->arguments = $arguments;  
@@ -691,7 +695,7 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 				// extract object selector match string
 				list($fromClass, $objMatch) = explode('(', $fromClass, 2);
 				$objMatch = trim($objMatch, ') ');
-				if(Selectors::stringHasSelector($objMatch)) $objMatch = new Selectors($objMatch);
+				if(Selectors::stringHasSelector($objMatch)) $objMatch = $this->wire(new Selectors($objMatch));
 				if($objMatch) $options['objMatch'] = $objMatch;
 			}
 			$options['fromClass'] = $fromClass;
@@ -720,7 +724,7 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 			}
 			if(is_string($argMatch)) $argMatch = array(0 => $argMatch);
 			foreach($argMatch as $argKey => $argVal) {
-				if(Selectors::stringHasSelector($argVal)) $argMatch[$argKey] = new Selectors($argVal);
+				if(Selectors::stringHasSelector($argVal)) $argMatch[$argKey] = $this->wire(new Selectors($argVal));
 			}
 			if(count($argMatch)) $options['argMatch'] = $argMatch; 
 		}
@@ -1092,9 +1096,9 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	protected function _notice($text, $flags, $name, $class) {
 		if($flags === true) $flags = Notice::log;
 		$class = wireClassName($class, true);
-		$notice = new $class($text, $flags);
+		$notice = $this->wire(new $class($text, $flags));
 		$notice->class = $this->className();
-		if(is_null($this->_notices[$name])) $this->_notices[$name] = new Notices();
+		if(is_null($this->_notices[$name])) $this->_notices[$name] = $this->wire(new Notices());
 		$this->wire('notices')->add($notice);
 		if(!($notice->flags & Notice::logOnly)) $this->_notices[$name]->add($notice);
 		return $this; 
@@ -1239,7 +1243,7 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 		$clear = in_array('clear', $options); 
 		if(in_array('all', $options)) {
 			// get all of either messages, warnings or errors (either in or out of this object instance)
-			$value = new Notices();
+			$value = $this->wire(new Notices());
 			foreach($this->wire('notices') as $notice) {
 				if($notice->getName() != $type) continue;
 				$value->add($notice);
@@ -1248,7 +1252,7 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 			if($clear) $this->_notices[$type] = null; // clear local
 		} else {
 			// get messages, warnings or errors specific to this object instance
-			$value = is_null($this->_notices[$type]) ? new Notices() : $this->_notices[$type];
+			$value = is_null($this->_notices[$type]) ? $this->wire(new Notices()) : $this->_notices[$type];
 			if(in_array('first', $options)) $value = $clear ? $value->shift() : $value->first();
 				else if(in_array('last', $options)) $value = $clear ? $value->pop() : $value->last(); 
 				else if($clear) $this->_notices[$type] = null;
@@ -1355,8 +1359,8 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 *
 	 * @var ProcessWire|null
 	 *
-	protected $_wire = null;
 	 */
+	protected $_wire = null;
 
 	/**
 	 * Set the current ProcessWire instance for this object (PW 3.0)
@@ -1366,11 +1370,10 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 * @param ProcessWire $wire
 	 * @return this
 	 *
-	public function setWire($wire) {
-		$this->_wire = $wire;
-		return $this;
-	}
 	 */
+	public function setWire(ProcessWire $wire) {
+		$this->_wire = $wire;
+	}
 
 	/**
 	 * Get the current ProcessWire instance (PW 3.0)
@@ -1379,10 +1382,10 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 *
 	 * @return null|ProcessWire
 	 *
+	 */
 	public function getWire() {
 		return $this->_wire;
 	}
-	 */
 	
 	/**
 	 * Get or inject a ProcessWire API variable
@@ -1419,32 +1422,45 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 *
 	 */
 	public function wire($name = '', $value = null, $lock = false) {
-		
-		if(is_null(self::$fuel)) self::$fuel = new Fuel();
-		
-		if($value !== null) {
-			// setting a fuel value
-			return self::$fuel->set($name, $value, $lock);
+
+		if(is_null($this->_wire)) {
+			// use static wire as a fallback
+			$this->_wire = ProcessWire::getCurrentInstance();
 		}
-		
-		if(empty($name)) {
-			// return ProcessWire instance
-			return self::$fuel->wire;
-		} else if($name === '*' || $name === 'all') {
-			// return Fuel instance
-			return self::$fuel;
-		}
-	
-		/* TBA PW3
+
 		if(is_object($name)) {
 			// injecting ProcessWire instance to object
-			if($name instanceof Wire) return $name->setWire($this->_wire); // inject fuel, PW 3.0 
-			throw new WireException("Expected Wire instance");
-		}
-		*/
+			if($name instanceof WireFuelable) {
+				$name->setWire($this->_wire); // inject fuel, PW 3.0 
+				if(is_string($value) && $value) {
+					// set as new API var
+					$this->_wire->fuel()->set($value, $name, $lock);
+				}
+				$value = $name; // return the provided instance
+			} else {
+				throw new WireException("Expected Wire instance");
+			}
 
-		// get API variable
-		$value = self::$fuel->$name;
+		} else if($value !== null) {
+			// setting a API variable/fuel value
+			if($value instanceof WireFuelable) $value->setWire($this->_wire);
+			$this->_wire->fuel()->set($name, $value, $lock);
+			
+		} else if(empty($name)) {
+			// return ProcessWire instance
+			$value = $this->_wire;
+			
+		} else if($name === '*' || $name === 'all') {
+			// return Fuel instance
+			$value = $this->_wire->fuel();
+			
+		} else if($name == 'fuel') {
+			$value = $this->_wire->fuel();
+			
+		} else {
+			// get API variable
+			$value = $this->_wire->fuel()->$name;
+		}
 		
 		return $value;
 	}
@@ -1462,11 +1478,13 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 */
 	public function __get($name) {
 
-		if($name == 'wire' || $name == 'fuel') return self::$fuel;
+		if($name == 'wire') return $this->wire();
+		if($name == 'fuel') return $this->wire('fuel');
 		if($name == 'className') return $this->className();
 
 		if($this->useFuel()) {
-			if(!is_null(self::$fuel) && !is_null(self::$fuel->$name)) return self::$fuel->$name;
+			$value = $this->wire($name);
+			if($value !== null) return $value; 
 		}
 
 		if(self::isHooked($name)) { // potential property hook
@@ -1487,7 +1505,7 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 */
 	public function __debugInfo() {
 		static $debugInfo = null;
-		if(is_null($debugInfo)) $debugInfo = new WireDebugInfo();
+		if(is_null($debugInfo)) $debugInfo = $this->wire(new WireDebugInfo());
 		return $debugInfo->getDebugInfo($this);
 	}
 

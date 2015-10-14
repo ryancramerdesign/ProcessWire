@@ -91,7 +91,7 @@ class ProcessPermission extends ProcessPageType {
 		$form = $this->getOptionalPermissionsForm();
 		
 		if($form) {
-			$fieldset = new InputfieldWrapper();
+			$fieldset = $this->wire(new InputfieldWrapper());
 			$f = $this->wire('modules')->get('InputfieldMarkup');
 			$f->attr('id', 'ProcessPermissionAddCustom');
 			$f->value = $out;

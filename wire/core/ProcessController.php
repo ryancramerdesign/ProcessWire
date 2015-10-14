@@ -262,7 +262,7 @@ class ProcessController extends Wire {
 				$viewFile = $this->getViewFile($this->process, $method); 
 				if($viewFile) {
 					// get output from a separate view file
-					$template = new TemplateFile($viewFile);	
+					$template = $this->wire(new TemplateFile($viewFile));	
 					foreach($content as $key => $value) {
 						$template->set($key, $value);
 					}

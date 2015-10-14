@@ -195,7 +195,7 @@ abstract class AdminTheme extends WireData implements Module {
 		}
 
 		// this will be the 2nd admin theme installed, so add a field that lets them select admin theme
-		$field = new Field();
+		$field = $this->wire(new Field());
 		$field->name = 'admin_theme';
 		$field->type = $this->wire('modules')->get('FieldtypeModule'); 
 		$field->set('moduleTypes', array('AdminTheme')); 

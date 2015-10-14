@@ -305,9 +305,9 @@ _OUT;
 	 *
 	 */
 	public function ___install() {
-		$data = wire('modules')->getModuleConfigData('InputfieldPage'); 	
-		$data['inputfieldClasses'][] = $this->className(); 
-		wire('modules')->saveModuleConfigData('InputfieldPage', $data); 
+		$data = $this->wire('modules')->getModuleConfigData('InputfieldPage'); 	
+		$data['inputfieldClasses'][] = $this->className();
+		$this->wire('modules')->saveModuleConfigData('InputfieldPage', $data); 
 	}
 
 	/**
@@ -317,11 +317,11 @@ _OUT;
 	 *
 	 */
 	public function ___uninstall() {
-		$data = wire('modules')->getModuleConfigData('InputfieldPage'); 	
+		$data = $this->wire('modules')->getModuleConfigData('InputfieldPage'); 	
 		foreach($data['inputfieldClasses'] as $key => $value) {
 			if($value == $this->className()) unset($data['inputfieldClasses'][$key]); 
 		}
-		wire('modules')->saveModuleConfigData('InputfieldPage', $data); 
+		$this->wire('modules')->saveModuleConfigData('InputfieldPage', $data); 
 	}
 
 	/**
@@ -330,7 +330,7 @@ _OUT;
 	 */
 	public function ___getConfigInputfields() {
 		$inputfields = parent::___getConfigInputfields();
-		$fieldset = wire('modules')->get('InputfieldFieldset'); 
+		$fieldset = $this->wire('modules')->get('InputfieldFieldset'); 
 		$fieldset->label = $this->_('Autocomplete Advanced Options');
 		$fieldset->collapsed = Inputfield::collapsedYes; 
 
@@ -358,7 +358,7 @@ _OUT;
 		$field->collapsed = Inputfield::collapsedNo; 
 		$field->attr('value', $this->searchFields);
 		$notes = $this->_('Indexed text fields include:');
-		foreach(wire('fields') as $f) {
+		foreach($this->wire('fields') as $f) {
 			if(!$f->type instanceof FieldtypeText) continue; 
 			$notes .= ' ' . $f->name . ','; 
 		}
