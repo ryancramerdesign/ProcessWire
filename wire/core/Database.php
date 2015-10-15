@@ -99,7 +99,7 @@ class Database extends \mysqli implements WireDatabase {
 		$result = @parent::query($sql, $resultmode); 
 
 		if($result) {
-			if($this->ire('config')->debug) { 
+			if($this->wire('config')->debug) { 
 				if(isset($result->num_rows)) $sql .= " [" . $result->num_rows . " rows]";
 				if(!is_null($timerKey)) {
 					$elapsed = Debug::timer($timerKey); 
