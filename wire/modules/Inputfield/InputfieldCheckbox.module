@@ -96,8 +96,8 @@ class InputfieldCheckbox extends Inputfield {
 
 	public function setAttribute($key, $value) {
 
-		if($key == 'value' && $value && $value != $this->uncheckedValue) { 
-			if($value != self::checkedValueDefault) {
+		if($key == 'value' && $value && "$value" !== "$this->uncheckedValue") { 
+			if("$value" !== (string) self::checkedValueDefault) {
 				$this->checkedValue = $value; 
 				$this->checkedValueIsLabel = false;
 			}
