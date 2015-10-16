@@ -1459,7 +1459,7 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 
 		foreach($keys as $key) {
 
-			if(!$field = $page->template->fieldgroup->getField($key)) continue; 
+			if(!$field = $page->template->fieldgroup->getFieldContext($key)) continue; 
 			if(!$this->ajaxEditable($page, $key)) continue; 
 			if(!$inputfield = $field->getInputfield($page)) continue; 
 

@@ -53,7 +53,7 @@ jQuery(document).ready(function($) {
 	// remember values when comment form submitted
 	$(".CommentFormSubmit button").on('click', function() {
 		var $this = $(this);
-		var $form = $this.closest('form.CommentForm')
+		var $form = $this.closest('form.CommentForm');
 		var cite = $form.find(".CommentFormCite input").val();
 		var email = $form.find(".CommentFormEmail input").val();
 		var $website = $form.find(".CommentFormWebsite input");

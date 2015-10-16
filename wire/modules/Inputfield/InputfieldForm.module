@@ -356,7 +356,7 @@ class InputfieldForm extends InputfieldWrapper {
 		}
 		if(is_object($value)) $value = "$value";
 
-		if($inputfield instanceof InputfieldSelect) {
+		if($inputfield instanceof InputfieldSelect && $subfield != 'count') {
 			// allow for match by field labels, in addition to field values
 			$options = $inputfield->getOptions();
 			if($inputfield instanceof InputfieldHasArrayValue) {

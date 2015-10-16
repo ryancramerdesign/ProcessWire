@@ -382,6 +382,7 @@ class FieldtypeComments extends FieldtypeMulti {
 		$downvoteSchema = "int unsigned NOT NULL default 0";
 		
 		$schemaVersion = (int) $field->schemaVersion;
+		$updateSchema = true;
 
 		if(!$schemaVersion) {
 			// add website field for PW 2.3+ 
@@ -390,7 +391,9 @@ class FieldtypeComments extends FieldtypeMulti {
 			try { 
 				$database->query("ALTER TABLE `$table` ADD website $websiteSchema");
 				$schemaVersion = 1;
-			} catch(\Exception $e) { }
+			} catch(\Exception $e) {
+				$updateSchema = false;
+			}
 		}
 		
 		if($schemaVersion < 2) {
@@ -401,7 +404,9 @@ class FieldtypeComments extends FieldtypeMulti {
 				$database->query("ALTER TABLE `$table` ADD parent_id $parentSchema");
 				$database->query("ALTER TABLE `$table` ADD flags $flagSchema");
 				$schemaVersion = 2;
-			} catch(\Exception $e) { }
+			} catch(\Exception $e) {
+				$updateSchema = false;
+			}
 		}
 		
 		if($schemaVersion < 3) {
@@ -412,7 +417,9 @@ class FieldtypeComments extends FieldtypeMulti {
 				$database->query("ALTER TABLE `$table` ADD `code` $codeSchema");
 				$database->query("ALTER TABLE `$table` ADD $codeIndexSchema"); 
 				$schemaVersion = 3;
-			} catch(\Exception $e) { }
+			} catch(\Exception $e) {
+				$updateSchema = false;
+			}
 		}
 		
 		if($schemaVersion < 4) {
@@ -423,10 +430,12 @@ class FieldtypeComments extends FieldtypeMulti {
 				$database->query("ALTER TABLE `$table` ADD `subcode` $subcodeSchema");
 				$database->query("ALTER TABLE `$table` ADD $subcodeIndexSchema");
 				$schemaVersion = 4;
-			} catch(\Exception $e) { }
+			} catch(\Exception $e) {
+				$updateSchema = false;
+			}
 		}
 		
-		if($schemaVersion < 5) {
+		if($schemaVersion < 5 && $updateSchema) {
 			// add upvote/downvote columns 
 			$database = $this->wire('database');
 			$table = $database->escapeTable($field->getTable());
@@ -867,7 +876,7 @@ class FieldtypeComments extends FieldtypeMulti {
 		$f->value =
 			"<p>If you are using threaded comments (i.e. reply depth > 0), please also copy and paste the following into the document <code>&lt;head&gt;</code> " .
 			"or before the closing <code>&lt;/body&gt;</code> tag. In either case, jQuery is required to have been loaded first.</p>" .
-			"<pre style='border-left: 4px solid #ccc; padding-left: 1em;'>&lt;script type='text/javascript' src='&lt;?=\$config-&gt;urls-&gt;FieldtypeComments?&gt;comments.js'&gt;&lt;/script&gt;</pre>" .
+			"<pre style='border-left: 4px solid #ccc; padding-left: 1em;'>&lt;script type='text/javascript' src='&lt;?=\$config-&gt;urls-&gt;FieldtypeComments?&gt;comments.min.js'&gt;&lt;/script&gt;</pre>" .
 			"<p>Like with the comments.css file, feel free to copy and link to the <a target='_blank' href='{$this->config->urls->FieldtypeComments}comments.js'>comments.js</a> file from your own " .
 			"location if you prefer it.</p>";
 		$fieldset->add($f); 

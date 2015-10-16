@@ -1457,30 +1457,49 @@ class Pages extends Wire {
 	 * See the trash and restore methods for an example. 
 	 *
 	 * @param int $pageID 
-	 * @param int $status Status per flags in Page::status* constants
+	 * @param int $status Status per flags in Page::status* constants. Status will be OR'd with existing status, unless $remove option is set.
 	 * @param bool $recursive Should the status descend into the page's children, and grandchildren, etc?
 	 * @param bool $remove Should the status be removed rather than added?
 	 *
 	 */
 	protected function savePageStatus($pageID, $status, $recursive = false, $remove = false) {
-		$pageID = (int) $pageID; 
-		$status = (int) $status; 
+		
+		$pageID = (int) $pageID;
+		$status = (int) $status;
 		$sql = $remove ? "status & ~$status" : $sql = "status|$status";
 		$database = $this->wire('database');
-		
-		$query = $database->prepare("UPDATE pages SET status=$sql WHERE id=:page_id"); 
-		$query->bindValue(":page_id", $pageID, \PDO::PARAM_INT); 
+
+		$query = $database->prepare("UPDATE pages SET status=$sql WHERE id=:page_id");
+		$query->bindValue(":page_id", $pageID, \PDO::PARAM_INT);
 		$this->executeQuery($query);
-		
-		if($recursive) { 
-			$query = $database->prepare("SELECT id FROM pages WHERE parent_id=:parent_id"); // QA
-			$query->bindValue(":parent_id", $pageID, \PDO::PARAM_INT); 
-			$this->executeQuery($query);
-			while($row = $query->fetch(\PDO::FETCH_ASSOC)) {
-				$this->savePageStatus($row['id'], $status, true, $remove);
-			}
-			$query->closeCursor();
-		}
+
+		if($recursive) {
+			$parentIDs = array($pageID);
+
+			do {
+				$parentID = array_shift($parentIDs);
+
+				// update all children to have the same status
+				$query = $database->prepare("UPDATE pages SET status=$sql WHERE parent_id=:parent_id");
+				$query->bindValue(":parent_id", $parentID, \PDO::PARAM_INT);
+				$this->executeQuery($query);
+
+				// locate children that themselves have children
+				$query = $database->prepare(
+					"SELECT pages.id FROM pages " .
+					"JOIN pages AS pages2 ON pages2.parent_id=pages.id " .
+					"WHERE pages.parent_id=:parent_id " .
+					"GROUP BY pages.id " .
+					"ORDER BY pages.sort"
+				);
+				$query->bindValue(':parent_id', $parentID, \PDO::PARAM_INT);
+				$this->executeQuery($query);
+				while($row = $query->fetch(\PDO::FETCH_ASSOC)) {
+					$parentIDs[] = (int) $row['id'];
+				}
+				$query->closeCursor();
+			} while(count($parentIDs));
+		}	
 	}
 
 	/**
@@ -1595,6 +1614,61 @@ class Pages extends Wire {
 	}
 
 	/**
+	 * Delete all pages in the trash
+	 *
+	 * Populates error notices when there are errors deleting specific pages.
+	 *
+	 * @return int Returns total number of pages deleted from trash.
+	 * 	This number is negative or 0 if not all pages could be deleted and error notices may be present.
+	 *
+	 */
+	public function ___emptyTrash() {
+
+		$trashPage = $this->get($this->wire('config')->trashPageID);
+		$selector = "include=all, has_parent=$trashPage, children.count=0, status=" . Page::statusTrash;
+		$totalDeleted = 0;
+		$lastTotalInTrash = 0;
+		$numBatches = 0;
+		
+		do {
+			set_time_limit(60 * 10);
+			$totalInTrash = $this->count($selector);
+			if(!$totalInTrash || $totalInTrash == $lastTotalInTrash) break;
+			$lastTotalInTrash = $totalInTrash;
+			$items = $this->find("$selector, limit=100");
+			$cnt = $items->count();
+			foreach($items as $item) {
+				try {
+					$totalDeleted += $this->delete($item, true);
+				} catch(\Exception $e) {
+					$this->error($e->getMessage());
+				}
+			}
+			$this->uncacheAll();
+			$numBatches++;
+		} while($cnt);
+		
+		// just in case anything left in the trash, use a backup method
+		$trashPage = $this->get($trashPage->id); // fresh copy
+		$trashPages = $trashPage->children("include=all");
+		foreach($trashPages as $t) {
+			try {
+				$totalDeleted += $this->delete($t, true);
+			} catch(\Exception $e) {
+				$this->error($e->getMessage());
+			}
+		}
+
+		$this->uncacheAll();
+		if($totalDeleted) {
+			$totalInTrash = $this->count("has_parent=$trashPage, include=all, status=" . Page::statusTrash);
+			if($totalInTrash) $totalDeleted = $totalDeleted * -1;
+		}
+
+		return $totalDeleted;
+	}
+
+	/**
 	 * Permanently delete a page and it's fields. 
 	 *
 	 * Unlike trash(), pages deleted here are not restorable. 
@@ -1605,20 +1679,25 @@ class Pages extends Wire {
 	 * @param Page $page
 	 * @param bool $recursive If set to true, then this will attempt to delete all children too.
 	 * @param array $options Optional settings to change behavior (for the future)
-	 * @return bool
+	 * @return bool|int Returns true (success), or integer of quantity deleted if recursive mode requested.
 	 * @throws WireException on fatal error
 	 *
 	 */
 	public function ___delete(Page $page, $recursive = false, array $options = array()) {
 
-		if(!$this->isDeleteable($page)) throw new WireException("This page may not be deleted"); 
+		if(!$this->isDeleteable($page)) throw new WireException("This page may not be deleted");
+		$numDeleted = 0;
 
 		if($page->numChildren) {
 			if(!$recursive) {
 				throw new WireException("Can't delete Page $page because it has one or more children."); 
 			} else foreach($page->children("include=all") as $child) {
 				/** @var Page $child */
-				if(!$this->delete($child, true)) throw new WireException("Error doing recursive page delete, stopped by page $child"); 
+				if($this->delete($child, true)) {
+					$numDeleted++;
+				} else {
+					throw new WireException("Error doing recursive page delete, stopped by page $child");
+				}
 			}
 		}
 
@@ -1635,7 +1714,6 @@ class Pages extends Wire {
 			if(PagefilesManager::hasPath($page)) $page->filesManager->emptyAllPaths(); 
 		} catch(\Exception $e) { 
 		}
-		// $page->getCacheFile()->remove();
 
 		$access = $this->wire(new PagesAccess());	
 		$access->deletePage($page); 
@@ -1654,10 +1732,11 @@ class Pages extends Wire {
 		$page->setTrackChanges(false); 
 		$page->status = Page::statusDeleted; // no need for bitwise addition here, as this page is no longer relevant
 		$this->deleted($page);
+		$numDeleted++;
 		$this->uncacheAll($page);
-		$this->debugLog('delete', $page, true); 
+		$this->debugLog('delete', $page, true);
 
-		return true; 
+		return $recursive ? $numDeleted : true;
 	}
 
 
@@ -1764,10 +1843,18 @@ class Pages extends Wire {
 
 		// if there are children, then recurisvely clone them too
 		if($page->numChildren && $recursive) {
-			foreach($page->children("include=all") as $child) {
-				/** @var Page $child */
-				$this->clone($child, $copy, true, array('recursionLevel' => $options['recursionLevel']+1)); 	
-			}	
+			$start = 0;
+			$limit = 200;
+			do {
+				$children = $page->children("include=all, start=$start, limit=$limit");
+				$numChildren = $children->count();
+				foreach($children as $child) {
+					/** @var Page $child */
+					$this->clone($child, $copy, true, array('recursionLevel' => $options['recursionLevel'] + 1));
+				}
+				$start += $limit;
+				$this->uncacheAll();
+			} while($numChildren);
 		}
 
 		$copy->parentPrevious = null;

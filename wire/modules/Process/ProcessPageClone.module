@@ -310,6 +310,8 @@ class ProcessPageClone extends Process {
 		} else {
 			$page->name = $nameField->value;
 		}
+
+		set_time_limit(3600);
 		
 		$clone = $this->pages->clone($page, $page->parent, $cloneTree);
 		if(!$clone->id) throw new WireException(sprintf($this->_("Unable to clone page %s"), $page->path));
