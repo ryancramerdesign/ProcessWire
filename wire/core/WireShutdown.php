@@ -3,10 +3,8 @@
 /**
  * ProcessWire shutdown handler
  *
- * ProcessWire 2.x
- * Copyright (C) 2015 by Ryan Cramer
- * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ *  
  * Look for errors at shutdown and log them, plus echo the error if the page is editable
  *
  * https://processwire.com
@@ -51,13 +49,13 @@ class WireShutdown extends Wire {
 		$this->labels = array(
 			'error-logged' => $this->_('Error has been logged.'),
 			'admin-notified' => $this->_('Administrator has been notified.'),
-			'debug-mode' => $this->_('site is in debug mode'),
+			'debug-mode' => $this->_('site is in debug mode.'),
 			'cli-mode' => $this->_('you are using the command line API'),
-			'you-superuser' => $this->_('you are logged in as a Superuser'),
-			'install-php' => $this->_('install.php still exists'),
-			'superuser-never' => $this->_('Superuser has never logged in'),
+			'you-superuser' => $this->_('you are logged in as a Superuser.'),
+			'install-php' => $this->_('install.php still exists.'),
+			'superuser-never' => $this->_('Superuser has never logged in.'),
 			'shown-because' => $this->_('This error message was shown because:'),
-			'unable-complete' => $this->_('Unable to complete this request due to an error'),
+			'unable-complete' => $this->_('Unable to complete this request due to an error.'),
 			'email-subject' => $this->_('ProcessWire Error Notification'), // email subject
 			'line-of-file' => $this->_('(line %d of %s)'), // Example: Line [123] of [file.php]
 		);
@@ -94,7 +92,7 @@ class WireShutdown extends Wire {
 			$debug = $config->debug;
 			$sendOutput = $config->allowExceptions !== true;
 			if($config->ajax) $http = false;
-			if($config->adminEmail && $sendOutput) {
+			if(function_exists("wireMail") && $config->adminEmail && $sendOutput) {
 				$logMessage = "Page: $path\nUser: $userName\n\n" . str_replace("\t", "\n", $message);
 				wireMail($config->adminEmail, $config->adminEmail, $this->labels['email-subject'], $logMessage);
 			}

@@ -31,11 +31,7 @@
 
 	<script type="text/javascript" src="<?php echo $config->urls->templates?>scripts/main.js"></script>
 
-	<!--
-	This website is powered by ProcessWire CMF/CMS.
-	ProcessWire is a free open source content management framework licensed under the GNU GPL.
-	ProcessWire is Copyright 2015. Learn more about ProcessWire at: https://processwire.com
-	-->
+	<!-- This website is powered by ProcessWire CMF/CMS - https://processwire.com -->
 
 </head>
 <body>

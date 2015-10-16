@@ -5,46 +5,29 @@
  *
  * Initializes all the ProcessWire classes and prepares them for API use
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
- * http://processwire.com
+ * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * https://processwire.com
  * 
  * @todo: get language permissions to work with extra actions
  * 
  */
-
-define("PROCESSWIRE_CORE_PATH", dirname(__FILE__) . '/');
-
-require(PROCESSWIRE_CORE_PATH . "Fuel.php");
-require(PROCESSWIRE_CORE_PATH . "Interfaces.php");
-require(PROCESSWIRE_CORE_PATH . "Exceptions.php");
-require(PROCESSWIRE_CORE_PATH . "Wire.php");
-require(PROCESSWIRE_CORE_PATH . "WireData.php");
-require(PROCESSWIRE_CORE_PATH . "WireClassLoader.php");
-require(PROCESSWIRE_CORE_PATH . "FilenameArray.php");
-require(PROCESSWIRE_CORE_PATH . "Paths.php");
-require(PROCESSWIRE_CORE_PATH . "Config.php");
-require(PROCESSWIRE_CORE_PATH . "Functions.php"); 
-require(PROCESSWIRE_CORE_PATH . "LanguageFunctions.php");
-require(PROCESSWIRE_CORE_PATH . "WireShutdown.php"); 
-
+require_once(__DIR__ . '/boot.php');
 
 /**
- * ProcessWire Bootstrap class
+ * ProcessWire API bootstrap class
  *
  * Gets ProcessWire's API ready for use
  *
  */ 
 class ProcessWire extends Wire {
 
-	const versionMajor = 2; 
-	const versionMinor = 6; 
-	const versionRevision = 19; 
-	const versionSuffix = 'devns';
+	const versionMajor = 3; 
+	const versionMinor = 0; 
+	const versionRevision = 0; 
+	const versionSuffix = 'alpha-1';
 	
-	const indexVersion = 250; // required version for index.php file (represented by PROCESSWIRE define)
+	const indexVersion = 300; // required version for index.php file (represented by PROCESSWIRE define)
+	const htaccessVersion = 250;
 	
 	const statusBoot = 0; // system is booting
 	const statusInit = 2; // system and modules are initializing
@@ -119,7 +102,6 @@ class ProcessWire extends Wire {
 		$classLoader->addNamespace(__NAMESPACE__, PROCESSWIRE_CORE_PATH);
 	
 		$this->shutdown = $this->wire(new WireShutdown());
-		
 		$this->config($config); 
 		$this->load($config);
 	}
@@ -139,6 +121,15 @@ class ProcessWire extends Wire {
 		$this->wire('config', $config, true); 
 		$this->wire($config->paths);
 		$this->wire($config->urls);
+		
+		// If debug mode is on then echo all errors, if not then disable all error reporting
+		if($config->debug) {
+			error_reporting(E_ALL | E_STRICT);
+			ini_set('display_errors', 1);
+		} else {
+			error_reporting(0);
+			ini_set('display_errors', 0);
+		}
 
 		ini_set('date.timezone', $config->timezone);
 		ini_set('default_charset','utf-8');
@@ -149,22 +140,29 @@ class ProcessWire extends Wire {
 		$config->https = (!empty($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) == 'on') 
 			|| (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443);
 		
-		if($config->https && $config->sessionCookieSecure) {
-			ini_set('session.cookie_secure', 1); // #1264
-			if($config->sessionNameSecure) {
-				session_name($config->sessionNameSecure);
-			} else {
-				session_name($config->sessionName . 's');
-			}
-		}
-		
 		$config->ajax = (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] == 'XMLHttpRequest');
 		$config->cli = (!isset($_SERVER['SERVER_SOFTWARE']) && (php_sapi_name() == 'cli' || ($_SERVER['argc'] > 0 && is_numeric($_SERVER['argc']))));
 		
 		$version = self::versionMajor . "." . self::versionMinor . "." . self::versionRevision; 
 		$config->version = $version;
-		$config->versionName = trim($version . " " . self::versionSuffix); 
+		$config->versionName = trim($version . " " . self::versionSuffix);
 		
+		// $config->debugIf: optional setting to determine if debug mode should be on or off
+		if($config->debugIf && is_string($config->debugIf)) {
+			$debugIf = trim($config->debugIf);
+			if(strpos($debugIf, '/') === 0) $debugIf = (bool) @preg_match($debugIf, $_SERVER['REMOTE_ADDR']); // regex IPs
+				else if(is_callable($debugIf)) $debugIf = $debugIf(); // callable function to determine debug mode for us 
+				else $debugIf = $debugIf === $_SERVER['REMOTE_ADDR']; // exact IP match
+			$config->debug = $debugIf;
+		}
+
+		// If script is being called externally, add an extra shutdown function 
+		if(!$config->internal) register_shutdown_function(function() {
+			if(error_get_last()) return;
+			$process = $this->wire('process');
+			if($process == 'ProcessPageView') $process->finished();
+		});
+
 		$this->setStatus(self::statusBoot);
 	}
 
@@ -408,6 +406,12 @@ class ProcessWire extends Wire {
 		$this->wire($key, $value, $lock);
 		return $this;
 	}
+	
+	public function __get($key) {
+		if($key == 'shutdown') return $this->shutdown;
+		if($key == 'instanceID') return $this->instanceID;
+		return parent::__get($key);
+	}
 
 	/**
 	 * Include a PHP file, giving it all PW API varibles in scope
@@ -514,7 +518,7 @@ class ProcessWire extends Wire {
 	public static function getCurrentInstance() {
 		if(is_null(self::$currentInstance)) {
 			$wire = reset(self::$instances);
-			self::setCurrentInstance($wire);
+			if($wire) self::setCurrentInstance($wire);
 		}
 		return self::$currentInstance;
 	}
@@ -543,6 +547,109 @@ class ProcessWire extends Wire {
 				break;
 			}
 		}
+	}
+
+	/**
+	 * Build a Config object for booting ProcessWire
+	 * 
+	 * @param $rootPath Path to root of installation where ProcessWire's index.php file is located.
+	 * @return Config
+	 * 
+	 */
+	public static function buildConfig($rootPath) {
+		
+		if(DIRECTORY_SEPARATOR != '/') {
+			$rootPath = str_replace(DIRECTORY_SEPARATOR, '/', $rootPath);
+		}
+		
+		$rootPath = rtrim($rootPath, '/');
+		$httpHost = '';
+		$rootURL = '/';
+		$config = new Config();
+		$config->dbName = '';
+
+		if(isset($_SERVER['HTTP_HOST'])) {
+			$httpHost = strtolower($_SERVER['HTTP_HOST']);
+
+			// when serving pages from a web server
+			$rootURL = rtrim(dirname($_SERVER['SCRIPT_NAME']), "/\\") . '/';
+			$realScriptFile = empty($_SERVER['SCRIPT_FILENAME']) ? '' : realpath($_SERVER['SCRIPT_FILENAME']);
+			$realIndexFile = realpath($rootPath . "/index.php");
+
+			// check if we're being included from another script and adjust the rootPath accordingly
+			$sf = empty($realScriptFile) ? '' : dirname($realScriptFile);
+			$f = dirname($realIndexFile);
+			if($sf && $sf != $f && strpos($sf, $f) === 0) {
+				$x = rtrim(substr($sf, strlen($f)), '/');
+				$rootURL = substr($rootURL, 0, strlen($rootURL) - strlen($x));
+			}
+			unset($sf, $f, $x);
+		
+			// when internal is true, we are not being called by an external script
+			$config->internal = $realIndexFile == $realScriptFile;
+
+		} else {
+			// when included from another app or command line script
+			$config->internal = false;
+		}
+		
+		// Allow for an optional /index.config.php file that can point to a different site configuration per domain/host.
+		$siteDir = 'site';
+		$indexConfigFile = $rootPath . "/index.config.php";
+
+		if(is_file($indexConfigFile) && !function_exists("ProcessWireHostSiteConfig")) {
+			// optional config file is present in root
+			@include($indexConfigFile);
+			$hostConfig = function_exists("ProcessWireHostSiteConfig") ? ProcessWireHostSiteConfig() : array();
+			if($httpHost && isset($hostConfig[$httpHost])) {
+				$siteDir = $hostConfig[$httpHost];
+			} else if(isset($hostConfig['*'])) {
+				$siteDir = $hostConfig['*']; // default override
+			}
+		}
+
+		// other default directories
+		$wireDir = 'wire';
+		$coreDir = "$wireDir/core";
+		$assetsDir = "$siteDir/assets";
+		$adminTplDir = 'templates-admin';
+	
+		// create new Config instance
+		$config->urls = new Paths($rootURL);
+		$config->urls->wire = "$wireDir/";
+		$config->urls->site = "$siteDir/";
+		$config->urls->modules = "$wireDir/modules/";
+		$config->urls->siteModules = "$siteDir/modules/";
+		$config->urls->core = "$coreDir/";
+		$config->urls->assets = "$assetsDir/";
+		$config->urls->cache = "$assetsDir/cache/";
+		$config->urls->logs = "$assetsDir/logs/";
+		$config->urls->files = "$assetsDir/files/";
+		$config->urls->tmp = "$assetsDir/tmp/";
+		$config->urls->templates = "$siteDir/templates/";
+		$config->urls->adminTemplates = is_dir("$siteDir/$adminTplDir") ? "$siteDir/$adminTplDir/" : "$wireDir/$adminTplDir/";
+		$config->paths = clone $config->urls;
+		$config->paths->root = $rootPath . '/';
+		$config->paths->sessions = $config->paths->assets . "sessions/";
+
+		// Styles and scripts are CSS and JS files, as used by the admin application.
+	 	// But reserved here if needed by other apps and templates.
+		$config->styles = new FilenameArray();
+		$config->scripts = new FilenameArray();
+
+		// Include system config defaults
+		include("$rootPath/$wireDir/config.php");
+
+		// Include site-specific config settings
+		$configFile = $config->paths->site . "config.php";
+		$configFileDev = $config->paths->site . "config-dev.php";
+		if(is_file($configFileDev)) {
+			@include($configFileDev);
+		} else if(is_file($configFile)) {
+			@include($configFile);
+		}
+
+		return $config;
 	}
 
 }

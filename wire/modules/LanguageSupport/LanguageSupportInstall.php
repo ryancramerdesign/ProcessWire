@@ -6,12 +6,9 @@
  * Split off into a seprate class/file because it's only needed once and 
  * didn't want to keep all this code in the main module that's loaded every request.
  *
- * ProcessWire 2.x 
- * Copyright (C) 2012 by Ryan Cramer 
- * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * https://processwire.com
+ *
  *
  */
 

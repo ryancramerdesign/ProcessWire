@@ -8,11 +8,8 @@
  * Modules may also add methods to the Sanitizer as needed i.e. $this->sanitizer->addHook('myMethod', $myClass, 'myMethod'); 
  * See the Wire class definition for more details about the addHook method. 
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
- * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
- * http://processwire.com
+ * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * https://processwire.com
  *
  * @link http://processwire.com/api/variables/sanitizer/ Offical $sanitizer API variable Documentation
  * 

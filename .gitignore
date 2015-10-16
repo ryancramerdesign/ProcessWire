@@ -29,3 +29,4 @@ upgrade.php
 .sass-cache/*
 *.css.map
 wire/modules/AdminTheme/AdminThemeDefault/styles/sass/*.css
+composer.lock

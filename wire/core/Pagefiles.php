@@ -8,11 +8,8 @@
  * Typically a Pagefiles object will be associated with a specific field attached to a Page. 
  * There may be multiple instances of Pagefiles attached to a given Page (depending on what fields are in it's fieldgroup).
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
- * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
- * http://processwire.com
+ * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * https://processwire.com
  *
  *
  * @property string $path Returns the full server disk path where files are stored	

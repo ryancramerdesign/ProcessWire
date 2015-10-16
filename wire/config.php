@@ -12,10 +12,7 @@
  * You may also make up your own configuration options by assigning them 
  * in /site/config.php 
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
  * https://processwire.com
  *
  * 
@@ -124,7 +121,7 @@ $config->demo = false;
  * @var bool
  *
  */
-$config->compat2x = true;
+$config->compat2x = false;
 
 
 /*** 2. DATES & TIMES *************************************************************************/

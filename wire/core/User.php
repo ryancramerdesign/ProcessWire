@@ -5,11 +5,8 @@
  *
  * A type of Page used for storing an individual User
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
- * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
- * http://processwire.com
+ * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * https://processwire.com
  *
  *
  * @link http://processwire.com/api/variables/user/ Offical $user API variable Documentation

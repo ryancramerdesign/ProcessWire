@@ -3,11 +3,8 @@
 /**
  * RepeaterPage represents an individual repeater page item
  *
- * ProcessWire 2.x 
- * Copyright (C) 2012 by Ryan Cramer 
- * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
- * http://processwire.com
+ * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * https://processwire.com
  *
  */
 

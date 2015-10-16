@@ -5,11 +5,8 @@
  *
  * Provides the image selecting and editing capability for rich text editors (TinyMCE/CKEditor)
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
- * http://processwire.com
+ * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * https://processwire.com
  * 
  * @property int $hidpiDefault HiDPI/Retina checkbox default checked?
  * @property int $noThumbs Do not generate thumbnail images (make image selection will use full-size images).

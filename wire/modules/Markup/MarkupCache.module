@@ -18,12 +18,9 @@
  * echo $data; 
  *
  *
- * ProcessWire 2.x 
- * Copyright (C) 2011 by Ryan Cramer 
- * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * https://processwire.com
+ *
  *
  * @todo add serialize/unserialize to support non-string  data in MarkupCache
  *
@@ -43,7 +40,7 @@ class MarkupCache extends Wire implements Module, ConfigurableModule {
 			'title' => 'Markup Cache', 
 			'version' => 101, 
 			'summary' => 'A simple way to cache segments of markup in your templates. ',
-			'href' => 'http://www.processwire.com/api/modules/markupcache/',
+			'href' => 'https://processwire.com/api/modules/markupcache/',
 			'singular' => true, 
 			'autoload' => true, 
 			);

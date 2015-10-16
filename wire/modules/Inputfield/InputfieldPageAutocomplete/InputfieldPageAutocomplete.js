@@ -3,12 +3,8 @@
  *
  * This Inputfield connects the jQuery UI Autocomplete widget with the ProcessWire ProcessPageSearch AJAX API.
  *
- * ProcessWire 2.x 
- * Copyright (C) 2012 by Ryan Cramer 
- * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * https://processwire.com
  *
  */
 var InputfieldPageAutocomplete = {

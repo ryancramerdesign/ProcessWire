@@ -8,11 +8,8 @@
  * For more details about how Process modules work, please see: 
  * /wire/core/Process.php 
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
- * http://processwire.com
+ * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * https://processwire.com
  * 
  * @property bool $showRootPage Whether root page (like home) should be shown.
  * @property string $pageLabelField Field name or field names (space separated) that should be used for page label.

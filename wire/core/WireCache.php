@@ -5,10 +5,7 @@
  *
  * Simple cache or storing strings (encoded or otherwise) and serves as $cache API var
  *
- * ProcessWire 2.x
- * Copyright (C) 2015 by Ryan Cramer
- * Licensed under GNU/GPL v2, see LICENSE.TXT
- *
+ * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
  * https://processwire.com
  * 
  *
@@ -271,7 +268,7 @@ class WireCache extends Wire {
 	 * 
 	 */
 	public function getFor($ns, $name, $expire = null, $func = null) {
-		if(is_object($ns)) $ns = get_class($ns); 
+		if(is_object($ns)) $ns = wireClassName($ns, false); 
 		return $this->get($ns . "__$name", $expire, $func); 
 	}
 
@@ -352,7 +349,7 @@ class WireCache extends Wire {
 	 * 
 	 */
 	public function saveFor($ns, $name, $data, $expire = self::expireDaily) {
-		if(is_object($ns)) $ns = get_class($ns); 
+		if(is_object($ns)) $ns = wireClassName($ns, false); 
 		return $this->save($ns . "__$name", $data, $expire); 
 	}
 

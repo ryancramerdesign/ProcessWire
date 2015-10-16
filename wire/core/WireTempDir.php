@@ -3,11 +3,8 @@
 /**
  * ProcessWire Temporary Directory Manager
  *
- * ProcessWire 2.x
- * Copyright (C) 2014 by Ryan Cramer
- * Licensed under GNU/GPL v2, see LICENSE.TXT
- *
- * http://processwire.com
+ * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * https://processwire.com
  *
  */
 
@@ -29,7 +26,7 @@ class WireTempDir extends Wire {
 	 */
 	public function __construct($name, $basePath = '') {
 		
-		if(is_object($name)) $name = get_class($name); 
+		if(is_object($name)) $name = wireClassName($name, false); 
 		if(empty($name) || !is_string($name)) throw new WireException("A valid name (string) must be provided"); 
 		
 		if($basePath) {
@@ -44,7 +41,7 @@ class WireTempDir extends Wire {
 			if(!is_dir($basePath)) wireMkdir($basePath);
 		}
 		
-		$basePath .= get_class($this) . '/';
+		$basePath .= wireClassName($this, false) . '/';
 		$this->classRoot = $basePath; 
 		if(!is_dir($basePath)) wireMkdir($basePath); 
 		

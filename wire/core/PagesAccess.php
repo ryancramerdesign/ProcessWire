@@ -17,12 +17,9 @@
  * Pages using templates that already define their access (determined by $template->useRoles) 
  * are ommitted from the pages_access table, as they aren't necessary. 
  *
- * ProcessWire 2.x 
- * Copyright (C) 2011 by Ryan Cramer 
- * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * https://processwire.com
+ *
  *
  */
 

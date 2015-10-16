@@ -6,11 +6,8 @@
  * WireInputData and the WireInput class together form a simple 
  * front end to PHP's $_GET, $_POST, and $_COOKIE superglobals.
  *
- * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
- * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
- * http://processwire.com
+ * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * https://processwire.com
  *
  */
 

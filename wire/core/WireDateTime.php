@@ -7,10 +7,7 @@
  * 
  * This class can be used outside of ProcessWire (minus relative date support).
  *
- * ProcessWire 2.x
- * Copyright (C) 2015 by Ryan Cramer
- * Licensed under GNU/GPL v2, see LICENSE.TXT
- *
+ * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
  * https://processwire.com
  * 
  * @todo in PW 3.0 move wireDate() and wireRelativeTimeStr() function implementation into this class. 

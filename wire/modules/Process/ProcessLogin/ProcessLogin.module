@@ -8,11 +8,8 @@
  * For more details about how Process modules work, please see: 
  * /wire/core/Process.php 
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
- * http://processwire.com
+ * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * https://processwire.com
  * 
  * @property bool $allowForgot Whether the ProcessForgotPassword module is installed. 
  *
@@ -249,6 +246,7 @@ class ProcessLogin extends Process {
 		if(!$this->user->isSuperuser()) return;
 
 		$indexVersion = ProcessWire::indexVersion; 
+		$htaccessVersion = ProcessWire::htaccessVersion;
 		
 		if(PROCESSWIRE < $indexVersion) {
 			$this->warning(
@@ -260,7 +258,7 @@ class ProcessLogin extends Process {
 		$htaccessFile = $this->wire('config')->paths->root . '.htaccess';
 		if(is_readable($htaccessFile)) {
 			$htaccessData = file_get_contents($htaccessFile); 
-			if(!preg_match('/@indexVersion\s+(\d+)\b/', $htaccessData, $matches) || ((int) $matches[1]) < $indexVersion) {
+			if(!preg_match('/@(?:index|htaccess)Version\s+(\d+)\b/', $htaccessData, $matches) || ((int) $matches[1]) < $htaccessVersion) {
 				$this->warning(
 					"Not urgent, but note that your root .htaccess file is not up-to-date with this ProcessWire version - please update it when possible.<br />" .  
 					"<small>To ignore this warning, replace or add the following in the top of your existing .htaccess file:</small> " . 

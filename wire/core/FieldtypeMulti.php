@@ -5,12 +5,9 @@
  *
  * Interface and some functionality for Fieldtypes that can contain multiple values.
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
- * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * https://processwire.com
+ *
  *
  */
 abstract class FieldtypeMulti extends Fieldtype {

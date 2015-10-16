@@ -7,11 +7,8 @@
  * so that it can be included by outside tools for restoring/exporting, with the main
  * example of that being the ProcessWire installer. 
  *
- * ProcessWire 2.x
- * Copyright (C) 2014 by Ryan Cramer
- * Licensed under GNU/GPL v2, see LICENSE.TXT
- *
- * http://processwire.com
+ * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * https://processwire.com
  * 
  * USAGE
  * 

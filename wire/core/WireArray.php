@@ -11,11 +11,8 @@
  *
  * TODO narrow down to one method of addition and removal, especially for removal, i.e. make shift() run through remove()
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
- * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
- * http://processwire.com
+ * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * https://processwire.com
  *
  */
 
@@ -127,7 +124,7 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	 *
 	 */
 	public function makeBlankItem() {
-		$class = get_class($this); 
+		$class = wireClassName($this, false); 
 		if($class != 'WireArray') throw new WireException("Class '$class' doesn't yet implement method 'makeBlankItem()' and it needs to."); 
 		return null;
 	}

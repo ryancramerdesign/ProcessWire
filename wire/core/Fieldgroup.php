@@ -10,10 +10,7 @@
  * are separated in the API in case want want to have fieldgroups used by 
  * multiple templates in the future (like ProcessWire 1.x).
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
  * https://processwire.com
  * 
  * @property int $id Field ID

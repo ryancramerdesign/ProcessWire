@@ -256,7 +256,7 @@ class MarkupFieldtype extends WireData implements Module {
 		} else {
 			$className = get_class($value);
 			$out = (string) $value;
-			if($out === $className) {
+			if($out === wireClassName($value, false) || $out === wireClassName($value, true)) {
 				// just the class name probably isn't useful here, see if we can do do something else with it
 				$this->renderIsUseless = true;
 			}

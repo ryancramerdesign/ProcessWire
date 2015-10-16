@@ -11,15 +11,12 @@
  * If that file exists, the installer will not run. So if you need to re-run this installer for any
  * reason, then you'll want to delete that file. This was implemented just in case someone doesn't delete the installer.
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
- * http://processwire.com
+ * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * https://processwire.com
  * 
  */
 
-define("PROCESSWIRE_INSTALL", 2.6); 
+define("PROCESSWIRE_INSTALL", "3.0 (alpha)"); 
 
 /**
  * class Installer

@@ -8,11 +8,8 @@
  * 1. Providing get/set access to the Page's properties
  * 2. Accessing the related hierarchy of pages (i.e. parents, children, sibling pages)
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
- * http://processwire.com
+ * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * https://processwire.com
  *
  * @link http://processwire.com/api/variables/page/ Offical $page Documentation
  * @link http://processwire.com/api/selectors/ Official Selectors Documentation

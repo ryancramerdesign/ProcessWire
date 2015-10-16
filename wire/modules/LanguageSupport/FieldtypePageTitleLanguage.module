@@ -10,12 +10,9 @@ require_once(dirname(__FILE__) . '/FieldtypeTextLanguage.module');
  * Another option for field titles is to create separate title_{language_name} fields,
  * and use/place them where you want them. If you go that route, then you don't need this module.
  *
- * ProcessWire 2.x 
- * Copyright (C) 2012 by Ryan Cramer 
- * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * https://processwire.com
+ *
  *
  */
 

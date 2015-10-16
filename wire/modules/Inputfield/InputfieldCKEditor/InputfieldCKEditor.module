@@ -8,10 +8,8 @@
  * CKEditor Copyright (C) 2003-2015, CKSource - Frederico Knabben
  * http://ckeditor.com
  *
- * ProcessWire Module Copyright (C) 2015 by Ryan Cramer 
- * http://processwire.com
- * 
- * Licensed under GNU/GPL v2
+ * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * https://processwire.com
  * 
  * @property bool|int $inlineMode ($default=0)
  * @property bool|int $usePurifier (default=0)

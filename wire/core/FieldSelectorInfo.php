@@ -10,11 +10,8 @@
  * and so on. In the future this class will likely come in handy in providing selector
  * validation and improved help and error messaging when building/testing selectors. 
  *
- * ProcessWire 2.x 
- * Copyright (C) 2014 by Ryan Cramer 
- * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
- * http://processwire.com
+ * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * https://processwire.com
  * 
  */
 class FieldSelectorInfo extends Wire {

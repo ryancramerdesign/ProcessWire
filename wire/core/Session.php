@@ -10,10 +10,7 @@
  * and likewise a value set in $session won't appear in $_SESSION.  It's also good to use this class
  * over the $_SESSION superglobal just in case we ever need to replace PHP's session handling in the future.
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
  * https://processwire.com
  *
  *
@@ -128,6 +125,35 @@ class Session extends Wire implements \IteratorAggregate {
 	 *
 	 */
 	protected function ___init() {
+		
+		if(!$this->config->sessionName) return;
+
+		if($this->config->https && $this->config->sessionCookieSecure) {
+			ini_set('session.cookie_secure', 1); // #1264
+			if($this->config->sessionNameSecure) {
+				session_name($this->config->sessionNameSecure);
+			} else {
+				session_name($this->config->sessionName . 's');
+			}
+		} else {
+			session_name($this->config->sessionName);
+		}
+		
+		ini_set('session.use_cookies', true);
+		ini_set('session.use_only_cookies', 1);
+		ini_set('session.cookie_httponly', 1);
+		ini_set('session.gc_maxlifetime', $this->config->sessionExpireSeconds);
+
+		if(ini_get('session.save_handler') == 'files') {
+			if(ini_get('session.gc_probability') == 0) {
+				// Some debian distros replace PHP's gc without fully implementing it,
+				// which results in broken garbage collection if the save_path is set. 
+				// As a result, we avoid setting the save_path when this is detected. 
+			} else {
+				ini_set("session.save_path", rtrim($this->config->paths->sessions, '/'));
+			}
+		}
+		
 		@session_start();
 	}
 
@@ -352,7 +378,7 @@ class Session extends Wire implements \IteratorAggregate {
 	protected function getNamespace($ns) {
 		if(is_object($ns)) {
 			if($ns instanceof Wire) $ns = $ns->className();
-				else $ns = get_class($ns);
+				else $ns = wireClassName($ns, false);
 		} else if(is_string($ns)) {
 			// good
 		} else {

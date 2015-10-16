@@ -9,10 +9,7 @@
  * The dir is created so that secondary cache files can be created too, 
  * and these are automatically removed when the remove() method is called.
  *
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
  * https://processwire.com
  *
  */

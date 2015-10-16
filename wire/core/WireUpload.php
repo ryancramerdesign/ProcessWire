@@ -6,11 +6,8 @@
  * Saves uploads of single or multiple files, saving them to the destination path.
  * If the destination path does not exist, it will be created. 
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
- * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
- * http://processwire.com
+ * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * https://processwire.com
  *
  */
 
@@ -137,7 +134,7 @@ class WireUpload extends Wire {
 		if(!$dir || !is_writable($dir)) $dir = ini_get('upload_tmp_dir');
 		if(!$dir || !is_writable($dir)) $dir = sys_get_temp_dir();
 		if(!$dir || !is_writable($dir)) throw new WireException("Error writing to $dir. Please define \$config->uploadTmpDir and ensure it is writable."); 
-		$tmpName = tempnam($dir, get_class($this));
+		$tmpName = tempnam($dir, wireClassName($this, false));
 		file_put_contents($tmpName, file_get_contents('php://input')); 
 		$filesize = is_file($tmpName) ? filesize($tmpName) : 0;
 		$error = $filesize ? UPLOAD_ERR_OK : UPLOAD_ERR_NO_FILE;

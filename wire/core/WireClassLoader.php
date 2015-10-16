@@ -3,12 +3,9 @@
 /**
  * ProcessWire class autoloader
  * 
- * This autoloader expects the PROCESSWIRE_CORE_PATH to be defined.
- *
- * ProcessWire 2.x
- * Copyright (C) 2015 by Ryan Cramer
- * Licensed under GNU/GPL v2, see LICENSE.TXT
- *
+ * Similar to a PSR-4 autoloader but with knowledge of modules. 
+ * 
+ * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
  * https://processwire.com
  *
  */
@@ -16,15 +13,16 @@
 class WireClassLoader extends Wire {
 	
 	protected $modules = null;
-	protected $namespaces = array();
+	static protected $namespaces = array();
 	
 	public function __construct() {
 		spl_autoload_register(array($this, 'loadClass'));
 	}
 	
 	public function addNamespace($namespace, $path) {
-		if(!isset($this->namespaces[$namespace])) $this->namespaces[$namespace] = array();
-		$this->namespaces[$namespace][] = '/' . trim($path, '/') . '/';
+		if(!isset(self::$namespaces[$namespace])) self::$namespaces[$namespace] = array();
+		$path = '/' . trim($path, '/') . '/';
+		if(!in_array($path, self::$namespaces[$namespace])) self::$namespaces[$namespace][] = $path;
 	}
 	
 	public function loadClass($className) {
@@ -38,13 +36,13 @@ class WireClassLoader extends Wire {
 		$namespace = implode("\\", $parts);
 		$_namespace = $namespace; // original and unmodified namespace
 	
-		while($namespace && !isset($this->namespaces[$namespace])) {
+		while($namespace && !isset(self::$namespaces[$namespace])) {
 			$_parts[] = array_pop($parts);
 			$namespace = implode("\\", $parts);
 		}
 		
 		if($namespace) {
-			$paths = $this->namespaces[$namespace];
+			$paths = self::$namespaces[$namespace];
 			$dir = count($_parts) ? implode("/", $_parts) . '/' : '';
 			$file = $dir . $name . ".php";
 			foreach($paths as $path) {
@@ -73,5 +71,4 @@ class WireClassLoader extends Wire {
 		if($found) include_once($found);
 	}
 }
-
 

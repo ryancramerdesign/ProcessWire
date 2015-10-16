@@ -5,10 +5,7 @@
  *
  * This Inputfield connects the jQuery UI Autocomplete widget with the ProcessWire ProcessPageSearch AJAX API.
  *
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
  * https://processwire.com
  * 
  * @property int $parent_id Limit results to this parent, or if combined with findPagesSelector, the search is performed as $pages->get($parent_id)->find() rather than $pages->find().

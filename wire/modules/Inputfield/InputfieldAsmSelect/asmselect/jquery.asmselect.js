@@ -4,8 +4,7 @@
  * 
  * Copyright (c) 2009-2014 by Ryan Cramer - http://www.ryancramer.com
  * 
- * Dual licensed under the MIT (MIT-LICENSE.txt)
- * and GPL (GPL-LICENSE.txt) licenses.
+ * Licensed under the MIT license. 
  *
  *
  */

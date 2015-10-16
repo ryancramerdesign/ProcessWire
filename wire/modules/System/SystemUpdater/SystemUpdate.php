@@ -25,8 +25,7 @@ abstract class SystemUpdate extends Wire {
 	abstract public function execute();
 
 	public function getName() {
-		$name = get_class($this);
-		$name = str_replace('SystemUpdate', '', $name);
+		$name = str_replace(__NAMESPACE__ . "\\SystemUpdate", "", get_class($this));
 		$name = "Update #$name";
 		return $name;
 	}

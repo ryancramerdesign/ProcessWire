@@ -3,14 +3,11 @@
 /**
  * ProcessWire Markdown Textformatter
  *
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
 
  * https://processwire.com
  *
  * Parsedown copyright Emanuil Rusev.
- * Markdown Extra copyright Michel Fortin.
  * Markdown invented by John Gruber.
  * 
  * @property int $flavor Markdown flavor (see flavor constants)
@@ -22,15 +19,15 @@ class TextformatterMarkdownExtra extends Textformatter implements ConfigurableMo
 	public static function getModuleInfo() {
 		return array(
 			'title'   => 'Markdown/Parsedown Extra',
-			'version' => 129,
-			'summary' => "Markdown extra and Parsedown extra lightweight markup language by Emanuil Rusev, Michel Fortin, John Gruber.",
+			'version' => 130,
+			'summary' => "Markdown/Parsedown extra lightweight markup language by Emanuil Rusev. Based on Markdown by John Gruber.",
 		);
 	}
 
-	const flavorDefault = 8;
+	const flavorDefault = 2;
 	const flavorParsedownExtra = 2;
 	const flavorParsedown = 4;
-	const flavorMarkdownExtra = 8;
+	const flavorMarkdownExtra = 2;
 	const flavorRCD = 16; // add RCD extensions to one of above, @see markdownExtensions() method
 	
 	public function __construct() {
@@ -54,24 +51,23 @@ class TextformatterMarkdownExtra extends Textformatter implements ConfigurableMo
 	 * 
 	 */
 	public function markdown($str, $flavor = 0) {
+	
+		if(!class_exists("\\Parsedown")) {
+			require_once(dirname(__FILE__) . "/parsedown/Parsedown.php");
+		}
 		
 		if($flavor & self::flavorParsedown) {
 			// regular parsedown
-			require_once(dirname(__FILE__) . "/parsedown/Parsedown.php");
 			$parsedown = new \Parsedown();
 			$str = $parsedown->text($str);
 			
-		} else if($flavor & self::flavorParsedownExtra) {
+		} else {
 			// parsedown extra 
-			require_once(dirname(__FILE__) . "/parsedown/Parsedown.php");
-			require_once(dirname(__FILE__) . "/parsedown-extra/ParsedownExtra.php");
+			if(!class_exists("\\ParsedownExtra")) {
+				require_once(dirname(__FILE__) . "/parsedown-extra/ParsedownExtra.php");
+			}
 			$extra = new \ParsedownExtra();
 			$str = $extra->text($str);
-			
-		} else {
-			// markdown extra (default)
-			require_once(dirname(__FILE__) . "/markdown.php");
-			$str = \Markdown($str);
 		}
 		
 		if($flavor & self::flavorRCD) $this->markdownExtensions($str);
@@ -107,9 +103,8 @@ class TextformatterMarkdownExtra extends Textformatter implements ConfigurableMo
 		$f = wire('modules')->get('InputfieldRadios');
 		$f->attr('name', 'flavor');
 		$f->label = __('Markdown flavor to use');
-		$f->addOption(self::flavorParsedownExtra, 'Parsedown Extra (Emanuel Rusev)');
-		$f->addOption(self::flavorParsedown, 'Parsedown (Emanuel Rusev)'); 
-		$f->addOption(self::flavorMarkdownExtra, 'Markdown Extra (Michel Fortin)'); 
+		$f->addOption(self::flavorParsedownExtra, 'Parsedown Extra');
+		$f->addOption(self::flavorParsedown, 'Parsedown'); 
 		$f->attr('value', isset($data['flavor']) ? (int) $data['flavor'] : self::flavorDefault); 
 		$inputfields->add($f);
 		return $inputfields; 

@@ -10,12 +10,9 @@
  * Typically you would iterate through the field and generate your own output. But if you just need
  * something simple, or are testing, then this may fit your needs. 
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
- * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * https://processwire.com
+ *
  *
  */
 

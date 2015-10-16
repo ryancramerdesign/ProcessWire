@@ -6,11 +6,8 @@
  * Wire Data Access Object, provides reusable capability for loading, saving, creating, deleting, 
  * and finding items of descending class-defined types. 
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
- * http://processwire.com
+ * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * https://processwire.com
  *
  */
 

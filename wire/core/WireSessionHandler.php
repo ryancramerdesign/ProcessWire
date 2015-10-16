@@ -7,11 +7,8 @@
  * It provides the interface and some basic functions. For an example, see:
  * /wire/modules/Session/SessionHandlerDB/SessionHandlerDB.module
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2012 by Ryan Cramer 
- * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
- * http://processwire.com
+ * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * https://processwire.com
  *
  *
  */

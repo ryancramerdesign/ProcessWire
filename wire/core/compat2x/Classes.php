@@ -6,11 +6,8 @@
  * This enable backwards compatability with many templates or modules coded for ProcessWire 2.x.
  * To enable or disable, set $config->compat2x = true|false; in your /site/config.php
  *
- * ProcessWire 2.x
- * Copyright (C) 2015 by Ryan Cramer
- * Licensed under GNU/GPL v2, see LICENSE.TXT
- *
- * http://processwire.com
+ * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * https://processwire.com
  *
  */
 

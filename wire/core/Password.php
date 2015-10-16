@@ -5,11 +5,8 @@
  * Class to hold combined password/salt info. Uses Blowfish when possible.
  * Specially used by FieldtypePassword.
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
- * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
- * http://processwire.com
+ * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * https://processwire.com
  *
  */
 

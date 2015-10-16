@@ -5,11 +5,8 @@
  *
  * PageArray provides an array-like means for storing PageReferences and is utilized throughout ProcessWire. 
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2014 by Ryan Cramer 
- * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
- * http://processwire.com
+ * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * https://processwire.com
  * 
  * @method string getMarkup($key = null) Render a simple/default markup value for each item
  *

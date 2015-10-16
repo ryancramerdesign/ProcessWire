@@ -7,10 +7,7 @@
  *
  * Templates also maintain several properties which can affect the render behavior of pages using it. 
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
  * https://processwire.com
  * 
  * @todo add multi-language option for redirectLogin setting

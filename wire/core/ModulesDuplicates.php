@@ -6,11 +6,8 @@
  * Provides functions for managing sitautions where more than one
  * copy of the same module is intalled. This is a helper for the Modules class.
  *
- * ProcessWire 2.x
- * Copyright (C) 2015 by Ryan Cramer
- * Licensed under GNU/GPL v2, see LICENSE.TXT
- *
- * http://processwire.com
+ * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * https://processwire.com
  *
  */
 

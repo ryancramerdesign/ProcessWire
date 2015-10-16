@@ -5,11 +5,8 @@
  *
  * Process is the base Module class for each part of ProcessWire's web admin.
  * 
- * ProcessWire 2.x 
- * Copyright (C) 2014 by Ryan Cramer 
- * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
- * http://processwire.com
+ * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * https://processwire.com
  * 
  * @method string|array execute()
  * @method Process headline(string $headline)

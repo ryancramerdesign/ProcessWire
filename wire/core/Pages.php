@@ -8,11 +8,8 @@
  *
  * This is the most used object in the ProcessWire API. 
  *
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
- * http://processwire.com
+ * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * https://processwire.com
  *
  *
  * @link http://processwire.com/api/variables/pages/ Offical $pages Documentation
@@ -2191,7 +2188,7 @@ class Pages extends Wire {
 		$class = 'Page';
 		if(!empty($options['pageClass'])) $class = $options['pageClass'];
 		if($this->compat2x && strpos($class, "\\") === false) {
-			if($class_exists("\\$class")) $class = "\\$class";
+			if(class_exists("\\$class")) $class = "\\$class";
 		}
 		$class = wireClassName($class, true);
 		$page = $this->wire(new $class());

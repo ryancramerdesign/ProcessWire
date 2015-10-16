@@ -8,11 +8,8 @@
  * This class provides the interface for tracking changes to object properties. 
  * message() and error() methods are provided for this class to provide any text notices. 
  *
- * ProcessWire 2.x 
- * Copyright (C) 2015 by Ryan Cramer 
- * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
- * http://processwire.com
+ * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * https://processwire.com
  * 
  * @property string $className
  * @property ProcessWire $wire
@@ -464,8 +461,16 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 				$toObject = $hook['toObject'];		
 				$toMethod = $hook['toMethod']; 
 
-				if(is_null($toObject)) $toMethod($event); 
-					else $toObject->$toMethod($event); 
+				if(is_null($toObject)) {
+					if(!is_callable($toMethod) && strpos($toMethod, "\\") === false) {
+						$_toMethod = "\\" . __NAMESPACE__ . "\\$toMethod";
+						if($compat2x && !is_callable($_toMethod)) $_toMethod = "\\$toMethod";
+						$toMethod = $_toMethod;
+					}
+					$toMethod($event);
+				} else {
+					$toObject->$toMethod($event);
+				}
 
 				$result['numHooksRun']++;
 
