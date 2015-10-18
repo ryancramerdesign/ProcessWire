@@ -266,7 +266,8 @@ class AdminThemeDefaultHelpers extends WireData {
 				if(!$c->process) continue; 
 				$moduleInfo = $this->wire('modules')->getModuleInfo($c->process); 
 				if($isSuperuser) $hasPermission = true; 
-					else if(isset($moduleInfo['permission'])) $hasPermission = $this->wire('user')->hasPermission($moduleInfo['permission']); 	
+					else if(!empty($moduleInfo['permissionMethod'])) $hasPermission = $c->viewable();
+					else if(!empty($moduleInfo['permission'])) $hasPermission = $this->wire('user')->hasPermission($moduleInfo['permission']); 	
 					else $hasPermission = false;
 				
 				if(!$hasPermission) continue; 
