@@ -146,6 +146,7 @@ class ProcessRole extends ProcessPageType {
 				$alert = $this->_('This permission can only be assigned by template access settings.');
 			} else {
 				$permission = $this->wire('permissions')->get($name);
+				if(!$permission->id) continue;
 				$title = str_replace('|', ' ', $this->wire('sanitizer')->entities($permission->getUnformatted('title')));
 				$parent = $permission->getParentPermission();
 				$rootParent = $permission->getRootParentPermission();
