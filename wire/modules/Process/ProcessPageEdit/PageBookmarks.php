@@ -179,7 +179,7 @@ class PageBookmarks extends Wire {
 
 		if(!$this->wire('user')->isSuperuser()) throw new WirePermissionException("Superuser required to define bookmarks");
 		$moduleInfo = $modules->getModuleInfo($this->process);
-		$this->process->breadcrumb('../', $moduleInfo['title']);
+		$this->process->breadcrumb('../', $this->_($moduleInfo['title']));
 		$this->process->breadcrumb('./', $this->labels['bookmarks']);
 		
 		$role = $roleID ? $this->wire('roles')->get($roleID) : new NullPage();
