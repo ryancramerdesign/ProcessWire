@@ -5,6 +5,9 @@
  *
  * Handles ProcessWire configuration data
  * 
+ * This file is licensed under the MIT license
+ * https://processwire.com/about/license/mit/
+ * 
  * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
  * https://processwire.com
  *

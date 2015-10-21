@@ -128,7 +128,7 @@ class CommentNotifications extends Wire {
 
 		$emails = $this->parseEmails($field->notificationEmail); 	
 		if(count($emails)) {
-			$mail = wireMail();
+			$mail = $this->wire('mail')->new();
 			foreach($emails as $email) $mail->to($email);
 			$mail->subject($subject)->body($body)->bodyHTML($bodyHTML);
 			$fromEmail = $this->getFromEmail();
@@ -421,7 +421,7 @@ class CommentNotifications extends Wire {
 		$body .= "\n\n$footer: $unsubURL";	
 		$bodyHTML .= "<p><a href='$unsubURL'>$footer</a></p>";
 		
-		$mail = wireMail();
+		$mail = $this->wire('mail')->new();
 		$mail->to($email)->subject($subject)->body($body)->bodyHTML($bodyHTML);
 		$fromEmail = $this->getFromEmail();
 		if($fromEmail) $mail->from($fromEmail);
@@ -460,7 +460,7 @@ class CommentNotifications extends Wire {
 		$body .= "\n\n$footer: $confirmURL";
 		$bodyHTML .= "<p><strong><a href='$confirmURL'>$footer</a></strong></p>";
 
-		$mail = wireMail();
+		$mail = $this->wire('mail')->new();
 		$mail->to($email)->subject($subject)->body($body)->bodyHTML($bodyHTML);
 		$fromEmail = $this->getFromEmail();
 		if($fromEmail) $mail->from($fromEmail);

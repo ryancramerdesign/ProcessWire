@@ -39,6 +39,14 @@ class WireDatabaseBackup {
 	const fileFooter = '--- /WireDatabaseBackup';
 
 	/**
+	 * ProcessWire instance, when applicable
+	 * 
+	 * @var ProcessWire
+	 * 
+	 */
+	protected $wire = null;
+
+	/**
 	 * Options available for the $options argument to backup() method
 	 * 
 	 * @var array
@@ -225,6 +233,10 @@ class WireDatabaseBackup {
 	 */
 	public function __construct($path = '') {
 		if(strlen($path)) $this->setPath($path);
+	}
+	
+	public function setWire($wire) {
+		if(is_object($wire) && $wire->className() == 'ProcessWire') $this->wire = $wire;
 	}
 
 	/**
@@ -599,8 +611,8 @@ class WireDatabaseBackup {
 		$json = str_replace(array("\r", "\n"), " ", $json);
 		
 		fwrite($fp, "# " . self::fileHeader . " $json\n"); 
-		fclose($fp); 
-		if(function_exists('wireChmod')) wireChmod($file); 
+		fclose($fp);
+		if($this->wire) $this->wire->files->chmod($file);
 		return true; 
 	}
 

@@ -1297,14 +1297,20 @@ class ProcessModule extends Process {
 	
 	protected function renderModuleHooks($moduleName) {
 		$out = '';
-		$hooks = array_merge($this->wire()->getHooks('*'), Wire::$allLocalHooks);
+		$hooks = array_merge($this->wire()->getHooks('*'), $this->wire('hooks')->getAllLocalHooks());
 		foreach($hooks as $hook) {
 			$toObject = !empty($hook['toObject']) ? $hook['toObject'] : '';
 			if(empty($toObject) || wireClassName($toObject, false) != $moduleName) continue;
 			$suffix = $hook['options']['type'] == 'method' ? '()' : '';
-			$out .= "<code>" . ($hook['options']['fromClass'] ? $hook['options']['fromClass'] . '::' : '') . "$hook[method]$suffix</code>, ";
+			$when = '';
+			if($hook['options']['before']) $when .= $this->_('before');
+			if($hook['options']['after']) $when .= ($when ? '+' : '') . $this->_('after');
+			if($when) $when .= ".";
+			if($out) $when = ", $when";
+			$when = "<span class='detail'>$when</span>";
+			$out .= "$when" . ($hook['options']['fromClass'] ? $hook['options']['fromClass'] . '::' : '') . "$hook[method]$suffix";
 		}
-		return trim($out, ", "); 
+		return $out;
 	}
 	
 	public function ___executeInstallConfirm() {

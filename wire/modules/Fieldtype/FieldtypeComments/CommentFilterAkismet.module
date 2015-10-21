@@ -89,17 +89,17 @@ class CommentFilterAkismet extends CommentFilter implements Module, Configurable
 		$this->message("Notified Akismet of a spam false positive (ham)"); 
 	}
 
-	static public function getModuleConfigInputfields(array $data) {
+	public function getModuleConfigInputfields(array $data) {
 
-		$inputfields = new InputfieldWrapper();
+		$inputfields = $this->wire(new InputfieldWrapper());
 
 		$name = "apiKey";
 		if(!isset($data[$name])) $data[$name] = '';
-		$f = wire('modules')->get('InputfieldText'); 
+		$f = $this->wire('modules')->get('InputfieldText'); 
 		$f->attr('name', $name); 
 		$f->attr('value', $data[$name]); 
-		$f->label = __('Akismet Key');
-		$f->description = __('If you want to have comments automatically identified as spam, the Comments fieldtype can utilize the Akismet service to do this. In order to use it, you must enter an Akismet API key obtained from akismet.com. Use of this service is optional but recommended.'); // Akismet description
+		$f->label = $this->_('Akismet Key');
+		$f->description = $this->_('If you want to have comments automatically identified as spam, the Comments fieldtype can utilize the Akismet service to do this. In order to use it, you must enter an Akismet API key obtained from akismet.com. Use of this service is optional but recommended.'); // Akismet description
 
 		$inputfields->append($f);
 

@@ -144,7 +144,7 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 		// prevent fields like 'title' from autojoining until languages are fully loaded
 		$this->wire('pages')->setAutojoin(false); 
 		
-		$languages = $this->wire(new Languages($languageTemplate, $this->languagesPageID)); 
+		$languages = $this->wire(new Languages($this->wire('wire'), $languageTemplate, $this->languagesPageID)); 
 		$_default = null; // just in case
 
 		// ensure all languages are loaded and get instantiated versions of system/default languages

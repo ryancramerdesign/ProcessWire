@@ -27,9 +27,11 @@ class User extends Page {
 	 *
 	 */
 	public function __construct(Template $tpl = null) {
-		if(is_null($tpl)) $tpl = $this->wire('templates')->get('user'); 
-		if(!$this->parent_id) $this->set('parent_id', $this->wire('config')->usersPageID); 
 		parent::__construct($tpl); 
+		if(is_null($tpl)) {
+			$this->template = $this->wire('templates')->get('user');
+		}
+		if(!$this->parent_id) $this->set('parent_id', $this->wire('config')->usersPageID); 
 	}
 	
 	/**
@@ -120,10 +122,10 @@ class User extends Page {
 	 */
 	public function hasPermission($name, $context = null) {
 		if(is_null($context) || $context instanceof Page) {
-			return $this->isHooked('hasPagePermission()') ? $this->hasPagePermission($name, $context) : $this->___hasPagePermission($name, $context);
+			return $this->wire('hooks')->isHooked('hasPagePermission()') ? $this->hasPagePermission($name, $context) : $this->___hasPagePermission($name, $context);
 		}
 		if($context instanceof Template) {
-			return $this->isHooked('hasTemplatePermission()') ? $this->hasTemplatePermission($name, $context) : $this->___hasTemplatePermission($name, $context); 
+			return $this->wire('hooks')->isHooked('hasTemplatePermission()') ? $this->hasTemplatePermission($name, $context) : $this->___hasTemplatePermission($name, $context); 
 		}
 		return false;
 	}

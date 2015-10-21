@@ -63,49 +63,6 @@ if(!function_exists("tabIndent")):
 endif; 
 
 /**
- * Remove newlines from the given string and return it 
- * 
- * @param string $str
- * @return string
- *
- */
-function removeNewlines($str) {
-        return str_replace(array("\r", "\n", "\r\n"), ' ', $str);
-}
-
-/**
- * Emulate register globals OFF
- *
- * Should be called after session_start()
- *
- * This function is from the PHP documentation at: 
- * http://www.php.net/manual/en/faq.misc.php#faq.misc.registerglobals
- *
- */
-function unregisterGLOBALS() {
-
-	if(!ini_get('register_globals')) {
-		return;
-	}
-
-	// Might want to change this perhaps to a nicer error
-	if(isset($_REQUEST['GLOBALS']) || isset($_FILES['GLOBALS'])) {
-		die();
-	}
-
-	// Variables that shouldn't be unset
-	$noUnset = array('GLOBALS', '_GET', '_POST', '_COOKIE', '_REQUEST', '_SERVER', '_ENV', '_FILES');
-
-	$input = array_merge($_GET, $_POST, $_COOKIE, $_SERVER, $_ENV, $_FILES, isset($_SESSION) && is_array($_SESSION) ? $_SESSION : array());
-
-	foreach ($input as $k => $v) {
-		if(!in_array($k, $noUnset) && isset($GLOBALS[$k])) {
-	    		unset($GLOBALS[$k]);
-		}
-	}
-}
-
-/**
  * Encode array for storage and remove empty values
  *
  * Uses json_encode and works the same way except this function clears out empty root-level values.
@@ -126,7 +83,7 @@ function unregisterGLOBALS() {
  *
  */
 function wireEncodeJSON(array $data, $allowEmpty = false, $beautify = false) {
-	if($allowEmpty !== true) $data = wireMinArray($data, $allowEmpty, true); 
+	if($allowEmpty !== true) $data = wire('sanitizer')->minArray($data, $allowEmpty, true); 
 	if(!count($data)) return '';
 	$flags = 0; 
 	if($beautify && defined("JSON_PRETTY_PRINT")) $flags = JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE;
@@ -164,40 +121,7 @@ function wireDecodeJSON($json) {
  *
  */
 function wireMinArray(array $data, $allowEmpty = false, $convert = false) {
-	
-	foreach($data as $key => $value) {
-
-		if($convert && is_string($value)) { 
-			// make sure ints are stored as ints
-			if(ctype_digit("$value") && $value <= PHP_INT_MAX) {
-				if($value === "0" || $value[0] != '0') { // avoid octal conversions (leading 0)
-					$value = (int) $value;
-				}
-			}
-		} else if(is_array($value) && count($value)) {
-			$value = wireMinArray($value, $allowEmpty, $convert); 	
-		}
-
-		$data[$key] = $value;
-
-		// skip empty values whether blank, 0, empty array, etc. 
-		if(empty($value)) {
-
-			if($allowEmpty === 0 && $value === 0) {
-				// keep it because $allowEmpty === 0 means to keep 0 values only
-
-			} else if(is_array($allowEmpty) && !in_array($key, $allowEmpty)) {
-				// remove it because it's not specifically allowed in allowEmpty
-				unset($data[$key]);
-
-			} else if(!$allowEmpty) {
-				// remove the empty value
-				unset($data[$key]);
-			}
-		}
-	}
-	
-	return $data; 
+	return wire('sanitizer')->minArray($data, $allowEmpty, $convert);
 }
 
 
@@ -212,16 +136,7 @@ function wireMinArray(array $data, $allowEmpty = false, $convert = false) {
  *
  */ 
 function wireMkdir($path, $recursive = false, $chmod = null) {
-	if(!strlen($path)) return false; 
-	if(!is_dir($path)) {
-		if($recursive) {
-			$parentPath = substr($path, 0, strrpos(rtrim($path, '/'), '/')); 
-			if(!is_dir($parentPath) && !wireMkdir($parentPath, true, $chmod)) return false;
-		}
-		if(!@mkdir($path)) return false;
-	}
-	wireChmod($path, false, $chmod); 
-	return true; 
+	return wire('files')->mkdir($path, $recursive, $chmod);
 }
 
 /**
@@ -233,21 +148,7 @@ function wireMkdir($path, $recursive = false, $chmod = null) {
  *
  */ 
 function wireRmdir($path, $recursive = false) {
-	if(!is_dir($path)) return false;
-	if(!strlen(trim($path, '/.'))) return false; // just for safety, don't proceed with empty string
-	if($recursive === true) {
-		$files = scandir($path);
-		if(is_array($files)) foreach($files as $file) {
-			if($file == '.' || $file == '..') continue; 
-			$pathname = "$path/$file";
-			if(is_dir($pathname)) {
-				wireRmdir($pathname, true); 
-			} else {
-				@unlink($pathname); 
-			}
-		}
-	}
- 	return @rmdir($path);
+	return wire('files')->rmdir($path, $recursive);
 }
 
 /**
@@ -262,40 +163,7 @@ function wireRmdir($path, $recursive = false) {
  *
  */ 
 function wireChmod($path, $recursive = false, $chmod = null) {
-
-	if(is_null($chmod)) {
-		// default: pull values from PW config
-		$chmodFile = wire('config')->chmodFile;
-		$chmodDir = wire('config')->chmodDir;
-	} else {
-		// optional, manually specified string
-		if(!is_string($chmod)) throw new WireException("chmod must be specified as a string like '0755'"); 
-		$chmodFile = $chmod;
-		$chmodDir = $chmod;
-	}
-
-	$numFails = 0;
-
-	if(is_dir($path)) {
-		// $path is a directory
-		if($chmodDir) if(!@chmod($path, octdec($chmodDir))) $numFails++;
-
-		// change mode of files in directory, if recursive
-		if($recursive) foreach(new \DirectoryIterator($path) as $file) {
-			if($file->isDot()) continue; 
-			$mod = $file->isDir() ? $chmodDir : $chmodFile;     
-			if($mod) if(!@chmod($file->getPathname(), octdec($mod))) $numFails++;
-			if($file->isDir()) {
-				if(!wireChmod($file->getPathname(), true, $chmod)) $numFails++;
-			}
-		}
-	} else {
-		// $path is a file
-		$mod = $chmodFile; 
-		if($mod) if(!@chmod($path, octdec($mod))) $numFails++;
-	}
-
-	return $numFails == 0; 
+	return wire('files')->chmod($path, $recursive, $chmod);
 }
 
 /**
@@ -313,49 +181,7 @@ function wireChmod($path, $recursive = false, $chmod = null) {
  * 
  */
 function wireCopy($src, $dst, $options = array()) {
-	
-	$defaults = array(
-		'recursive' => true,
-		'allowEmptyDirs' => true,
-		);
-
-	if(is_bool($options)) $options = array('recursive' => $options); 
-	$options = array_merge($defaults, $options); 
-	
-	if(substr($src, -1) != '/') $src .= '/';
-	if(substr($dst, -1) != '/') $dst .= '/';
-
-	$dir = opendir($src);
-	if(!$dir) return false; 
-	
-	if(!$options['allowEmptyDirs']) {
-		$isEmpty = true; 
-		while(false !== ($file = readdir($dir))) {
-			if($file == '.' || $file == '..') continue;
-			$isEmpty = false;
-			break;
-		}
-		if($isEmpty) return true; 
-	}
-	
-	if(!wireMkdir($dst)) return false;
-
-	while(false !== ($file = readdir($dir))) {
-		if($file == '.' || $file == '..') continue;
-		$isDir = is_dir($src . $file); 
-		if($options['recursive'] && $isDir) {
-			wireCopy($src . $file, $dst . $file, $options);
-		} else if($isDir) {
-			// skip it, because not recursive
-		} else {
-			copy($src . $file, $dst . $file);
-			$chmodFile = wire('config')->chmodFile;
-			if($chmodFile) @chmod($dst . $file, octdec($chmodFile));
-		}
-	}
-
-	closedir($dir);
-	return true;
+	return wire('files')->copy($src, $dst, $options);
 }
 
 /**
@@ -368,37 +194,7 @@ function wireCopy($src, $dst, $options = array()) {
  * 
  */
 function wireUnzipFile($file, $dst) {
-
-	$dst = rtrim($dst, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
-	
-	if(!class_exists('\ZipArchive')) throw new WireException("PHP's ZipArchive class does not exist"); 
-	if(!is_file($file)) throw new WireException("ZIP file does not exist"); 
-	if(!is_dir($dst)) wireMkdir($dst, true);	
-	
-	$names = array();
-	$chmodFile = wire('config')->chmodFile; 
-	$chmodDir = wire('config')->chmodDir;
-	
-	$zip = new \ZipArchive();
-	$res = $zip->open($file); 
-	if($res !== true) throw new WireException("Unable to open ZIP file, error code: $res"); 
-	
-	for($i = 0; $i < $zip->numFiles; $i++) {
-		$name = $zip->getNameIndex($i); 
-		if($zip->extractTo($dst, $name)) {
-			$names[$i] = $name; 
-			$filename = $dst . ltrim($name, '/');
-			if(is_dir($filename)) {
-				if($chmodDir) chmod($filename, octdec($chmodDir));
-			} else if(is_file($filename)) {
-				if($chmodFile) chmod($filename, octdec($chmodFile));
-			}
-		}
-	}
-	
-	$zip->close();
-	
-	return $names; 
+	return wire('files')->unzip($file, $dst);
 }
 
 /**
@@ -421,76 +217,7 @@ function wireUnzipFile($file, $dst) {
  * 
  */
 function wireZipFile($zipfile, $files, array $options = array()) {
-	
-	$defaults = array(
-		'allowHidden' => false,
-		'allowEmptyDirs' => true,
-		'overwrite' => false, 
-		'exclude' => array(), // files or dirs to exclude
-		'dir' => '', 
-		'zip' => null, // internal use: holds ZipArchive instance for recursive use
-		);
-	
-	$return = array(
-		'files' => array(),
-		'errors' => array(), 
-		);
-	
-	if(!empty($options['zip']) && !empty($options['dir']) && $options['zip'] instanceof \ZipArchive) {
-		// internal recursive call
-		$recursive = true;
-		$zip = $options['zip']; // ZipArchive instance
-		
-	} else if(is_string($zipfile)) {
-		if(!class_exists('\ZipArchive')) throw new WireException("PHP's ZipArchive class does not exist");
-		$options = array_merge($defaults, $options); 
-		$zippath = dirname($zipfile);
-		if(!is_dir($zippath)) throw new WireException("Path for ZIP file ($zippath) does not exist"); 
-		if(!is_writable($zippath)) throw new WireException("Path for ZIP file ($zippath) is not writable"); 
-		if(empty($files)) throw new WireException("Nothing to add to ZIP file $zipfile"); 
-		if(is_file($zipfile) && $options['overwrite'] && !unlink($zipfile)) throw new WireException("Unable to overwrite $zipfile"); 
-		if(!is_array($files)) $files = array($files);
-		if(!is_array($options['exclude'])) $options['exclude'] = array($options['exclude']);
-		$recursive = false;
-		$zip = new \ZipArchive();
-		if($zip->open($zipfile, \ZipArchive::CREATE) !== true) throw new WireException("Unable to create ZIP: $zipfile"); 
-		
-	} else {
-		throw new WireException("Invalid zipfile argument"); 
-	}
-	
-	$dir = strlen($options['dir']) ? rtrim($options['dir'], '/') . '/' : ''; 
-	
-	foreach($files as $file) {
-		$basename = basename($file);
-		$name = $dir . $basename;
-		if($basename[0] == '.' && $recursive) { 
-			if(!$options['allowHidden']) continue; 
-			if(is_array($options['allowHidden']) && !in_array($basename, $options['allowHidden'])) continue;
-		}
-		if(count($options['exclude']) && (in_array($name, $options['exclude']) || in_array("$name/", $options['exclude']))) continue; 
-		if(is_dir($file)) {
-			$_files = array();
-			foreach(new \DirectoryIterator($file) as $f) if(!$f->isDot()) $_files[] = $f->getPathname();
-			if(count($_files)) {
-				$zip->addEmptyDir($name); 
-				$options['dir'] = "$name/";
-				$options['zip'] = $zip;
-				$_return = wireZipFile($zipfile, $_files, $options);
-				foreach($_return['files'] as $s) $return['files'][] = $s;
-				foreach($_return['errors'] as $s) $return['errors'][] = $s;
-			} else if($options['allowEmptyDirs']) {
-				$zip->addEmptyDir($name); 
-			}
-		} else if(file_exists($file)) {
-			if($zip->addFile($file, $name)) $return['files'][] = $name;
-				else $return['errors'][] = $name;
-		}
-	}
-	
-	if(!$recursive) $zip->close();
-	
-	return $return;
+	return wire('files')->zip($zipfile, $files, $options);
 }
 
 /**
@@ -509,54 +236,8 @@ function wireZipFile($zipfile, $files, array $options = array()) {
  *
  */
 function wireSendFile($filename, array $options = array(), array $headers = array()) {
-
-	$_options = array(
-		// boolean: halt program execution after file send
-		'exit' => true, 
-		// boolean|null: whether file should force download (null=let content-type header decide)
-		'forceDownload' => null, 
-		// string: filename you want the download to show on the user's computer, or blank to use existing.
-		'downloadFilename' => '',
-		);
-
-	$_headers = array(
-		"pragma" => "public",
-		"expires" =>  "0",
-		"cache-control" => "must-revalidate, post-check=0, pre-check=0",
-		"content-type" => "{content-type}",
-		"content-transfer-encoding" => "binary",	
-		"content-length" => "{filesize}",
-		);
-
-	wire('session')->close();
-	$options = array_merge($_options, $options);
-	$headers = array_merge($_headers, $headers);
-	if(!is_file($filename)) throw new WireException("File does not exist");
-	$info = pathinfo($filename);
-	$ext = strtolower($info['extension']);
-	$contentTypes = wire('config')->fileContentTypes;
-	$contentType = isset($contentTypes[$ext]) ? $contentTypes[$ext] : $contentTypes['?']; 
-	$forceDownload = $options['forceDownload'];
-	if(is_null($forceDownload)) $forceDownload = substr($contentType, 0, 1) === '+';
-	$contentType = ltrim($contentType, '+');
-	if(ini_get('zlib.output_compression')) ini_set('zlib.output_compression', 'Off');
-	$tags = array('{content-type}' => $contentType, '{filesize}' => filesize($filename));
-
-	foreach($headers as $key => $value) {
-		if(is_null($value)) continue; 
-		if(strpos($value, '{') !== false) $value = str_replace(array_keys($tags), array_values($tags), $value);
-		header("$key: $value");
-	}
-
-	if($forceDownload) {
-		$downloadFilename = empty($options['downloadFilename']) ? $info['basename'] : $options['downloadFilename'];
-		header("content-disposition: attachment; filename=\"$downloadFilename\"");
-	}
-
-	@ob_end_clean();
-	@flush();
-	readfile($filename);
-	if($options['exit']) exit;
+	$http = new WireHttp();
+	$http->sendFile($filename, $options, $headers);
 }
 
 /**
@@ -582,161 +263,7 @@ function wireSendFile($filename, array $options = array(), array $headers = arra
  *
  */
 function wireRelativeTimeStr($ts, $abbreviate = false, $useTense = true) {
-
-	if(empty($ts)) {
-		if(is_array($abbreviate) && isset($abbreviate['never'])) return $abbreviate['never'];
-		return __('Never', __FILE__);
-	}
-
-	$justNow = __('just now', __FILE__); 
-	$ago = __('ago', __FILE__); 
-	$prependAgo = '';
-	$fromNow = __('from now', __FILE__); 
-	$prependFromNow = '';
-	$space = ' ';
-
-	if($abbreviate === 1) {
-		// extra short abbreviations
-		
-		$justNow = __('now', __FILE__); 
-		$ago = '';
-		$prependAgo = '-';
-		$fromNow = '';
-		$prependFromNow = '+';
-		$space = ''; 
-
-		$periodsSingular = array(
-			__("s", __FILE__), 
-			__("m", __FILE__), 
-			__("hr", __FILE__), 
-			__("d", __FILE__), 
-			__("wk", __FILE__), 
-			__("mon", __FILE__), 
-			__("yr", __FILE__), 
-			__("decade", __FILE__)
-			);
-
-		$periodsPlural = array(
-			__("s", __FILE__), 
-			__("m", __FILE__), 
-			__("hr", __FILE__), 
-			__("d", __FILE__), 
-			__("wks", __FILE__), 
-			__("mths", __FILE__), 
-			__("yrs", __FILE__), 
-			__("decades", __FILE__)
-			); 
-		
-	} else if($abbreviate === true) {
-		// standard abbreviations
-
-		$justNow = __('now', __FILE__); 
-		$fromNow = '';
-		$prependFromNow = __('in', __FILE__) . ' ';
-
-		$periodsSingular = array(
-			__("sec", __FILE__), 
-			__("min", __FILE__), 
-			__("hr", __FILE__), 
-			__("day", __FILE__), 
-			__("week", __FILE__), 
-			__("month", __FILE__), 
-			__("year", __FILE__), 
-			__("decade", __FILE__)
-			);
-
-		$periodsPlural = array(
-			__("secs", __FILE__), 
-			__("mins", __FILE__), 
-			__("hrs", __FILE__), 
-			__("days", __FILE__), 
-			__("weeks", __FILE__), 
-			__("months", __FILE__), 
-			__("years", __FILE__), 
-			__("decades", __FILE__)
-			); 
-
-	} else {
-		// no abbreviations
-		
-		$periodsSingular = array(
-			__("second", __FILE__), 
-			__("minute", __FILE__), 
-			__("hour", __FILE__), 
-			__("day", __FILE__), 
-			__("week", __FILE__), 
-			__("month", __FILE__), 
-			__("year", __FILE__), 
-			__("decade", __FILE__)
-			);
-		
-		$periodsPlural = array(
-			__("seconds", __FILE__), 
-			__("minutes", __FILE__), 
-			__("hours", __FILE__), 
-			__("days", __FILE__), 
-			__("weeks", __FILE__), 
-			__("months", __FILE__), 
-			__("years", __FILE__), 
-			__("decades", __FILE__)
-			);
-		
-		if(is_array($abbreviate)) {
-			// possible user specified abbreviations for replacements
-			$keys1 = array('second', 'minute', 'hour',  'day', 'week', 'month', 'year', 'decade');
-			$keys2 = array('seconds', 'minutes', 'hours',  'days', 'weeks', 'months', 'years', 'decades');
-			foreach($keys1 as $key => $term) {
-				if(isset($abbreviate[$term])) $periodsSingular[$key] = $abbreviate[$term];
-			}
-			foreach($keys2 as $key => $term) {
-				if(isset($abbreviate[$term])) $periodsPlural[$key] = $abbreviate[$term];
-			}
-			if(isset($abbreviate['just now'])) $justNow = $abbreviate['just now']; 
-			if(isset($abbreviate['from now'])) $fromNow = $abbreviate['from now'];
-			if(isset($abbreviate['ago'])) $ago = $abbreviate['ago'];
-		}
-	}
-
-	
-	$lengths = array("60","60","24","7","4.35","12","10");
-	$now = time();
-	if(!ctype_digit("$ts")) $ts = strtotime($ts);
-	if(empty($ts)) return "";
-
-	// is it future date or past date
-	if($now > $ts) {    
-		$difference = $now - $ts;
-		$tense = $ago; 
-		$prepend = $prependAgo; 
-	} else {
-		$difference = $ts - $now;
-		$tense = $fromNow; 
-		$prepend = $prependFromNow; 
-	}
-	
-	if(!$useTense) {
-		$prepend = '';
-		$tense = '';
-	}
-
-	for($j = 0; $difference >= $lengths[$j] && $j < count($lengths)-1; $j++) {
-		$difference /= $lengths[$j];
-	}
-
-	$difference = round($difference);
-	if(!$difference) return $justNow; 
-	
-	$periods = $difference != 1 ? $periodsPlural : $periodsSingular; 
-	$period = $periods[$j];
-
-	// return sprintf('%s%d%s%s %s', $prepend, (int) $difference, $space, $period, $tense); // i.e. 2 days ago (d=qty, 2=period, 3=tense)
-	$quantity = $prepend . $difference . $space; 
-	$format = __('Q P T', __FILE__); // Relative time order: Q=Quantity, P=Period, T=Tense (i.e. 2 Days Ago)
-	$format = str_replace(array('Q', 'P', 'T'), array('{Q}', '{P}', '{T}'), $format); 
-	$out = str_replace(array('{Q}', '{P}', '{T}'), array(" $quantity", " $period", " $tense"), $format); 
-	if($abbreviate === 1) $out = str_replace(" ", "", $out); // no space when extra-abbreviate is active
-		else if(strpos($out, '  ') !== false) $out = preg_replace('/\s\s+/', ' ', $out); 
-	return trim($out); 
+	return wire('datetime')->relativeTimeStr($ts, $abbreviate, $useTense);
 }
 
 
@@ -791,65 +318,7 @@ function wireRelativeTimeStr($ts, $abbreviate = false, $useTense = true) {
  */
 
 function wireMail($to = '', $from = '', $subject = '', $body = '', $options = array()) { 
-
-	$mail = null; 
-	$modules = wire('modules'); 
-
-	// attempt to locate an installed module that overrides WireMail
-	foreach($modules as $module) {
-		$parents = wireClassParents("$module"); 
-		if(in_array('WireMail', $parents) && $modules->isInstalled("$module")) { 
-			$mail = wire('modules')->get("$module"); 
-			break;
-		}
-	}
-	// if no module found, default to WireMail
-	if(is_null($mail)) $mail = new WireMail(); 
-
-	// reset just in case module was not singular
-	$mail->to(); 
-
-	if(empty($to)) {
-		// use case #4: no arguments supplied, just return the WireMail object
-		return $mail;
-	}
-
-	$defaults = array(
-		'body' => $body, 
-		'bodyHTML' => '', 
-		'headers' => array(), 
-		); 
-
-	if(is_array($body)) {
-		// use case #2: body is provided in $options
-		$options = $body; 
-	} else if(is_string($options)) {
-		// use case #3: body and bodyHTML are provided, but no $options
-		$options = array('bodyHTML' => $options); 
-	} else {
-		// use case #1: default behavior
-	}
-		
-	$options = array_merge($defaults, $options); 
-
-	try {
-		// configure the mail
-		$mail->to($to)->from($from)->subject($subject)->body($options['body']); 
-		if(strlen($options['bodyHTML'])) $mail->bodyHTML($options['bodyHTML']); 
-		if(count($options['headers'])) foreach($options['headers'] as $k => $v) $mail->header($k, $v); 
-		// send along any options we don't recognize
-		foreach($options as $key => $value) {
-			if(!array_key_exists($key, $defaults)) $mail->$key = $value; 
-		}
-		$numSent = $mail->send(); 
-
-	} catch(\Exception $e) {
-		if(wire('config')->debug) $mail->error($e->getMessage());
-		$mail->trackException($e, false);
-		$numSent = 0;
-	}
-
-	return $numSent; 	
+	return wire('mail')->send($to, $from, $subject, $body, $options);
 }
 
 
@@ -962,14 +431,7 @@ function wirePopulateStringTags($str, $vars, array $options = array()) {
  * 
  */
 function wireTempDir($name, $options = array()) {
-	static $tempDirs = array();
-	if(isset($tempDirs[$name])) return $tempDirs[$name]; 
-	if(is_int($options)) $options = array('maxAge' => $options); 	
-	$basePath = isset($options['basePath']) ? $options['basePath'] : '';
-	$tempDir = new WireTempDir($name, $basePath); 
-	if(isset($options['maxAge'])) $tempDir->setMaxAge($options['maxAge']); 
-	$tempDirs[$name] = $tempDir; 
-	return $tempDir; 
+	return wire('files')->tempDir($name, $options);
 }
 
 /**
@@ -998,64 +460,7 @@ function wireTempDir($name, $options = array()) {
  * 
  */
 function wireRenderFile($filename, array $vars = array(), array $options = array()) {
-	
-	$paths = wire('config')->paths; 
-	$defaults = array(
-		'defaultPath' => $paths->templates, 
-		'autoExtension' => 'php', 
-		'allowedPaths' => array(
-			$paths->templates,
-			$paths->adminTemplates, 
-			$paths->modules,
-			$paths->siteModules
-			),
-		'allowDotDot' => false, 
-		'throwExceptions' => true, 
-		);
-	
-	$options = array_merge($defaults, $options); 
-	if(DIRECTORY_SEPARATOR != '/') $filename = str_replace(DIRECTORY_SEPARATOR, '/', $filename);
-	
-	// add .php extension if filename doesn't already have an extension
-	if($options['autoExtension'] && !strrpos(basename($filename), '.')) {
-		$filename .= "." . $options['autoExtension'];
-	}
-	
-	if(!$options['allowDotDot'] && strpos($filename, '..')) {
-		// make path relative to /site/templates/ if filename is not an absolute path
-		$error = 'Filename may not have ".."'; 
-		if($options['throwExceptions']) throw new WireException($error); 
-		wire()->error($error);
-		return false;
-	}
-	
-	if($options['defaultPath'] && strpos($filename, './') === 0) {
-		$filename = rtrim($options['defaultPath'], '/') . '/' . substr($filename, 2);
-		
-	} else if($options['defaultPath'] && strpos($filename, '/') !== 0) {
-		// filename is relative to defaultPath (typically /site/templates/)
-		$filename = rtrim($options['defaultPath'], '/') . '/' . $filename;
-		
-	} else if(strpos($filename, '/') !== false) {
-		// filename is absolute, make sure it's in a location we consider safe
-		$allowed = false;
-		foreach($options['allowedPaths'] as $path) {
-			if(strpos($filename, $path) === 0) $allowed = true;
-		}
-		if(!$allowed) {
-			$error = "Filename $filename is not in an allowed path."; 
-			if($options['throwExceptions']) throw new WireException($error); 
-			wire()->error($error); 
-			return false;
-		}
-	}
-	
-	// render file and return output
-	$t = new TemplateFile(); 
-	$t->setThrowExceptions($options['throwExceptions']);
-	$t->setFilename($filename);
-	foreach($vars as $key => $value) $t->set($key, $value);
-	return $t->render();
+	return wire('files')->render($filename, $vars, $options);
 }
 
 /**
@@ -1081,69 +486,7 @@ function wireRenderFile($filename, array $vars = array(), array $options = array
  * 
  */
 function wireIncludeFile($filename, array $vars = array(), array $options = array()) {
-
-	$paths = wire('config')->paths; 
-	$defaults = array(
-		'func' => 'include',
-		'autoExtension' => 'php', 
-		'allowedPaths' => array(
-			$paths->templates,
-			$paths->adminTemplates, 
-			$paths->modules,
-			$paths->siteModules
-		)
-	);
-	
-	$options = array_merge($defaults, $options); 
-	$filename = trim($filename);
-	if(DIRECTORY_SEPARATOR != '/') $filename = str_replace(DIRECTORY_SEPARATOR, '/', $filename);
-	
-	// add .php extension if filename doesn't already have an extension
-	if($options['autoExtension'] && !strrpos(basename($filename), '.')) {
-		$filename .= "." . $options['autoExtension']; 
-	}
-	
-	if(strpos($filename, '..') !== false) {
-		// if backtrack/relative components, convert to real path
-		$_filename = $filename; 
-		$filename = realpath($filename); 
-		if($filename === false) throw new WireException("File does not exist: $_filename"); 
-	}
-	
-	if(strpos($filename, '//') !== false) {
-		throw new WireException("File is not allowed (double-slash): $filename"); 
-	}
-
-	if(strpos($filename, './') !== 0) {
-		// file does not specify "current directory"
-		$slashPos = strpos($filename, '/');
-		// If no absolute path specified, ensure it only looks in current directory
-		if($slashPos !== 0 && strpos($filename, ':/') === false) $filename = "./$filename";
-	}
-	
-	if(strpos($filename, '/') === 0 || strpos($filename, ':/') !== false) {
-		// absolute path, make sure it's part of PW's installation
-		$allowed = false;
-		foreach($options['allowedPaths'] as $path) {
-			if(strpos($filename, $path) === 0) $allowed = true; 	
-		}
-		if(!$allowed) throw new WireException("File is not in an allowed path: $filename"); 
-	}
-	
-	if(!file_exists($filename)) throw new WireException("File does not exist: $filename"); 
-	
-	// extract all API vars
-	$fuel = array_merge(wire('fuel')->getArray(), $vars); 
-	extract($fuel);
-
-	// include the file
-	$func = $options['func'];
-	if($func == 'require') require($filename);
-		else if($func == 'require_once') require_once($filename);
-		else if($func == 'include_once') include_once($filename);
-		else include($filename);
-	
-	return true; 
+	return wire('files')->include($filename, $vars, $options);
 }
 
 /**
@@ -1171,34 +514,7 @@ function wireIncludeFile($filename, array $vars = array(), array $options = arra
  * 
  */
 function wireDate($format = '', $ts = null) {
-	if(is_null($ts)) {
-		// ts not specified, or it was specified in $format
-		if(ctype_digit("$format")) {
-			// ts specified in format
-			$ts = (int) $format;
-			$format = '';
-		} else {
-			// use current timestamp
-			$ts = time();
-		}
-	} else if(is_string($ts) && ctype_digit("$ts")) {
-		// ts is a digit string, convert to integer
-		$ts = (int) $ts; 
-	} else if(is_string($ts)) {
-		// ts is a non-integer string, we assume to be a strtotime() compatible formatted date
-		$ts = strtotime($ts);
-	}
-	if($format == '') $format = wire('config')->dateFormat;
-	if($format == 'relative') $value = wireRelativeTimeStr($ts);
-		else if($format == 'relative-') $value = wireRelativeTimeStr($ts, false, false); 
-		else if($format == 'rel') $value = wireRelativeTimeStr($ts, true);
-		else if($format == 'rel-') $value = wireRelativeTimeStr($ts, true, false);
-		else if($format == 'r') $value = wireRelativeTimeStr($ts, 1);
-		else if($format == 'r-') $value = wireRelativeTimeStr($ts, 1, false); 
-		else if($format == 'ts') $value = $ts;
-		else if(strpos($format, '%') !== false) $value = strftime($format, $ts); 
-		else $value = date($format, $ts); 
-	return $value;
+	return wire('datetime')->date($format, $ts);
 }
 
 
@@ -1362,8 +678,12 @@ function wireMethodExists($className, $method) {
  *
  */
 function wireClassImplements($className, $autoload = true) {
-	if(!is_object($className)) $className = wireClassName($className, true);
-	$implements = @class_implements(ltrim($className, "\\"), $autoload);
+	if(is_object($className)) {
+		$implements = @class_implements($className, $autoload);
+	} else {
+		$className = wireClassName($className, true);
+		$implements = @class_implements(ltrim($className, "\\"), $autoload);
+	}
 	$a = array();
 	if(is_array($implements)) foreach($implements as $k => $v) {
 		$v = wireClassName($k, false);
@@ -1381,8 +701,12 @@ function wireClassImplements($className, $autoload = true) {
  *
  */
 function wireClassParents($className, $autoload = true) {
-	if(!is_object($className)) $className = wireClassName($className, true);
-	$parents = class_parents(ltrim($className, "\\"), $autoload);
+	if(is_object($className)) {
+		$parents = class_parents($className, $autoload);
+	} else {
+		$className = wireClassName($className, true);
+		$parents = class_parents(ltrim($className, "\\"), $autoload);
+	}
 	$a = array();
 	if(is_array($parents)) foreach($parents as $k => $v) {
 		$v = wireClassName($k, false);

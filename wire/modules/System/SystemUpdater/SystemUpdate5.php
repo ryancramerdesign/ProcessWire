@@ -109,7 +109,7 @@ class SystemUpdate5 extends SystemUpdate {
 
 		$lister = $page->child("name=lister, include=all"); 
 		if(!$lister->id) {
-			$lister = new Page();
+			$lister = $this->wire(new Page());
 			$lister->template = 'admin';
 			$lister->parent = $page;
 			$lister->name = 'lister';

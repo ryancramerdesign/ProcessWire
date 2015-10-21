@@ -62,7 +62,8 @@ class PagesType extends Wire implements \IteratorAggregate, \Countable {
 	 * @param int|Page|array $parents Parent ID or array of parent IDs (may also be Page or array of Page objects)
 	 *
 	 */
-	public function __construct($templates = array(), $parents = array()) {
+	public function __construct(ProcessWire $wire, $templates = array(), $parents = array()) {
+		$this->setWire($wire);
 		$this->addTemplates($templates);
 		$this->addParents($parents); 
 	}
@@ -335,8 +336,10 @@ class PagesType extends Wire implements \IteratorAggregate, \Countable {
 		
 		$parent = $this->getParent();
 
-		$page = $this->wire('pages')->newPage(array('pageClass' => $className)); 
-		$page->template = $this->template; 
+		$page = $this->wire('pages')->newPage(array(
+			'pageClass' => $className,
+			'template' => $this->template
+		)); 
 		$page->parent = $parent; 
 		$page->name = $name; 
 		$page->sort = $parent->numChildren; 

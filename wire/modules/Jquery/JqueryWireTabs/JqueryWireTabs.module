@@ -32,14 +32,14 @@ class JqueryWireTabs extends ModuleJS implements ConfigurableModule {
 			)); 
 	}
 
-	public static function getModuleConfigInputfields(array $data) {
-		$inputfields = new InputfieldWrapper();
-		$f = wire('modules')->get('InputfieldRadios'); 
+	public function getModuleConfigInputfields(array $data) {
+		$inputfields = $this->wire(new InputfieldWrapper());
+		$f = $this->wire('modules')->get('InputfieldRadios'); 
 		$f->attr('name', 'rememberTabs'); 
-		$f->label = __('Remember tab positions between requests?', __FILE__);
-		$f->addOption(self::rememberTabsNever, __('Never', __FILE__)); 
-		$f->addOption(self::rememberTabsSubmit, __('Only after form submit', __FILE__)); 
-		$f->addOption(self::rememberTabsAlways, __('Always', __FILE__)); 
+		$f->label = $this->_('Remember tab positions between requests?');
+		$f->addOption(self::rememberTabsNever, $this->_('Never'));
+		$f->addOption(self::rememberTabsSubmit, $this->_('Only after form submit'));
+		$f->addOption(self::rememberTabsAlways, $this->_('Always'));
 		$f->attr('value', (isset($data['rememberTabs']) ? (int) $data['rememberTabs'] : self::rememberTabsSubmit)); 
 		$inputfields->add($f);
 		return $inputfields; 

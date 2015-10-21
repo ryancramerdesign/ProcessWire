@@ -9,6 +9,9 @@
  * provide information about what properties can be selected, what operators, are used,
  * and so on. In the future this class will likely come in handy in providing selector
  * validation and improved help and error messaging when building/testing selectors. 
+ * 
+ * This file is licensed under the MIT license
+ * https://processwire.com/about/license/mit/
  *
  * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
  * https://processwire.com

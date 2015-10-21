@@ -216,9 +216,9 @@ class MarkupRSS extends WireData implements Module, ConfigurableModule {
 	 * Provide fields for configuring this module
 	 *
 	 */
-	static public function getModuleConfigInputfields(array $data) {
+	public function getModuleConfigInputfields(array $data) {
 
-		$inputfields = new InputfieldWrapper();
+		$inputfields = $this->wire(new InputfieldWrapper());
 		$inputfields->description = 
 			"Select the default options for any given feed. Each of these may be overridden in the API, " . 
 			"so the options you select below should be considered defaults, unless you only have 1 feed. " . 
@@ -228,73 +228,73 @@ class MarkupRSS extends WireData implements Module, ConfigurableModule {
 			if(!isset($data[$key])) $data[$key] = $value; 
 		}
 
-		$f = wire('modules')->get('InputfieldText');
+		$f = $this->wire('modules')->get('InputfieldText');
 		$f->attr('name', 'title');
 		$f->attr('value', $data['title']);
 		$f->label = "Default Feed Title";
 		$inputfields->add($f);
 
-		$f = wire('modules')->get('InputfieldURL');
+		$f = $this->wire('modules')->get('InputfieldURL');
 		$f->attr('name', 'url');
 		$f->attr('value', $data['url']);
 		$f->label = "Default Feed URL";
 		$f->description = "The URL on your site that serves as a feed index. May also be left blank.";
 		$inputfields->add($f);
 
-		$f = wire('modules')->get('InputfieldText');
+		$f = $this->wire('modules')->get('InputfieldText');
 		$f->attr('name', 'description');
 		$f->attr('value', $data['description']);
 		$f->label = "Default Feed Description";
 		$f->description = "The default description for a feed. May also be left blank.";
 		$inputfields->add($f);
 
-		$f = wire('modules')->get('InputfieldURL');
+		$f = $this->wire('modules')->get('InputfieldURL');
 		$f->attr('name', 'xsl');
 		$f->attr('value', $data['xsl']);
 		$f->label = "Default Link to XSL Stylesheet";
 		$f->description = "Optional URL/link to an XSL stylesheet. Default is none.";
 		$inputfields->add($f);
 
-		$f = wire('modules')->get('InputfieldURL');
+		$f = $this->wire('modules')->get('InputfieldURL');
 		$f->attr('name', 'css');
 		$f->attr('value', $data['css']);
 		$f->label = "Default Link to CSS Stylesheet";
 		$f->description = "Optional URL/link to a CSS stylesheet. Default is none.";
 		$inputfields->add($f);
 
-		$f = wire('modules')->get('InputfieldText');
+		$f = $this->wire('modules')->get('InputfieldText');
 		$f->attr('name', 'copyright');
 		$f->attr('value', $data['copyright']);
 		$f->label = "Default Feed Copyright";
 		$f->description = "The default copyright statement for a feed. Default is blank.";
 		$inputfields->add($f);
 
-		$f = wire('modules')->get('InputfieldInteger');
+		$f = $this->wire('modules')->get('InputfieldInteger');
 		$f->attr('name', 'ttl');
 		$f->attr('value', (int) $data['ttl']);
 		$f->label = "Default Feed TTL";
 		$f->description = "TTL stands for \"time to live\" in minutes. It indicates how long a channel can be cached before refreshing from the source. Default is 60.";
 		$inputfields->add($f);
 
-		$f1 = wire('modules')->get('InputfieldSelect');
+		$f1 = $this->wire('modules')->get('InputfieldSelect');
 		$f1->attr('name', 'itemTitleField');
 		$f1->attr('value', $data['itemTitleField']);
 		$f1->label = "Default Feed Item Title Field";
 		$f1->description = "The default field to use as an individual feed item's title.";
 
-		$f2 = wire('modules')->get('InputfieldSelect');
+		$f2 = $this->wire('modules')->get('InputfieldSelect');
 		$f2->attr('name', 'itemDescriptionField');
 		$f2->attr('value', $data['itemDescriptionField']);
 		$f2->label = "Default Feed Item Description Field";
 		$f2->description = "The default field to use as an individual feed item's description (typically a summary or body field).";
 
-		$f2a = wire('modules')->get('InputfieldInteger');
+		$f2a = $this->wire('modules')->get('InputfieldInteger');
 		$f2a->attr('name', 'itemDescriptionLength');
 		$f2a->attr('value', (int) $data['itemDescriptionLength']);
 		$f2a->label = "Maxmum Characters for Item Description Field";
 		$f2a->description = "The item description will be truncated to be no longer than the max length provided. Specify '0' for no max length. When there is no max length, markup tags will not be stripped.";
 
-		$f3 = wire('modules')->get('InputfieldSelect');
+		$f3 = $this->wire('modules')->get('InputfieldSelect');
 		$f3->attr('name', 'itemDateField');
 		$f3->attr('value', $data['itemDateField']);
 		$f3->label = "Default Feed Item Date Field";
@@ -303,7 +303,7 @@ class MarkupRSS extends WireData implements Module, ConfigurableModule {
 		$f3->addOption('modified');
 		$f3->addOption('published');
 
-		foreach(wire('fields') as $field) {
+		foreach($this->wire('fields') as $field) {
 
 			if($field->type instanceof FieldtypeText) {
 				$f1->addOption($field->name); 

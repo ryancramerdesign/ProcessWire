@@ -205,29 +205,29 @@ class SystemUpdater extends WireData implements Module, ConfigurableModule {
 	 * Required for ConfigurableModule interface
 	 *
 	 */
-	public static function getModuleConfigInputfields(array $data) {
+	public function getModuleConfigInputfields(array $data) {
 		
-		$inputfields = new InputfieldWrapper();
+		$inputfields = $this->wire(new InputfieldWrapper());
 
-		$logfile = wire('config')->paths->logs . 'system-updater.txt';
+		$logfile = $this->wire('config')->paths->logs . 'system-updater.txt';
 		if(is_file($logfile)) {
-			$f = wire('modules')->get('InputfieldMarkup'); 	
+			$f = $this->wire('modules')->get('InputfieldMarkup'); 	
 			$f->attr('name', '_log'); 
-			$f->label = __('System Update Log'); 
-			$f->value = '<pre>' . wire('sanitizer')->entities(file_get_contents($logfile)) . '</pre>';
+			$f->label = $this->_('System Update Log'); 
+			$f->value = '<pre>' . $this->wire('sanitizer')->entities(file_get_contents($logfile)) . '</pre>';
 			$inputfields->add($f); 
 		}
 		
-		$f = wire('modules')->get('InputfieldInteger'); 
+		$f = $this->wire('modules')->get('InputfieldInteger'); 
 		$f->attr('name', 'systemVersion'); 
-		$f->label = __('System Version'); 
-		$f->description = __('This lets you re-apply a system version update by reducing the version number.');
+		$f->label = $this->_('System Version'); 
+		$f->description = $this->_('This lets you re-apply a system version update by reducing the version number.');
 		$f->attr('value', $data['systemVersion']); 
 		$inputfields->add($f);
 	
-		$f = wire('modules')->get('InputfieldHidden');
+		$f = $this->wire('modules')->get('InputfieldHidden');
 		$f->attr('name', 'coreVersion');
-		$f->attr('value', wire('config')->version);
+		$f->attr('value', $this->wire('config')->version);
 		$inputfields->add($f);
 
 		return $inputfields;

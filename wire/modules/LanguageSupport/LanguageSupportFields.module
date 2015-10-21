@@ -80,12 +80,12 @@ class LanguageSupportFields extends WireData implements Module {
 		$languageNames = array();
 		$fieldNames = array(); 
 
-		foreach(wire('languages') as $language) {
+		foreach($this->wire('languages') as $language) {
 			$languageNames[] = $language->name; 
 		}
 
 		// keep track of which fields are multilanguage
-		foreach(wire('fields') as $field) {
+		foreach($this->wire('fields') as $field) {
 			if($field->type instanceof FieldtypeLanguageInterface) {
 				$this->multilangFields[] = $field->name; 	
 			}
@@ -340,8 +340,7 @@ class LanguageSupportFields extends WireData implements Module {
 		$field = $event->arguments[1];
 		$value = $event->return; 
 		if($value instanceof LanguagesPageFieldValue) return; 
-		$v = $this->wire(new LanguagesPageFieldValue($value)); 
-		$v->setField($field); 
+		$v = new LanguagesPageFieldValue($page, $field, $value); 
 		$event->return = $v;
 	}
 
@@ -362,7 +361,7 @@ class LanguageSupportFields extends WireData implements Module {
 			$value->setField($field); 
 			// good
 		} else if(is_array($value)) {
-			$value = $this->wire(new LanguagesPageFieldValue($value)); 
+			$value = new LanguagesPageFieldValue($page, $field, $value); 
 			$value->setTrackChanges(true); 
 			$value->setField($field); 
 			$event->return = $value;
@@ -386,7 +385,7 @@ class LanguageSupportFields extends WireData implements Module {
 
 		if(!$value instanceof LanguagesPageFieldValue) return;
 
-		foreach(wire('languages') as $language) {
+		foreach($this->wire('languages') as $language) {
 			if($language->isDefault()) $key = 'data';
 				else $key = 'data' . $language->id; 
 			$values[$key] = $value->getLanguageValue($language->id); 
@@ -508,7 +507,7 @@ class LanguageSupportFields extends WireData implements Module {
 	public function ___uninstall() {
 		// first check if there are any fields using the LanguageInterface
 		$errors = '';
-		foreach(wire('fields') as $field) {
+		foreach($this->wire('fields') as $field) {
 			if($field->type instanceof FieldtypeLanguageInterface) $errors .= $field->name . ", "; 
 		}
 		if($errors) throw new WireException("Can't uninstall because these fields use the language interface: " . rtrim($errors, ", ")); 

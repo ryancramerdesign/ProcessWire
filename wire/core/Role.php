@@ -19,9 +19,9 @@ class Role extends Page {
 	 *
 	 */
 	public function __construct(Template $tpl = null) {
-		if(is_null($tpl)) $tpl = $this->getPredefinedTemplate();
-		$this->parent = $this->getPredefinedParent();
 		parent::__construct($tpl); 
+		if(is_null($tpl)) $this->template = $this->getPredefinedTemplate();
+		$this->parent = $this->getPredefinedParent();
 	}
 
 	/**

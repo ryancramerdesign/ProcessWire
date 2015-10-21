@@ -1126,22 +1126,22 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 	 * Module configuration screen
 	 *
 	 */
-	public static function getModuleConfigInputfields(array $data) {
+	public function getModuleConfigInputfields(array $data) {
 
-		$inputfields = new InputfieldWrapper();
-		$inputfield = wire('modules')->get('InputfieldCheckbox'); 
+		$inputfields = $this->wire(new InputfieldWrapper());
+		$inputfield = $this->wire('modules')->get('InputfieldCheckbox'); 
 		$inputfield->attr('name', '_clean'); 
 		$inputfield->attr('value', 1); 
-		$inputfield->label = __('Find and clean orphaned page references'); 
-		$inputfield->description = __('This cleans up for an issue in older versions of ProcessWire that could leave orphaned page references for deleted pages. If you are getting inaccurate results from page finding operations (especially with selectors using pageref.count), then you may want to run this.'); // Find and clean description
+		$inputfield->label = $this->_('Find and clean orphaned page references'); 
+		$inputfield->description = $this->_('This cleans up for an issue in older versions of ProcessWire that could leave orphaned page references for deleted pages. If you are getting inaccurate results from page finding operations (especially with selectors using pageref.count), then you may want to run this.'); // Find and clean description
 		$inputfield->icon = 'eraser';
 		$inputfield->collapsed = Inputfield::collapsedYes; 
-		$inputfield->notes = __('Warning: To be safe you should back-up your database before running this.'); // Find and clean notes
+		$inputfield->notes = $this->_('Warning: To be safe you should back-up your database before running this.'); // Find and clean notes
 		$inputfields->add($inputfield); 
 
-		if(wire('input')->post('_clean')) {
-			wire()->message(__('Finding and cleaning...')); 
-			wire('fieldtypes')->get('FieldtypePage')->cleanOrphanedReferences();
+		if($this->wire('input')->post('_clean')) {
+			$this->message($this->_('Finding and cleaning...')); 
+			$this->wire('fieldtypes')->get('FieldtypePage')->cleanOrphanedReferences();
 		}
 
 		return $inputfields;

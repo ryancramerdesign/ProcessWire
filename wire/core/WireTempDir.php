@@ -38,12 +38,12 @@ class WireTempDir extends Wire {
 		} else {
 			// we provide base path (root)
 			$basePath = $this->wire('config')->paths->cache;
-			if(!is_dir($basePath)) wireMkdir($basePath);
+			if(!is_dir($basePath)) $this->wire('files')->mkdir($basePath);
 		}
 		
 		$basePath .= wireClassName($this, false) . '/';
 		$this->classRoot = $basePath; 
-		if(!is_dir($basePath)) wireMkdir($basePath); 
+		if(!is_dir($basePath)) $this->wire('files')->mkdir($basePath); 
 		
 		$this->tempDirRoot = $basePath . ".$name/";
 	}
@@ -98,15 +98,15 @@ class WireTempDir extends Wire {
 				// check if we can remove existing temp dir
 				$time = filemtime($tempDir);
 				if($time < time() - $this->tempDirMaxAge) { // dir is old and can be removed
-					if(wireRmdir($tempDir, true)) $exists = false;
+					if($this->wire('files')->rmdir($tempDir, true)) $exists = false;
 				}
 			}
 		} while($exists);
 
 		// create temp dir
-		if(!wireMkdir($tempDir, true)) {
+		if(!$this->wire('files')->mkdir($tempDir, true)) {
 			clearstatcache();
-			if(!is_dir($tempDir) && !wireMkdir($tempDir, true)) {
+			if(!is_dir($tempDir) && !$this->wire('files')->mkdir($tempDir, true)) {
 				throw new WireException($this->_('Unable to create temp dir') . " - $tempDir");
 			}
 		}

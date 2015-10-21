@@ -1274,63 +1274,63 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 	 * @return InputfieldWrapper
 	 * 
 	 */
-	static public function getModuleConfigInputfields(array $data) {
-		$inputfields = new InputfieldWrapper();
+	public function getModuleConfigInputfields(array $data) {
+		$inputfields = $this->wire(new InputfieldWrapper());
 		$data = array_merge(self::$defaultConfig, $data); 
 		
-		$f = wire('modules')->get('InputfieldCheckbox'); 
+		$f = $this->wire('modules')->get('InputfieldCheckbox'); 
 		$f->attr('name', 'hidpiDefault'); 
-		$f->label = __('HiDPI/Retina checkbox default checked?'); 
-		$f->description = __('Check this box to have the HiDPI/Retina checkbox checked by default for newly inserted images.'); 
+		$f->label = $this->_('HiDPI/Retina checkbox default checked?'); 
+		$f->description = $this->_('Check this box to have the HiDPI/Retina checkbox checked by default for newly inserted images.'); 
 		if(!empty($data['hidpiDefault'])) $f->attr('checked', 'checked'); 
 		$f->columnWidth = 50;
 		$inputfields->add($f); 
 		
-		$f = wire('modules')->get('InputfieldCheckbox'); 
+		$f = $this->wire('modules')->get('InputfieldCheckbox'); 
 		$f->attr('name', 'noThumbs'); 
-		$f->label = __('Do not generate thumbnail images'); 
-		$f->description = __('When checked, image selection will use full-size images rather than thumbnail images.'); 
+		$f->label = $this->_('Do not generate thumbnail images'); 
+		$f->description = $this->_('When checked, image selection will use full-size images rather than thumbnail images.'); 
 		if(!empty($data['noThumbs'])) $f->attr('checked', 'checked');
 		$f->columnWidth = 50;
 		$inputfields->add($f); 
 
-		$f = wire('modules')->get('InputfieldText'); 
+		$f = $this->wire('modules')->get('InputfieldText'); 
 		$f->attr('name', 'skipFields'); 
 		$f->attr('value', isset($data['skipFields']) ? $data['skipFields'] : ''); 
-		$f->label = __('Field names to skip for selection'); 
-		$f->description = __('Enter the names of any image fields (separated by a space) that you do not want to allow for selection with this module.'); 
+		$f->label = $this->_('Field names to skip for selection'); 
+		$f->description = $this->_('Enter the names of any image fields (separated by a space) that you do not want to allow for selection with this module.'); 
 		$inputfields->add($f); 
 
-		$f = wire('modules')->get('InputfieldCheckbox');
+		$f = $this->wire('modules')->get('InputfieldCheckbox');
 		$f->attr('name', 'noSizeAttrs'); 
 		$f->attr('value', 1);
 		if(!empty($data['noSizeAttrs'])) $f->attr('checked', 'checked');
-		$f->label = __('Skip width attributes on image tags?', __FILE__); // noSizeAttr label
-		$f->description = __('By default, this module will include width attributes in the <img> tag. If you are using responsive images, you might want to disable this behavior. Check the box to disable width and height attributes.', __FILE__); // noSizeAttr description
-		$f->notes = __('We do not recommend checking this box as it will interfere with some features (like use of HiDPI/retina images).'); 
+		$f->label = $this->_('Skip width attributes on image tags?', __FILE__); // noSizeAttr label
+		$f->description = $this->_('By default, this module will include width attributes in the <img> tag. If you are using responsive images, you might want to disable this behavior. Check the box to disable width and height attributes.', __FILE__); // noSizeAttr description
+		$f->notes = $this->_('We do not recommend checking this box as it will interfere with some features (like use of HiDPI/retina images).'); 
 		$inputfields->add($f);
 
-		$notes = __('Recommended value:') . ' ';
-		$f = wire('modules')->get('InputfieldText'); 
+		$notes = $this->_('Recommended value:') . ' ';
+		$f = $this->wire('modules')->get('InputfieldText'); 
 		$f->attr('name', 'alignLeftClass');
 		$f->attr('value', $data['alignLeftClass']); 
-		$f->label = __('Align Image Left Class'); 
+		$f->label = $this->_('Align Image Left Class'); 
 		$f->notes = $notes . '**align_left**';
 		$f->columnWidth = 33; 
 		$inputfields->add($f);
 		
-		$f = wire('modules')->get('InputfieldText'); 
+		$f = $this->wire('modules')->get('InputfieldText'); 
 		$f->attr('name', 'alignCenterClass');
 		$f->attr('value', $data['alignCenterClass']); 
-		$f->label = __('Align Image Center Class');
+		$f->label = $this->_('Align Image Center Class');
 		$f->notes = $notes . '**align_center**';
 		$f->columnWidth = 34; 
 		$inputfields->add($f);
 		
-		$f = wire('modules')->get('InputfieldText');
+		$f = $this->wire('modules')->get('InputfieldText');
 		$f->attr('name', 'alignRightClass');
 		$f->attr('value', $data['alignRightClass']);
-		$f->label = __('Align Image Right Class');
+		$f->label = $this->_('Align Image Right Class');
 		$f->notes = $notes . '**align_right**';
 		$f->columnWidth = 33;
 		$inputfields->add($f);

@@ -115,7 +115,6 @@ class PageFinder extends Wire {
 	 *
 	 */
 	public function __construct() {
-		$this->fieldgroups = $this->wire('fieldgroups'); 
 	}
 
 	/**
@@ -257,6 +256,7 @@ class PageFinder extends Wire {
 	 */
 	public function ___find(Selectors $selectors, $options = array()) {
 
+		$this->fieldgroups = $this->wire('fieldgroups'); 
 		$options = array_merge($this->defaultOptions, $options); 
 
 		$this->start = 0; // reset for new find operation
@@ -856,7 +856,7 @@ class PageFinder extends Wire {
 		static $where2 = null;
 		static $leftjoin = null;
 		
-		$hasWhereHook = self::isHooked('PageFinder::getQueryAllowedTemplatesWhere()');
+		$hasWhereHook = $this->wire('hooks')->isHooked('PageFinder::getQueryAllowedTemplatesWhere()');
 
 		// if a template was specified in the search, then we won't attempt to verify access
 		// if($this->templates_id) return; 

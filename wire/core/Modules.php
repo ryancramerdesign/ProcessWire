@@ -235,7 +235,6 @@ class Modules extends WireArray {
 	 *
 	 */
 	public function __construct($path) {
-		$this->compat2x = (bool) $this->wire('config')->compat2x;
 		$this->addPath($path); 
 	}
 
@@ -279,6 +278,7 @@ class Modules extends WireArray {
 	 * 
 	 */
 	public function init() {
+		$this->compat2x = (bool) $this->wire('config')->compat2x;
 		$this->setTrackChanges(false);
 		$this->loadModuleInfoCache();
 		$this->loadModulesTable();
@@ -430,7 +430,7 @@ class Modules extends WireArray {
 		
 		try {
 			$module = $this->wire(new $className());
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			$this->error(sprintf($this->_('Failed to construct module: %s'), $className) . " - " . $e->getMessage());
 			$module = null;
 		}
@@ -493,7 +493,7 @@ class Modules extends WireArray {
 	
 			try {
 				$module->init();
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 				$this->error(sprintf($this->_('Failed to init module: %s'), $moduleName) . " - " . $e->getMessage());
 				$result = false;
 			}
@@ -526,7 +526,7 @@ class Modules extends WireArray {
 			if($this->debug) $debugKey = $this->debugTimerStart("readyModule(" . $module->className() . ")"); 
 			try {
 				$module->ready();
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 				$this->error(sprintf($this->_('Failed to ready module: %s'), $module->className()) . " - " . $e->getMessage());
 				$result = false;
 			}
@@ -1022,6 +1022,7 @@ class Modules extends WireArray {
 	 *  - noInstall: Specify true to prevent a non-installed module from installing from this request.
 	 *  - noInit: Specify true to prevent the module from being initialized. 
 	 *  - noSubstitute: Specify true to prevent inclusion of a substitute module. 
+	 * 	- noCache: Specify true to prevent module instance from being cached for later getModule() calls.
 	 * @return Module|null
 	 * @throws WirePermissionException If module requires a particular permission the user does not have
 	 *
@@ -1060,7 +1061,7 @@ class Modules extends WireArray {
 				if($module instanceof ModulePlaceholder) $this->includeModule($module);
 				$module = $this->newModule($class);
 				// if singular, save the instance so it can be used in later calls
-				if($module && $this->isSingular($module)) $this->set($key, $module);
+				if($module && $this->isSingular($module) && empty($options['noCache'])) $this->set($key, $module);
 				$needsInit = true;
 			}
 
@@ -1764,9 +1765,9 @@ class Modules extends WireArray {
 		}
 
 		// remove all hooks attached to other ProcessWire objects
-		$hooks = array_merge($this->wire()->getHooks('*'), Wire::$allLocalHooks);
+		$hooks = array_merge($this->getHooks('*'), $this->wire('hooks')->getAllLocalHooks());
 		foreach($hooks as $hook) {
-			$toClass = wireClasName($hook['toObject'], false);
+			$toClass = wireClassName($hook['toObject'], false);
 			$toMethod = $hook['toMethod'];
 			if($class === $toClass && $toMethod != 'uninstall') {
 				$hook['toObject']->removeHook($hook['id']);
@@ -2914,7 +2915,7 @@ class Modules extends WireArray {
 		if(!$configurable) return null;
 		
 		if(is_null($form)) $form = $this->wire(new InputfieldWrapper());
-		$data = $this->modules->getModuleConfigData($moduleName);
+		$data = $this->getModuleConfigData($moduleName);
 		
 		// check for configurable module interface
 		$configurableInterface = $this->isConfigurableModule($moduleName, "interface");
@@ -2922,22 +2923,25 @@ class Modules extends WireArray {
 			if(is_int($configurableInterface) && $configurableInterface > 1 && $configurableInterface < 20) {
 				// non-static 
 				/** @var ConfigurableModule $module */
-				$module = $this->getModule($moduleName);
 				if($configurableInterface === 2) {
 					// requires no arguments
+					$module = $this->getModule($moduleName);
 					$fields = $module->getModuleConfigInputfields();
 				} else if($configurableInterface === 3) {
 					// requires $data array
+					$module = $this->getModule($moduleName, array('noInit' => true, 'noCache' => true));
 					$fields = $module->getModuleConfigInputfields($data);
 				} else if($configurableInterface === 4) {
 					// requires InputfieldWrapper
 					// we allow for option of no return statement in the method
+					$module = $this->getModule($moduleName);
 					$fields = $this->wire(new InputfieldWrapper());
 					$_fields = $module->getModuleConfigInputfields($fields);
 					if($_fields instanceof InputfieldWrapper) $fields = $_fields;
 					unset($_fields);
 				} else if($configurableInterface === 19) {
 					// non-static getModuleConfigArray method
+					$module = $this->getModule($moduleName);
 					$fields = $this->wire(new InputfieldWrapper());
 					$fields->importArray($module->getModuleConfigArray());
 					$fields->populateValues($module);

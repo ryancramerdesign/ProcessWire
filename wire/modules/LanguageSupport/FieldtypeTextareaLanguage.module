@@ -33,7 +33,7 @@ class FieldtypeTextareaLanguage extends FieldtypeTextarea implements FieldtypeLa
 			// convert it to a LanguagesPageFieldValue
 			$str = (string) $value; 
 			$value = $page->getUnformatted($field->name);
-			if(is_string($value)) $value = $this->wire(new LanguagesPageFieldValue($value)); // #98
+			if(is_string($value)) $value = new LanguagesPageFieldValue($page, $field, $value); // #98
 			$value->setLanguageValue($this->wire('user')->language->id, $str); 
 		}
 		return $value; 

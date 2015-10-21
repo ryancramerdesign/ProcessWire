@@ -80,7 +80,7 @@ class MarkupHTMLPurifier extends WireData implements Module {
 	 */
 	protected function getCachePath()  {
 		$cachePath = $this->wire('config')->paths->cache . $this->className() . '/';
-		if(!is_dir($cachePath)) wireMkdir($cachePath); 
+		if(!is_dir($cachePath)) $this->wire('files')->mkdir($cachePath); 
 		return $cachePath;
 	}
 

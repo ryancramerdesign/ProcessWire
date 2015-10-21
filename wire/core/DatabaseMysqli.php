@@ -8,6 +8,9 @@
  * actually instantiating mysqli (and forming a mysql connection) until the $db
  * variable is called upon to do something.
  * 
+ * This file is licensed under the MIT license
+ * https://processwire.com/about/license/mit/
+ * 
  */
 
 class DatabaseMysqli {

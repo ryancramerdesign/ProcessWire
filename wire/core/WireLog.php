@@ -118,6 +118,28 @@ class WireLog extends Wire {
 	}
 
 	/**
+	 * Log a deprecated method call to deprecated.txt log
+	 * 
+	 * This should be called directly from a deprecated method or function. 
+	 * 
+	 */
+	public function deprecatedCall() {
+		if(!$this->wire('config')->debug) return;
+		$backtrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
+		array_shift($backtrace);
+		$a = array_shift($backtrace);
+		$b = array_shift($backtrace);
+		$info = "Deprecated call: $a[class].$a[function]() ";
+		if(!empty($b['class'])) {
+			$info .= "from class $b[class].$b[function]() line $b[line]";
+		} else if(strpos($b['file'], 'TemplateFile.php') === false) {
+			$info .= "from file $b[file] line $b[line]";
+		}
+		$this->save('deprecated', $info);
+		$this->warning($info);
+	}
+
+	/**
 	 * Return array of all logs
 	 * 
 	 * Each log entry is an array that includes the following:

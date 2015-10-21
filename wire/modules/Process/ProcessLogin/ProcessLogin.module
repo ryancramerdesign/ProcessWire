@@ -108,7 +108,7 @@ class ProcessLogin extends Process {
 	 *
 	 */
 	public function ___execute() {
-
+		
 		if($this->user->isLoggedin()) {
 			if($this->loginURL) $this->wire('session')->redirect($this->loginURL); 
 			$this->message($this->_("You are logged in.")); 
@@ -131,12 +131,12 @@ class ProcessLogin extends Process {
 			$this->beforeLoginChecks();
 		}
 
-		if(!$this->nameField->value || !$this->passField->value) {
+		if(!$this->nameField->attr('value') || !$this->passField->attr('value')) {
 			return $this->renderLoginForm();
 		}
 
-		$name = $this->wire('sanitizer')->username($this->nameField->value); 
-		$pass = substr($this->passField->value, 0, 128); 
+		$name = $this->wire('sanitizer')->username($this->nameField->attr('value')); 
+		$pass = substr($this->passField->attr('value'), 0, 128); 
 	
 		if($this->wire('session')->login($name, $pass)) {
 			$this->session->message($name . ' - ' . $this->_("Successful login")); 
@@ -150,6 +150,7 @@ class ProcessLogin extends Process {
 		} else {
 			$this->error($name . " - " . $this->_("Login failed")); 
 		}
+		$this->message('hello');
 
 		return $this->renderLoginForm();
 
@@ -194,7 +195,7 @@ class ProcessLogin extends Process {
 			$error = '';
 			
 			if(!file_exists($path)) {
-				wireMkdir($path);
+				$this->wire('files')->mkdir($path);
 				clearstatcache();
 				if(file_exists($path)) {
 					$this->wire('log')->message("Created session path $path"); 
@@ -206,7 +207,7 @@ class ProcessLogin extends Process {
 			} 
 			
 			if(!is_writable($path)) {
-				wireChmod($path);
+				$this->wire('files')->chmod($path);
 				clearstatcache();
 				if(is_writable($path)) {
 					$this->wire('log')->message("Updated session path to be writable $path"); 

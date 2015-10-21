@@ -834,7 +834,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 		$query->execute();
 		
 		if($query->rowCount() < 2) {
-			foreach(wire('languages') as $language) {
+			foreach($this->wire('languages') as $language) {
 				if($language->isDefault()) continue;
 				$status = "status" . (int) $language->id;
 				$database->exec("ALTER TABLE pages ADD $status INT UNSIGNED NOT NULL DEFAULT " . Page::statusOn);
@@ -855,31 +855,31 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 	 * Module interactive configuration fields
 	 *
 	 */
-	public static function getModuleConfigInputfields(array $data) {
+	public function getModuleConfigInputfields(array $data) {
 
-		$module = wire('modules')->get('LanguageSupportPageNames'); 
+		$module = $this->wire('modules')->get('LanguageSupportPageNames'); 
 		$module->checkModuleVersion(true); 
-		$inputfields = new InputfieldWrapper();
+		$inputfields = $this->wire(new InputfieldWrapper());
 
-		foreach(wire('languages') as $language) {
-			$f = wire('modules')->get('InputfieldName'); 
+		foreach($this->wire('languages') as $language) {
+			$f = $this->wire('modules')->get('InputfieldName'); 
 			$name = "pageNumUrlPrefix$language";
-			if($language->isDefault() && empty($data[$name])) $data[$name] = wire('config')->pageNumUrlPrefix;
+			if($language->isDefault() && empty($data[$name])) $data[$name] = $this->wire('config')->pageNumUrlPrefix;
 			$f->attr('name', $name); 
 			$f->attr('value', isset($data[$name]) ? $data[$name] : ''); 
-			$f->label = "$language->title ($language->name) - " . __('Page number prefix for pagination'); 
-			$f->description = sprintf(__('The page number is appended to this word in paginated URLs for this language. If ommitted, "%s" will be used.'), wire('config')->pageNumUrlPrefix); 
+			$f->label = "$language->title ($language->name) - " . $this->_('Page number prefix for pagination'); 
+			$f->description = sprintf($this->_('The page number is appended to this word in paginated URLs for this language. If ommitted, "%s" will be used.'), $this->wire('config')->pageNumUrlPrefix); 
 			$f->required = false;
 			$inputfields->add($f); 
 		}
 
-		$input = wire('modules')->get('InputfieldRadios'); 
+		$input = $this->wire('modules')->get('InputfieldRadios'); 
 		$input->attr('name', 'useHomeSegment'); 
-		$input->label = __('Default language homepage URL is same as root URL?'); // label for the home segment option
-		$input->description = __('Choose **Yes** if you want the homepage of your default language to be served by the root URL **/** (recommended). Choose **No** if you want your root URL to perform a redirect to **/name/** (where /name/ is the default language name of your homepage).');  // description for the home segment option
-		$input->notes = __('This setting only affects the homepage behavior. If you select No, you must also make sure your homepage has a name defined for the default language.'); // notes for the home segment option
-		$input->addOption(0, __('Yes - Root URL serves default language homepage (recommended)')); 	
-		$input->addOption(1, __('No - Root URL performs a redirect to: /name/')); 
+		$input->label = $this->_('Default language homepage URL is same as root URL?'); // label for the home segment option
+		$input->description = $this->_('Choose **Yes** if you want the homepage of your default language to be served by the root URL **/** (recommended). Choose **No** if you want your root URL to perform a redirect to **/name/** (where /name/ is the default language name of your homepage).');  // description for the home segment option
+		$input->notes = $this->_('This setting only affects the homepage behavior. If you select No, you must also make sure your homepage has a name defined for the default language.'); // notes for the home segment option
+		$input->addOption(0, $this->_('Yes - Root URL serves default language homepage (recommended)')); 	
+		$input->addOption(1, $this->_('No - Root URL performs a redirect to: /name/')); 
 		$input->attr('value', empty($data['useHomeSegment']) ? 0 : 1); 
 		$input->collapsed = Inputfield::collapsedYes; 
 		$inputfields->add($input); 
@@ -893,7 +893,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 	 */
 	public function ___install() {
 
-		foreach(wire('languages') as $language) {
+		foreach($this->wire('languages') as $language) {
 			$this->languageAdded($language); 
 		}
 
@@ -904,7 +904,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 	 *
 	 */
 	public function ___uninstall() {
-		foreach(wire('languages') as $language) {
+		foreach($this->wire('languages') as $language) {
 			$this->languageDeleted($language); 
 		}
 	}

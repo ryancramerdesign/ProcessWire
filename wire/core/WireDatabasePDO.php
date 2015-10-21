@@ -20,7 +20,7 @@ class WireDatabasePDO extends Wire implements WireDatabase {
 	 * Log of all queries performed in this instance
 	 *
 	 */
-	static protected $queryLog = array();
+	protected $queryLog = array();
 
 	/**
 	 * Whether queries will be logged
@@ -188,8 +188,9 @@ class WireDatabasePDO extends Wire implements WireDatabase {
 		return $this->pdo()->exec($statement);
 	}
 	
-	protected function queryLog($sql, $note) {
-		self::$queryLog[] = $sql . ($note ? " -- $note" : "");
+	public function queryLog($sql = '', $note = '') {
+		if(empty($sql)) return $this->queryLog;
+		$this->queryLog[] = $sql . ($note ? " -- $note" : "");
 	}
 
 	/**
@@ -330,11 +331,12 @@ class WireDatabasePDO extends Wire implements WireDatabase {
 	
 		$path = $this->wire('config')->paths->assets . 'backups/database/';
 		if(!is_dir($path)) {
-			wireMkdir($path, true); 
+			$this->wire('files')->mkdir($path, true); 
 			if(!is_dir($path)) throw new WireException("Unable to create path for backups: $path"); 
 		}
 
-		$backups = $this->wire(new WireDatabaseBackup($path)); 
+		$backups = new WireDatabaseBackup($path); 
+		$backups->setWire($this->wire());
 		$backups->setDatabase($this);
 		$backups->setDatabaseConfig($this->wire('config'));
 		$backups->setBackupOptions(array('user' => $this->wire('user')->name)); 

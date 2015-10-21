@@ -4,6 +4,9 @@
  * WireAction
  *
  * Base class for actions in ProcessWire
+ * 
+ * This file is licensed under the MIT license
+ * https://processwire.com/about/license/mit/
  *
  */
 abstract class WireAction extends WireData implements Module {

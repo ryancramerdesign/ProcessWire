@@ -17,6 +17,9 @@
  * of what other methods/objects have done to it. It also means being able
  * to build a complex query without worrying about correct syntax placement.
  * 
+ * This file is licensed under the MIT license
+ * https://processwire.com/about/license/mit/
+ * 
  * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
  * https://processwire.com
  *

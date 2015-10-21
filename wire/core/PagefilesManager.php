@@ -197,7 +197,7 @@ class PagefilesManager extends Wire {
 	 */
 	protected function _createPath($path) {
 		if(is_dir($path)) return true; 
-		return wireMkdir($path, true); 
+		return $this->wire('files')->mkdir($path, true); 
 	}
 
 	/**
@@ -247,7 +247,7 @@ class PagefilesManager extends Wire {
  	 *
 	 */
 	public function path() {
-		return self::isHooked('PagefilesManager::path()') ? $this->__call('path', array()) : $this->___path();
+		return $this->wire('hooks')->isHooked('PagefilesManager::path()') ? $this->__call('path', array()) : $this->___path();
 	}
 	
 	/**
@@ -267,7 +267,7 @@ class PagefilesManager extends Wire {
 	 *
 	 */
 	public function url() {
-		return self::isHooked('PagefilesManager::url()') ? $this->__call('url', array()) : $this->___url();
+		return $this->wire('hooks')->isHooked('PagefilesManager::url()') ? $this->__call('url', array()) : $this->___url();
 	}
 
 	/**

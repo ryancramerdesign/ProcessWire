@@ -1771,12 +1771,12 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 	 * @return InputfieldWrapper
 	 * 
 	 */
-	public static function getModuleConfigInputfields(array $data) {
-		$form = new InputfieldWrapper();
-		$f = wire('modules')->get('InputfieldSelector'); 
+	public function getModuleConfigInputfields(array $data) {
+		$form = $this->wire(new InputfieldWrapper());
+		$f = $this->wire('modules')->get('InputfieldSelector'); 
 		$f->name = 'test';
-		$f->label = 'Selector Sandbox';
-		$f->description = 'This is here just in case you want to test out the functionality of this Inputfield.'; 
+		$f->label = $this->_('Selector Sandbox');
+		$f->description = $this->_('This is here just in case you want to test out the functionality of this Inputfield.'); 
 		$form->add($f); 
 		return $form; 
 	}

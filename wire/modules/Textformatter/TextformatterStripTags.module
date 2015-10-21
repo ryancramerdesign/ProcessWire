@@ -29,11 +29,11 @@ class TextformatterStripTags extends Textformatter implements ConfigurableModule
 		$str = strip_tags($str, $this->data['allowedTags']); 
 	}
 
-	public static function getModuleConfigInputfields(array $data) {
-		$inputfields = new InputfieldWrapper();
+	public function getModuleConfigInputfields(array $data) {
+		$inputfields = $this->wire(new InputfieldWrapper());
 		$name = "allowedTags";
 		if(!isset($data[$name])) $data[$name] = '';
-		$f = wire('modules')->get('InputfieldText');
+		$f = $this->wire('modules')->get('InputfieldText');
 		$f->attr('name', $name);
 		$f->attr('value', $data[$name]);
 		$f->label = 'Allowed Markup Tags';

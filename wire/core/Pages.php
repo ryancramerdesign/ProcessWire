@@ -126,13 +126,13 @@ class Pages extends Wire {
 	 *
 	 */
 	public function __construct() {
-		$this->config = $this->wire('config');
-		$this->templates = $this->wire('templates'); 
-		$this->sortfields = $this->wire(new PagesSortfields());
-		$this->compat2x = $this->config->compat2x;
 	}
 
 	public function init() {
+		$this->config = $this->wire('config');
+		$this->templates = $this->wire('templates');
+		$this->sortfields = $this->wire(new PagesSortfields());
+		$this->compat2x = $this->config->compat2x;
 		$this->getById($this->config->preloadPageIDs); 
 	}
 	
@@ -220,7 +220,8 @@ class Pages extends Wire {
 		// if(strpos($selectorString, 'parent_id') === false) $selectorString .= ", status<" . Page::statusUnsearchable; 
 
 		$caller = isset($options['caller']) ? $options['caller'] : 'pages.find';
-		$selectors = $this->wire(new Selectors($selectorString)); 
+		$selectors = $this->wire(new Selectors()); 
+		$selectors->init($selectorString);
 		$pageFinder = $this->getPageFinder();
 		if($debug) Debug::timer("$caller($selectorString)", true); 
 		$pagesInfo = $pageFinder->find($selectors, $options); 
@@ -572,7 +573,14 @@ class Pages extends Wire {
 
 			try {
 				$_class = wireClassName($class, true);
-				while($page = $stmt->fetchObject($_class, array($template))) {
+				// while($page = $stmt->fetchObject($_class, array($template))) {
+				while($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
+					$page = $this->newPage(array(
+						'pageClass' => $_class, 
+						'template' => $template ? $template : $row['templates_id'], 
+					));
+					unset($row['templates_id']); 
+					foreach($row as $key => $value) $page->set($key, $value);
 					$page->instanceID = ++$instanceID;
 					$page->setIsLoaded(true);
 					$page->setIsNew(false);
@@ -657,8 +665,10 @@ class Pages extends Wire {
 
 		$pageClass = wireClassName($template->pageClass ? $template->pageClass : 'Page', true);	
 	
-		$page = $this->newPage(array('pageClass' => $pageClass));
-		$page->template = $template;
+		$page = $this->newPage(array(
+			'template' => $template, 
+			'pageClass' => $pageClass
+		));
 		$page->parent = $parent; 
 		
 		$exceptionMessage = "Unable to add new page using template '$template' and parent '{$page->parent->path}'."; 
@@ -2110,7 +2120,7 @@ class Pages extends Wire {
 			try {
 				$result = $query->execute();
 				
-			} catch(PDOException $e) {
+			} catch(\PDOException $e) {
 				
 				$result = false;
 				$error = $e->getMessage();
@@ -2191,8 +2201,16 @@ class Pages extends Wire {
 			if(class_exists("\\$class")) $class = "\\$class";
 		}
 		$class = wireClassName($class, true);
-		$page = $this->wire(new $class());
-		if(!$page instanceof Page) $page = $this->wire(new Page());
+		if(isset($options['template'])) {
+			$template = $options['template'];
+			if(!is_object($template)) {
+				$template = empty($template) ? null : $this->wire('templates')->get($template);
+			}
+		} else {
+			$template = null;
+		}
+		$page = $this->wire(new $class($template));
+		if(!$page instanceof Page) $page = $this->wire(new Page($template));
 		return $page;
 	}
 

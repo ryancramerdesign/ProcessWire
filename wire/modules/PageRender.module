@@ -145,7 +145,7 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 		}
 		
 		if(!is_dir($path)) {
-			if(!@wireMkdir($path, true)) throw new WireException("Cache path does not exist: $path");
+			if(!$this->wire('files')->mkdir($path, true)) throw new WireException("Cache path does not exist: $path");
 			if($config->chmodDir) chmod($path, octdec($config->chmodDir));
 		}
 
@@ -434,14 +434,14 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 	 * Provide a disk cache clearing capability within the module's configuration screen
 	 *
 	 */
-	static public function getModuleConfigInputfields(array $data) {
+	public function getModuleConfigInputfields(array $data) {
 
-		$path = wire('config')->paths->cache . self::cacheDirName . '/';
+		$path = $this->wire('config')->paths->cache . self::cacheDirName . '/';
 		$numPages = 0;
 		$numFiles = 0;
-		$inputfields = new InputfieldWrapper();
+		$inputfields = $this->wire(new InputfieldWrapper());
 		$dir = null;
-		$clearNow = wire('input')->post->clearCache ? true : false; 
+		$clearNow = $this->wire('input')->post->clearCache ? true : false; 
 
 		try { $dir = new \DirectoryIterator($path); } catch(\Exception $e) { }
 
@@ -460,16 +460,16 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 		}
 
 		if($clearNow) {
-			$inputfields->message(sprintf(__('Cleared %d cache files for %d pages'), $numFiles, $numPages)); 
+			$inputfields->message(sprintf($this->_('Cleared %d cache files for %d pages'), $numFiles, $numPages)); 
 			$numPages = 0;
 		}
 
 		$name = "clearCache";
-		$f = wire('modules')->get('InputfieldCheckbox');
+		$f = $this->wire('modules')->get('InputfieldCheckbox');
 		$f->attr('name', $name);
 		$f->attr('value', 1);
-		$f->label = __('Clear the Page Render Disk Cache?'); 
-		$f->description = sprintf(__('There are currently %d pages cached in %s'), $numPages, $path);
+		$f->label = $this->_('Clear the Page Render Disk Cache?'); 
+		$f->description = sprintf($this->_('There are currently %d pages cached in %s'), $numPages, $path);
 
 		$inputfields->append($f);
 

@@ -8,6 +8,9 @@
  * Descending class name should follow the format: [ModuleName]Config and file [ModuleName]Config.php
  * located in the same directory as the module it is configuring. 
  * 
+ * This file is licensed under the MIT license
+ * https://processwire.com/about/license/mit/
+ * 
  */
 
 class ModuleConfig extends WireData {

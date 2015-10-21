@@ -237,9 +237,9 @@ class InputfieldPageName extends InputfieldName implements ConfigurableModule {
 		return rtrim($str); 
 	}
 
-	static public function getModuleConfigInputfields(array $data) {
+	public function getModuleConfigInputfields(array $data) {
 
-		$modules = wire('modules');
+		$modules = $this->wire('modules');
 		$modules->addHookBefore('saveModuleConfigData', null, 'InputfieldPageName_saveModuleConfigData'); 
 
 		$name = 'replacements';
@@ -257,14 +257,14 @@ class InputfieldPageName extends InputfieldName implements ConfigurableModule {
 			$data[$name] = self::replacementStringToArray($replacements); 
 		}
 
-		$fields = new InputfieldWrapper();
+		$fields = $this->wire(new InputfieldWrapper());
 		$field = $modules->get("InputfieldTextarea");
 		$field->attr('name', $name);
 		$field->attr('value', $replacements);
 		$field->attr('rows', 15); 
-		$field->label = __('Character replacements');
-		$field->description = __('Enter the replacements that will occur when a user is entering characters into a page name field. Enter one replacement per line in key=value format. Meaning, on each new line, enter the character(s) you want to replace followed by an equals sign "=" and the ascii character(s) you want to replace with.'); // Character replacements description
-		$field->notes = __('The replacement value for each must be one or more of: a-z, 0-9, dash, underscore or period.'); // Character replacements notes
+		$field->label = $this->_('Character replacements');
+		$field->description = $this->_('Enter the replacements that will occur when a user is entering characters into a page name field. Enter one replacement per line in key=value format. Meaning, on each new line, enter the character(s) you want to replace followed by an equals sign "=" and the ascii character(s) you want to replace with.'); // Character replacements description
+		$field->notes = $this->_('The replacement value for each must be one or more of: a-z, 0-9, dash, underscore or period.'); // Character replacements notes
 		$fields->append($field);
 
 		return $fields;

@@ -13,7 +13,7 @@
  * 
  */
 
-require(wire('config')->paths->AdminThemeDefault . 'AdminThemeDefaultHelpers.php'); 
+require(realpath(__DIR__ . '/../AdminThemeDefault/AdminThemeDefaultHelpers.php')); 
 
 class AdminThemeRenoHelpers extends AdminThemeDefaultHelpers {
 

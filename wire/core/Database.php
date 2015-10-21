@@ -5,13 +5,14 @@
  *
  * Serves as a wrapper to PHP's mysqli classes
  * 
+ * This file is licensed under the MIT license
+ * https://processwire.com/about/license/mit/
+ * 
  * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
  * https://processwire.com
  *
  *
  */
-
-
 
 /**
  * Database class provides a layer on top of mysqli
@@ -23,7 +24,7 @@ class Database extends \mysqli implements WireDatabase {
 	 * Log of all queries performed in this instance
 	 *
 	 */
-	static protected $queryLog = array();
+	protected $queryLog = array();
 
 	/**
 	 * Should WireDatabaseException be thrown on error?
@@ -104,7 +105,7 @@ class Database extends \mysqli implements WireDatabase {
 					$timerTotalSinceStart = Debug::timer() - $timerFirstStartTime; 
 					$sql .= " [{$elapsed}s, {$timerTotalQueryTime}s, {$timerTotalSinceStart}s]";
 				}
-				self::$queryLog[] = $sql; 
+				$this->queryLog($sql); 
 			}
 
 		} else if($this->throwExceptions) {
@@ -119,11 +120,37 @@ class Database extends \mysqli implements WireDatabase {
 	 *
 	 * Active in ProcessWire debug mode only
 	 *
+	 * @param ProcessWire $wire ProcessWire instance, if omitted returns queries for all instances
 	 * @return array
+	 * @deprecated
 	 *
 	 */
-	static public function getQueryLog() {
-		return self::$queryLog; 
+	static public function getQueryLog(ProcessWire $wire = null) {
+		if($wire) {
+			return $wire->database->queryLog();
+		} else {
+			$log = array();
+			foreach(ProcessWire::getInstances() as $wire) {
+				$log = array_merge($log, $wire->database->queryLog());
+			}
+		}
+		return $log;
+	}
+
+	/**
+	 * Log a query or return the query log
+	 * 
+	 * @param string $sql Omit to instead return the query log
+	 * @return array|bool Returns query log array when $sql argument is omitted
+	 * 
+	 */
+	public function queryLog($sql = '') {
+		if($sql) {
+			$this->queryLog[] = $sql;
+			return true;
+		} else {
+			return $this->queryLog;
+		}
 	}
 
 	/**

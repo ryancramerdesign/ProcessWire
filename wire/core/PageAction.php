@@ -4,6 +4,9 @@
  * PageAction
  *
  * Base class for Page actions in ProcessWire
+ * 
+ * This file is licensed under the MIT license
+ * https://processwire.com/about/license/mit/
  *
  */
 

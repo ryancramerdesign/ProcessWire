@@ -2,7 +2,7 @@
   "name": "processwire/processwire",
   "type": "library",
   "description": "ProcessWire CMS/CMF",
-  "keywords": ["cms","cmf", "content management system"],
+  "keywords": [ "cms","cmf", "content management system" ],
   "homepage": "https://processwire.com",
   "authors": [
     {
@@ -17,6 +17,6 @@
     "ext-gd": "*"
   },
   "autoload": {
-    "files": "wire/core/ProcessWire.php"
+    "files": [ "wire/core/ProcessWire.php" ]
   }
 }

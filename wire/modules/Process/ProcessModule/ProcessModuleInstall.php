@@ -258,9 +258,9 @@ class ProcessModuleInstall extends Wire {
 			// destination dir already there, perhaps an older version of same module?
 			// create a backup of it
 			$hasBackup = $this->backupDir($destinationDir);
-			if($hasBackup) wireMkdir($destinationDir, true); 
+			if($hasBackup) $this->wire('files')->mkdir($destinationDir, true); 
 		} else {
-			if(wireMkdir($destinationDir, true)) $mkdirDestination = true;
+			if($this->wire('files')->mkdir($destinationDir, true)) $mkdirDestination = true;
 			$hasBackup = false; 
 		}
 
@@ -269,9 +269,9 @@ class ProcessModuleInstall extends Wire {
 
 		if(is_dir($destinationDir)) {
 			$from = $tempDir . $extractedDir;
-			if(wireCopy($from, $destinationDir)) {
+			if($this->wire('files')->copy($from, $destinationDir)) {
 				$this->message($this->_('Successfully copied files to new directory:') . ' ' . $dirLabel);
-				wireChmod($destinationDir, true);
+				$this->wire('files')->chmod($destinationDir, true);
 				$success = true;
 			} else {
 				$this->error($this->_('Unable to copy files to new directory:') . ' ' . $dirLabel);
@@ -302,7 +302,7 @@ class ProcessModuleInstall extends Wire {
 		if(is_link(rtrim($moduleDir, '/'))) {
 			// module directory is a symbolic link
 			// copy files from symlink dir to real backup dir
-			$success = wireCopy($moduleDir, $backupDir); 
+			$success = $this->wire('files')->copy($moduleDir, $backupDir); 
 			// remove symbolic link
 			unlink(rtrim($moduleDir, '/'));
 			$dir = str_replace($this->wire('config')->paths->root, '/', $moduleDir); 

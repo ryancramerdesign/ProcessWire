@@ -7,6 +7,9 @@
  * 
  * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
  * https://processwire.com
+ * 
+ * This file is licensed under the MIT license
+ * https://processwire.com/about/license/mit/
  *
  * @see http://processwire.com/api/variables/config/ Offical $config API variable Documentation
  * 
@@ -63,6 +66,7 @@ class Paths extends WireData {
 	 */
 	public function __construct($root) {
 		$this->_root = $root;
+		$this->useFuel(false);
 	}
 
 	/**

@@ -39,6 +39,14 @@ class TemplateFile extends WireData {
 	protected $savedDir;
 
 	/**
+	 * Saved ProcessWire instance
+	 * 
+	 * @var ProcessWire 
+	 * 
+	 */
+	protected $savedInstance; 
+	
+	/**
 	 * Throw exceptions when files don't exist?
 	 * 
 	 */
@@ -165,6 +173,10 @@ class TemplateFile extends WireData {
 			return '';
 		}
 
+		// ensure that wire() functions in template file map to correct ProcessWire instance
+		$this->savedInstance = ProcessWire::getCurrentInstance();
+		ProcessWire::setCurrentInstance($this->wire());
+		
 		$this->savedDir = getcwd();	
 
 		chdir(dirname($this->filename)); 
@@ -185,6 +197,7 @@ class TemplateFile extends WireData {
 		ob_end_clean();
 
 		if($this->savedDir) chdir($this->savedDir); 
+		ProcessWire::setCurrentInstance($this->savedInstance);
 
 		return trim($out); 
 	}
@@ -196,7 +209,7 @@ class TemplateFile extends WireData {
 	 *
 	 */
 	public function getArray() {
-		return array_merge($this->fuel->getArray(), parent::getArray()); 
+		return array_merge($this->wire('fuel')->getArray(), parent::getArray()); 
 	}
 
 	/**

@@ -8,12 +8,15 @@
  * Each cache file creates it's own directory based on the '$id' given.
  * The dir is created so that secondary cache files can be created too, 
  * and these are automatically removed when the remove() method is called.
+ * 
+ * This file is licensed under the MIT license
+ * https://processwire.com/about/license/mit/
  *
  * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
  * https://processwire.com
  *
  */
-class CacheFile {
+class CacheFile extends Wire {
 
 	const cacheFileExtension = ".cache";
 	const globalExpireFilename = "lastgood";
@@ -46,16 +49,17 @@ class CacheFile {
 	 */ 
 	public function __construct($path, $id, $cacheTimeSeconds) {
 
+		$this->useFuel(false);
 		$path = rtrim($path, '/') . '/';
 		$this->globalExpireFile = $path . self::globalExpireFilename; 
 		$this->path = $id ? $path . $id . '/' : $path;
 
 		if(!is_dir($path)) {
-			if(!wireMkdir($path, true)) throw new WireException("Unable to create path: $path"); 
+			if(!$this->wire('files')->mkdir($path, true)) throw new WireException("Unable to create path: $path"); 
 		}
 
 		if(!is_dir($this->path)) {
-			if(!wireMkdir($this->path)) throw new WireException("Unable to create path: {$this->path}"); 
+			if(!$this->wire('files')->mkdir($this->path)) throw new WireException("Unable to create path: {$this->path}"); 
 		}
 
 		if(is_file($this->globalExpireFile)) {
@@ -185,12 +189,12 @@ class CacheFile {
 					return false;
 				}
 			} else {
-				wireMkdir("$dirname/", true);
+				$this->wire('files')->mkdir("$dirname/", true);
 			}
 		}
 
 		$result = file_put_contents($filename, $data); 
-		wireChmod($filename); 
+		$this->wire('files')->chmod($filename); 
 		return $result;
 	}
 

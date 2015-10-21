@@ -72,6 +72,7 @@ class LanguageTranslator extends Wire {
 	 *
 	 */
 	public function __construct(Language $currentLanguage) {
+		$currentLanguage->wire($this);
 		$this->setCurrentLanguage($currentLanguage);
 		$this->rootPath = $this->wire('config')->paths->root; 
 		$file = __FILE__; 
@@ -229,7 +230,7 @@ class LanguageTranslator extends Wire {
 	 *
 	 */
         public function getTranslation($textdomain, $text, $context = '') {
-                if(self::isHooked('LanguageTranslator::getTranslation()')) {
+                if($this->wire('hooks')->isHooked('LanguageTranslator::getTranslation()')) {
 			// if method has hooks, we let them run
 			return $this->__call('getTranslation', array($textdomain, $text, $context));
 		} else { 

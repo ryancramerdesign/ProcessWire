@@ -11,6 +11,9 @@
  *
  * TODO narrow down to one method of addition and removal, especially for removal, i.e. make shift() run through remove()
  * 
+ * This file is licensed under the MIT license
+ * https://processwire.com/about/license/mit/
+ * 
  * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
  * https://processwire.com
  *
@@ -1086,7 +1089,9 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 			// fantastic
 		} else {
 			if(ctype_digit("$selectors")) $selectors = "id=$selectors";
-			$selectors = $this->wire(new Selectors($selectors)); 
+			$selectorString = $selectors; 
+			$selectors = $this->wire(new Selectors()); 
+			$selectors->init($selectorString);
 		}
 		$this->filterDataSelectors($selectors); 
 

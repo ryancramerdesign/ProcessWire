@@ -80,7 +80,7 @@ class Fields extends WireSaveableItems {
 	 *
 	 */
 	public function __construct() {
-		$this->fieldsArray = $this->wire(new FieldsArray());
+		$this->fieldsArray = new FieldsArray();
 	}
 
 	/**
@@ -88,6 +88,7 @@ class Fields extends WireSaveableItems {
 	 *
 	 */
 	public function init() {
+		$this->wire($this->fieldsArray);
 		$this->load($this->fieldsArray); 
 	}
 

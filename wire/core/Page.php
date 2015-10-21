@@ -373,7 +373,10 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 */
 	public function __construct(Template $tpl = null) {
 
-		if(!is_null($tpl)) $this->template = $tpl;
+		if(!is_null($tpl)) {
+			$tpl->wire($this);
+			$this->template = $tpl;
+		} 
 		$this->useFuel(false); // prevent fuel from being in local scope
 		$this->parentPrevious = null;
 		$this->templatePrevious = null;
@@ -776,7 +779,7 @@ class Page extends WireData implements \Countable, WireMatchable {
 				if(strpos($key, '.') && ($value = $this->getFieldSubfieldValue($key)) !== null) return $value; 
 				
 				// optionally let a hook look at it
-				if(self::isHooked('Page::getUnknown()')) $value = $this->getUnknown($key);
+				if($this->wire('hooks')->isHooked('Page::getUnknown()')) $value = $this->getUnknown($key);
 		}
 
 		return $value; 
@@ -1623,7 +1626,7 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 *
 	 */
 	public function path() {
-		return self::isHooked('Page::path()') ? $this->__call('path', array()) : $this->___path();
+		return $this->wire('hooks')->isHooked('Page::path()') ? $this->__call('path', array()) : $this->___path();
 	}
 
 	/**
@@ -1870,7 +1873,7 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 *
 	 */
 	public function isPublic() {
-		return self::isHooked('Page::isPublic()') ? $this->__call('isPublic', array()) : $this->___isPublic();
+		return $this->wire('hooks')->isHooked('Page::isPublic()') ? $this->__call('isPublic', array()) : $this->___isPublic();
 	}
 
 	/**

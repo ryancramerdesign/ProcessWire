@@ -84,11 +84,11 @@ class Session extends Wire implements \IteratorAggregate {
 	 * Assumes that you have already performed all session-specific ini_set() and session_name() calls 
 	 *
 	 */
-	public function __construct() {
+	public function __construct(ProcessWire $wire) {
 
+		$wire->wire($this);
 		$this->config = $this->wire('config'); 
 		$this->init();
-		unregisterGLOBALS();
 		$className = $this->className();
 		$user = null;
 

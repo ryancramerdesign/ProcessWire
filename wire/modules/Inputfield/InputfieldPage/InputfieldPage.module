@@ -443,8 +443,9 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 
 		$parent = $this->wire('pages')->get($this->parent_id); 
 
-		$test = $this->wire('pages')->newPage();
-		$test->template = $this->wire('templates')->get($this->template_id); 
+		$test = $this->wire('pages')->newPage(array(
+			'template' => $this->wire('templates')->get($this->template_id)
+		));
 		$test->parent = $parent; 
 		$test->id = -1; // prevents permissions check from failing
 
@@ -817,21 +818,21 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		return $inputfields; 
 	}
 
-	static public function getModuleConfigInputfields(array $data) {
+	public function getModuleConfigInputfields(array $data) {
 
 		$name = 'inputfieldClasses';
 
 		if(!isset($data[$name]) || !is_array($data[$name])) $data[$name] = self::$defaultInputfieldClasses; 
-		$fields = new InputfieldWrapper();
-		$modules = wire('modules');
+		$fields = $this->wire(new InputfieldWrapper());
+		$modules = $this->wire('modules');
 		$field = $modules->get("InputfieldAsmSelect");
 		$field->attr('name', $name);
 		foreach($modules->find('className^=Inputfield') as $inputfield) {
 			$field->addOption($inputfield->className(), str_replace('Inputfield', '', $inputfield->className())); 
 		}
 		$field->attr('value', $data[$name]); 
-		$field->label = __('Inputfield modules available for page selection', __FILE__);
-		$field->description = __('Select the Inputfield modules that may be used for page selection. These should generally be Inputfields that allow you to select one or more options.', __FILE__); // Description 
+		$field->label = $this->_('Inputfield modules available for page selection');
+		$field->description = $this->_('Select the Inputfield modules that may be used for page selection. These should generally be Inputfields that allow you to select one or more options.'); // Description 
 		$fields->append($field);
 
 		return $fields;

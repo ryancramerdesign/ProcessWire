@@ -85,7 +85,7 @@ class Pageimage extends Pagefile {
 	 *
 	 */
 	public function url() {
-		if(self::isHooked('Pagefile::url()') || self::isHooked('Pageimage::url()')) { 
+		if($this->wire('hooks')->isHooked('Pagefile::url()') || $this->wire('hooks')->isHooked('Pageimage::url()')) { 
 			return $this->__call('url', array()); 
 		} else { 
 			return $this->___url();
@@ -97,7 +97,7 @@ class Pageimage extends Pagefile {
 	 *
 	 */
 	public function filename() {
-		if(self::isHooked('Pagefile::filename()') || self::isHooked('Pageimage::filename()')) { 
+		if($this->wire('hooks')->isHooked('Pagefile::filename()') || $this->wire('hooks')->isHooked('Pageimage::filename()')) { 
 			return $this->__call('filename', array()); 
 		} else { 
 			return $this->___filename();
@@ -236,7 +236,7 @@ class Pageimage extends Pagefile {
 	 */
 	public function size($width, $height, $options = array()) {
 
-		if(self::isHooked('Pageimage::size()')) {
+		if($this->wire('hooks')->isHooked('Pageimage::size()')) {
 			return $this->__call('size', array($width, $height, $options)); 
 		} else { 
 			return $this->___size($width, $height, $options);
@@ -361,7 +361,7 @@ class Pageimage extends Pagefile {
 					$sizer = $this->wire(new ImageSizer($filenameUnvalidated));
 					$sizer->setOptions($options);
 					if($sizer->resize($width, $height) && @rename($filenameUnvalidated, $filenameFinal)) {
-						wireChmod($filenameFinal); 
+						$this->wire('files')->chmod($filenameFinal); 
 					} else {
 						$this->error = "ImageSizer::resize($width, $height) failed for $filenameUnvalidated";
 					}
@@ -386,7 +386,7 @@ class Pageimage extends Pagefile {
 			// write an invalid image so it's clear something failed
 			// todo: maybe return a 1-pixel blank image instead?
 			$data = "This is intentionally invalid image data.\n$this->error";
-			if(file_put_contents($filenameFinal, $data) !== false) wireChmod($filenameFinal);
+			if(file_put_contents($filenameFinal, $data) !== false) $this->wire('files')->chmod($filenameFinal);
 
 			// we also tell PW about it for logging and/or admin purposes
 			$this->error($this->error); 

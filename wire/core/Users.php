@@ -101,7 +101,10 @@ class Users extends PagesType {
 	 * 
 	 */
 	public function newUser() {
-		return $this->wire('pages')->newPage(array('pageClass' => 'User'));
+		return $this->wire('pages')->newPage(array(
+			'template' => 'user',
+			'pageClass' => 'User'
+		));
 	}
 
 }

@@ -2,6 +2,8 @@
 
 /**
  * ProcessWire Hooks Manager
+ * 
+ * This class is for internal use. You should manipulate hooks from Wire-derived classes instead. 
  *
  * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
  * https://processwire.com
@@ -15,10 +17,24 @@ class WireHooks {
 	 *
 	 */
 	const ___debug = false;
+
+	/**
+	 * Refers to ALL hooks
+	 * 
+	 */
+	const getHooksAll = 0;
 	
-	const hookTypeAll = 0;
-	const hookTypeLocal = 1;
-	const hookTypeStatic = 2;
+	/**
+	 * Refers only to LOCAL hooks
+	 *
+	 */
+	const getHooksLocal = 1;
+	
+	/**
+	 * Refers only to STATIC hooks
+	 *
+	 */
+	const getHooksStatic = 2;
 
 	/**
 	 * When a hook is specified, there are a few options which can be overridden: This array outlines those options and the defaults.
@@ -34,7 +50,7 @@ class WireHooks {
 	 * - public: auto-assigned to true or false by addHook() as to whether the method is public or private/protected.
 	 *
 	 */
-	protected static $defaultHookOptions = array(
+	protected $defaultHookOptions = array(
 		'type' => 'method',
 		'before' => false,
 		'after' => true,
@@ -49,7 +65,7 @@ class WireHooks {
 	 * Static hooks are applicable to all instances of the descending class.
 	 *
 	 * This array holds references to those static hooks, and is shared among all classes descending from Wire.
-	 * It is for internal use only. See also self::$defaultHookOptions[allInstances].
+	 * It is for internal use only. See also $defaultHookOptions[allInstances].
 	 *
 	 */
 	protected $staticHooks = array();
@@ -71,12 +87,38 @@ class WireHooks {
 	 *
 	 */
 	protected $allLocalHooks = array();
-	
+
+	/**
+	 * @var Config
+	 * 
+	 */
 	protected $config;
+
+	/**
+	 * @var bool
+	 * 
+	 */
 	protected $compat2x;
+
+	/**
+	 * @var array
+	 * 
+	 */
 	protected $debugTimers = array();
-	protected $wire; 
-	
+
+	/**
+	 * @var ProcessWire
+	 * 
+	 */
+	protected $wire;
+
+	/**
+	 * Construct WireHooks
+	 * 
+	 * @param ProcessWire $wire
+	 * @param Config $config
+	 * 
+	 */
 	public function __construct(ProcessWire $wire, Config $config) {
 		$this->wire = $wire;
 		$this->config = $config;
@@ -90,18 +132,18 @@ class WireHooks {
 	 * @param string $method Optional method that hooks will be limited to. Or specify '*' to return all hooks everywhere.
 	 * @param int $type Type of hooks to return: 0=all, 1=local only, 2=static only
 	 * @param int $type Type of hooks to return, specify one of the following constants:
-	 * 	- WireHooks::hookTypeAll returns all hooks (default)
-	 * 	- WireHooks::hookTypeLocal returns local hooks only
-	 * 	- WireHooks::hookTypeStatic returns static hooks only
+	 * 	- WireHooks::getHooksAll returns all hooks (default)
+	 * 	- WireHooks::getHooksLocal returns local hooks only
+	 * 	- WireHooks::getHooksStatic returns static hooks only
 	 * @return array
 	 *
 	 */
-	public function getHooks(Wire $object, $method = '', $type = self::hookTypeAll) {
+	public function getHooks(Wire $object, $method = '', $type = self::getHooksAll) {
 
 		$hooks = array();
 
 		// first determine which local hooks when should include
-		if($type !== self::hookTypeStatic) {
+		if($type !== self::getHooksStatic) {
 			$localHooks = $object->getLocalHooks();
 			if($method && $method !== '*') {
 				// populate all local hooks for given method
@@ -117,7 +159,7 @@ class WireHooks {
 		}
 
 		// if only local hooks requested, we can return them now
-		if($type === self::hookTypeLocal) return $hooks;
+		if($type === self::getHooksLocal) return $hooks;
 
 		$needSort = false;
 		$namespace = __NAMESPACE__ ? __NAMESPACE__ . "\\" : "";
@@ -271,7 +313,7 @@ class WireHooks {
 	 * 	Or null if $toMethod is a function outside of an object,
 	 * 	Or function|callable if $toObject is not applicable or function is provided as a closure.
 	 * @param string $toMethod Method from $toObject, or function name to call on a hook event. Optional.
-	 * @param array $options See self::$defaultHookOptions at the beginning of this class. Optional.
+	 * @param array $options See $defaultHookOptions at the beginning of this class. Optional.
 	 * @return string A special Hook ID that should be retained if you need to remove the hook later
 	 * @throws WireException
 	 *
@@ -296,7 +338,7 @@ class WireHooks {
 			$toObject = null;
 		}
 		
-		$options = array_merge(self::$defaultHookOptions, $options);
+		$options = array_merge($this->defaultHookOptions, $options);
 
 		if(is_null($toMethod)) throw new WireException("Method to call is required and was not specified (toMethod)");
 		if(strpos($method, '___') === 0) $method = substr($method, 3);
@@ -589,7 +631,16 @@ class WireHooks {
 
 		return $result;
 	}
-	
+
+	/**
+	 * Start timing a hook and return the timer name
+	 * 
+	 * @param $object
+	 * @param $method
+	 * @param $arguments
+	 * @return string
+	 * 
+	 */
 	protected function hookTimer($object, $method, $arguments) {
 		$timerName = $object->className() . "::$method";
 		$notes = array();
@@ -634,7 +685,13 @@ class WireHooks {
 		}
 		return $object;
 	}
-	
+
+	/**
+	 * Return the "all local hooks" cache
+	 * 
+	 * @return array
+	 * 
+	 */
 	public function getAllLocalHooks() {
 		return $this->allLocalHooks;
 	}

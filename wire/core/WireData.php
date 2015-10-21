@@ -7,6 +7,9 @@
  * It provides get and set access to properties internally stored in a $data array. 
  * Otherwise it is identical to the Wire class. 
  * 
+ * This file is licensed under the MIT license
+ * https://processwire.com/about/license/mit/
+ * 
  * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
  * https://processwire.com
  *
@@ -182,7 +185,7 @@ class WireData extends Wire implements \IteratorAggregate {
 			// dot not present
 			$keys = array();
 		}
-		if(wire($key) !== null) return null; // don't allow API vars to be retrieved this way
+		if($from->wire($key) !== null) return null; // don't allow API vars to be retrieved this way
 		if($from instanceof WireData) $value = $from->get($key);
 			else if($from instanceof WireArray) $value = $from->getProperty($key);
 			else $value = $from->$key;

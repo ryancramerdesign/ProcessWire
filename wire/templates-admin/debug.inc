@@ -136,7 +136,7 @@
 				</thead>
 				<tbody>
 				<?php 
-				$hooks = array_merge($this->wire()->getHooks('*'), Wire::$allLocalHooks); 
+				$hooks = array_merge($this->wire()->getHooks('*'), $this->wire('hooks')->getAllLocalHooks()); 
 				$hooksSorted = array();
 				foreach($hooks as $hook) {
 					$whenKey = $hook['options']['before'] ? '0' : '1';
@@ -170,7 +170,7 @@
 				<div>
 				<table>
 				<tbody>
-				<?php foreach(WireDatabasePDO::getQueryLog() as $n => $sql) echo "\n<tr><th>$n</th><td>$sql</td></tr>"; ?>
+				<?php foreach($database->queryLog() as $n => $sql) echo "\n<tr><th>$n</th><td>$sql</td></tr>"; ?>
 				</tbody>
 				</table>
 				</div>

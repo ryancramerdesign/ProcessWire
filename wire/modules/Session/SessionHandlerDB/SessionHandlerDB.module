@@ -177,33 +177,33 @@ class SessionHandlerDB extends WireSessionHandler implements Module, Configurabl
 	 * Session configuration options
 	 *
 	 */
-	public static function getModuleConfigInputfields(array $data) {
+	public function getModuleConfigInputfields(array $data) {
 
-		$form = new InputfieldWrapper();
+		$form = $this->wire(new InputfieldWrapper());
 
 		// check if their DB table is the latest version
-		$query = wire('database')->query("SHOW COLUMNS FROM " . self::dbTableName . " WHERE field='ip'"); 
+		$query = $this->wire('database')->query("SHOW COLUMNS FROM " . self::dbTableName . " WHERE field='ip'"); 
 		if(!$query->rowCount()) {
-			wire('modules')->error("DB format changed - You must uninstall this module and re-install before configuring."); 
+			$this->wire('modules')->error("DB format changed - You must uninstall this module and re-install before configuring."); 
 			return $form;
 		}
 
-		$description = __('Checking this box will enable the data to be displayed in your admin sessions list.', __FILE__);
+		$description = $this->_('Checking this box will enable the data to be displayed in your admin sessions list.');
 
-		$f = wire('modules')->get('InputfieldCheckbox'); 
+		$f = $this->wire('modules')->get('InputfieldCheckbox'); 
 		$f->attr('name', 'useIP'); 
 		$f->attr('value', 1);
 		$f->attr('checked', empty($data['useIP']) ? '' : 'checked'); 
-		$f->label = __('Track IP addresses in session data?', __FILE__); 
+		$f->label = $this->_('Track IP addresses in session data?');
 		$f->description = $description;
 		$form->add($f);
 
-		$f = wire('modules')->get('InputfieldCheckbox'); 
+		$f = $this->wire('modules')->get('InputfieldCheckbox'); 
 		$f->attr('name', 'useUA'); 
 		$f->attr('value', 1);
 		$f->attr('checked', empty($data['useUA']) ? '' : 'checked'); 
-		$f->label = __('Track user agent in session data?', __FILE__); 
-		$f->notes = __('The user agent typically contains information about the browser being used.', __FILE__);
+		$f->label = $this->_('Track user agent in session data?');
+		$f->notes = $this->_('The user agent typically contains information about the browser being used.');
 		$f->description = $description;
 		$form->add($f);
 

@@ -94,7 +94,7 @@ class FieldtypeNotifications extends FieldtypeMulti {
 			if(!$page || !$page->email) continue; 
 			$of = $page->of();
 			$page->of(false);
-			$mail = wireMail(); 	
+			$mail = $this->wire('mail')->new();
 			$mail->to($page->email); 
 			if($notification->emailFrom) $mail->from($notification->emailFrom); 
 			$mail->subject($notification->title . " (" . $this->wire('config')->httpHost . ")");

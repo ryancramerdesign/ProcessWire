@@ -98,11 +98,11 @@ class TextformatterMarkdownExtra extends Textformatter implements ConfigurableMo
 		if(strpos($str, '//') !== false) $str = preg_replace('{^//.*$}m', '', $str); 
 	}
 	
-	public static function getModuleConfigInputfields(array $data) {
-		$inputfields = new InputfieldWrapper();
-		$f = wire('modules')->get('InputfieldRadios');
+	public function getModuleConfigInputfields(array $data) {
+		$inputfields = $this->wire(new InputfieldWrapper());
+		$f = $this->wire('modules')->get('InputfieldRadios');
 		$f->attr('name', 'flavor');
-		$f->label = __('Markdown flavor to use');
+		$f->label = $this->_('Markdown flavor to use');
 		$f->addOption(self::flavorParsedownExtra, 'Parsedown Extra');
 		$f->addOption(self::flavorParsedown, 'Parsedown'); 
 		$f->attr('value', isset($data['flavor']) ? (int) $data['flavor'] : self::flavorDefault); 

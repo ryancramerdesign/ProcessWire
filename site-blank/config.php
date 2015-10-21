@@ -13,6 +13,9 @@
  * In non-dedicated environments, you should lock down the permissions of this file so
  * that it cannot be seen by other users on the system. For more information, please
  * see the config.php section at: https://processwire.com/docs/security/file-permissions/
+ * 
+ * This file is licensed under the MIT license
+ * https://processwire.com/about/license/mit/
  *
  * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
  * https://processwire.com

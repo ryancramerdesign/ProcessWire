@@ -41,12 +41,24 @@ class LanguagesPageFieldValue extends Wire implements LanguagesValueInterface, \
 	protected $field;
 
 	/**
+	 * Reference to Page that this value is for
+	 * 
+	 * @var Page
+	 * 
+	 */
+	protected $page; 
+
+	/**
 	 * Construct the multi language value
 	 *
  	 * @param array|string $values
 	 *
 	 */
-	public function __construct($values = null) { // #98
+	public function __construct(Page $page, Field $field, $values = null) { // #98
+	
+		$page->wire($this);
+		$this->setPage($page);
+		$this->setField($field);
 
 		$languageSupport = $this->wire('modules')->get('LanguageSupport');
 		$this->defaultLanguagePageID = $languageSupport->defaultLanguagePageID; 
@@ -133,7 +145,7 @@ class LanguagesPageFieldValue extends Wire implements LanguagesValueInterface, \
 	 *
 	 */
 	public function __toString() {
-		return self::isHooked('LanguagesPageFieldValue::getStringValue()') ? $this->__call('getStringValue', array()) : $this->___getStringValue();
+		return $this->wire('hooks')->isHooked('LanguagesPageFieldValue::getStringValue()') ? $this->__call('getStringValue', array()) : $this->___getStringValue();
 	}
 
 	protected function ___getStringValue() {
@@ -155,6 +167,10 @@ class LanguagesPageFieldValue extends Wire implements LanguagesValueInterface, \
 
 	public function setField(Field $field) {
 		$this->field = $field; 
+	}
+	
+	public function setPage(Page $page) {
+		$this->page = $page; 
 	}
 	
 	public function __debugInfo() {

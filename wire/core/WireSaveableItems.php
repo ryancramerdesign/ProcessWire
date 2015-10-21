@@ -57,7 +57,9 @@ abstract class WireSaveableItems extends Wire implements \IteratorAggregate {
 			// iterable selectors
 		} else if($selectors && is_string($selectors)) {
 			// selector string, convert to iterable selectors
-			$selectors = $this->wire(new Selectors($selectors)); 
+			$selectorString = $selectors;
+			$selectors = $this->wire(new Selectors()); 
+			$selectors->init($selectorString);
 
 		} else {
 			// nothing provided, load all assumed
@@ -148,6 +150,7 @@ abstract class WireSaveableItems extends Wire implements \IteratorAggregate {
 		
 		while($row = $query->fetch(\PDO::FETCH_ASSOC)) {
 			$item = $this->makeBlankItem();
+			$this->wire($item);
 			foreach($row as $field => $value) {
 				if($field == 'data') {
 					if($value) $value = $this->decodeData($value);

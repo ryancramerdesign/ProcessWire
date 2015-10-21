@@ -30,6 +30,8 @@
  *     }
  * }
  * 
+ * This file is licensed under the MIT license
+ * https://processwire.com/about/license/mit/
  * 
  * Class FileValidatorModule
  * 

@@ -38,7 +38,7 @@ class AdminThemeDefault extends AdminTheme implements Module, ConfigurableModule
 		return array(
 			'colors' => array(
 				'type' => 'radios',
-				'label' => __('Color Set'), 
+				'label' => $this->_('Color Set'), 
 				'options' => array(
 					'classic' => $this->_('Classic'),
 					'warm' => $this->_('Warm'),

@@ -357,7 +357,7 @@ class Pagefile extends WireData {
 	 *
 	 */
 	public function url() {
-		return self::isHooked('Pagefile::url()') ? $this->__call('url', array()) : $this->___url();
+		return $this->wire('hooks')->isHooked('Pagefile::url()') ? $this->__call('url', array()) : $this->___url();
 	}
 	
 	/**
@@ -385,7 +385,7 @@ class Pagefile extends WireData {
 	 *
 	 */
 	public function filename() {
-		return self::isHooked('Pagefile::filename()') ? $this->__call('filename', array()) : $this->___filename();
+		return $this->wire('hooks')->isHooked('Pagefile::filename()') ? $this->__call('filename', array()) : $this->___filename();
 	}
 
 	/**

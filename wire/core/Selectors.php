@@ -102,6 +102,16 @@ class Selectors extends WireArray {
 	}
 
 	/**
+	 * Alias for setSelectorString() method
+	 * 
+	 * @param string $selectorStr
+	 * 
+	 */
+	public function init($selectorStr) {
+		$this->setSelectorString($selectorStr);
+	}
+
+	/**
 	 * Set the selector string (if not provided to constructor)
 	 * 
 	 * @param string $selectorStr

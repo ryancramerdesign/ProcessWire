@@ -91,6 +91,11 @@ class ProcessWire extends Wire {
 	 */ 
 	public function __construct(Config $config) {
 		
+		ini_set('display_errors', true);
+		error_reporting(E_ALL | E_STRICT);
+
+		$config->setWire($this);
+		
 		$this->debug = $config->debug; 
 		$this->instanceID = self::addInstance($this);
 		$this->setWire($this);
@@ -100,9 +105,11 @@ class ProcessWire extends Wire {
 
 		$classLoader = $this->wire('classLoader', new WireClassLoader(), true);
 		$classLoader->addNamespace(__NAMESPACE__, PROCESSWIRE_CORE_PATH);
-	
+
+		$this->wire('hooks', new WireHooks($this, $config), true);
+
 		$this->shutdown = $this->wire(new WireShutdown());
-		$this->config($config); 
+		$this->config($config);
 		$this->load($config);
 	}
 
@@ -233,6 +240,9 @@ class ProcessWire extends Wire {
 		$this->wire('log', new WireLog(), true); 
 		$this->wire('notices', new Notices(), true); 
 		$this->wire('sanitizer', new Sanitizer()); 
+		$this->wire('datetime', new WireDateTime());
+		$this->wire('files', new WireFileTools());
+		$this->wire('mail', new WireMailTools());
 
 		try {
 			$database = $this->wire('database', WireDatabasePDO::getInstance($config), true);
@@ -280,20 +290,21 @@ class ProcessWire extends Wire {
 	
 		if($this->debug) Debug::timer('boot.load.permissions'); 
 		if(!$t = $templates->get('permission')) throw new WireException("Missing system template: 'permission'"); 
-		$permissions = $this->wire('permissions', new Permissions($t, $config->permissionsPageID), true); 
+		$permissions = $this->wire('permissions', new Permissions($this, $t, $config->permissionsPageID), true); 
 		if($this->debug) Debug::saveTimer('boot.load.permissions');
 
 		if($this->debug) Debug::timer('boot.load.roles'); 
 		if(!$t = $templates->get('role')) throw new WireException("Missing system template: 'role'"); 
-		$roles = $this->wire('roles', new Roles($t, $config->rolesPageID), true); 
+		$roles = $this->wire('roles', new Roles($this, $t, $config->rolesPageID), true); 
 		if($this->debug) Debug::saveTimer('boot.load.roles');
 
 		if($this->debug) Debug::timer('boot.load.users'); 
-		$users = $this->wire('users', new Users($config->userTemplateIDs, $config->usersPageIDs), true); 
+		$users = $this->wire('users', new Users($this, $config->userTemplateIDs, $config->usersPageIDs), true); 
 		if($this->debug) Debug::saveTimer('boot.load.users'); 
 
 		// the current user can only be determined after the session has been initiated
-		$session = $this->wire('session', new Session(), true); 
+		$session = $this->wire('session', new Session($this), true); 
+		$this->initVar('session', $session);
 		$this->wire('user', $users->getCurrentUser()); 
 		$this->wire('input', new WireInput(), true); 
 
@@ -553,18 +564,20 @@ class ProcessWire extends Wire {
 	 * Build a Config object for booting ProcessWire
 	 * 
 	 * @param $rootPath Path to root of installation where ProcessWire's index.php file is located.
+	 * @param string $rootURL Should be specified only for secondary ProcessWire instances.
 	 * @return Config
 	 * 
 	 */
-	public static function buildConfig($rootPath) {
+	public static function buildConfig($rootPath, $rootURL = null) {
 		
 		if(DIRECTORY_SEPARATOR != '/') {
 			$rootPath = str_replace(DIRECTORY_SEPARATOR, '/', $rootPath);
 		}
 		
 		$rootPath = rtrim($rootPath, '/');
+		$_rootURL = $rootURL;
+		if(is_null($rootURL)) $rootURL = '/';
 		$httpHost = '';
-		$rootURL = '/';
 		$config = new Config();
 		$config->dbName = '';
 
@@ -572,7 +585,7 @@ class ProcessWire extends Wire {
 			$httpHost = strtolower($_SERVER['HTTP_HOST']);
 
 			// when serving pages from a web server
-			$rootURL = rtrim(dirname($_SERVER['SCRIPT_NAME']), "/\\") . '/';
+			if(is_null($_rootURL)) $rootURL = rtrim(dirname($_SERVER['SCRIPT_NAME']), "/\\") . '/';
 			$realScriptFile = empty($_SERVER['SCRIPT_FILENAME']) ? '' : realpath($_SERVER['SCRIPT_FILENAME']);
 			$realIndexFile = realpath($rootPath . "/index.php");
 
@@ -581,7 +594,7 @@ class ProcessWire extends Wire {
 			$f = dirname($realIndexFile);
 			if($sf && $sf != $f && strpos($sf, $f) === 0) {
 				$x = rtrim(substr($sf, strlen($f)), '/');
-				$rootURL = substr($rootURL, 0, strlen($rootURL) - strlen($x));
+				if(is_null($_rootURL)) $rootURL = substr($rootURL, 0, strlen($rootURL) - strlen($x));
 			}
 			unset($sf, $f, $x);
 		

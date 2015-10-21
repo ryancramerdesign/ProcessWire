@@ -6,6 +6,9 @@
  * An abstract module intended as a base for admin themes. 
  *
  * See the Module interface (Module.php) for details about each method. 
+ *
+ * This file is licensed under the MIT license. 
+ * https://processwire.com/about/license/mit/
  * 
  * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
  * https://processwire.com
@@ -19,25 +22,25 @@ abstract class AdminTheme extends WireData implements Module {
 	/**
 	 * Per the Module interface, return an array of information about the Module
 	 *
- 	 */
+	 */
 	public static function getModuleInfo() {
 		return array(
-			'title' => '',		// printable name/title of module
-			'version' => 1, 	// version number of module
-			'summary' => '', 	// 1 sentence summary of module
-			'href' => '', 		// URL to more information (optional)
+			'title'    => '',        // printable name/title of module
+			'version'  => 1,    // version number of module
+			'summary'  => '',    // 1 sentence summary of module
+			'href'     => '',        // URL to more information (optional)
 
 			// all admin themes should have this as their autoload selector:
-			'autoload' => 'template=admin', 
+			'autoload' => 'template=admin',
 			'singular' => true
-			); 
+		);
 	}
 
 	/**
 	 * Current admin theme version (cached from module info)
-	 * 
+	 *
 	 * @var int
-	 * 
+	 *
 	 */
 	protected $version = 0;
 
@@ -49,9 +52,9 @@ abstract class AdminTheme extends WireData implements Module {
 
 	/**
 	 * Additional classes for body tag
-	 * 
+	 *
 	 * @var array
-	 * 
+	 *
 	 */
 	protected $bodyClasses = array();
 

@@ -308,31 +308,31 @@ class ProcessPageEditLink extends Process implements ConfigurableModule {
 
 	}
 	
-	public static function getModuleConfigInputfields(array $data) {
+	public function getModuleConfigInputfields(array $data) {
 	
 		$data = array_merge(self::getDefaultSettings(), $data); 
-		$inputfields = new InputfieldWrapper();
+		$inputfields = $this->wire(new InputfieldWrapper());
 		
-		$fieldset = wire('modules')->get('InputfieldFieldset'); 
-		$fieldset->label = __('Attribute options');
-		$fieldset->description = __('Enter one attribute value per line. The user will be able to select these as options when adding links. To make an option selected by default (for new links), precede it with a plus "+".');
+		$fieldset = $this->wire('modules')->get('InputfieldFieldset'); 
+		$fieldset->label = $this->_('Attribute options');
+		$fieldset->description = $this->_('Enter one attribute value per line. The user will be able to select these as options when adding links. To make an option selected by default (for new links), precede it with a plus "+".');
 		$fieldset->icon = 'sliders';
 
-		$f = wire('modules')->get('InputfieldTextarea');
+		$f = $this->wire('modules')->get('InputfieldTextarea');
 		$f->attr('name', 'classOptions');
 		$f->label = 'class';
 		$f->attr('value', $data['classOptions']);
 		$f->columnWidth = 34; 
 		$fieldset->add($f);
 
-		$f = wire('modules')->get('InputfieldTextarea');
+		$f = $this->wire('modules')->get('InputfieldTextarea');
 		$f->attr('name', 'relOptions');
 		$f->label = 'rel';
 		$f->attr('value', $data['relOptions']);
 		$f->columnWidth = 33; 
 		$fieldset->add($f);
 
-		$f = wire('modules')->get('InputfieldTextarea');
+		$f = $this->wire('modules')->get('InputfieldTextarea');
 		$f->attr('name', 'targetOptions');
 		$f->label = 'target';
 		$f->attr('value', $data['targetOptions']);
@@ -340,14 +340,14 @@ class ProcessPageEditLink extends Process implements ConfigurableModule {
 		$fieldset->add($f);
 		$inputfields->add($fieldset); 
 		
-		$fieldset = wire('modules')->get('InputfieldFieldset');
-		$fieldset->label = __('External link attributes'); 
-		$fieldset->description = __('Specify the default selected attributed that will be automatically populated when an external link is detected.');
-		$fieldset->description .= ' ' . __('If used, the value must be one you have predefined above.'); 
+		$fieldset = $this->wire('modules')->get('InputfieldFieldset');
+		$fieldset->label = $this->_('External link attributes'); 
+		$fieldset->description = $this->_('Specify the default selected attributed that will be automatically populated when an external link is detected.');
+		$fieldset->description .= ' ' . $this->_('If used, the value must be one you have predefined above.'); 
 		$fieldset->icon = 'external-link';
 		$fieldset->collapsed = Inputfield::collapsedBlank;
 
-		$f = wire('modules')->get('InputfieldName');
+		$f = $this->wire('modules')->get('InputfieldName');
 		$f->attr('name', 'extLinkClass');
 		$f->label = 'class';
 		$f->attr('value', $data['extLinkClass']);
@@ -355,33 +355,33 @@ class ProcessPageEditLink extends Process implements ConfigurableModule {
 		$f->columnWidth = 34;
 		$fieldset->add($f);
 
-		$f = wire('modules')->get('InputfieldName');
+		$f = $this->wire('modules')->get('InputfieldName');
 		$f->attr('name', 'extLinkRel');
-		$f->notes = __('Example: Specifying **nofollow** would make external links default to be not followed by search engines.');
+		$f->notes = $this->_('Example: Specifying **nofollow** would make external links default to be not followed by search engines.');
 		$f->label = 'rel';
 		$f->required = false; 
 		$f->attr('value', $data['extLinkRel']);
 		$f->columnWidth = 33; 
 		$fieldset->add($f);
 
-		$f = wire('modules')->get('InputfieldName');
+		$f = $this->wire('modules')->get('InputfieldName');
 		$f->attr('name', 'extLinkTarget');
 		$f->label = 'target';
-		$f->notes = __('Example: Specifying **_blank** would make external links default to open in a new window.'); 
+		$f->notes = $this->_('Example: Specifying **_blank** would make external links default to open in a new window.'); 
 		$f->attr('value', $data['extLinkTarget']);
 		$f->required = false; 
 		$f->columnWidth = 33; 
 		$fieldset->add($f);
 		$inputfields->add($fieldset); 
 		
-		$f = wire('modules')->get('InputfieldRadios'); 
+		$f = $this->wire('modules')->get('InputfieldRadios'); 
 		$f->attr('name', 'urlType'); 
-		$f->label = __('URL type for page links'); 
-		$f->addOption(self::urlTypeAbsolute, __('Absolute (default)')); 
-		$f->addOption(self::urlTypeRelativeBranch, __('Relative URLs in the same branches only') . '*'); 
-		$f->addOption(self::urlTypeRelativeAll, __('Relative URLs always') . '*'); 
+		$f->label = $this->_('URL type for page links'); 
+		$f->addOption(self::urlTypeAbsolute, $this->_('Absolute (default)')); 
+		$f->addOption(self::urlTypeRelativeBranch, $this->_('Relative URLs in the same branches only') . '*'); 
+		$f->addOption(self::urlTypeRelativeAll, $this->_('Relative URLs always') . '*'); 
 		$f->attr('value', isset($data['urlType']) ? $data['urlType'] : self::urlTypeAbsolute); 
-		$f->notes = __('*Currently experimental'); 
+		$f->notes = $this->_('*Currently experimental'); 
 		$f->collapsed = Inputfield::collapsedYes;
 		$inputfields->add($f); 
 		

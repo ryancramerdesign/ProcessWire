@@ -60,7 +60,7 @@ class SystemNotifications extends WireData implements Module {
 	 * 
 	 */
 	public function __construct() {
-		$path = $this->wire('config')->paths->SystemNotifications;
+		$path = dirname(__FILE__) . '/';
 		require_once($path . "Notification.php"); 
 		require_once($path . "NotificationArray.php");
 		require_once($path . "SystemNotificationsConfig.php"); 

@@ -98,9 +98,9 @@ class PagePermissions extends WireData implements Module {
 	 *
 	 */
 	public function init() {
-		$this->addHook('Page::editable', $this, 'editable'); 
+		$this->addHook('Page::editable', $this, 'editable');
 		$this->addHook('Page::publishable', $this, 'publishable'); 
-		$this->addHook('Page::viewable', $this, 'viewable'); 
+		$this->addHook('Page::viewable', $this, 'viewable');
 		$this->addHook('Page::listable', $this, 'listable'); 
 		$this->addHook('Page::deleteable', $this, 'deleteable');
 		$this->addHook('Page::deletable', $this, 'deleteable');
@@ -744,7 +744,7 @@ class PagePermissions extends WireData implements Module {
 	 * @param HookEvent $event
 	 *
 	 */
-	protected function publishable($event) {
+	public function publishable($event) {
 
 		$user = $this->wire('user');
 		$event->return = true;

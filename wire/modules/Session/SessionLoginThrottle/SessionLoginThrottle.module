@@ -138,35 +138,35 @@ class SessionLoginThrottle extends WireData implements Module, ConfigurableModul
 	 * Add custom config options (coming soon, just a placeholder for now)
 	 *
 	 */
-	static public function getModuleConfigInputfields(array $data) {
+	public function getModuleConfigInputfields(array $data) {
 
-		$inputfields = new InputfieldWrapper();
+		$inputfields = $this->wire(new InputfieldWrapper());
 
 		foreach(self::$defaultSettings as $key => $value) {
 			if(!isset($data[$key])) $data[$key] = $value;
 		}
 
-		$f = wire('modules')->get('InputfieldCheckbox');
+		$f = $this->wire('modules')->get('InputfieldCheckbox');
 		$f->attr('name', 'checkIP');
 		$f->attr('value', 1);
 		$f->attr('checked', $data['checkIP'] ? 'checked' : ''); 
-		$f->label = __('Throttle by IP address?'); 
-		$f->description = __('By default, throttling will only be done by username. If you check this box, then throttling will also be done by IP address. We recommended enabling this option if your users are not coming from a shared IP address.');
+		$f->label = $this->_('Throttle by IP address?'); 
+		$f->description = $this->_('By default, throttling will only be done by username. If you check this box, then throttling will also be done by IP address. We recommended enabling this option if your users are not coming from a shared IP address.');
 		$inputfields->add($f);
 
-		$f = wire('modules')->get('InputfieldInteger'); 
+		$f = $this->wire('modules')->get('InputfieldInteger'); 
 		$f->attr('name', 'seconds');
 		$f->attr('value', $data['seconds']); 
-		$f->label = __('Number of seconds to make user wait after failed login attempt'); 
-		$f->description = __('This number is multiplied by the number of failed attempts, so each failed attempt increases the wait time exponentially. As a result, be careful about setting this too high.');
+		$f->label = $this->_('Number of seconds to make user wait after failed login attempt'); 
+		$f->description = $this->_('This number is multiplied by the number of failed attempts, so each failed attempt increases the wait time exponentially. As a result, be careful about setting this too high.');
 		$inputfields->add($f); 
 
-		$f = wire('modules')->get('InputfieldInteger'); 
+		$f = $this->wire('modules')->get('InputfieldInteger'); 
 		$f->attr('name', 'maxSeconds');
 		$f->attr('value', $data['maxSeconds']); 
-		$f->label = __('Maximum number of seconds a user would ever have to wait before attempting another login'); 
-		$f->description = __('Because the wait time is increased exponentially on each attempt, this places a maximum (cap) on the wait time. You should leave this set to a fairly high number.');
-		$f->notes = __('60=1 minute, 300=5 minutes, 600=10 minutes, 3600=1 hour, 86400=1 day'); 
+		$f->label = $this->_('Maximum number of seconds a user would ever have to wait before attempting another login'); 
+		$f->description = $this->_('Because the wait time is increased exponentially on each attempt, this places a maximum (cap) on the wait time. You should leave this set to a fairly high number.');
+		$f->notes = $this->_('60=1 minute, 300=5 minutes, 600=10 minutes, 3600=1 hour, 86400=1 day'); 
 		$inputfields->add($f); 
 
 		return $inputfields;

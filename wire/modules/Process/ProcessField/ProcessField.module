@@ -1964,25 +1964,25 @@ class ProcessField extends Process implements ConfigurableModule {
 	 * Build a form allowing configuration of this Module
 	 *
 	 */
-	static public function getModuleConfigInputfields(array $data) {
+	public function getModuleConfigInputfields(array $data) {
 
-		$fields = new InputfieldWrapper();
-		$modules = wire('modules');
+		$fields = $this->wire(new InputfieldWrapper());
+		$modules = $this->wire('modules');
 
 		$field = $modules->get("InputfieldCheckbox");
 		$field->attr('name', 'showListFilters');
 		$field->attr('value', 1); 
 		$field->attr('checked', empty($data['showListFilters']) ? '' : 'checked'); 
-		$field->label = __("Show filtering options in Fields list?", __FILE__);
-		$field->description = __("This adds two select boxes to the top of the fields list that let you filter the display of fields by template or type.", __FILE__);
+		$field->label = $this->_("Show filtering options in Fields list?");
+		$field->description = $this->_("This adds two select boxes to the top of the fields list that let you filter the display of fields by template or type.");
 		$fields->append($field);
 
 		$field = $modules->get("InputfieldCheckbox");
 		$field->attr('name', 'listAfterSave');
 		$field->attr('value', 1); 
 		$field->attr('checked', empty($data['listAfterSave']) ? '' : 'checked'); 
-		$field->label = __("Return to fields list after saving a field?", __FILE__);
-		$field->description = __("By default, you will remain in the fields editor after saving a field. If you want to instead return to the fields list, check this box.", __FILE__);
+		$field->label = $this->_("Return to fields list after saving a field?");
+		$field->description = $this->_("By default, you will remain in the fields editor after saving a field. If you want to instead return to the fields list, check this box.");
 		$fields->append($field);
 
 		return $fields;

@@ -22,8 +22,10 @@ class Language extends Page {
 	 *
 	 */
 	public function __construct(Template $tpl = null) {
-		if(is_null($tpl)) $tpl = $this->wire('templates')->get('language');
 		parent::__construct($tpl);
+		if(is_null($tpl)) {
+			$this->template = $this->wire('templates')->get('language');
+		}
 	}
 
 	/**

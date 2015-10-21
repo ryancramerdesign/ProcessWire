@@ -158,7 +158,7 @@ class ProcessSessionDB extends Process {
 	public function ___install() {
 
 		// create the page our module will be assigned to
-		$page = new Page();
+		$page = $this->wire('pages')->newPage();
 		$page->template = 'admin';
 		$page->name = self::pageName;
 

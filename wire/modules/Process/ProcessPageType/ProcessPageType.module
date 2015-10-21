@@ -412,15 +412,15 @@ class ProcessPageType extends Process implements ConfigurableModule, WirePageEdi
 		return $form;
 	}
 
-	static public function getModuleConfigInputfields(array $data) {
+	public function getModuleConfigInputfields(array $data) {
 
 		$showFields = isset($data['showFields']) ? $data['showFields'] : array();
 		$fields = array('name'); 
-		foreach(wire('fields') as $field) $fields[] = $field->name; 
+		foreach($this->wire('fields') as $field) $fields[] = $field->name; 
 	
-		$inputfields = new InputfieldWrapper();
-		$f = wire('modules')->get('InputfieldAsmSelect'); 
-		$f->label = __("What fields should be displayed in the page listing?");
+		$inputfields = $this->wire(new InputfieldWrapper());
+		$f = $this->wire('modules')->get('InputfieldAsmSelect'); 
+		$f->label = $this->_("What fields should be displayed in the page listing?");
 		$f->attr('id+name', 'showFields'); 
 		foreach($fields as $name) $f->addOption($name); 
 		$f->attr('value', $showFields); 

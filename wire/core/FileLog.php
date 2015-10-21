@@ -40,7 +40,7 @@ class FileLog extends Wire {
 			$path = dirname($path) . '/';
 		}
 		$this->path = $path; 
-		if(!is_dir($path)) wireMkdir($path);
+		if(!is_dir($path)) $this->wire('files')->mkdir($path);
 	}
 	
 	public function __get($key) {
@@ -97,7 +97,7 @@ class FileLog extends Wire {
 			}
 
 			fclose($fp); 
-			wireChmod($this->logFilename);
+			$this->wire('files')->chmod($this->logFilename);
 			return true; 
 		} else {
 			return false;
@@ -361,7 +361,7 @@ class FileLog extends Wire {
 		
 		if($fp) {
 			fclose($fp);
-			wireChmod($toFile); 
+			$this->wire('files')->chmod($toFile); 
 			return $cnt;
 		}
 			
@@ -451,8 +451,8 @@ class FileLog extends Wire {
 
 		if($cnt) {
 			unlink($filename); 
-			rename("$filename.new", $filename); 
-			wireChmod($filename); 
+			rename("$filename.new", $filename);
+			$this->wire('files')->chmod($filename); 
 		} else {
 			@unlink("$filename.new"); 
 		}

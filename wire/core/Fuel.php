@@ -7,6 +7,9 @@
  * The objects contained in fuel provide access to the ProcessWire API. For instance, $pages,
  * $users, $fields, and so on. The fuel is required to keep the system running, so to speak.
  * 
+ * This file is licensed under the MIT license
+ * https://processwire.com/about/license/mit/
+ * 
  * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
  * https://processwire.com
  * 

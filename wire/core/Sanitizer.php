@@ -946,6 +946,17 @@ class Sanitizer extends Wire {
 	}
 
 	/**
+	 * Remove newlines from the given string and return it
+	 *
+	 * @param string $str
+	 * @return string
+	 *
+	 */
+	function removeNewlines($str) {
+		return str_replace(array("\r\n", "\r", "\n"), ' ', $str);
+	}
+
+	/**
 	 * Sanitize value to string
 	 *
 	 * Note that this makes no assumptions about what is a "safe" string, so you should always apply another
@@ -1298,6 +1309,60 @@ class Sanitizer extends Wire {
 			$clean[$k] = $this->int($v, $options);
 		}
 		return array_values($clean);
+	}
+
+	/**
+	 * Minimize an array to remove empty values
+	 *
+	 * @param array $data Array to reduce
+	 * @param bool|array $allowEmpty Should empty values be allowed in the encoded data?
+	 *	- Specify false to exclude all empty values (this is the default if not specified).
+	 * 	- Specify true to allow all empty values to be retained (thus no point in calling this function).
+	 * 	- Specify an array of keys (from data) that should be retained if you want some retained and not others.
+	 * 	- Specify the digit 0 to retain values that are 0, but not other types of empty values.
+	 * @param bool $convert Perform type conversions where appropriate: i.e. convert digit-only string to integer
+	 * @return array
+	 *
+	 */
+	public function minArray($data, $allowEmpty = false, $convert = false) {
+		
+		if(!is_array($data)) {
+			$data = $this->___array($data, null, $options);
+		}
+
+		foreach($data as $key => $value) {
+
+			if($convert && is_string($value)) {
+				// make sure ints are stored as ints
+				if(ctype_digit("$value") && $value <= PHP_INT_MAX) {
+					if($value === "0" || $value[0] != '0') { // avoid octal conversions (leading 0)
+						$value = (int) $value;
+					}
+				}
+			} else if(is_array($value) && count($value)) {
+				$value = $this->minArray($value, $allowEmpty, $convert);
+			}
+
+			$data[$key] = $value;
+
+			// skip empty values whether blank, 0, empty array, etc. 
+			if(empty($value)) {
+
+				if($allowEmpty === 0 && $value === 0) {
+					// keep it because $allowEmpty === 0 means to keep 0 values only
+
+				} else if(is_array($allowEmpty) && !in_array($key, $allowEmpty)) {
+					// remove it because it's not specifically allowed in allowEmpty
+					unset($data[$key]);
+
+				} else if(!$allowEmpty) {
+					// remove the empty value
+					unset($data[$key]);
+				}
+			}
+		}
+
+		return $data;
 	}
 
 	/**

@@ -5,6 +5,9 @@
  *
  * Interfaces used throughout ProcessWire's core.
  * 
+ * This file is licensed under the MIT license
+ * https://processwire.com/about/license/mit/
+ * 
  * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
  * https://processwire.com
  *
@@ -219,146 +222,10 @@ interface WireTranslatable {
 /**
  * Interface that indicates the required methods for a class to be hookable.
  * 
- * See the Wire class that provides an example implementation of all these.
+ * @deprecated
  * 
  */
-interface WireHookable {
-	
-	/**
-	 * Provides the gateway for calling hooks in ProcessWire
-	 *
-	 * When a non-existant method is called, this checks to see if any hooks have been defined and sends the call to them.
-	 *
-	 * Hooks are defined by preceding the "hookable" method in a descending class with 3 underscores, like __myMethod().
-	 * When the API calls $myObject->myMethod(), it gets sent to $myObject->___myMethod() after any 'before' hooks have been called.
-	 * Then after the ___myMethod() call, any "after" hooks are then called. "after" hooks have the opportunity to change the return value.
-	 *
-	 * Hooks can also be added for methods that don't actually exist in the class, allowing another class to add methods to this class.
-	 *
-	 * See the Wire::runHooks() method for the full implementation of hook calls.
-	 *
-	 * @param string $method
-	 * @param array $arguments
-	 * @return mixed
-	 * @throws WireException
-	 *
-	 */
-	public function __call($method, $arguments);
-
-	/**
-	 * Provides the implementation for dealing with hook properties, added via the addHookProperty method
-	 * 
-	 * @param $name
-	 * @return mixed
-	 * 
-	public function __get($name);
-	 */
-	
-	/**
-	 * Provides the implementation for calling hooks in ProcessWire
-	 *
-	 * Unlike __call, this method won't trigger an Exception if the hook and method don't exist.
-	 * Instead it returns a result array containing information about the call.
-	 *
-	 * @param string $method Method or property to run hooks for.
-	 * @param array $arguments Arguments passed to the method and hook.
-	 * @param string $type May be either 'method' or 'property', depending on the type of call. Default is 'method'.
-	 * @return array Returns an array with the following information:
-	 * 	[return] => The value returned from the hook or NULL if no value returned or hook didn't exist.
-	 *	[numHooksRun] => The number of hooks that were actually run.
-	 *	[methodExists] => Did the hook method exist as a real method in the class? (i.e. with 3 underscores ___method).
-	 *	[replace] => Set by the hook at runtime if it wants to prevent execution of the original hooked method.
-	 *
-	 */
-	public function runHooks($method, $arguments, $type = 'method');
-
-	/**
-	 * Return all hooks associated with this class instance or method (if specified)
-	 *
-	 * @param string $method Optional method that hooks will be limited to. Or specify '*' to return all hooks everywhere.
-	 * @return array
-	 *
-	 */
-	public function getHooks($method = '');
-
-	/**
-	 * Returns true if the method/property hooked, false if it isn't.
-	 *
-	 * This is for optimization use. It does not distinguish about class or instance.
-	 *
-	 * If checking for a hooked method, it should be in the form "method()".
-	 * If checking for a hooked property, it should be in the form "property".
-	 *
-	 */
-	static function isHooked($method);
-
-	/**
-	 * Hook a function/method to a hookable method call in this object
-	 *
-	 * Hookable method calls are methods preceded by three underscores.
-	 * You may also specify a method that doesn't exist already in the class
-	 * The hook method that you define may be part of a class or a globally scoped function.
-	 *
-	 * If you are hooking a procedural function, you may omit the $toObject and instead just call via:
-	 * $this->addHook($method, 'function_name');
-	 *
-	 * @param string $method Method name to hook into, NOT including the three preceding underscores. May also be Class::Method for same result as using the fromClass option.
-	 * @param object|null $toObject Object to call $toMethod from, or null if $toMethod is a function outside of an object
-	 * @param string $toMethod Method from $toObject, or function name to call on a hook event
-	 * @param array $options See self::$defaultHookOptions at the beginning of this class
-	 * @return string A special Hook ID that should be retained if you need to remove the hook later
-	 * @throws WireException
-	 *
-	 */
-	public function addHook($method, $toObject, $toMethod = null, $options = array());
-
-	/**
-	 * Shortcut to the addHook() method which adds a hook to be executed after the hooked method.
-	 *
-	 * This is the same as calling addHook with the 'after' option set the $options array.
-	 *
-	 * If you are hooking a procedural function, you may omit the $toObject and instead just call via:
-	 * $this->addHookAfter($method, 'function_name');
-	 *
-	 * @param string $method Method name to hook into, NOT including the three preceding underscores
-	 * @param object|null $toObject Object to call $toMethod from, or null if $toMethod is a function outside of an object
-	 * @param string $toMethod Method from $toObject, or function name to call on a hook event
-	 * @param array $options See self::$defaultHookOptions at the beginning of this class
-	 * @return string A special Hook ID that should be retained if you need to remove the hook later
-	 *
-	 */
-	public function addHookAfter($method, $toObject, $toMethod = null, $options = array());
-	
-	/**
-	 * Shortcut to the addHook() method which adds a hook to be executed as an object property.
-	 *
-	 * i.e. $obj->property; in addition to $obj->property();
-	 *
-	 * This is the same as calling addHook with the 'type' option set to 'property' in the $options array.
-	 * Note that descending classes that override __get must call getHook($property) and/or runHook($property).
-	 *
-	 * If you are hooking a procedural function, you may omit the $toObject and instead just call via:
-	 * $this->addHookProperty($method, 'function_name');
-	 *
-	 * @param string $property Method name to hook into, NOT including the three preceding underscores
-	 * @param object|null $toObject Object to call $toMethod from, or null if $toMethod is a function outside of an object
-	 * @param string $toMethod Method from $toObject, or function name to call on a hook event
-	 * @param array $options See self::$defaultHookOptions at the beginning of this class
-	 * @return string A special Hook ID that should be retained if you need to remove the hook later
-	 *
-	 */
-	public function addHookProperty($property, $toObject, $toMethod = null, $options = array());
-	
-	/**
-	 * Given a Hook ID provided by addHook() this removes the hook
-	 *
-	 * @param string $hookId
-	 * @return $this
-	 *
-	 */
-	public function removeHook($hookId);
-	
-}
+interface WireHookable { }
 
 /**
  * Interface that indicates a class supports API variable dependency injection and retrieval

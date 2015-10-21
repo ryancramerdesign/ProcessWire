@@ -70,8 +70,9 @@ class Templates extends WireSaveableItems {
 	 *
 	 */
 	public function __construct(Fieldgroups $fieldgroups, $path) {
+		$fieldgroups->wire($this);
 		$this->fieldgroups = $fieldgroups; 
-		$this->templatesArray = new TemplatesArray();
+		$this->templatesArray = $this->wire(new TemplatesArray());
 		$this->path = $path;
 	}
 
@@ -504,8 +505,7 @@ class Templates extends WireSaveableItems {
 			if($checkAccess) {
 				if($parentPage->id) {
 					// single defined parent
-					$p = $this->wire('pages')->newPage();
-					$p->template = $template;
+					$p = $this->wire('pages')->newPage(array('template' => $template));
 					if(!$parentPage->addable($p)) continue;
 				} else {
 					// multiple possible parents
@@ -518,8 +518,7 @@ class Templates extends WireSaveableItems {
 		}
 		
 		if($checkAccess && $foundParents && $foundParents->count()) {
-			$p = $this->wire('pages')->newPage();
-			$p->template = $template; 
+			$p = $this->wire('pages')->newPage(array('template' => $template));
 			foreach($foundParents as $parentPage) {
 				if(!$parentPage->addable($p)) $foundParents->remove($parentPage);
 			}

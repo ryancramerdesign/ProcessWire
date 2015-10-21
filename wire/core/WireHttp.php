@@ -821,6 +821,72 @@ class WireHttp extends Wire {
 	}
 
 	/**
+	 * Send the contents of the given filename to the current http connection
+	 *
+	 * This function utilizes the $content->fileContentTypes to match file extension
+	 * to content type headers and force-download state.
+	 *
+	 * This function throws a WireException if the file can't be sent for some reason.
+	 *
+	 * @param string $filename Filename to send
+	 * @param array $options Options that you may pass in, see $_options in function for details.
+	 * @param array $headers Headers that are sent, see $_headers in function for details.
+	 *	To remove a header completely, make its value NULL and it won't be sent.
+	 * @throws WireException
+	 *
+	 */
+	public function sendFile($filename, array $options = array(), array $headers = array()) {
+
+		$_options = array(
+			// boolean: halt program execution after file send
+			'exit' => true,
+			// boolean|null: whether file should force download (null=let content-type header decide)
+			'forceDownload' => null,
+			// string: filename you want the download to show on the user's computer, or blank to use existing.
+			'downloadFilename' => '',
+		);
+
+		$_headers = array(
+			"pragma" => "public",
+			"expires" =>  "0",
+			"cache-control" => "must-revalidate, post-check=0, pre-check=0",
+			"content-type" => "{content-type}",
+			"content-transfer-encoding" => "binary",
+			"content-length" => "{filesize}",
+		);
+
+		$this->wire('session')->close();
+		$options = array_merge($_options, $options);
+		$headers = array_merge($_headers, $headers);
+		if(!is_file($filename)) throw new WireException("File does not exist");
+		$info = pathinfo($filename);
+		$ext = strtolower($info['extension']);
+		$contentTypes = $this->wire('config')->fileContentTypes;
+		$contentType = isset($contentTypes[$ext]) ? $contentTypes[$ext] : $contentTypes['?'];
+		$forceDownload = $options['forceDownload'];
+		if(is_null($forceDownload)) $forceDownload = substr($contentType, 0, 1) === '+';
+		$contentType = ltrim($contentType, '+');
+		if(ini_get('zlib.output_compression')) ini_set('zlib.output_compression', 'Off');
+		$tags = array('{content-type}' => $contentType, '{filesize}' => filesize($filename));
+
+		foreach($headers as $key => $value) {
+			if(is_null($value)) continue;
+			if(strpos($value, '{') !== false) $value = str_replace(array_keys($tags), array_values($tags), $value);
+			header("$key: $value");
+		}
+
+		if($forceDownload) {
+			$downloadFilename = empty($options['downloadFilename']) ? $info['basename'] : $options['downloadFilename'];
+			header("content-disposition: attachment; filename=\"$downloadFilename\"");
+		}
+
+		@ob_end_clean();
+		@flush();
+		readfile($filename);
+		if($options['exit']) exit;
+	}
+
+	/**
 	 * Validate a URL for WireHttp use
 	 *
 	 * @param string $url

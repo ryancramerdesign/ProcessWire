@@ -211,6 +211,7 @@ class WireInput extends Wire {
 	
 	public function __construct() {
 		$this->useFuel(false);
+		$this->unregisterGLOBALS();
 	}
 	
 	/**
@@ -432,7 +433,7 @@ class WireInput extends Wire {
 		
 		if($page && $page->id) {
 			// pull URL from page
-			$url = $page->url;
+			$url = $page->url();
 			$segmentStr = $this->urlSegmentStr();
 			$pageNum = $this->pageNum();
 			if(strlen($segmentStr) || $pageNum > 1) {
@@ -519,6 +520,37 @@ class WireInput extends Wire {
 	 */
 	public function scheme() {
 		return $this->wire('config')->https ? 'https' : 'http'; 
+	}
+
+	/**
+	 * Emulate register globals OFF
+	 *
+	 * Should be called after session_start()
+	 *
+	 * This function is from the PHP documentation at:
+	 * http://www.php.net/manual/en/faq.misc.php#faq.misc.registerglobals
+	 *
+	 */
+	protected function unregisterGLOBALS() {
+
+		if(!ini_get('register_globals')) {
+			return;
+		}
+
+		if(isset($_REQUEST['GLOBALS']) || isset($_FILES['GLOBALS'])) {
+			unset($_GET['GLOBALS'], $_POST['GLOBALS'], $_COOKIE['GLOBALS'], $_FILES['GLOBALS']);
+		}
+
+		// Variables that shouldn't be unset
+		$noUnset = array('GLOBALS', '_GET', '_POST', '_COOKIE', '_REQUEST', '_SERVER', '_ENV', '_FILES');
+
+		$input = array_merge($_GET, $_POST, $_COOKIE, $_SERVER, $_ENV, $_FILES, isset($_SESSION) && is_array($_SESSION) ? $_SESSION : array());
+
+		foreach ($input as $k => $v) {
+			if(!in_array($k, $noUnset) && isset($GLOBALS[$k])) {
+				unset($GLOBALS[$k]);
+			}
+		}
 	}
 }
 
