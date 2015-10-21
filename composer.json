@@ -17,6 +17,8 @@
     "ext-gd": "*"
   },
   "autoload": {
-    "files": "wire/core/ProcessWire.php"
+    "files": [
+      "wire/core/ProcessWire.php"
+    ]
   }
 }
