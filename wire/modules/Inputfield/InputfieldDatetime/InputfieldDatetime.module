@@ -80,15 +80,8 @@ class InputfieldDatetime extends Inputfield {
 	 */
 	public function ___render() {
 
-		$dateFormat = '';
-		$timeFormat = '';
-		if($this->user->language && !$this->user->language->isDefault()) {
-			// check if alternate language formats are provided
-			$dateFormat = $this->get("dateInputFormat{$this->user->language}"); 
-			$timeFormat = $this->get("timeInputFormat{$this->user->language}"); 
-		}
-		if(!$dateFormat) $dateFormat = $this->dateInputFormat; 
-		if(!$timeFormat) $timeFormat = $this->timeInputFormat; 
+		$dateFormat = $this->_getInputFormat('date');
+		$timeFormat = $this->_getInputFormat('time');
 		$useTime = false; 
 
 		if($this->datepicker) {
@@ -174,10 +167,29 @@ class InputfieldDatetime extends Inputfield {
 	 */
 	public function setAttribute($key, $value) {
 		if($key == 'value') {
-			$value = FieldtypeDatetime::stringToTimestamp($value, $this->dateInputFormat . ' ' . $this->timeInputFormat); 
+      $dateInputFormat = $this->_getInputFormat('date');
+      $timeInputFormat = $this->_getInputFormat('time');
+			$value = FieldtypeDatetime::stringToTimestamp($value, $dateInputFormat . ' ' . $timeInputFormat); 
 		}
 		return parent::setAttribute($key, $value); 
 	}
+
+  /**
+   * Get right input format string corresponding to the user’s language
+   * @param $for String of input format to be returned ("date", "time")
+   * @return  Input format string
+   */
+  private function _getInputFormat($for) {
+    $for = strtolower($for);
+    $format = ''; 
+    // check if alternate language formats are provided
+    if($this->user->language && !$this->user->language->isDefault()) {
+      $format = $this->get("{$for}InputFormat{$this->user->language}"); 
+    }
+    // if not, provide default language’s format
+    if(!$format) $format = $this->get("{$for}InputFormat");
+    return $format;
+  }
 
 	/**
 	 * Date/time Inputfield configuration, per field
