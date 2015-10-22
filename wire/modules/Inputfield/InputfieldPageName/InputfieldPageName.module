@@ -156,7 +156,7 @@ class InputfieldPageName extends InputfieldName implements ConfigurableModule {
 			if($this->hasLanguagePageNames && $this->parentPage->id == $this->wire('config')->rootPageID) {
 				if($user->language->isDefault()) {
 					$parentName = $this->parentPage->name;
-					if(!trim($url, '/') && $parentName) $url = "/$parentName";
+					if(!trim($url, '/')) $url = ($parentName === 'home' ? "" : $parentName);
 				}
 			}
 		}
@@ -187,7 +187,8 @@ class InputfieldPageName extends InputfieldName implements ConfigurableModule {
 		$slashUrls = (int) $this->slashUrls;
 
 		if(strlen($value) && $this->hasLanguagePageNames) {
-			$link = $this->wire('config')->urls->root . trim($url, '/') . "/$value" . ($slashUrls ? '/' : ''); 
+			$link = trim($url, '/') . "/$value" . ($slashUrls ? '/' : ''); 
+			$link = $this->wire('config')->urls->root . ltrim($link, '/');
 			$link = "<a href='$link'>";
 		}
 		
@@ -216,8 +217,17 @@ class InputfieldPageName extends InputfieldName implements ConfigurableModule {
 		if($languages && $this->hasLanguagePageNames) {
 			$user = $this->wire('user');
 			if(!$languages->editable($user->language)) return $this;
+			$return = parent::___processInput($input);
+			if($user->language->isDefault()) {
+				$process = $this->wire('process');
+				if($process instanceof WirePageEditor && $process->getPage()->id == $this->wire('config')->rootPageID) {
+					if(!strlen($this->attr('value'))) $this->attr('value', 'home');
+				}
+			}
+		} else {
+			$return = parent::___processInput($input);
 		}
-		return parent::___processInput($input);
+		return $return;
 	}
 
 	static public function replacementStringToArray($str) {
