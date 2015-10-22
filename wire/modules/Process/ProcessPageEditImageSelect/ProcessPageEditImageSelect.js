@@ -47,6 +47,15 @@ function refreshPageEditField(fieldName) {
 }
 
 function setupExecuteVariations() {
+
+	$(document).on('click', 'input#delete_all', function(event) {
+		if($(this).is(":checked")) {
+			$("input.delete").attr('checked', 'checked');
+		} else {
+			$("input.delete").removeAttr('checked');
+		}
+		event.stopPropagation();
+	}); 
 	
 	var magnificOptions = {
 		type: 'image',
@@ -54,14 +63,6 @@ function setupExecuteVariations() {
 		closeBtnInside: true
 	};
 	$("a.preview").magnificPopup(magnificOptions);
-	$("#delete_all").click(function(event) {
-		if($(this).is(":checked")) {
-			$("input.delete").attr('checked', 'checked');
-		} else {
-			$("input.delete").removeAttr('checked'); 
-		}
-		event.stopPropagation();
-	}); 
 
 	// update variation counter in parent window
 	var $varcnt = $("#varcnt_id");
