@@ -110,7 +110,7 @@ class AdminThemeDefaultHelpers extends WireData {
 	 */
 	public function renderAdminNotices($notices, array $options = array()) {
 		
-		if($this->wire('modules')->isInstalled('SystemNotifications')) {
+		if($this->wire('user')->isLoggedin() && $this->wire('modules')->isInstalled('SystemNotifications')) {
 			$systemNotifications = $this->wire('modules')->get('SystemNotifications');	
 			if(!$systemNotifications->placement) return;
 		}
