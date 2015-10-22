@@ -443,6 +443,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 		$savedID = $inputfield->attr('id');
 		$trackChanges = $inputfield->trackChanges();
 		$inputfield->setTrackChanges(false);
+		$checkboxLabel = $this->_('Active?');
 		$out = ''; 
 
 		$language = $languages->getDefault();
@@ -467,7 +468,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 			$inputfield->attr('value', $value); 
 			$inputfield->checkboxName = "status" . $language->id; 
 			$inputfield->checkboxValue = 1; 
-			$inputfield->checkboxLabel = $this->_('Active?'); 
+			$inputfield->checkboxLabel = $checkboxLabel;
 			$inputfield->checkboxChecked = $page->get($inputfield->checkboxName) > 0 || $page->id == 0;
 			if(!$editable) $inputfield->attr('disabled', 'disabled');
 			$out .= $inputfield->render();
