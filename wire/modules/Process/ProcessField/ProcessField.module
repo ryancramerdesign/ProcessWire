@@ -98,8 +98,12 @@ class ProcessField extends Process implements ConfigurableModule {
 		if($this->input->post->id) $this->id = (int) $this->input->post->id;
 			else $this->id = $this->input->get->id ? (int) $this->input->get->id : 0;
 
-		if($this->id) $this->field = $this->fields->get($this->id);
-			else $this->field = new Field();
+		if($this->id) {
+			$this->field = $this->fields->get($this->id);
+			if(!$this->field) throw new WireException("Invalid field!"); 
+		} else {
+			$this->field = new Field();
+		}
 
 		return parent::init();
 	}
