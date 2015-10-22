@@ -987,14 +987,13 @@ class Page extends WireData implements Countable, WireMatchable {
 		do {
 			
 			$name = array_shift($parts);
+			$field = $this->template->fieldgroup->getField($name);
 			
-			if($this->wire($name)) {
+			if(!$field && $this->wire($name)) {
 				// disallow API vars
 				$value = '';
 				break;
 			}
-			
-			$field = $this->template->fieldgroup->getField($name);
 			
 			if($value instanceof Page) {
 				$value = $value->getFormatted($name);

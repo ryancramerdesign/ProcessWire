@@ -950,7 +950,7 @@ function wirePopulateStringTags($str, $vars, array $options = array()) {
 		$str = str_replace($tag, $value, $str); 
 	}
 
-	return $str; 
+	return $str;
 }
 
 
