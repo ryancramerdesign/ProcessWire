@@ -125,6 +125,7 @@ class Comment extends WireData {
 		$this->set('subcode', ''); // subscriber code (for later user modifications to comment)
 		$this->set('upvotes', 0); 
 		$this->set('downvotes', 0); 
+		$this->set('stars', 0);
 	}
 
 	public function get($key) {
@@ -205,6 +206,11 @@ class Comment extends WireData {
 		// is then set to not-spam, or when a misidentified 'approved' comment is actually spam
 		if($key == 'status' && $this->loaded) {
 			$this->prevStatus = $this->status;
+		}
+		if($key == 'stars') {
+			$value = (int) $value; 
+			if($value < 1) $value = 0;
+			if($value > 5) $value = 5; 
 		}
 
 		return parent::set($key, $value); 

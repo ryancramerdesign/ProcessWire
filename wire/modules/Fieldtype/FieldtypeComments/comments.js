@@ -30,6 +30,69 @@ function CommentFormGetCookie(name) {
 }
 
 /**
+ * Handle the 5-star rating system for comments
+ * 
+ * @param jQuery $
+ * 
+ */
+function CommentFormStars($) {
+
+	function decodeEntities(encodedString) {
+		if(encodedString.indexOf('&') == -1) return encodedString;
+		var textarea = document.createElement('textarea');
+		textarea.innerHTML = encodedString;
+		return textarea.value;
+	}
+
+	// stars
+	function setStars($parent, star) {
+		var onClass = $parent.attr('data-onclass');
+
+		var starOn = $parent.attr('data-on');
+		if(typeof starOn != "undefined") {
+			var starOff = $parent.attr('data-off');
+			starOn = decodeEntities(starOn);
+			starOff = decodeEntities(starOff);
+		} else {
+			var starOn = '';
+			var starOff = '';
+		}
+		$parent.children('span').each(function() {
+			var val = parseInt($(this).attr('data-value'));
+			if(val <= star) {
+				if(starOn.length) $(this).html(starOn);
+				$(this).addClass(onClass);
+			} else {
+				if(starOff.length) $(this).html(starOff);
+				$(this).removeClass(onClass);
+			}
+		});
+	}
+
+	$(".CommentFormStars input").hide();
+
+	$(document).on('click', ".CommentStarsInput span", function(e) {
+		var value = parseInt($(this).attr('data-value'));
+		var $parent = $(this).parent();
+		var $input = $parent.prev('input');
+		$input.val(value);
+		setStars($parent, value);
+		return false;
+	});
+
+	$(document).on('mouseover', ".CommentStarsInput span", function(e) {
+		var $parent = $(this).parent();
+		var value = parseInt($(this).attr('data-value'));
+		setStars($parent, value);
+	}).on('mouseout', ".CommentStarsInput span", function(e) {
+		var $parent = $(this).parent();
+		var $input = $parent.prev('input');
+		var value = parseInt($input.val());
+		setStars($parent, value);
+	});
+}
+
+/**
  * Initialize comments form 
  * 
  */
@@ -54,6 +117,16 @@ jQuery(document).ready(function($) {
 	$(".CommentFormSubmit button").on('click', function() {
 		var $this = $(this);
 		var $form = $this.closest('form.CommentForm');
+		
+		var $wrapStars = $form.find(".CommentFormStarsRequired");
+		if($wrapStars.length) {
+			var stars = parseInt($wrapStars.find("input").val());
+			if(!stars) {
+				alert($wrapStars.attr('data-note'));
+				return false;
+			}
+		}
+		
 		var cite = $form.find(".CommentFormCite input").val();
 		var email = $form.find(".CommentFormEmail input").val();
 		var $website = $form.find(".CommentFormWebsite input");
@@ -75,7 +148,7 @@ jQuery(document).ready(function($) {
 		$form.find(".CommentFormCite input").val(values[0]);
 		$form.find(".CommentFormEmail input").val(values[1]);
 		$form.find(".CommentFormWebsite input").val(values[2]);
-		$form.find(".CommentFormNotify :input[value=" + values[3] + "]").attr('checked', 'checked');
+		$form.find(".CommentFormNotify :input[value='" + values[3] + "']").attr('checked', 'checked');
 	}
 
 	// upvoting and downvoting
@@ -103,5 +176,10 @@ jQuery(document).ready(function($) {
 			voting = false;
 		}); 
 		return false; 
-	}); 
+	});
+
+	if($(".CommentStarsInput").length) {
+		CommentFormStars($);
+	}
+	
 }); 

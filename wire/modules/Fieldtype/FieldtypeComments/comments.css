@@ -175,3 +175,21 @@
 .CommentList .CommentVotes .CommentDownvoteCnt {
 	padding-left: 2px; 
 }
+
+/*** COMMENT STARS **********************************************/
+
+.CommentForm .CommentStars > span, 
+.CommentList .CommentStars > span {
+	display: inline-block;
+	position: relative;
+	width: 1.1em;
+	color: #ccc;
+}
+.CommentForm .CommentStars > span.CommentStarOn, 
+.CommentList .CommentStars > span.CommentStarOn {
+	color: #FAA002;
+}
+
+.CommentForm .CommentStarsInput > span:hover {
+	cursor: pointer;
+}

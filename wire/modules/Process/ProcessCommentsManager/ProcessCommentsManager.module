@@ -209,6 +209,15 @@ class ProcessCommentsManager extends Process {
 					}
 				}
 			}
+			
+			if($field->useStars) {
+				$stars = (int) $this->input->post("CommentStars$comment->id");
+				if($stars != $comment->stars) {
+					$comment->set('stars', $stars);
+					$properties['stars'] = $comment->stars;
+					$numChanged++;
+				}
+			}
 
 			$_status = $this->input->post("CommentStatus{$comment->id}"); 
 			$status = (int) $_status;
@@ -305,6 +314,18 @@ class ProcessCommentsManager extends Process {
 		if($website) $out .= "<tr><th>" . $this->_('Web') . "</th><td><a target='_blank' href='$website'>$website</a></td></tr>";
 
 		$out .= "<tr><th>" . $this->_('Type') . "</th><td class='CommentStatus'>$type</td></tr>";
+		
+		if($comment->getField()->useStars) {
+			$stars = $comment->stars;
+			if(!$stars) $stars = '';
+			$out .=
+				"<tr>" .
+					"<th>" . $this->_('Stars') . "</th>" .
+					"<td class='CommentStars'>" .
+						"<label><input type='number' style='width:3em' min='1' max='5' name='CommentStars$comment->id' value='$stars' /></label>" .
+					"</td>" .
+				"</tr>";
+		}
 
 		if($comment->getField()->useVotes) $out .=
 			"<tr>" . 

@@ -85,12 +85,20 @@ class CommentArray extends PaginatedArray implements WirePaginatable {
 		$defaultOptions = array(
 			'useGravatar' => ($this->field ? $this->field->useGravatar : ''),
 			'useVotes' => ($this->field ? $this->field->useVotes : 0), 
+			'useStars' => ($this->field ? $this->field->useStars : 0), 
 			'depth' => ($this->field ? (int) $this->field->depth : 0), 	
 			'dateFormat' => 'relative', 
 			);
 		$options = array_merge($defaultOptions, $options);
 		$commentList = $this->getCommentList($options); 
 		return $commentList->render();
+	}
+	
+	public function makeNew() {
+		$a = parent::makeNew();
+		if($this->page) $a->setPage($this->page);
+		if($this->field) $a->setField($this->field);
+		return $a;
 	}
 
 	/**

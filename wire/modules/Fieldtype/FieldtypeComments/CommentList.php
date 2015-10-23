@@ -50,7 +50,7 @@ class CommentList extends Wire implements CommentListInterface {
 	 */
 	protected $options = array(
 		'headline' => '', 	// '<h3>Comments</h3>', 
-		'commentHeader' => '', 	// 'Posted by {cite} on {created}',
+		'commentHeader' => '', 	// 'Posted by {cite} on {created} {stars}',
 		'dateFormat' => '', 	// 'm/d/y g:ia', 
 		'encoding' => 'UTF-8', 
 		'admin' => false, 	// shows unapproved comments if true
@@ -58,6 +58,7 @@ class CommentList extends Wire implements CommentListInterface {
 		'useGravatarImageset' => 'mm',	// default gravatar imageset, specify: [ 404 | mm | identicon | monsterid | wavatar ]
 		'usePermalink' => false, // @todo
 		'useVotes' => 0, 
+		'useStars' => 0,
 		'upvoteFormat' => '&uarr;{cnt}',
 		'downvoteFormat' => '&darr;{cnt}', 
 		'depth' => 0, 
@@ -89,6 +90,7 @@ class CommentList extends Wire implements CommentListInterface {
 		$this->comments = $comments; 
 		$this->page = $comments->getPage();
 		$this->field = $comments->getField();
+		$this->options['useStars'] = $this->field->useStars;
 		$this->options = array_merge($this->options, $options); 
 	}
 
@@ -171,10 +173,12 @@ class CommentList extends Wire implements CommentListInterface {
 		
 		if(empty($this->options['commentHeader'])) {
 			$header = "<span class='CommentCite'>$cite</span> <small class='CommentCreated'>$created</small> ";
+			if($this->options['useStars']) $header .= $this->renderStars($comment);
 			if($this->options['useVotes']) $header .= $this->renderVotes($comment); 
 		} else {
 			$header = str_replace(array('{cite}', '{created}'), array($cite, $created), $this->options['commentHeader']);
-			if(strpos($header, '{votes}') !== false) $header = str_replace('{votes}', $this->renderVotes($comment), $header); 
+			if(strpos($header, '{votes}') !== false) $header = str_replace('{votes}', $this->renderVotes($comment), $header);
+			if(strpos($header, '{stars}') !== false) $header = str_replace('{stars}', $this->renderStars($comment), $header); 
 		}
 		
 		$liClass = '';
@@ -243,6 +247,13 @@ class CommentList extends Wire implements CommentListInterface {
 		$out .= "</span> ";
 		
 		return $out; 
+	}
+	
+	public function renderStars(Comment $comment) {
+		if(!$this->options['useStars']) return '';
+		if(!$comment->stars) return '';
+		$commentStars = new CommentStars();
+		return $commentStars->render($comment->stars, false);
 	}
 
 	/**

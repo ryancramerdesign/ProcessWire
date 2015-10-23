@@ -90,8 +90,10 @@ class CommentForm extends Wire implements CommentFormInterface {
 			'cite' => '',	// Your Name
 			'email' => '',	// Your E-Mail
 			'website' => '',// Website
+			'stars' => '',	// Your Rating 
 			'text' => '',	// Comments
 			'submit' => '', // Submit
+			'starsRequired' => '', // Please select a star rating
 			),
 
 		// values that will be already set, perhaps pulled from a user profile for instance (null = ignore)
@@ -119,7 +121,6 @@ class CommentForm extends Wire implements CommentFormInterface {
 		
 		// When a comment is saved to a page, avoid updating the modified time/user
 		'quietSave' => false,
-
 		);
 
 
@@ -146,7 +147,9 @@ class CommentForm extends Wire implements CommentFormInterface {
 		// default labels
 		$this->options['labels']['cite'] = $this->_('Your Name'); 
 		$this->options['labels']['email'] = $this->_('Your E-Mail'); 
-		$this->options['labels']['website'] = $this->_('Your Website URL'); 
+		$this->options['labels']['website'] = $this->_('Your Website URL');
+		$this->options['labels']['stars'] = ''; // i.e. "Your Rating"
+		$this->options['labels']['starsRequired'] = $this->_('Please choose a star rating'); 
 		$this->options['labels']['text'] = $this->_('Comments'); 
 		$this->options['labels']['submit'] = $this->_('Submit'); 
 
@@ -253,7 +256,7 @@ class CommentForm extends Wire implements CommentFormInterface {
 		$attrs = $options['attrs'];
 		$id = $attrs['id'];
 		$submitKey = $id . "_submit";
-		$inputValues = array('cite' => '', 'email' => '', 'website' => '', 'text' => '', 'notify' => ''); 
+		$inputValues = array('cite' => '', 'email' => '', 'website' => '', 'stars' => '', 'text' => '', 'notify' => ''); 
 		$user = wire('user'); 
 
 		if($user->isLoggedin()) {
@@ -347,6 +350,23 @@ class CommentForm extends Wire implements CommentFormInterface {
 				"\n\t\t<input type='text' name='website' class='website' id='{$id}_website' value='$inputValues[website]' maxlength='255' />" .
 				"\n\t</p>";
 		}
+		
+		if($this->commentsField->useStars && $this->commentsField->schemaVersion > 5) {
+			$commentStars = new CommentStars();
+			$starsClass = 'CommentFormStars';
+			if($this->commentsField->useStars > 1) {
+				$starsNote = $labels['starsRequired'];
+				$starsClass .= ' CommentFormStarsRequired';
+			} else {
+				$starsNote = '';
+			}
+			$form .=
+				"\n\t<p class='$starsClass {$id}_stars' data-note='$starsNote'>" .
+				($labels['stars'] ? "\n\t\t<label for='{$id}_stars'>$labels[stars]</label>" : "") .
+				"\n\t\t<input type='number' name='stars' id='{$id}_stars' value='$inputValues[stars]' min='0' max='5' />" .
+				"\n\t\t" . $commentStars->render(0, true) . 
+				"\n\t</p>";
+		}
 
 		$form .=
 			"\n\t<p class='CommentFormText {$id}_text'>" .
@@ -386,6 +406,25 @@ class CommentForm extends Wire implements CommentFormInterface {
 				"\n\t\t<label>" . 
 				"\n\t\t\t<span>$labels[website]</span> " .
 				"\n\t\t\t<input type='text' name='website' class='website' value='$inputValues[website]' maxlength='255' />" .
+				"\n\t\t</label>" . 
+				"\n\t</p>";
+		}
+		
+		if($this->commentsField->useStars && $this->commentsField->schemaVersion > 5) {
+			$commentStars = new CommentStars();
+			$starsClass = 'CommentFormStars';
+			if($this->commentsField->useStars > 1) {
+				$starsNote = $labels['starsRequired'];
+				$starsClass .= ' CommentFormStarsRequired';
+			} else {
+				$starsNote = '';
+			}
+			$form .=
+				"\n\t<p class='$starsClass {$id}_stars' data-note='$starsNote'>" .
+				"\n\t\t<label>" . 
+				"\n\t\t\t<span>$labels[stars]</span>" .
+				"\n\t\t\t<input type='number' name='stars' id='{$id}_stars' value='$inputValues[stars]' min='0' max='5' />" .
+				"\n\t\t\t" . $commentStars->render(0, true) . 
 				"\n\t\t</label>" . 
 				"\n\t</p>";
 		}
@@ -464,8 +503,9 @@ class CommentForm extends Wire implements CommentFormInterface {
 		$errors = array();
 		// $sessionData = array(); 
 
-		foreach(array('cite', 'email', 'website', 'text') as $key) {
+		foreach(array('cite', 'email', 'website', 'stars', 'text') as $key) {
 			if($key == 'website' && (!$this->commentsField || !$this->commentsField->useWebsite)) continue; 
+			if($key == 'stars' && (!$this->commentsField || !$this->commentsField->useStars)) continue;
 			if($this->options['presetsEditable'] || !isset($this->options['presets'][$key]) || $this->options['presets'][$key] === null) {
 				$comment->$key = $data->$key; // Comment performs sanitization/validation
 			} else {
