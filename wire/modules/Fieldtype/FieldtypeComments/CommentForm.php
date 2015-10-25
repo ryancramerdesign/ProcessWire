@@ -511,7 +511,7 @@ class CommentForm extends Wire implements CommentFormInterface {
 			} else {
 				$comment->$key = $this->options['presets'][$key];
 			}
-			if($key != 'website' && !$comment->$key) $errors[] = $key;
+			if($key != 'website' && $key != 'stars' && !$comment->$key) $errors[] = $key;
 			$this->inputValues[$key] = $comment->$key;
 			//if($key != 'text') $sessionData[$key] = $comment->$key; 
 		}

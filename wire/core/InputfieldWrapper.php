@@ -666,13 +666,15 @@ class InputfieldWrapper extends Inputfield implements Countable, IteratorAggrega
 			Inputfield::collapsedNoLocked,
 			Inputfield::collapsedYesLocked
 			);
-		if(in_array((int) $inputfield->getSetting('collapsed'), $skipTypes)) return false;
 		
-		if(in_array($inputfield->collapsed, array(Inputfield::collapsedYesAjax, Inputfield::collapsedBlankAjax))) {
+		$collapsed = (int) $inputfield->getSetting('collapsed');
+		if(in_array($collapsed, $skipTypes)) return false;
+
+		if(in_array($collapsed, array(Inputfield::collapsedYesAjax, Inputfield::collapsedBlankAjax))) {
 			$processAjax = $this->wire('input')->post('processInputfieldAjax');
 			if(is_array($processAjax) && in_array($inputfield->attr('id'), $processAjax)) {
 				// field can be processed (convention used by InputfieldWrapper)
-			} else if($inputfield->collapsed == Inputfield::collapsedBlankAjax && !$inputfield->isEmpty()) {
+			} else if($collapsed == Inputfield::collapsedBlankAjax && !$inputfield->isEmpty()) {
 				// field can be processed because it is only collapsed if blank
 			} else if(isset($_SERVER['HTTP_X_FIELDNAME']) && $_SERVER['HTTP_X_FIELDNAME'] == $inputfield->attr('name')) {
 				// field can be processed (convention used by ajax uploaded file and other ajax types)

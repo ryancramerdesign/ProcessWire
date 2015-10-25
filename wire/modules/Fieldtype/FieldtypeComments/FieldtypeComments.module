@@ -489,7 +489,12 @@ class FieldtypeComments extends FieldtypeMulti {
 				$database->query("ALTER TABLE `$table` ADD `stars` $starsSchema");
 				$schemaVersion = 6;
 			} catch(Exception $e) {
-				$updateSchema = false;
+				if($e->getCode() == '42S21') {
+					// column already exists
+					$schemaVersion = 6; 
+				} else {
+					$updateSchema = false;
+				}
 			}
 		}
 
