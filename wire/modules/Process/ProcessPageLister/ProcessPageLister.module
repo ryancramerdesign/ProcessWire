@@ -1686,7 +1686,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		$action = '';
 		$out = '';
 		
-		if($this->parent && $this->parent->id) {
+		if($this->parent && $this->parent->id && $this->parent->addable()) {
 			$action = "?parent_id={$this->parent->id}";
 
 		} else if($this->template && ($parent = $this->template->getParentPage(true))) {
