@@ -262,6 +262,17 @@ $config->userAuthHashType = 'sha1';
 /*** 4. TEMPLATE FILES **************************************************************************/
 
 /**
+ * Allow template files to be compiled?
+ * 
+ * Set to false do disable the option for compiled template files. 
+ * When set to true, it will be used unless a given template's 'noCompile' option is set to 0.
+ * 
+ * @var bool
+ * 
+ */
+$config->templateCompile = true; 
+
+/**
  * Prepend template file 
  * 
  * PHP file in /site/templates/ that will be loaded before each page's template file.
@@ -731,6 +742,18 @@ $config->dbSocket = '';
 
 
 /*** 8. MODULES *********************************************************************************/
+
+/**
+ * Use compiled modules?
+ *
+ * Set to false to disable the use of compiled modules.
+ * Set to true to enable PW to compile modules when it determines it is necessary.
+ * We recommend keeping this set to true unless all modules in use support PW 3.x natively. 
+ *
+ * @var bool
+ *
+ */
+$config->moduleCompile = true;
 
 /**
  * Modules service URL

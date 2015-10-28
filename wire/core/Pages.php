@@ -125,14 +125,15 @@ class Pages extends Wire {
 	 * Create the Pages object
 	 *
 	 */
-	public function __construct() {
-	}
-
-	public function init() {
+	public function __construct(ProcessWire $wire) {
+		$this->setWire($wire);
 		$this->config = $this->wire('config');
 		$this->templates = $this->wire('templates');
 		$this->sortfields = $this->wire(new PagesSortfields());
 		$this->compat2x = $this->config->compat2x;
+	}
+
+	public function init() {
 		$this->getById($this->config->preloadPageIDs); 
 	}
 	
@@ -2222,11 +2223,12 @@ class Pages extends Wire {
 	 */
 	public function newNullPage() {
 		if($this->compat2x && class_exists("\\NullPage")) {
-			$class = "\\NullPage";
+			$page = new \NullPage();
 		} else {
-			$class = wireClassName("NullPage", true);
+			$page = new NullPage();
 		}
-		return $this->wire(new $class());
+		$this->wire($page);
+		return $page;
 	}
 
 	/**

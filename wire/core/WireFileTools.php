@@ -526,6 +526,30 @@ class WireFileTools extends Wire {
 
 		return true;
 	}
+	
+	public function compile($file, $targetPath = null) {
+		$compiler = new CompiledFile(dirname($file), $targetPath);
+		return $compiler->compile(basename($file));
+	}
 
+	public function compileInclude($file, $targetPath = null) {
+		$file = $this->compile($file, $targetPath);	
+		include($file);	
+	}
+	
+	public function compileIncludeOnce($file, $targetPath = null) {
+		$file = $this->compile($file, $targetPath);
+		include_once($file);
+	}
+	
+	public function compileRequire($file, $targetPath = null) {
+		$file = $this->compile($file, $targetPath);
+		require($file);	
+	}
+	
+	public function compileRequireOnce($file, $targetPath = null) {
+		$file = $this->compile($file, $targetPath);
+		require_once($file);
+	}
 
 }

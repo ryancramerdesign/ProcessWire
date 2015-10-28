@@ -369,7 +369,7 @@ class WireHooks {
 				$objMatch = trim($objMatch, ') ');
 				if(Selectors::stringHasSelector($objMatch)) {
 					$selectors = $this->wire->wire(new Selectors());
-					$selectors->init($objmatch);
+					$selectors->init($objMatch);
 					$objMatch = $selectors;
 				}
 				if($objMatch) $options['objMatch'] = $objMatch;
@@ -668,6 +668,7 @@ class WireHooks {
 	 *   $event->removeHook(null); // remove self
 	 * }
 	 *
+	 * @param Wire $object
 	 * @param string|null $hookId
 	 * @return $this
 	 *

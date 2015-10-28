@@ -682,6 +682,10 @@ function wireClassImplements($className, $autoload = true) {
 		$implements = @class_implements($className, $autoload);
 	} else {
 		$className = wireClassName($className, true);
+		if(!class_exists($className, false)) {
+			$_className = wireClassName($className, false);
+			if(class_exists("\\$_className")) $className = $_className;
+		}
 		$implements = @class_implements(ltrim($className, "\\"), $autoload);
 	}
 	$a = array();
@@ -705,6 +709,10 @@ function wireClassParents($className, $autoload = true) {
 		$parents = class_parents($className, $autoload);
 	} else {
 		$className = wireClassName($className, true);
+		if(!class_exists($className, false)) {
+			$_className = wireClassName($className, false);
+			if(class_exists("\\$_className")) $className = $_className;
+		}
 		$parents = class_parents(ltrim($className, "\\"), $autoload);
 	}
 	$a = array();

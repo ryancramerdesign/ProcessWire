@@ -62,12 +62,25 @@ class WireCache extends Wire {
 	 * After a preloaded cache is returned from a get() call, it is removed from local storage. 
 	 * 
 	 * @param string|array $names
-	 * @param null $expire
+	 * @param int|string|null $expire
 	 * 
 	 */
 	public function preload(array $names, $expire = null) {
 		if(!is_array($names)) $names = array($names);
 		$this->preloads = array_merge($this->preloads, $this->get($names, $expire));
+	}
+
+	/**
+	 * Preload all caches for the given object or namespace
+	 * 
+	 * @param object|string $ns
+	 * @param int|string|null $expire
+	 * 
+	 */
+	public function preloadFor($ns, $expire = null) {
+		if(is_object($ns)) $ns = wireClassName($ns, false);
+		$ns .= '__*';
+		$this->preloads = array_merge($this->preloads, $this->get($ns, $expire));
 	}
 	
 	/**
@@ -449,6 +462,18 @@ class WireCache extends Wire {
 			$success = false;
 		}
 		return $success;
+	}
+
+	/**
+	 * Delete the cache identified by $name within given namespace ($ns)
+	 *
+	 * @param string $name
+	 * @return bool True on success, false on failure
+	 *
+	 */
+	public function deleteFor($ns, $name) {
+		if(is_object($ns)) $ns = wireClassName($ns, false);
+		return $this->delete($ns . "__$name");
 	}
 
 	/**

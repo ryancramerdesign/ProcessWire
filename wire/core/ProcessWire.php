@@ -11,6 +11,7 @@
  * @todo: get language permissions to work with extra actions
  * 
  */
+
 require_once(__DIR__ . '/boot.php');
 
 /**
@@ -103,7 +104,7 @@ class ProcessWire extends Wire {
 		$this->fuel = new Fuel();
 		$this->fuel->set('wire', $this, true);
 
-		$classLoader = $this->wire('classLoader', new WireClassLoader(), true);
+		$classLoader = $this->wire('classLoader', new WireClassLoader($this), true);
 		$classLoader->addNamespace(__NAMESPACE__, PROCESSWIRE_CORE_PATH);
 
 		$this->wire('hooks', new WireHooks($this, $config), true);
@@ -280,7 +281,7 @@ class ProcessWire extends Wire {
 		$fields = $this->wire('fields', new Fields(), true);
 		$fieldgroups = $this->wire('fieldgroups', new Fieldgroups(), true);
 		$templates = $this->wire('templates', new Templates($fieldgroups, $config->paths->templates), true); 
-		$pages = $this->wire('pages', new Pages(), true);
+		$pages = $this->wire('pages', new Pages($this), true);
 
 		$this->initVar('fieldtypes', $fieldtypes);
 		$this->initVar('fields', $fields);
@@ -435,6 +436,7 @@ class ProcessWire extends Wire {
 	 */
 	protected function includeFile($file) {
 		if(!file_exists($file)) return false;
+		$file = $this->wire('files')->compile($file);
 		$this->pathSave = getcwd();
 		chdir(dirname($file));
 		$fuel = $this->fuel->getArray();

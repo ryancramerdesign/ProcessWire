@@ -337,7 +337,7 @@ class PagesType extends Wire implements \IteratorAggregate, \Countable {
 		$parent = $this->getParent();
 
 		$page = $this->wire('pages')->newPage(array(
-			'pageClass' => $className,
+			'pageClass' => $this->getPageClass(),
 			'template' => $this->template
 		)); 
 		$page->parent = $parent; 

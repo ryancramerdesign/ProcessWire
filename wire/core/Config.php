@@ -52,6 +52,7 @@
  * 
  * @property string $prependTemplateFile PHP file in /site/templates/ that will be loaded before each page's template file (default=none)
  * @property string $appendTemplateFile PHP file in /site/templates/ that will be loaded after each page's template file (default=none)
+ * @property bool $templateCompile Allow use of compiled templates?
  * 
  * @property string $uploadUnzipCommand Shell command to unzip archives, used by WireUpload class.
  * $property string $uploadTmpDir Optionally override PHP's upload_tmp_dir with your own. Should include a trailing slash.
@@ -92,6 +93,7 @@
  * @property array $pageEdit Settings specific to Page editors. 
  * @property string $moduleServiceURL URL where the modules web service can be accessed
  * @property string $moduleServiceKey API key for modules web service
+ * @property bool $moduleCompile Allow use of compiled modules?
  * 
  * @property array $substituteModules Associative array with names of substitutute modules for when requested module doesn't exist
  * @property array $logs Additional core logs to keep

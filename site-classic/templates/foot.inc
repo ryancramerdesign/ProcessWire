@@ -1,4 +1,4 @@
-<?php namespace ProcessWire; 
+<?php
 
 // Output navigation for any children below the bodycopy.
 // This navigation cycles through the page's children and prints

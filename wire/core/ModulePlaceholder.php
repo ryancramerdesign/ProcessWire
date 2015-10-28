@@ -21,6 +21,7 @@
 class ModulePlaceholder extends WireData implements Module {
 
 	protected $class = '';
+	protected $ns = '';
 	protected $moduleInfo = array();
 
 	public function __construct() {
@@ -44,6 +45,10 @@ class ModulePlaceholder extends WireData implements Module {
 	public function setClass($class) {
 		$this->class = $class; 
 	}
+	
+	public function setNamespace($ns) {
+		$this->ns = $ns;
+	}
 
 	public function get($key) {
 		if($key == 'className' || $key == 'class' || $key == 'name') return $this->class;
@@ -60,7 +65,7 @@ class ModulePlaceholder extends WireData implements Module {
 
 	public function className($options = null) {
 		if($options === true || !empty($options['namespace'])) {
-			return wireClassName($this->class, true);	
+			return trim($this->ns, '\\') . '\\' . $this->class;
 		}
 		return $this->class; 
 	}

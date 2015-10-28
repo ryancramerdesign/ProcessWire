@@ -131,7 +131,7 @@ class WireLog extends Wire {
 		$b = array_shift($backtrace);
 		$info = "Deprecated call: $a[class].$a[function]() ";
 		if(!empty($b['class'])) {
-			$info .= "from class $b[class].$b[function]() line $b[line]";
+			$info .= "from class $b[class].$b[function]() " . (isset($b['line']) ? "line $b[line]" : "");
 		} else if(strpos($b['file'], 'TemplateFile.php') === false) {
 			$info .= "from file $b[file] line $b[line]";
 		}

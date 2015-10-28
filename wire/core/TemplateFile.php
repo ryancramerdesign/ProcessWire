@@ -39,6 +39,16 @@ class TemplateFile extends WireData {
 	protected $savedDir;
 
 	/**
+	 * Directory to change to before rendering
+	 * 
+	 * If not set, it will change to the directory that the $filename is in
+	 * 
+	 * @var null|string
+	 * 
+	 */
+	protected $chdir = null;
+
+	/**
 	 * Saved ProcessWire instance
 	 * 
 	 * @var ProcessWire 
@@ -140,6 +150,19 @@ class TemplateFile extends WireData {
 		}
 	}
 
+
+	/**
+	 * Set the directory to temporarily change to during rendering
+	 * 
+	 * If not set, it changes to the directory that $filename is in. 
+	 * 
+	 * @param string $chdir
+	 * 
+	 */
+	public function setChdir($chdir) {
+		$this->chdir = $chdir; 
+	}
+
 	/**
 	 * Sets a variable to be globally accessable to all other TemplateFile instances
 	 *
@@ -179,7 +202,11 @@ class TemplateFile extends WireData {
 		
 		$this->savedDir = getcwd();	
 
-		chdir(dirname($this->filename)); 
+		if($this->chdir) {
+			chdir($this->chdir);
+		} else {
+			chdir(dirname($this->filename));
+		}
 		$fuel = array_merge($this->getArray(), self::$globals); // so that script can foreach all vars to see what's there
 
 		extract($fuel); 

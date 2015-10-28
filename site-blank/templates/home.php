@@ -1,3 +1,3 @@
-<?php namespace ProcessWire;
+<?php
 
 include("./basic-page.php"); 

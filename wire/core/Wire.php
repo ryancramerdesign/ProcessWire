@@ -66,6 +66,8 @@ abstract class Wire implements WireTranslatable, WireFuelable, WireTrackable {
 	 *
 	 */
 	protected $useFuel = true;
+	
+	public function __construct() {}
 
 	/**
 	 * Add fuel to all classes descending from Wire
@@ -498,7 +500,7 @@ abstract class Wire implements WireTranslatable, WireFuelable, WireTrackable {
 	 *
 	 */
 	public function removeHook($hookId) {
-		return $this->wire('hooks')->removeHook($hookId);
+		return $this->wire('hooks')->removeHook($this, $hookId);
 	}
 
 	

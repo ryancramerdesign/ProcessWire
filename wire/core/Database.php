@@ -30,7 +30,19 @@ class Database extends \mysqli implements WireDatabase {
 	 * Should WireDatabaseException be thrown on error?
 	 *
 	 */
-	protected $throwExceptions = true; 
+	protected $throwExceptions = true;
+
+	/**
+	 * @var ProcessWire
+	 * 
+	 */
+	protected $wire;
+
+	/**
+	 * @var bool
+	 * 
+	 */
+	protected $debug = false;
 
 	/**
 	 * Construct the Database 
@@ -54,6 +66,7 @@ class Database extends \mysqli implements WireDatabase {
 
 		if(is_object($host) && $host->dbHost) {
 			$config = $host;
+			$this->debug = $config->debug; 
 			$host = $config->dbHost; 
 			$user = $config->dbUser; 
 			$pass = $config->dbPass; 
@@ -70,7 +83,7 @@ class Database extends \mysqli implements WireDatabase {
 				else if($config->dbSetNamesUTF8) $this->query("SET NAMES 'utf8'");
 		}
 	}
-
+	
 	/**
 	 * Overrides default mysqli query method so that it also records and times queries. 
 	 *
@@ -89,7 +102,7 @@ class Database extends \mysqli implements WireDatabase {
 
 		if(is_object($sql) && $sql instanceof DatabaseQuery) $sql = $sql->getQuery();
 
-		if($this->wire('config')->debug) {
+		if($this->debug) {
 			$timerKey = Debug::timer();
 			if(!$timerFirstStartTime) $timerFirstStartTime = $timerKey; 
 		} else $timerKey = null; 
@@ -97,7 +110,7 @@ class Database extends \mysqli implements WireDatabase {
 		$result = @parent::query($sql, $resultmode); 
 
 		if($result) {
-			if($this->wire('config')->debug) { 
+			if($this->debug) { 
 				if(isset($result->num_rows)) $sql .= " [" . $result->num_rows . " rows]";
 				if(!is_null($timerKey)) {
 					$elapsed = Debug::timer($timerKey); 
@@ -109,7 +122,7 @@ class Database extends \mysqli implements WireDatabase {
 			}
 
 		} else if($this->throwExceptions) {
-			throw new WireDatabaseException($this->error . ($this->wire('config')->debug ? "\n$sql" : '')); 
+			throw new WireDatabaseException($this->error . ($this->debug ? "\n$sql" : '')); 
 		}
 
 		return $result; 

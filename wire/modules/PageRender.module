@@ -259,8 +259,10 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 				}
 			} else if($cacheExpire == Template::cacheExpireSelector && $page->template->cacheExpireSelector) {
 				// expire pages matching a selector
-				$finder = $this-wire(new PageFinder());
-				$pageIDs = $finder->findIDs(new Selectors($page->template->cacheExpireSelector), array(
+				$finder = $this->wire(new PageFinder());
+				$selectors = new Selectors();
+				$selectors->init($page->template->cacheExpireSelector);
+				$pageIDs = $finder->findIDs($selectors, array(
 					'getTotal'   => false,
 					'findHidden' => true
 				));
@@ -308,16 +310,20 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 	 */
 	public function ___renderPage($event) {
 
-		wire('pages')->setOutputFormatting(true); 
+		$this->wire('pages')->setOutputFormatting(true);
 
 		$page = $event->object;
-		
+
 		if($page->status >= Page::statusUnpublished && !$page->viewable()) {
 			throw new WirePermissionException("Page '{$page->url}' is not currently viewable.");
 		}
 
 		$_page = $this->wire('page'); // just in case one page is rendering another, save the previous
 		$config = $this->wire('config');
+		$compiler = null;
+		if($config->templateCompile && !$page->template->noCompile) {
+			$compiler = $this->wire(new CompiledFile($config->paths->templates));
+		}
 		$this->renderRecursionLevel++;
 		
 		// set the context of the new page to be system-wide
@@ -383,8 +389,14 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 						if(strpos($file, '..') !== false || strpos($file, '/.') !== false) continue; 
 						$file = $config->paths->templates . trim($file, '/');
 						if(!is_file($file)) continue; 
-						if($plural == 'prependFiles') $output->setPrependFilename($file); 
-							else $output->setAppendFilename($file); 
+						if($compiler) {
+							$file = $compiler->compile($file);
+						}	
+						if($plural == 'prependFiles') {
+							$output->setPrependFilename($file);
+						} else {
+							$output->setAppendFilename($file);
+						}
 					}
 				}
 			}
@@ -403,13 +415,23 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 				}
 
 				if($setFilename) {
+					if($compiler) {
+						$output->setChdir(dirname($setFilename));
+						$setFilename = $compiler->compile($setFilename);
+					}
 					$output->setFilename($setFilename);
 					$options['filename'] = $setFilename;
 				} else {
 					throw new WireException("Invalid output file location or specified file does not exist. $setFilename"); 
 				}
 			} else {
-				$options['filename'] = $page->template->filename; 
+				if($compiler) {
+					$options['filename'] = $compiler->compile($page->template->filename);
+					$output->setFilename($options['filename']);
+					$output->setChdir(dirname($page->template->filename));
+				} else {
+					$options['filename'] = $page->template->filename;
+				}
 			}
 
 			// pass along the $options as a local variable to the template so that one can provide their 
