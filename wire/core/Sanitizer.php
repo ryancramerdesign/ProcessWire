@@ -610,7 +610,12 @@ class Sanitizer extends Wire {
 	
 		if(!$scheme) {
 			// URL is missing scheme/protocol, or is local/relative
-
+			
+			if(strpos($value, '://') !== false) {
+				// apparently there is an attempted, but unrecognized scheme, so remove it
+				$value = preg_replace('!^[^?]*?://!', '', $value);
+			}
+			
 			if($options['allowRelative']) {
 				// determine if this is a domain name 
 				// regex legend:       (www.)?      company.         com       ( .uk or / or end)

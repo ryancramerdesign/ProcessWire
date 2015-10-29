@@ -10,7 +10,11 @@
  * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://processwire.com
+ * https://processwire.com
+ * 
+ * @method WireArray load(WireArray $items, $selectors = null);
+ * @method bool save(Saveable $item);
+ * @method bool delete(Saveable $item);
  *
  */
 
