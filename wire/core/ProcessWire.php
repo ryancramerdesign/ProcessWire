@@ -397,10 +397,23 @@ class ProcessWire extends Wire {
 	 *
 	 */
 	protected function ___finished() {
-		$session = $this->wire('session'); 
-		if($session) $session->maintenance();
+		
+		$config = $this->wire('config');
+		$session = $this->wire('session');
 		$cache = $this->wire('cache'); 
+		
+		if($session) $session->maintenance();
 		if($cache) $cache->maintenance();
+
+		if($config->templateCompile) {
+			$compiledFile = new CompiledFile($this->wire('config')->paths->templates);
+			$compiledFile->maintenance();
+		}
+		
+		if($config->moduleCompile) {
+			$compiledFile = new CompiledFile($this->wire('config')->paths->siteModules);
+			$compiledFile->maintenance();
+		}
 	}
 
 	/**

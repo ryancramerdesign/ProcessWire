@@ -527,28 +527,28 @@ class WireFileTools extends Wire {
 		return true;
 	}
 	
-	public function compile($file, $targetPath = null) {
-		$compiler = new CompiledFile(dirname($file), $targetPath);
+	public function compile($file, array $options = array()) {
+		$compiler = new CompiledFile(dirname($file), $options);
 		return $compiler->compile(basename($file));
 	}
 
-	public function compileInclude($file, $targetPath = null) {
-		$file = $this->compile($file, $targetPath);	
+	public function compileInclude($file, array $options = array()) {
+		$file = $this->compile($file, $options);	
 		include($file);	
 	}
 	
-	public function compileIncludeOnce($file, $targetPath = null) {
-		$file = $this->compile($file, $targetPath);
+	public function compileIncludeOnce($file, array $options = array()) {
+		$file = $this->compile($file, $options);
 		include_once($file);
 	}
 	
-	public function compileRequire($file, $targetPath = null) {
-		$file = $this->compile($file, $targetPath);
+	public function compileRequire($file, array $options = array()) {
+		$file = $this->compile($file, $options);
 		require($file);	
 	}
 	
-	public function compileRequireOnce($file, $targetPath = null) {
-		$file = $this->compile($file, $targetPath);
+	public function compileRequireOnce($file, array $options = array()) {
+		$file = $this->compile($file, $options);
 		require_once($file);
 	}
 

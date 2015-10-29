@@ -12,6 +12,16 @@
  * 
  * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
  * https://processwire.com
+ * 
+ * @todo Move all module information methods to a ModulesInfo class
+ * @todo Move all module loading methods to a ModulesLoad class
+ * 
+ * @method null|Module install($class, $options = array())
+ * @method bool|int delete($class)
+ * @method bool uninstall($class)
+ * @method bool saveModuleConfigData($className, array $configData)
+ * @method InputfieldWrapper|null getModuleConfigInputfields($moduleName, InputfieldWrapper $form = null)
+ * @method void moduleVersionChanged(Module $module, $fromVersion, $toVersion)
  *
  */
 
@@ -212,6 +222,14 @@ class Modules extends WireArray {
 	protected $compat2x = false;
 
 	/**
+	 * Module file extensions indexed by module name where value 1=.module, and 2=.module.php
+	 * 
+	 * @var array
+	 * 
+	 */
+	protected $moduleFileExts = array();
+
+	/**
 	 * Properties that only appear in 'verbose' moduleInfo
 	 * 
 	 * @var array
@@ -309,6 +327,9 @@ class Modules extends WireArray {
 
 	/**
 	 * Modules class accepts only Module instances, per the WireArray interface
+	 * 
+	 * @param Wire $item
+	 * @return bool
  	 *
 	 */
 	public function isValidItem($item) {
@@ -317,6 +338,9 @@ class Modules extends WireArray {
 
 	/**
 	 * The key/index used for each module in the array is it's class name, per the WireArray interface
+	 * 
+	 * @param Wire $item
+	 * @return int|string
  	 *
 	 */
 	public function getItemKey($item) {
@@ -356,10 +380,16 @@ class Modules extends WireArray {
 
 	/**
 	 * Initialize all the modules that are loaded at boot
-	 *
+	 * 
+	 * @param null|array|Modules $modules
+	 * @param array $completed
+	 * @param int $level
+	 * 
 	 */
 	public function triggerInit($modules = null, $completed = array(), $level = 0) {
 	
+		$debugKey = null;
+		$debugKey2 = null;
 		if($this->debug) {
 			$debugKey = $this->debugTimerStart("triggerInit$level");
 			$this->message("triggerInit(level=$level)"); 
@@ -437,7 +467,7 @@ class Modules extends WireArray {
 	protected function newModule($className) {
 		$moduleName = wireClassName($className, false);
 		$className = wireClassName($className, true);
-		if($this->debug) $debugKey = $this->debugTimerStart("newModule($moduleName)");
+		$debugKey = $this->debug ? $this->debugTimerStart("newModule($moduleName)") : null;
 		if(!class_exists($className, false)) $this->includeModule($moduleName);
 		if($this->compat2x && class_exists("\\$moduleName")) {
 			// use version in root namespace, for instances like duplicated dependency classes in core/compat2x/Classes.php
@@ -461,6 +491,7 @@ class Modules extends WireArray {
 	 * Return a new ModulePlaceholder for the given className
 	 * 
 	 * @param string $className Module class this placeholder will stand in for
+	 * @param string $ns Module namespace
 	 * @param string $file Full path and filename of $className
 	 * @param bool $singular Is the module a singular module?
 	 * @param bool $autoload Is the module an autoload module?
@@ -488,10 +519,11 @@ class Modules extends WireArray {
 	protected function initModule(Module $module, $clearSettings = true) {
 		
 		$result = true;
+		$debugKey = null;
 		
 		if($this->debug) {
 			static $n = 0;
-			$this->message("initModule (" . (++$n) . "): $module"); 
+			$this->message("initModule (" . (++$n) . "): " . wireClassName($module)); 
 		}
 		
 		// if the module is configurable, then load its config data
@@ -543,7 +575,7 @@ class Modules extends WireArray {
 	protected function readyModule(Module $module) {
 		$result = true;
 		if(method_exists($module, 'ready')) {
-			if($this->debug) $debugKey = $this->debugTimerStart("readyModule(" . $module->className() . ")"); 
+			$debugKey = $this->debug ? $this->debugTimerStart("readyModule(" . $module->className() . ")") : null; 
 			try {
 				$module->ready();
 			} catch(\Exception $e) {
@@ -553,7 +585,7 @@ class Modules extends WireArray {
 			if($this->debug) {
 				$this->debugTimerStop($debugKey);
 				static $n = 0;
-				$this->message("readyModule (" . (++$n) . "): $module");
+				$this->message("readyModule (" . (++$n) . "): " . wireClassName($module));
 			}
 		}
 		return $result;
@@ -620,13 +652,13 @@ class Modules extends WireArray {
 	 */
 	public function triggerReady() {
 		
-		if($this->debug) $debugKey = $this->debugTimerStart("triggerReady"); 
+		$debugKey = $this->debug ? $this->debugTimerStart("triggerReady") : null; 
 		
 		$skipped = $this->triggerConditionalAutoload();
 		
 		// trigger ready method on all applicable modules
 		foreach($this as $module) {
-			
+			/** @var Module $module */
 			if($module instanceof ModulePlaceholder) continue;
 			
 			// $info = $this->getModuleInfo($module); 
@@ -659,7 +691,8 @@ class Modules extends WireArray {
 		// Currently: id, class, flags, data, with created added at sysupdate 7
 		$query = $database->prepare("SELECT * FROM modules ORDER BY class", "modules.loadModulesTable()"); // QA
 		$query->execute();
-		
+
+		/** @noinspection PhpAssignmentInConditionInspection */
 		while($row = $query->fetch(\PDO::FETCH_ASSOC)) {
 			
 			$moduleID = (int) $row['id'];
@@ -700,16 +733,26 @@ class Modules extends WireArray {
 	 */
 	protected function load($path) {
 
-		if($this->debug) $debugKey = $this->debugTimerStart("load($path)"); 
+		$debugKey = $this->debug ? $this->debugTimerStart("load($path)") : null; 
 
 		$installed =& $this->modulesTableCache;
 		$modulesLoaded = array();
 		$modulesDelayed = array();
 		$modulesRequired = array();
+		$rootPath = $this->wire('config')->paths->root;
+		$basePath = substr($path, strlen($rootPath));
 
 		foreach($this->findModuleFiles($path, true) as $pathname) {
-		
+	
 			$pathname = trim($pathname);
+			if(empty($pathname)) continue;
+			$basename = basename($pathname);
+			list($moduleName, $ext) = explode('.', $basename, 2);
+			
+			$this->moduleFileExts[$moduleName] = $ext === 'module' ? 1 : 2;
+			$this->setConfigPaths($moduleName, dirname($basePath . $pathname));
+			// @todo next, remove the 'file' property from verbose module info since it is redundant
+			
 			$requires = array();
 			$moduleName = $this->loadModule($path, $pathname, $requires, $installed);
 			if(!$moduleName) continue;
@@ -731,6 +774,7 @@ class Modules extends WireArray {
 			$loadedNames = array($moduleName);
 
 			// now determine if this module had any other modules waiting on it as a dependency
+			/** @noinspection PhpAssignmentInConditionInspection */
 			while($moduleName = array_shift($loadedNames)) {
 				// iternate through delayed modules that require this one
 				if(empty($modulesRequired[$moduleName])) continue; 
@@ -772,7 +816,7 @@ class Modules extends WireArray {
 	 * @param string $pathname
 	 * @param array $requires This method will populate this array with required dependencies (class names) if present.
 	 * @param array $installed Array of installed modules info, indexed by module class name
-	 * @return Returns module name (classname) 
+	 * @return string Returns module name (classname) 
 	 * 
 	 */
 	protected function loadModule($basepath, $pathname, array &$requires, array &$installed) {
@@ -830,7 +874,7 @@ class Modules extends WireArray {
 
 		$info = $installed[$basename];
 	
-		$this->setConfigPaths($basename, $dirname);
+		// $this->setConfigPaths($basename, $dirname);
 		$module = null;
 		$autoload = false;
 
@@ -864,6 +908,7 @@ class Modules extends WireArray {
 			// if not defined in getModuleInfo, then we'll accept the database flag as enough proof
 			// since the module may have defined it via an isAutoload() function
 			if(!isset($moduleInfo['autoload'])) $moduleInfo['autoload'] = true;
+			/** @var bool|string|callable $autoload */
 			$autoload = $moduleInfo['autoload'];
 			if($autoload === 'function') {
 				// function is stored by the moduleInfo cache to indicate we need to call a dynamic function specified with the module itself
@@ -871,7 +916,11 @@ class Modules extends WireArray {
 				if(empty($i)) {
 					$this->includeModuleFile($pathname, $basename);
 					$className = wireClassName($basename, true);
-					$i = $className::getModuleInfo();
+					if(method_exists($className, 'getModuleInfo')) {
+						$i = $className::getModuleInfo();
+					} else {
+						$i = array();
+					}
 				}
 				$autoload = isset($i['autoload']) ? $i['autoload'] : true;
 				unset($i);
@@ -921,6 +970,7 @@ class Modules extends WireArray {
 		$callNum++;
 		$config = $this->wire('config');
 		$cache = $this->wire('cache'); 
+		$cacheName = '';
 
 		if($level == 0) {
 			$startPath = $path;
@@ -931,7 +981,7 @@ class Modules extends WireArray {
 					if(empty($cacheContents) && $callNum === 1) {
 						// don't accept empty cache for first path (/wire/modules/)
 					} else {
-						$cacheContents = explode("\n", $cacheContents);
+						$cacheContents = explode("\n", trim($cacheContents));
 						return $cacheContents;
 					}
 				}
@@ -979,7 +1029,7 @@ class Modules extends WireArray {
 		}
 
 		if($level == 0 && $dir !== null) {
-			if($cache) $cache->save($cacheName, implode("\n", $files), WireCache::expireNever); 
+			if($cache && $cacheName) $cache->save($cacheName, implode("\n", $files), WireCache::expireNever); 
 		}
 
 		return $files;
@@ -995,8 +1045,12 @@ class Modules extends WireArray {
 	 */
 	protected function setConfigPaths($moduleName, $path) {
 		$config = $this->wire('config'); 
-		$path = rtrim($path, '/'); 
-		$path = substr($path, strlen($config->paths->root)) . '/';
+		$rootPath = $config->paths->root;
+		if(strpos($path, $rootPath) === 0) {
+			// if root path included, strip it out
+			$path = substr($path, strlen($config->paths->root));
+		}
+		$path = rtrim($path, '/') . '/'; 
 		$config->paths->set($moduleName, $path);
 		$config->urls->set($moduleName, $path); 
 	}
@@ -1100,7 +1154,7 @@ class Modules extends WireArray {
 		
 		if($module && empty($options['noPermissionCheck'])) {
 			if(!$this->hasPermission($module, $this->wire('user'), $this->wire('page'))) {
-				throw new WirePermissionException($this->_('You do not have permission to execute this module') . ' - ' . $class);
+				throw new WirePermissionException($this->_('You do not have permission to execute this module') . ' - ' . wireClassName($module));
 			}
 		}
 
@@ -1198,6 +1252,8 @@ class Modules extends WireArray {
 	 *
 	 */
 	public function includeModule($module, $file = '') {
+
+		$className = '';
 		
 		if(is_string($module)) {
 			$className = $module;
@@ -1230,7 +1286,10 @@ class Modules extends WireArray {
 
 		if(!$module && $moduleName) {
 			// unable to retrieve module, may be an uninstalled module
-			if(!$file) $file = $this->getModuleFile($moduleName); 
+			if(!$file) {
+				$file = $this->getModuleFile($moduleName, array('fast' => true));
+				if(!$file) $file = $this->getModuleFile($moduleName, array('fast' => false));
+			}
 			if($file) {
 				$this->includeModuleFile($file, $moduleName);
 				if(class_exists($className, false)) {
@@ -1241,13 +1300,20 @@ class Modules extends WireArray {
 		}
 		
 		if($module === true) {
-			return true;
+			// great
+			return true; 
+			
 		} else if(!$module) {
 			return false;
+			
 		} else if($module instanceof ModulePlaceholder) {
 			$this->includeModuleFile($module->file, $moduleName);
+			return true; 
+			
 		} else if($module instanceof Module) {
 			// it's already been included, since we have a real module
+			return true; 
+			
 		} else {
 			return false;
 		}
@@ -1286,6 +1352,7 @@ class Modules extends WireArray {
 			}
 		}
 
+		/** @noinspection PhpIncludeInspection */
 		@include_once($file);
 		if(!is_null($er)) error_reporting($er);
 		
@@ -1303,7 +1370,7 @@ class Modules extends WireArray {
 		$a = parent::find($selector); 
 		if($a) {
 			foreach($a as $key => $value) {
-				$a[$key] = $this->get(wireClassName($value->className(), false)); 
+				$a[$key] = $this->get($value->className()); 
 			}
 		}
 		return $a; 
@@ -1662,6 +1729,7 @@ class Modules extends WireArray {
 	public function ___delete($class) {
 
 		$class = $this->getModuleClass($class); 
+		$success = false;
 		$reason = $this->isDeleteable($class, true); 
 		if($reason !== true) throw new WireException($reason); 
 
@@ -1822,10 +1890,12 @@ class Modules extends WireArray {
 		// remove all hooks attached to other ProcessWire objects
 		$hooks = array_merge($this->getHooks('*'), $this->wire('hooks')->getAllLocalHooks());
 		foreach($hooks as $hook) {
-			$toClass = wireClassName($hook['toObject'], false);
+			/** @var Wire $toObject */
+			$toObject = $hook['toObject'];
+			$toClass = wireClassName($toObject, false);
 			$toMethod = $hook['toMethod'];
 			if($class === $toClass && $toMethod != 'uninstall') {
-				$hook['toObject']->removeHook($hook['id']);
+				$toObject->removeHook($hook['id']);
 				$this->message("Removed hook $class => " . $hook['options']['fromClass'] . " $hook[method]", Notice::debug);
 			}
 		}
@@ -1916,9 +1986,9 @@ class Modules extends WireArray {
 	/**
 	 * Add or remove a flag from a module
 	 * 
-	 * @param int|string|Module $class Module to add flag to
-	 * @param int Flag to add (see flags* constants)
-	 * @param bool $add Specify true to add the flag or false to remove it
+	 * @param $class int|string|Module $class Module to add flag to
+	 * @param $flag int Flag to add (see flags* constants)
+	 * @param $add bool $add Specify true to add the flag or false to remove it
 	 * @return bool True on success, false on fail
 	 * 
 	 */
@@ -2100,6 +2170,7 @@ class Modules extends WireArray {
 
 		$info = array();
 		if(file_exists($filePHP)) {
+			/** @noinspection PhpIncludeInspection */
 			include($filePHP); // will populate $info automatically
 			if(!is_array($info) || !count($info)) $this->error("Invalid PHP module info file for $moduleName"); 
 			
@@ -2404,8 +2475,6 @@ class Modules extends WireArray {
 			// misc
 			$info['versionStr'] = $this->formatVersion($info['version']); // versionStr
 			$info['name'] = $moduleName; // module name
-			$info['file'] = $this->getModuleFile($moduleName, false); // module file	
-			if($info['file']) $info['core'] = strpos($info['file'], '/wire/modules/') !== false; // is it core?
 
 			// module configurable?
 			$configurable = $this->isConfigurableModule($moduleName, false);
@@ -2455,9 +2524,10 @@ class Modules extends WireArray {
 			$info['created'] = strtotime($this->createdDates[$moduleID]);
 		}
 		
-		if(!empty($info['file']) && (strpos($info['file'], 'wire') === 0 || strpos($info['file'], 'site') === 0)) {
-			// convert relative (as stored in moduleInfo) to absolute (verbose info only)
-			$info['file'] = $this->wire('config')->paths->root . $info['file'];
+		if($options['verbose']) {
+			// the file property is not stored in the verbose cache, but provided as a verbose key
+			$info['file'] = $this->getModuleFile($moduleName);
+			if($info['file']) $info['core'] = strpos($info['file'], '/wire/modules/') !== false; // is it core?
 		}
 		
 		// if($this->debug) $this->message("getModuleInfo($moduleName) " . ($fromCache ? "CACHE" : "NO-CACHE")); 
@@ -2580,7 +2650,6 @@ class Modules extends WireArray {
 	 * Get the class defined in the file (or optionally the 'extends' or 'implements')
 	 * 
 	 * @param string $file
-	 * @param string $type May be 'class', 'extends', 'namespace', or 'implements' (default='class')
 	 * @return array Returns array with these indexes:
 	 * 	'class' => string (class without namespace)
 	 * 	'className' => string (class with namespace)
@@ -2679,14 +2748,21 @@ class Modules extends WireArray {
 	}
 
 	/**
-	 * Get the path + filename for this module
+	 * Get the path + filename (or optionally URL) for this module
 	 * 
 	 * @param string|Module $className Module class name or object instance
-	 * @param bool $getURL If true, will return it as a URL from PW root install path (for shorter display purposes)
+	 * @param array|bool $options array with any of the following:
+	 * 	- getURL (bool): Specify true if you want to get the URL rather than file path (default=false). 
+	 * 	- fast (bool): Specify true to omit file_existss() checks (default=false). 
+	 * 	Note: If you specify a boolean for the $options argument, it is assumed to be the $getURL property.
 	 * @return bool|string Returns string of module file, or false on failure. 
 	 * 
 	 */
-	public function getModuleFile($className, $getURL = false) {
+	public function getModuleFile($className, $options = array()) {
+
+		if(is_bool($options)) $options = array('getURL' => $options);
+		if(!isset($options['getURL'])) $options['getURL'] = false;
+		if(!isset($options['fast'])) $options['fast'] = false;
 		
 		$file = false;
 	
@@ -2699,10 +2775,22 @@ class Modules extends WireArray {
 		} else {
 			$moduleName = wireClassName($className, false);
 		}
-	
+		
+		$hasDuplicate = $this->duplicates()->hasDuplicate($moduleName);
+		
+		if(!$hasDuplicate) {
+			// see if we can determine it from already stored paths
+			$path = $this->wire('config')->paths->$moduleName;
+			if($path) {
+				$file = $path . $moduleName . ($this->moduleFileExts[$moduleName] === 2 ? '.module.php' : '.module');
+				if(!$options['fast'] && !file_exists($file)) $file = false;
+			}
+		}
+
 		// next see if we've already got the module filename cached locally
-		if(!$file && isset($this->installable[$moduleName])) {
-			$file = $this->installable[$moduleName]; 
+		if(!$file && isset($this->installable[$moduleName]) && !$hasDuplicate) {
+			$file = $this->installable[$moduleName];
+			if(!$options['fast'] && !file_exists($file)) $file = false;
 		} 
 		
 		if(!$file) {
@@ -2726,19 +2814,8 @@ class Modules extends WireArray {
 		}
 		
 		if(!$file) {
-			// next see if we can determine it from already stored paths
-			$path = $this->wire('config')->paths->$moduleName;
-			if($path && file_exists($path)) {
-				$file = "$path$moduleName.module";
-				if(!file_exists($file)) {
-					$file = "$path$moduleName.module.php";
-					if(!file_exists($file)) $file = false;
-				}
-			}
-		}
-		
-		if(!$file) {
 			// see if it's a predefined core type that can be determined from the type
+			// this should only come into play if something has gone wrong with the modules loader
 			foreach($this->coreTypes as $typeName) {
 				if(strpos($moduleName, $typeName) !== 0) continue;
 				$checkFiles = array(
@@ -2748,15 +2825,10 @@ class Modules extends WireArray {
 					"$typeName/$moduleName.module.php",
 				);
 				$path1 = $this->wire('config')->paths->modules;
-				$path2 = $this->wire('config')->paths->siteModules;
 				foreach($checkFiles as $checkFile) {
 					$file1 = $path1 . $checkFile;
-					$file2 = $path2 . $checkFile;
 					if(is_file($file1)) {
 						$file = $file1;
-						break;
-					} else if(is_file($file2)) {
-						$file = $file2;
 						break;
 					}
 				}
@@ -2765,7 +2837,7 @@ class Modules extends WireArray {
 		}
 
 		if(!$file) {
-			// if the above two failed, try to get it from Reflection
+			// if all the above failed, try to get it from Reflection
 			try {
 				// note we don't call getModuleClass() here because it may result in a circular reference
 				if(strpos($className, "\\") === false) {
@@ -2784,8 +2856,10 @@ class Modules extends WireArray {
 			}
 		}
 
-		if($file && DIRECTORY_SEPARATOR != '/') $file = str_replace(DIRECTORY_SEPARATOR, '/', $file); 
-		if($getURL) $file = str_replace($this->wire('config')->paths->root, '/', $file); 
+		if($file) {
+			if(DIRECTORY_SEPARATOR != '/') $file = str_replace(DIRECTORY_SEPARATOR, '/', $file);
+			if($options['getURL']) $file = str_replace($this->wire('config')->paths->root, '/', $file);
+		}
 
 		return $file;
 	}
@@ -2889,6 +2963,7 @@ class Modules extends WireArray {
 							} else {
 								$ns = $this->getFileNamespace($file);
 								if($ns === '\\') $file = $this->wire('files')->compile($file);
+								/** @noinspection PhpIncludeInspection */
 								include($file);
 							}
 						}
@@ -2899,7 +2974,7 @@ class Modules extends WireArray {
 						}
 					}
 				}
-				if($found) return $file;
+				if($found) return $found;
 			}
 		}
 
@@ -3010,8 +3085,10 @@ class Modules extends WireArray {
 			if(!class_exists($className, false)) {
 				if(strrpos($className, '\\') < 1) {
 					// root namespace
+					/** @noinspection PhpIncludeInspection */
 					include_once($this->wire('files')->compile($configurable));
 				} else {
+					/** @noinspection PhpIncludeInspection */
 					include_once($configurable);
 				}
 			}
@@ -3028,6 +3105,7 @@ class Modules extends WireArray {
 				// the file may have already been include_once before, so $config would not be set
 				// so we try a regular include() next. 
 				if(is_null($config)) {
+					/** @noinspection PhpIncludeInspection */
 					include($configurable);
 				}
 				if(is_array($config)) {
@@ -3096,6 +3174,7 @@ class Modules extends WireArray {
 		
 		if(is_null($form)) $form = $this->wire(new InputfieldWrapper());
 		$data = $this->getModuleConfigData($moduleName);
+		$fields = null;
 		
 		// check for configurable module interface
 		$configurableInterface = $this->isConfigurableModule($moduleName, "interface");
@@ -3154,6 +3233,7 @@ class Modules extends WireArray {
 		$config = null;
 		$configClass = $this->getModuleNamespace($moduleName) . $moduleName . "Config";
 		if(!class_exists($configClass)) {
+			/** @noinspection PhpIncludeInspection */
 			include_once($file);
 		}
 		$configModule = null;
@@ -3164,6 +3244,7 @@ class Modules extends WireArray {
 			
 		} else {
 			if(is_null($config)) {
+				/** @noinspection PhpIncludeInspection */
 				include($file); // in case of previous include_once 
 			}
 			if(is_array($config)) {
@@ -3220,6 +3301,7 @@ class Modules extends WireArray {
 			$this->includeModule($module); 
 			$module = wireClassName($module, true);
 			if(method_exists($module, 'isSingular')) {
+				/** @var Module $moduleInstance */
 				$moduleInstance = $this->wire(new $module());
 				return $moduleInstance->isSingular();
 			}
@@ -3263,7 +3345,8 @@ class Modules extends WireArray {
 			}
 		}
 	
-		if($autoload === null && method_exists($module, 'isAutoload')) {
+		if($autoload === null && is_object($module) && method_exists($module, 'isAutoload')) {
+			/** @var module $module */
 			$autoload = $module->isAutoload();
 		}
 	
@@ -3285,7 +3368,7 @@ class Modules extends WireArray {
 	 * 
 	 * If given module name also includes a namespace, then that namespace will be validated as well. 
 	 * 
-	 * @param $moduleName With or without namespace
+	 * @param string|Module $moduleName With or without namespace
 	 * @return bool
 	 * 
 	 */
@@ -3298,6 +3381,7 @@ class Modules extends WireArray {
 			}
 			$moduleName = $this->getModuleClass($moduleName);
 		}
+		/** @var string $moduleName */
 		
 		if(strpos($moduleName, "\\") !== false) {
 			$namespace = wireClassName($moduleName, 1);
@@ -3401,6 +3485,7 @@ class Modules extends WireArray {
 		$class = $this->getModuleClass($class); 
 		$info = $this->getModuleInfo($class); 
 		$requires = $info['requires']; 
+		$currentVersion = 0;
 
 		// quick exit if arguments permit it 
 		if(!$onlyMissing) {
@@ -3884,6 +3969,7 @@ class Modules extends WireArray {
 		
 		$user = $this->wire('user'); 
 		$languages = $this->wire('languages'); 
+		$language = null;
 		
 		if($languages) {
 			// switch to default language to prevent caching of translated title/summary data
@@ -3938,9 +4024,6 @@ class Modules extends WireArray {
 				
 				if($moduleID) $this->updateModuleFlags($moduleID, $info);
 			
-				// no need to store full path
-				$info['file'] = str_replace($this->wire('config')->paths->root, '', $info['file']);
-		
 				if($installed) { 
 					
 					$verboseKeys = $this->moduleInfoVerboseKeys; 
@@ -3988,6 +4071,10 @@ class Modules extends WireArray {
 						
 					} else if($key == 'namespace' && $value == "\\" . __NAMESPACE__ . "\\") {
 						// no need to cache default namespace in module info
+						unset($data[$moduleID][$key]);
+						
+					} else if($key == 'file') {
+						// file property is cached elsewhere so doesn't need to be included in this cache
 						unset($data[$moduleID][$key]);
 					}
 				}

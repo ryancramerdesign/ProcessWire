@@ -7,9 +7,24 @@
  * @todo make storage in dedicated table rather than using wire('cache').
  * @todo handle race conditions
  * 
+ * @method string compile($sourceFile)
+ * @method string compileData($data, $sourceFile)
+ * 
  */
 
 class CompiledFile extends Wire {
+
+	/**
+	 * Compilation options
+	 * 
+	 * @var array
+	 * 
+	 */
+	protected $options = array(
+		'includes' => true,	// compile include()'d files too?
+		'namespace' => true, // compile to make compatible with PW namespace when necessary?
+		'markup' => false, // compile API variable tags (for markup/HTML only)
+	);
 	
 	/**
 	 * Path to source files directory
@@ -28,32 +43,34 @@ class CompiledFile extends Wire {
 	protected $targetPath = null;
 
 	/**
-	 * Also compile files include'd from source file?
+	 * Files or directories that should be excluded from compilation
 	 * 
-	 * @var bool
+	 * @var array
 	 * 
 	 */
-	protected $compileIncludes = true;
-
-	/**
-	 * Compile to update for ProcessWire classes, interfaces and functin calls?
-	 *
-	 * @var bool
-	 *
-	 */
-	protected $compileNamespace = true;
+	protected $exclusions = array();
 
 	/**
 	 * Construct
 	 * 
-	 * @param $compiledPath Path where files will be compiled to
-	 * @throws WireException if compiledPath doesn't exist and can't be created
+	 * @param string $sourcePath Path where source files are located
+	 * @param array $options Indicate which compilations should be performed (default='includes' and 'namespace')
 	 * 
 	 */
-	public function __construct($sourcePath, $targetPath = null) {
+	public function __construct($sourcePath, array $options = array()) {
+		$this->options = array_merge($this->options, $options);
 		if(strpos($sourcePath, '..') !== false) $sourcePath = realpath($sourcePath);
 		$this->sourcePath = rtrim($sourcePath, '/') . '/';
-		$this->targetPath = $targetPath;
+	}
+
+	/**
+	 * Exclude a file or path from compilation
+	 * 
+	 * @param string $pathname
+	 * 
+	 */
+	public function addExclusion($pathname) {
+		$this->exclusions[] = $pathname;
 	}
 
 	/**
@@ -63,47 +80,40 @@ class CompiledFile extends Wire {
 	 * 
 	 */
 	protected function init() {
+		
 		static $preloaded = false;
+		
 		if(!$preloaded) {
 			$this->wire('cache')->preloadFor($this);
 			$preloaded = true;
 		}
-		if(empty($this->targetPath)) {
-			$targetPath = $this->wire('config')->paths->cache . $this->className() . '/';
-			if(strpos($this->sourcePath, $targetPath) === 0) {
-				// sourcePath is inside the targetPath, correct this 
-				$this->sourcePath = str_replace($targetPath, '', $this->sourcePath);
-				$this->sourcePath = $this->wire('config')->paths->root . str_replace('_.', '/', $this->sourcePath);
-			}
-			$t = str_replace($this->wire('config')->paths->root, '', $this->sourcePath);
-			//$t = str_replace(array('/', '\\'), '_.', trim($t, '/\\'));
-			$this->targetPath = $targetPath . trim($t, '/') . '/';
-		} else {
-			$this->targetPath = rtrim($this->targetPath, '/') . '/';
+		
+		$targetPath = $this->wire('config')->paths->cache . $this->className() . '/';
+		
+		if(strpos($this->sourcePath, $targetPath) === 0) {
+			// sourcePath is inside the targetPath, correct this 
+			$this->sourcePath = str_replace($targetPath, '', $this->sourcePath);
+			$this->sourcePath = $this->wire('config')->paths->root . $this->sourcePath;
 		}
-		if(!is_dir($this->targetPath)) {
-			if(!$this->wire('files')->mkdir($this->targetPath, true)) {
-				throw new WireException("Unable to create directory $this->targetPath");
-			}
-		}
-		set_time_limit(120);
+		
+		$t = str_replace($this->wire('config')->paths->root, '', $this->sourcePath);
+		$this->targetPath = $targetPath . trim($t, '/') . '/';
+	
+		// @todo move this somewhere outside of this class
+		$this->addExclusion($this->wire('config')->paths->wire);
+		$this->addExclusion($this->wire('config')->paths->templates . 'admin.php');
+		
 	}
 
 	/**
 	 * Compile given source file and return compiled destination file
 	 * 
-	 * @param $sourceFile Source file to compile
-	 * @return string Full path and filename of compiledfile
+	 * @param string $sourceFile Source file to compile (relative to sourcePath given in constructor)
+	 * @return string Full path and filename of compiled file. Returns sourceFile is compilation is not necessary.
 	 * @throws WireException if given invalid sourceFile
 	 * 
 	 */
 	public function ___compile($sourceFile) {
-		
-		if(strpos($this->sourcePath, $this->wire('config')->paths->wire) === 0) {
-			// don't compile core stuff
-			if(strpos($this->sourcePath, $sourceFile) === 0) return $sourceFile;
-			return $this->sourcePath . ltrim($sourceFile, '/');
-		}
 		
 		$this->init();
 		
@@ -113,7 +123,22 @@ class CompiledFile extends Wire {
 		} else {
 			$sourcePathname = $this->sourcePath . ltrim($sourceFile, '/');
 		}
+
+		$run = true;
+		foreach($this->exclusions as $pathname) {
+			if(strpos($sourcePathname, $pathname) === 0) {
+				$run = false;
+				break;
+			}
+		}
+		if(!$run) return $sourcePathname;
 		
+		if(!is_dir($this->targetPath)) {
+			if(!$this->wire('files')->mkdir($this->targetPath, true)) {
+				throw new WireException("Unable to create directory $this->targetPath");
+			}
+		}
+
 		if(!is_file($sourcePathname)) throw new WireException("$sourcePathname does not exist");
 	
 		$cacheName = md5($sourcePathname);
@@ -139,12 +164,16 @@ class CompiledFile extends Wire {
 		}
 		
 		if($compileNow) {
-			$this->copyAllNewerFiles(dirname($sourcePathname), dirname($targetPathname)); 
+			set_time_limit(120);
+			$sourcePath = dirname($sourcePathname);
+			$targetPath = dirname($targetPathname);
+			$this->copyAllNewerFiles($sourcePath, $targetPath); 
 			$targetDirname = dirname($targetPathname) . '/';
 			if(!is_dir($targetDirname)) $this->wire('files')->mkdir($targetDirname, true);
-			$targetData = $this->compileData(file_get_contents($sourcePathname), $sourcePathname, $targetPathname);
+			$targetData = $this->compileData(file_get_contents($sourcePathname), $sourcePathname);
 			if(false !== file_put_contents($targetPathname, $targetData, LOCK_EX)) {
-				$this->wire('files')->chmod($targetPathname);	
+				$this->wire('files')->chmod($targetPathname);
+				touch($targetPathname, filemtime($sourcePathname));
 				$cacheData = array(
 					'source' => array(
 						'file' => $sourcePathname,
@@ -171,13 +200,13 @@ class CompiledFile extends Wire {
 	 * 
 	 * @param string $data
 	 * @param string $sourceFile
-	 * @param string $targetFile
 	 * @return string
 	 * 
 	 */
-	protected function ___compileData($data, $sourceFile, $targetFile) {
-		if($this->compileIncludes) $this->compileIncludes($data, $sourceFile, $targetFile);
-		if($this->compileNamespace) $this->compileNamespace($data, $sourceFile, $targetFile);
+	protected function ___compileData($data, $sourceFile) {
+		if($this->options['includes']) $this->compileIncludes($data, $sourceFile);
+		if($this->options['namespace']) $this->compileNamespace($data);
+		if($this->options['markup']) $this->compileMarkup($data, $sourceFile);
 		return $data;
 	}
 
@@ -186,11 +215,9 @@ class CompiledFile extends Wire {
 	 * 
 	 * @param string $data
 	 * @param string $sourceFile
-	 * @param string $targetFile
-	 * @return string Data updated with includes referring to compiled files
 	 * 
 	 */
-	protected function compileIncludes(&$data, $sourceFile, $targetFile) {
+	protected function compileIncludes(&$data, $sourceFile) {
 		
 		// other related to includes
 		if(strpos($data, '__DIR__') !== false) {
@@ -199,6 +226,8 @@ class CompiledFile extends Wire {
 		if(strpos($data, '__FILE__') !== false) {
 			$data = str_replace('__FILE__', "'" . $sourceFile . "'", $data);
 		}
+		
+		$optionsStr = $this->optionsToString($this->options);
 
 		// main include regex
 		$re = '/^' . 
@@ -208,7 +237,7 @@ class CompiledFile extends Wire {
 			'(["\']?[^;\r\n]+);' . // 3:filename (may be quoted or end with closing parenthesis)
 			'/m';
 		
-		if(!preg_match_all($re, $data, $matches)) return $data;
+		if(!preg_match_all($re, $data, $matches)) return;
 		
 		foreach($matches[0] as $key => $fullMatch) {
 		
@@ -236,8 +265,7 @@ class CompiledFile extends Wire {
 		
 			if(substr($fileMatch, -1) == ')') $fileMatch = substr($fileMatch, 0, -1);
 			$fileMatch = str_replace(array(' ', "\t"), '', $fileMatch);
-			$targetPath = dirname($targetFile);
-			$newFullMatch = $open . ' ' . $funcMatch . "(\\ProcessWire\\wire('files')->compile($fileMatch));";
+			$newFullMatch = $open . ' ' . $funcMatch . "(\\ProcessWire\\wire('files')->compile($fileMatch,$optionsStr));";
 			$data = str_replace($fullMatch, $newFullMatch, $data);
 		}
 		
@@ -263,12 +291,9 @@ class CompiledFile extends Wire {
 	 * Compile global class/interface/function references to namespaced versions
 	 * 
 	 * @param string $data
-	 * @param string $sourceFile
-	 * @param string $targetFile
-	 * @return string
 	 * 
 	 */
-	protected function compileNamespace(&$data, $sourceFile, $targetFile) {
+	protected function compileNamespace(&$data) {
 		
 		// first check if data already defines a namespace, in which case we'll skip over it
 		$pos = strpos($data, 'namespace');
@@ -276,7 +301,7 @@ class CompiledFile extends Wire {
 			if(preg_match('/(^.*)\s+namespace\s+[_a-zA-Z0-9\\\\]+\s*;/m', $data, $matches)) {
 				if(strpos($matches[1], '//') === false && strpos($matches[1], '/*') === false) {
 					// namespace already present, no need for namespace compilation
-					return $data;
+					return;
 				}
 			}
 		}
@@ -309,6 +334,7 @@ class CompiledFile extends Wire {
 		foreach($classes as $class) {
 			
 			if(strpos($class, __NAMESPACE__ . '\\') !== 0) continue; // limit only to ProcessWire classes/interfaces
+			/** @noinspection PhpUnusedLocalVariableInspection */
 			list($ns, $class) = explode('\\', $class, 2); // reduce to just class without namespace
 			if(strpos($data, $class) === false) continue; // quick exit if class name not referenced in data
 			
@@ -346,6 +372,7 @@ class CompiledFile extends Wire {
 		foreach($functions['user'] as $function) {
 			
 			if(stripos($function, __NAMESPACE__ . '\\') !== 0) continue; // limit only to ProcessWire functions
+			/** @noinspection PhpUnusedLocalVariableInspection */
 			list($ns, $function) = explode('\\', $function, 2); // reduce to just function name
 			if(stripos($data, $function) === false) continue; // if function name not mentioned in data, quick exit
 		
@@ -363,10 +390,117 @@ class CompiledFile extends Wire {
 	}
 
 	/**
+	 * Compile markup
+	 * 
+	 * @param string $data
+	 * @param string $sourceFile
+	 * 
+	 */
+	protected function compileMarkup(&$data, $sourceFile) {
+	
+		$openPos = strpos($data, '<?');
+		$closePos = strpos($data, '?>');
+		
+		if($closePos === false) {
+			// document contains no closing PHP tag
+			if($openPos === false) {
+				// document also has no open PHP tag: must be all markup
+				$this->compileMarkupSection($data, $sourceFile);
+				return;
+			} else if($openPos === 0) {
+				// document is all PHP
+				return;
+			}
+		}
+
+		$trimFront = false;
+		if($openPos !== 0) {
+			$data = '?>' . $data;
+			$trimFront = true;
+		}
+		$data .= '<?';
+		
+		if(!preg_match_all('!\?>(.+?)<\?!s', $data, $matches)) return;
+		
+		foreach($matches[1] as $key => $markup) {
+			$_markup = $this->compileMarkupSection($markup, $sourceFile);
+			if($_markup !== $markup) {
+				$data = str_replace("?>$markup<?", "?>$_markup<?", $data);
+			}
+		}
+		
+		if($trimFront) $data = substr($data, 2); 
+		$data = substr($data, 0, -2);
+	}
+
+	/**
+	 * Compile a section of known markup (hookable)
+	 * 
+	 * @param string $markup
+	 * @param string $sourceFile
+	 * @return string
+	 * 
+	 */
+	protected function ___compileMarkupSection($markup, $sourceFile) {
+		
+		// echo htmlentities($markup) . "<hr>";
+		
+		if(strpos($markup, '{') === false || strpos($markup, '}') === false) return $markup;
+		
+		$regex = '#\{\$?([_a-zA-Z](?:[_.|a-zA-Z0-9]|->)+)\}#';
+		
+		if(!preg_match_all($regex, $markup, $matches)) return $markup;
+		
+		foreach($matches[1] as $key => $tag) {
+			
+			if(strpos($tag, '->') !== false) {
+				$tag = str_replace('->', '.', $tag);
+			}
+		
+			if(strpos($tag, '.') !== false) {
+				list($varName, $theRest) = explode('.', $tag, 2);
+			} else {
+				$varName = $tag;
+				$theRest = '';
+			}
+			
+			$theRestOR = str_replace('|', '_OR_', $theRest);
+			
+			if(empty($varName)) continue;
+			
+			// allow for use of locally scope variable, or attempt to pull from $page if not locally scoped
+			$replacement = "<" . "?php " . 
+				"if(isset(\$$varName)) { " . 
+					"if(\$$varName instanceof Page) { " . 
+						"echo " . ($theRest ? "\${$varName}->getMarkup('{" . $theRest . "}');" : "\$$varName; ") . 
+					"} else {" . 
+						"echo \$$varName" . ($theRest ? "->" . str_replace('.', '->', $theRestOR) : "") . "; " . 
+					"}" . 
+				"} else if(\\ProcessWire\\wire('$varName') !== null) { " .
+					"if(\\ProcessWire\\wire('$varName') instanceof Page) { " .
+						"echo " . ($theRest ? "\\ProcessWire\\wire('$varName')->getMarkup('{" . $theRest . "}');" : "\\ProcessWire\\wire('$varName'); ") .
+					"} else {" .
+						"echo \\ProcessWire\\wire('$varName')" . ($theRest ? "->" . str_replace('.', '->', $theRestOR) : "") . "; " .
+					"}" . 
+				"} else if(\\ProcessWire\\wire('page')->get('$varName') !== null) { " . 
+					"echo \\ProcessWire\\wire('page')->getMarkup('{" . $tag . "}'); " . 
+				"} else { " . 
+					"echo '" . $matches[0][$key] . "';" . 
+				"} ?" . ">";
+			
+			$markup = str_replace($matches[0][$key], $replacement, $markup);		
+		}
+		
+		return $markup;
+	}
+
+
+	/**
 	 * Recursively copy all files from $source to $target, but only if $source file is $newer
 	 * 
-	 * @param $source
-	 * @param $target
+	 * @param string $source
+	 * @param string $target
+	 * @param bool $recursive
 	 * 
 	 */
 	protected function copyAllNewerFiles($source, $target, $recursive = true) {
@@ -375,6 +509,7 @@ class CompiledFile extends Wire {
 		$target = rtrim($target, '/') . '/';
 	
 		// don't perform full copies of some directories
+		// @todo convert this to use the user definable exclusions list
 		if($source === $this->wire('config')->paths->site) return;
 		if($source === $this->wire('config')->paths->siteModules) return;
 		if($source === $this->wire('config')->paths->templates) return;
@@ -401,7 +536,78 @@ class CompiledFile extends Wire {
 			
 			copy($sourceFile, $targetFile);
 			$this->wire('files')->chmod($targetFile);
+			touch($targetFile, filemtime($sourceFile));
 		}
+	}
+	
+	public function maintenance() {
+		
+		$this->init();
+		$lastRunFile = $this->targetPath . 'maint.last';
+		if(file_exists($lastRunFile) && filemtime($lastRunFile) > time() - 86400) return false;
+		touch($lastRunFile);
+		$this->wire('files')->chmod($lastRunFile);
+		clearstatcache();
+
+		return $this->_maintenance($this->sourcePath, $this->targetPath);
+	}
+	
+	protected function _maintenance($sourcePath, $targetPath) {
+
+		$sourceURL = str_replace($this->wire('config')->paths->root, '/', $sourcePath);
+		$targetURL = str_replace($this->wire('config')->paths->root, '/', $targetPath);
+		
+		//$this->log("Running maintenance for $targetURL (source: $sourceURL)");
+		
+		$dir = new \DirectoryIterator($targetPath);
+
+		foreach($dir as $file) {
+
+			if($file->isDot()) continue;
+			$basename = $file->getBasename();
+			if($basename == 'maint.last') continue; 
+			$targetFile = $file->getPathname();
+			$sourceFile = $sourcePath . $basename;
+
+			if($file->isDir()) {
+				if(!is_dir($sourceFile)) {
+					$this->wire('files')->rmdir($targetFile, true);
+					$this->log("Remove directory: $targetURL$basename");
+				} else {
+					$this->_maintenance($sourceFile, $targetFile);
+				}
+				continue;
+			}
+
+			if(!file_exists($sourceFile)) {
+				// source file has been deleted
+				unlink($targetFile);
+				$this->log("Remove target file: $targetURL$basename");
+				
+			} else if(filemtime($sourceFile) != filemtime($targetFile)) {
+				// source file has changed
+				copy($sourceFile, $targetFile);
+				$this->wire('files')->chmod($targetFile);
+				touch($targetFile, filemtime($sourceFile));
+				$this->log("Copy new version of source file to target file: $sourceURL$basename => $targetURL$basename");
+			}
+		}
+	
+		return true; 
+	}
+	
+	protected function optionsToString(array $options) {
+		$str = "array(";
+		foreach($options as $key => $value) {
+			if(is_bool($value)) {
+				$value = $value ? "true" : "false";
+			} else if(is_string($value)) {
+				$value = '"' . str_replace('"', '\\"', $value) . '"';
+			}
+			$str .= "'$key'=>$value,";
+		}
+		$str = rtrim($str, ",") . ")";
+		return $str;
 	}
 }
 

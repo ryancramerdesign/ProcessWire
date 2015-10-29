@@ -322,7 +322,7 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 		$config = $this->wire('config');
 		$compiler = null;
 		if($config->templateCompile && !$page->template->noCompile) {
-			$compiler = $this->wire(new CompiledFile($config->paths->templates));
+			$compiler = $this->wire(new CompiledFile($config->paths->templates, array('markup' => true)));
 		}
 		$this->renderRecursionLevel++;
 		

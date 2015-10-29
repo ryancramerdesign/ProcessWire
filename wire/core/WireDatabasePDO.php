@@ -171,7 +171,7 @@ class WireDatabasePDO extends Wire implements WireDatabase {
 	 * @param string $statement
 	 * @param array|string $driver_options Driver options array or you may specify $note here
 	 * @param string $note Debug notes to save with query in debug mode
-	 * @return PDOStatement
+	 * @return \PDOStatement
 	 * 
 	 */
 	public function prepare($statement, $driver_options = array(), $note = '') {

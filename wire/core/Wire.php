@@ -41,6 +41,7 @@
  * @method changed(string $what) See Wire::___changed()
  * @method log($str = '', array $options = array()) See Wire::___log()
  * @method callUnknown($method, $arguments) See Wire::___callUnknown()
+ * @method Wire trackException(\Exception $e, $severe = true, $text = null)
  * 
  */
 
@@ -195,7 +196,7 @@ abstract class Wire implements WireTranslatable, WireFuelable, WireTrackable {
 				$part = substr($className, 1);
 				if(strtolower($part) != $part) {
 					// contains more than 1 uppercase character, convert to hyphenated lowercase
-					$className = substr($name, 0, 1) . preg_replace('/([A-Z])/', '-$1', $part);
+					$className = substr($className, 0, 1) . preg_replace('/([A-Z])/', '-$1', $part);
 				}
 				$className = strtolower($className);
 				$cache[$_className] = $className;
@@ -763,7 +764,7 @@ abstract class Wire implements WireTranslatable, WireFuelable, WireTrackable {
 	 * @param string|array|object|true $text Additional details (optional). 
 	 * 	When provided, it will be sent to $this->error($text) if $severe==true, or $this->warning($text) if $severe==false.
 	 * 	Specify boolean true to just sent the $e->getMessage() to $this->error() or $this->warning(). 
-	 * @return $this
+	 * @return Wire (this)
 	 * @throws Exception If $severe==true and $config->allowExceptions==true
 	 * 
 	 */

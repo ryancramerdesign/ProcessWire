@@ -35,6 +35,7 @@
  *
  * You may optionally specify a handler method for configuration data: setConfigData().
  * If present, it will be used. See commented function reference in the interface below.
+ * 
  *
  */
 interface ConfigurableModule {

@@ -28,7 +28,7 @@
  *    class name. All Wire derived objects already do this, so 
  *    you don't have to provide it unless your Module does not
  *    descend from a ProcessWire class. We recommend that your
- *    modules extend the WireData class. 
+ *    modules extend the Wire or WireData class. 
  * 3. If you have a __construct() method, it must not require any
  *    particular arguments. 
  * 4. If your module is configurable, it must also fulfill the
@@ -46,6 +46,19 @@
  * 
  * For more details on these methods, see comments within the 
  * interface below.
+ * 
+ * 
+ * The following methods may or may not be implemented, all are optional:
+ * 
+ * @method install()
+ * @method uninstall()
+ * @method upgrade($fromVersion, $toVersion)
+ * @method static array getModuleInfo()
+ * @method init()
+ * @method ready()
+ * @method setConfigData(array $data) for ConfigurableModule types
+ * @method bool isSingular()
+ * @method bool isAutoload()
  * 
  *
  */
@@ -173,18 +186,19 @@ interface Module {
 	 */
 
 	/**
-	 * Returns the class name of this Module instance
-	 *
-	 * If your Module descends from Wire, or any of it's derivatives (as would usually be the case), 
+	 * Return this object's class name
+	 * 
+	 * If your Module descends from Wire, or any of it's derivatives (as would usually be the case),
 	 * then you don't need to implement this method as it's already present. 
 	 *
-	 * If you do want to implement this, then it can be just: "return get_class($this);"
+	 * @param array|bool|null $options Optionally an option or boolean for 'namespace' option:
+	 * 	- lowercase (bool): Specify true to make it return hyphenated lowercase version of class name
+	 * 	- namespace (bool): Specify false to omit namespace from returned class name. Default=true.
+	 * 	Note: when lowercase=true option is specified, the namespace=false option is required.
+	 * @return string
 	 *
-	 * ProcessWire may sometimes substitute placeholders for a module that need to respond with the 
-	 * non-placeholder classname. PHP's get_class won't work, which is why this method is used instead. 
-	 *
-	public function className();
 	 */
+	public function className($options = null);
 
 	/**
 	 * Perform any installation procedures specific to this module, if needed. 
