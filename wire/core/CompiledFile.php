@@ -558,7 +558,8 @@ class CompiledFile extends Wire {
 		$targetURL = str_replace($this->wire('config')->paths->root, '/', $targetPath);
 		
 		//$this->log("Running maintenance for $targetURL (source: $sourceURL)");
-		
+	
+		if(!is_dir($targetPath)) return false;
 		$dir = new \DirectoryIterator($targetPath);
 
 		foreach($dir as $file) {
