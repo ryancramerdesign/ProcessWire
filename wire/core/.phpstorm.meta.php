@@ -37,6 +37,10 @@ namespace PHPSTORM_META {
 			'input' instanceof WireInput,
 			'languages' instanceof Languages,
 			'page' instanceof Page,
+			'hooks' instanceof WireHooks,
+			'files' instanceof WireFileTools,
+			'datetime' instanceof WireDateTime,
+			'mail' instanceof WireMailTools
 		],
 		\Wire::wire('') => [ 
 			// this one does not appear to work, leaving in case someone knows how to make it work
@@ -64,6 +68,10 @@ namespace PHPSTORM_META {
 			'input' instanceof WireInput,
 			'languages' instanceof Languages,
 			'page' instanceof Page,
+			'hooks' instanceof WireHooks,
+			'files' instanceof WireFileTools,
+			'datetime' instanceof WireDateTime,
+			'mail' instanceof WireMailTools
 		]
 	];
 }

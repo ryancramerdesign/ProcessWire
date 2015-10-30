@@ -44,6 +44,22 @@ class WireClassLoader {
 	static protected $namespaces = array();
 
 	/**
+	 * Log of autoload activity when debug mode is on
+	 * 
+	 * @var array
+	 * 
+	 */
+	protected $debugLog = array();
+
+	/**
+	 * Whether we are using debug mode
+	 * 
+	 * @var bool
+	 * 
+	 */
+	protected $debug = null;
+
+	/**
 	 * @param ProcessWire $wire
 	 * 
 	 */
@@ -89,10 +105,23 @@ class WireClassLoader {
 	public function loadClass($className) {
 		
 		static $level = 0;
+		static $levelHistory = array();
 		$level++;
-
+		
 		if(is_null($this->modules)) {
 			if($this->wire) $this->modules = $this->wire->wire('modules');
+		}
+		if(is_null($this->debug)) {
+			if($this->wire) $this->debug = $this->wire->wire('config')->debug;
+		}
+		
+		if($this->debug) {
+			$_className = str_replace(__NAMESPACE__ . '\\', '', $className);
+			$levelHistoryStr = count($levelHistory) ? ' (via ' . implode(' > ', $levelHistory) . ')' : '';
+			$levelHistory[] = $_className;
+		} else {
+			$levelHistoryStr = '';
+			$_className = '';
 		}
 		
 		$found = false;
@@ -105,6 +134,10 @@ class WireClassLoader {
 		if($this->modules && $this->modules->isModule($className)) {
 			if($this->modules->includeModule($name)) {
 				// success, and Modules class just included it
+				if($this->debug) {
+					$this->debugLog[$_className] = "Handled by modules loader" . $levelHistoryStr;
+					array_pop($levelHistory);
+				}
 				$level--;
 				return;
 			}
@@ -148,9 +181,24 @@ class WireClassLoader {
 		
 		if($found) {
 			include_once($found);
+			if($this->debug) {
+				$file = $this->wire ? str_replace($this->wire->wire('config')->paths->root, '/', $found) : $found;
+				$this->debugLog[$_className] = $file . $levelHistoryStr;
+			}
+		} else if($this->debug) {
+			$this->debugLog[$_className] = "Unable to locate file for this class" . $levelHistoryStr;
 		}
 		
 		$level--;
+		if($this->debug) array_pop($levelHistory);
+	}
+	
+	public function setDebug($debug) {
+		$this->debug = (bool) $debug; 
+	}
+	
+	public function getDebugLog() {
+		return $this->debugLog;
 	}
 }
 

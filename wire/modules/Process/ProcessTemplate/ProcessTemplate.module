@@ -1648,18 +1648,18 @@ class ProcessTemplate extends Process {
 		
 		// --------------------
 
-		$field = $this->modules->get('InputfieldRadios');
-		$field->attr('name', 'noCompile');
-		$field->label = $this->_('Use Compiled File?');
-		$field->description = $this->_('Enables ProcessWire to update your template file for namespace, tag substitution and more. Recommended unless it causes errors with your template file.');
-		$field->addOption(0, $this->labels['Yes']);
-		$field->addOption(1, $this->labels['No']);
-		$field->attr('value', $template->noCompile);
-		$field->columnWidth = 50;
-		if(!$this->wire('config')->templateCompile) {
-			$field->notes = $this->_('This setting is not applicable because $config->templateCompile in /site/config.php is set to false.');
+		if($this->wire('config')->templateCompile) {
+			$field = $this->modules->get('InputfieldRadios');
+			$field->attr('name', 'compile');
+			$field->label = $this->_('Use Compiled File?');
+			$field->description = $this->_('Enables ProcessWire to update your template file for namespace and apply any installed FileCompiler modules. Recommended unless it causes errors with your template file.');
+			$field->addOption(2, $this->labels['Yes'] . ' ' . $this->_('(and included files)'));
+			$field->addOption(1, $this->labels['Yes'] . ' ' . $this->_('(template file only)'));
+			$field->addOption(0, $this->labels['No']);
+			$field->attr('value', $template->compile);
+			$field->columnWidth = 50;
+			$form->append($field);
 		}
-		$form->append($field);
 
 		// --------------------
 		
@@ -2058,7 +2058,7 @@ class ProcessTemplate extends Process {
 		$this->template->allowChangeUser = (int) $form->get('allowChangeUser')->attr('value');
 		$this->template->noPrependTemplateFile = (int) $this->input->post('noPrependTemplateFile'); // field may not be present on all submissions
 		$this->template->noAppendTemplateFile = (int) $this->input->post('noAppendTemplateFile'); // field may not be present on all submissions
-		$this->template->noCompile = (int) $this->input->post('noCompile'); 
+		$this->template->compile = (int) $this->input->post('compile'); 
 		$this->template->tags = $this->sanitizer->text($form->get('tags')->attr('value'));
 		$this->template->contentType = $form->get('contentType')->attr('value');
 		

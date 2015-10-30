@@ -138,6 +138,7 @@ class WireShutdown extends Wire {
 					htmlspecialchars($why, ENT_QUOTES, "UTF-8", false)), $html);
 				// make a prettier looking debug backtrace, when applicable
 				$html = preg_replace('!(<br[^>]*>\s*)(#\d+\s+[^<]+)!is', '$1<code>$2</code>', $html);
+				$html = str_replace('assets/cache/FileCompiler/site/', '', $html);
 				echo "\n\n$html\n\n";
 			} else {
 				echo "\n\n$message\n\n$why\n\n";

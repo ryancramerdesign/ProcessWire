@@ -25,7 +25,7 @@ class ProcessWire extends Wire {
 	const versionMajor = 3; 
 	const versionMinor = 0; 
 	const versionRevision = 0; 
-	const versionSuffix = 'alpha-1';
+	const versionSuffix = 'alpha-2';
 	
 	const indexVersion = 300; // required version for index.php file (represented by PROCESSWIRE define)
 	const htaccessVersion = 250;
@@ -406,13 +406,13 @@ class ProcessWire extends Wire {
 		if($cache) $cache->maintenance();
 
 		if($config->templateCompile) {
-			$compiledFile = new CompiledFile($this->wire('config')->paths->templates);
-			$compiledFile->maintenance();
+			$compiler = new FileCompiler($this->wire('config')->paths->templates);
+			$compiler->maintenance();
 		}
 		
 		if($config->moduleCompile) {
-			$compiledFile = new CompiledFile($this->wire('config')->paths->siteModules);
-			$compiledFile->maintenance();
+			$compiler = new FileCompiler($this->wire('config')->paths->siteModules);
+			$compiler->maintenance();
 		}
 	}
 

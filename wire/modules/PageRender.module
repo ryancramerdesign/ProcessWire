@@ -321,8 +321,13 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 		$_page = $this->wire('page'); // just in case one page is rendering another, save the previous
 		$config = $this->wire('config');
 		$compiler = null;
-		if($config->templateCompile && !$page->template->noCompile) {
-			$compiler = $this->wire(new CompiledFile($config->paths->templates, array('markup' => true)));
+		if($config->templateCompile && $page->template->compile) {
+			$compilerOptions = array(
+				'namespace' => true, 
+				'includes' => $page->template->compile == 2 ? true : false, 
+				'modules' => true, 
+			);
+			$compiler = $this->wire(new FileCompiler($config->paths->templates, $compilerOptions));
 		}
 		$this->renderRecursionLevel++;
 		
@@ -389,7 +394,7 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 						if(strpos($file, '..') !== false || strpos($file, '/.') !== false) continue; 
 						$file = $config->paths->templates . trim($file, '/');
 						if(!is_file($file)) continue; 
-						if($compiler) {
+						if($compiler && $compilerOptions['includes']) {
 							$file = $compiler->compile($file);
 						}	
 						if($plural == 'prependFiles') {

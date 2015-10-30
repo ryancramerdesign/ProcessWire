@@ -528,7 +528,7 @@ class WireFileTools extends Wire {
 	}
 	
 	public function compile($file, array $options = array()) {
-		$compiler = new CompiledFile(dirname($file), $options);
+		$compiler = new FileCompiler(dirname($file), $options);
 		return $compiler->compile(basename($file));
 	}
 

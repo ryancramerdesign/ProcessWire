@@ -291,6 +291,23 @@ Debug::saveTimer('timer-name', 'optional notes'); // stop and save timer
 					?>
 				</div>
 			</div>
+		<?php endif; ?>
+		
+		<?php if($tool == 'autoload'): ?>
+			<div class="container">
+				<h3><a href='#'><?php echo __('Autoload'); ?></a></h3>
+				<div>
+					<?php
+					echo "<table class=''><thead><th>Class</th><th>File/Details</th><tbody>";
+					foreach($classLoader->getDebugLog() as $className => $classFile) {
+						$className = $sanitizer->entities($className);
+						$classFile = $sanitizer->entities($classFile);
+						echo "<tr><th width='40%'>$className</th><td>$classFile</td></tr>";
+					}
+					echo "</tbody></table><br />";
+					?>
+				</div>
+			</div>
 		<?php endif; ?>	
 		
 	<?php endforeach; ?>

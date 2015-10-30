@@ -1,7 +1,7 @@
 <?php namespace ProcessWire;
 
 /**
- * Class CompiledFile
+ * Class FileCompiler
  *
  * @todo maintenance of compiled files, removal of ones no longer in use, etc.
  * @todo make storage in dedicated table rather than using wire('cache').
@@ -12,7 +12,7 @@
  * 
  */
 
-class CompiledFile extends Wire {
+class FileCompiler extends Wire {
 
 	/**
 	 * Compilation options
@@ -23,7 +23,7 @@ class CompiledFile extends Wire {
 	protected $options = array(
 		'includes' => true,	// compile include()'d files too?
 		'namespace' => true, // compile to make compatible with PW namespace when necessary?
-		'markup' => false, // compile API variable tags (for markup/HTML only)
+		'modules' => false, // compile using installed FileCompiler modules
 	);
 	
 	/**
@@ -106,6 +106,20 @@ class CompiledFile extends Wire {
 	}
 
 	/**
+	 * Initialize the target path, making sure that it exists and creating it if not
+	 * 
+	 * @throws WireException
+	 * 
+	 */
+	protected function initTargetPath() {
+		if(!is_dir($this->targetPath)) {
+			if(!$this->wire('files')->mkdir($this->targetPath, true)) {
+				throw new WireException("Unable to create directory $this->targetPath");
+			}
+		}
+	}
+
+	/**
 	 * Compile given source file and return compiled destination file
 	 * 
 	 * @param string $sourceFile Source file to compile (relative to sourcePath given in constructor)
@@ -132,12 +146,8 @@ class CompiledFile extends Wire {
 			}
 		}
 		if(!$run) return $sourcePathname;
-		
-		if(!is_dir($this->targetPath)) {
-			if(!$this->wire('files')->mkdir($this->targetPath, true)) {
-				throw new WireException("Unable to create directory $this->targetPath");
-			}
-		}
+	
+		$this->initTargetPath();
 
 		if(!is_file($sourcePathname)) throw new WireException("$sourcePathname does not exist");
 	
@@ -164,13 +174,15 @@ class CompiledFile extends Wire {
 		}
 		
 		if($compileNow) {
-			set_time_limit(120);
 			$sourcePath = dirname($sourcePathname);
 			$targetPath = dirname($targetPathname);
+			$targetData = file_get_contents($sourcePathname);
+			if(stripos($targetData, 'FileCompiler=0')) return $sourcePathname; // bypass if it contains this string
+			set_time_limit(120);
 			$this->copyAllNewerFiles($sourcePath, $targetPath); 
 			$targetDirname = dirname($targetPathname) . '/';
 			if(!is_dir($targetDirname)) $this->wire('files')->mkdir($targetDirname, true);
-			$targetData = $this->compileData(file_get_contents($sourcePathname), $sourcePathname);
+			$targetData = $this->compileData($targetData, $sourcePathname);
 			if(false !== file_put_contents($targetPathname, $targetData, LOCK_EX)) {
 				$this->wire('files')->chmod($targetPathname);
 				touch($targetPathname, filemtime($sourcePathname));
@@ -204,9 +216,18 @@ class CompiledFile extends Wire {
 	 * 
 	 */
 	protected function ___compileData($data, $sourceFile) {
+		
 		if($this->options['includes']) $this->compileIncludes($data, $sourceFile);
 		if($this->options['namespace']) $this->compileNamespace($data);
-		if($this->options['markup']) $this->compileMarkup($data, $sourceFile);
+		
+		if($this->options['modules']) {
+			foreach($this->wire('modules')->findByPrefix('FileCompiler', true) as $module) {
+				if(!$module instanceof FileCompilerModule) continue;
+				$module->setSourceFile($sourceFile);
+				$data = $module->compile($data);
+			}	
+		}
+		
 		return $data;
 	}
 
@@ -390,112 +411,6 @@ class CompiledFile extends Wire {
 	}
 
 	/**
-	 * Compile markup
-	 * 
-	 * @param string $data
-	 * @param string $sourceFile
-	 * 
-	 */
-	protected function compileMarkup(&$data, $sourceFile) {
-	
-		$openPos = strpos($data, '<?');
-		$closePos = strpos($data, '?>');
-		
-		if($closePos === false) {
-			// document contains no closing PHP tag
-			if($openPos === false) {
-				// document also has no open PHP tag: must be all markup
-				$this->compileMarkupSection($data, $sourceFile);
-				return;
-			} else if($openPos === 0) {
-				// document is all PHP
-				return;
-			}
-		}
-
-		$trimFront = false;
-		if($openPos !== 0) {
-			$data = '?>' . $data;
-			$trimFront = true;
-		}
-		$data .= '<?';
-		
-		if(!preg_match_all('!\?>(.+?)<\?!s', $data, $matches)) return;
-		
-		foreach($matches[1] as $key => $markup) {
-			$_markup = $this->compileMarkupSection($markup, $sourceFile);
-			if($_markup !== $markup) {
-				$data = str_replace("?>$markup<?", "?>$_markup<?", $data);
-			}
-		}
-		
-		if($trimFront) $data = substr($data, 2); 
-		$data = substr($data, 0, -2);
-	}
-
-	/**
-	 * Compile a section of known markup (hookable)
-	 * 
-	 * @param string $markup
-	 * @param string $sourceFile
-	 * @return string
-	 * 
-	 */
-	protected function ___compileMarkupSection($markup, $sourceFile) {
-		
-		// echo htmlentities($markup) . "<hr>";
-		
-		if(strpos($markup, '{') === false || strpos($markup, '}') === false) return $markup;
-		
-		$regex = '#\{\$?([_a-zA-Z](?:[_.|a-zA-Z0-9]|->)+)\}#';
-		
-		if(!preg_match_all($regex, $markup, $matches)) return $markup;
-		
-		foreach($matches[1] as $key => $tag) {
-			
-			if(strpos($tag, '->') !== false) {
-				$tag = str_replace('->', '.', $tag);
-			}
-		
-			if(strpos($tag, '.') !== false) {
-				list($varName, $theRest) = explode('.', $tag, 2);
-			} else {
-				$varName = $tag;
-				$theRest = '';
-			}
-			
-			$theRestOR = str_replace('|', '_OR_', $theRest);
-			
-			if(empty($varName)) continue;
-			
-			// allow for use of locally scope variable, or attempt to pull from $page if not locally scoped
-			$replacement = "<" . "?php " . 
-				"if(isset(\$$varName)) { " . 
-					"if(\$$varName instanceof Page) { " . 
-						"echo " . ($theRest ? "\${$varName}->getMarkup('{" . $theRest . "}');" : "\$$varName; ") . 
-					"} else {" . 
-						"echo \$$varName" . ($theRest ? "->" . str_replace('.', '->', $theRestOR) : "") . "; " . 
-					"}" . 
-				"} else if(\\ProcessWire\\wire('$varName') !== null) { " .
-					"if(\\ProcessWire\\wire('$varName') instanceof Page) { " .
-						"echo " . ($theRest ? "\\ProcessWire\\wire('$varName')->getMarkup('{" . $theRest . "}');" : "\\ProcessWire\\wire('$varName'); ") .
-					"} else {" .
-						"echo \\ProcessWire\\wire('$varName')" . ($theRest ? "->" . str_replace('.', '->', $theRestOR) : "") . "; " .
-					"}" . 
-				"} else if(\\ProcessWire\\wire('page')->get('$varName') !== null) { " . 
-					"echo \\ProcessWire\\wire('page')->getMarkup('{" . $tag . "}'); " . 
-				"} else { " . 
-					"echo '" . $matches[0][$key] . "';" . 
-				"} ?" . ">";
-			
-			$markup = str_replace($matches[0][$key], $replacement, $markup);		
-		}
-		
-		return $markup;
-	}
-
-
-	/**
 	 * Recursively copy all files from $source to $target, but only if $source file is $newer
 	 * 
 	 * @param string $source
@@ -543,6 +458,7 @@ class CompiledFile extends Wire {
 	public function maintenance() {
 		
 		$this->init();
+		$this->initTargetPath();
 		$lastRunFile = $this->targetPath . 'maint.last';
 		if(file_exists($lastRunFile) && filemtime($lastRunFile) > time() - 86400) return false;
 		touch($lastRunFile);
@@ -604,6 +520,12 @@ class CompiledFile extends Wire {
 				$value = $value ? "true" : "false";
 			} else if(is_string($value)) {
 				$value = '"' . str_replace('"', '\\"', $value) . '"';
+			} else if(is_array($value)) {
+				if(count($value)) {
+					$value = "array('" . implode("',", $value) . "')";
+				} else {
+					$value = "array()";
+				}
 			}
 			$str .= "'$key'=>$value,";
 		}

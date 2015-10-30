@@ -154,7 +154,9 @@ abstract class AdminTheme extends WireData implements Module {
 			'footer' => '',
 			'sidebar' => '', // sidebar not used in all admin themes
 		);
-		if($this->wire('modules')->isInstalled('InputfieldCKEditor') && $this->wire('user')->isLoggedin()) {
+		if($this->wire('modules')->isInstalled('InputfieldCKEditor') 
+			&& $this->wire('user')->isLoggedin()
+			&& $this->wire('process') instanceof WirePageEditor) {
 			// necessary for when CKEditor is loaded via ajax
 			$parts['head'] .= "<script>" . 
 				"window.CKEDITOR_BASEPATH='" . $this->wire('config')->urls->InputfieldCKEditor . 

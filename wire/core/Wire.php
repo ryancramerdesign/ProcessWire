@@ -37,6 +37,10 @@
  * @property Languages $languages If LanguageSupport installed
  * @property Config $config
  * @property Fuel $fuel
+ * @property WireHooks $hooks
+ * @property WireDateTime $datetime
+ * @property WireMailTools $mail
+ * @property WireFileTools $files
  * 
  * @method changed(string $what) See Wire::___changed()
  * @method log($str = '', array $options = array()) See Wire::___log()
@@ -280,6 +284,7 @@ abstract class Wire implements WireTranslatable, WireFuelable, WireTrackable {
 	 *
 	 */ 
 	public function __call($method, $arguments) {
+		if(!$this->wire('hooks')) throw new WireException('gotcha');
 		$result = $this->wire('hooks')->runHooks($this, $method, $arguments); 
 		if(!$result['methodExists'] && !$result['numHooksRun']) return $this->callUnknown($method, $arguments);
 		return $result['return'];
@@ -1031,7 +1036,7 @@ abstract class Wire implements WireTranslatable, WireFuelable, WireTrackable {
 	 * @param string|object $name Name of API variable to retrieve, set, or omit to retrieve the master ProcessWire object
 	 * @param null|mixed $value Value to set if using this as a setter, otherwise omit.
 	 * @param bool $lock When using as a setter, specify true if you want to lock the value from future changes (default=false)
-	 * @return ProcessWire|Wire|Session|Page|Pages|Modules|User|Users|Roles|Permissions|Templates|Fields|Fieldtypes|Sanitizer|Config|Notices|WireDatabasePDO|WireInput|string|mixed
+	 * @return ProcessWire|Wire|Session|Page|Pages|Modules|User|Users|Roles|Permissions|Templates|Fields|Fieldtypes|Sanitizer|Config|Notices|WireDatabasePDO|WireHooks|WireDateTime|WireFileTools|WireMailTools|WireInput|string|mixed
 	 * @throws WireException
 	 *
 	 *
@@ -1107,7 +1112,8 @@ abstract class Wire implements WireTranslatable, WireFuelable, WireTrackable {
 			if($value !== null) return $value; 
 		}
 
-		if($this->wire('hooks')->isHooked($name)) { // potential property hook
+		$hooks = $this->wire('hooks');
+		if($hooks && $hooks->isHooked($name)) { // potential property hook
 			$result = $this->runHooks($name, array(), 'property');
 			return $result['return'];
 		}

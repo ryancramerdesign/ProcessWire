@@ -88,6 +88,7 @@ $config->debugTools = array(
 	'user',
 	'input',
 	'cache',
+	'autoload',
 );
 
 /**
@@ -265,7 +266,7 @@ $config->userAuthHashType = 'sha1';
  * Allow template files to be compiled?
  * 
  * Set to false do disable the option for compiled template files. 
- * When set to true, it will be used unless a given template's 'noCompile' option is set to 0.
+ * When set to true, it will be used unless a given template's 'compile' option is set to 0.
  * 
  * @var bool
  * 

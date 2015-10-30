@@ -1346,7 +1346,7 @@ class Modules extends WireArray {
 		if(strpos($file, '/wire/modules/') === false && $this->wire('config')->moduleCompile) {
 			$namespace = $this->getModuleNamespace($moduleName, array('file' => $file));
 			if($namespace === '\\' || empty($namespace)) {
-				$compiler = new CompiledFile(dirname($file));
+				$compiler = new FileCompiler(dirname($file));
 				$compiledFile = $compiler->compile(basename($file));
 				if($compiledFile) $file = $compiledFile;
 			}
@@ -2962,7 +2962,9 @@ class Modules extends WireArray {
 								// not safe to include because this is not just a file with a $config array
 							} else {
 								$ns = $this->getFileNamespace($file);
-								if($ns === '\\') $file = $this->wire('files')->compile($file);
+								if($ns === '\\' && $this->wire('config')->moduleCompile) {
+									$file = $this->wire('files')->compile($file);
+								}
 								/** @noinspection PhpIncludeInspection */
 								include($file);
 							}
@@ -3083,7 +3085,7 @@ class Modules extends WireArray {
 			$className = $nsClassName . 'Config';
 			$config = null; // may be overridden by included file
 			if(!class_exists($className, false)) {
-				if(strrpos($className, '\\') < 1) {
+				if(strrpos($className, '\\') < 1 && $this->wire('config')->moduleCompile) {
 					// root namespace
 					/** @noinspection PhpIncludeInspection */
 					include_once($this->wire('files')->compile($configurable));

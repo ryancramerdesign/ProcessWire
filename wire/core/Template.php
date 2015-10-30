@@ -56,7 +56,7 @@
  * @property int $noChangeTemplate Don't allow pages using this template to change their template? (0=template change allowed, 1=template change not allowed)
  * @property int $noUnpublish Don't allow pages using this template to ever exist in an unpublished state - if page exists, it must be published. (0=page may be unpublished, 1=page may not be unpublished)
  * @property int $noShortcut Don't allow pages using this template to appear in shortcut "add new page" menu
- * @property int $noCompile Set to 1 to disable file compilation for this template.
+ * @property int $compile Set to 1 to enable compilation, 2 to compile file and included files, or 0 to disable. 
  * @property int $nameContentTab Pages should display the name field on the content tab? (0=no, 1=yes)
  * @property string $noCacheGetVars GET vars that trigger disabling the cache (only when cache_time > 0)
  * @property string $noCachePostVars POST vars that trigger disabling the cache (only when cache_time > 0)
@@ -201,7 +201,7 @@ class Template extends WireData implements Saveable, Exportable {
 		'noChangeTemplate' => 0, 	// don't allow pages using this template to change their template?
 		'noShortcut' => 0, 		// don't allow pages using this template to appear in shortcut "add new page" menu
 		'noUnpublish' => 0,		// don't allow pages using this template to ever exist in an unpublished state - if page exists, it must be published 
-		'noCompile' => 0,		// disable template file compilation 
+		'compile' => 2,		// Set to 1 to compile, set to 2 to compile file and included files, or 0 to disable
 		'nameContentTab' => 0, 		// pages should display the 'name' field on the content tab?	
 		'noCacheGetVars' => '',		// GET vars that trigger disabling the cache (only when cache_time > 0)
 		'noCachePostVars' => '',	// POST vars that trigger disabling the cache (only when cache_time > 0)
