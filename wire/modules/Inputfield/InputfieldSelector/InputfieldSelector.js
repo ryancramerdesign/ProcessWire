@@ -94,9 +94,10 @@ var InputfieldSelector = {
 				var $ac = $row.find(".input-value-autocomplete"); 
 				if($ac.length > 0) {
 					// setup autocomplete
-					var field = $row.find(".select-field").val();
+					var subfield = $row.find(".select-subfield");
+					var field = subfield.length ? subfield.val() : $row.find(".select-field").val();
 					var name = $row.parents(".InputfieldSelector").find("input.selector-value").attr('name'); // selector-value intentional!
-					InputfieldSelector.setupAutocomplete($ac, field, name); 
+					InputfieldSelector.setupAutocomplete($ac, field, name);
 				}
 			}); 
 		}

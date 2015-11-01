@@ -60,7 +60,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Selector',
-			'version' => 26,
+			'version' => 27,
 			'summary' => 'Build a page finding selector visually.',
 			'author' => 'Avoine + ProcessWire',
 			'autoload' => "template=admin", 
@@ -292,9 +292,17 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			$out = "Ajax request missing required info";
 		}
 	
-		echo $out; 
+		echo $this->prep($out); 
 		exit; 
 		
+	}
+	
+	protected function prep($out) {
+		$out = str_replace(array(
+			'id="Inputfield_filters__value[]"',
+			"id='Inputfield_filters__value[]'"
+		), '', $out);
+		return $out;
 	}
 	
 	/**
@@ -1690,7 +1698,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 
 			";
 
-		return $out; 
+		return $this->prep($out); 
 	}
 
 
