@@ -312,6 +312,7 @@ class FileCompiler extends Wire {
 	 * Compile global class/interface/function references to namespaced versions
 	 * 
 	 * @param string $data
+	 * @return bool Whether or not namespace changes were compiled
 	 * 
 	 */
 	protected function compileNamespace(&$data) {
@@ -322,7 +323,7 @@ class FileCompiler extends Wire {
 			if(preg_match('/(^.*)\s+namespace\s+[_a-zA-Z0-9\\\\]+\s*;/m', $data, $matches)) {
 				if(strpos($matches[1], '//') === false && strpos($matches[1], '/*') === false) {
 					// namespace already present, no need for namespace compilation
-					return;
+					return false;
 				}
 			}
 		}
@@ -408,6 +409,16 @@ class FileCompiler extends Wire {
 				if(++$n > 5) break;
 			}
 		}
+		
+		// update other function calls
+		if(strpos($data, 'class_parents(') !== false) {
+			$data = preg_replace('/\bclass_parents\(/', '\\ProcessWire\\wireClassParents(', $data);
+		}
+		if(strpos($data, 'class_implements(') !== false) {
+			$data = preg_replace('/\bclass_implements\(/', '\\ProcessWire\\wireClassImplements(', $data);
+		}
+		
+		return true; 
 	}
 
 	/**
