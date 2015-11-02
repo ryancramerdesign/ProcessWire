@@ -86,10 +86,10 @@ class WireCache extends Wire {
 	 * 	If cache exists and is older, then blank returned. You may omit this to divert to whatever expiration
 	 * 	was specified at save() time. Note: The $expire and $func arguments may optionally be reversed. 
 	 * 	If using a $func, the behavior of $expire becomes the same as that of save(). 
-	 * @param function|callable $func Optionally provide a function/closure that generates the cache value and it 
+	 * @param callable $func Optionally provide a function/closure that generates the cache value and it 
 	 * 	will be used when needed.This option requires that only one cache is being retrieved (not an array of caches). 
 	 * 	Note: The $expire and $func arguments may optionally be reversed. 
-	 * @return string|array|null Returns null if cache doesn't exist and no generation function provided. 
+	 * @return string|array|PageArray|mixed|null Returns null if cache doesn't exist and no generation function provided. 
 	 * @throws WireException if given invalid arguments
 	 * 
 	 * 
@@ -503,8 +503,6 @@ class WireCache extends Wire {
 				return true; 
 			}
 			
-			return false;
-			
 		} else if($obj === true) {
 			// force run general maintenance, even if run earlier
 			$forceRun = true;
@@ -517,7 +515,7 @@ class WireCache extends Wire {
 		}
 		
 		// don't perform general maintenance during ajax requests
-		if($this->wire('config')->ajax && !$forceRun) return;
+		if($this->wire('config')->ajax && !$forceRun) return false;
 
 		// perform general maintenance now	
 		return $this->maintenanceGeneral();
@@ -765,7 +763,7 @@ class WireCache extends Wire {
 					foreach($this->wire('templates') as $template) {
 						if($template->id == $t) {
 							$info['expires'] = $verbose ? "when '$template->name' page or template is modified" : 'save';
-							$info['template'] = $t->id;
+							$info['template'] = $template->id;
 							break;
 						}
 					}

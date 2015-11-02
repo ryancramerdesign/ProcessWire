@@ -131,6 +131,9 @@ class WireUpload extends Wire {
 	 */
 	protected function getPhpFilesAjax() {
 
+		// @todo per https://github.com/ryancramerdesign/ProcessWire/issues/1487
+		// if(!$filename = rawurldecode($_SERVER['HTTP_X_FILENAME'])) return false;
+		
 		if(!$filename = $_SERVER['HTTP_X_FILENAME']) return false; 
 
 		$dir = wire('config')->uploadTmpDir;
