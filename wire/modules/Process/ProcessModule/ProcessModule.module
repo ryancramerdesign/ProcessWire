@@ -377,7 +377,7 @@ class ProcessModule extends Process {
 		$markup->icon = 'folder-open-o';
 		$markup->value .= $this->renderListTable($siteModulesArray, true);
 		$markup->value .= "<p class='detail'><i class='fa fa-fw fa-star'></i> " . sprintf($this->_('Browse the modules directory at %s'), "<a target='_blank' href='http://modules.processwire.com'>modules.processwire.com</a>") . "</p>"; 
-		$markup->value .= "<p class='detail'><i class='fa fa-fw fa-eraser'></i> " .  $this->_("To remove a module, click the module to edit, check the 'uninstall' box, then save. Once uninstalled, the module's file(s) may be removed from /site/modules/. If it still appears in the list above, you may need to click the 'check for new modules' button for ProcessWire to see the change."); // Instructions on how to remove a module
+		$markup->value .= "<p class='detail'><i class='fa fa-fw fa-eraser'></i> " .  $this->_("To remove a module, click the module to edit, check the Uuninstall box, then save. Once uninstalled, the module's file(s) may be removed from /site/modules/. If it still appears in the list above, you may need to click the Refresh button for ProcessWire to see the change."); // Instructions on how to remove a module
 		$tab->add($markup);
 		$form->add($tab); 
 		
