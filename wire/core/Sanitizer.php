@@ -655,6 +655,7 @@ class Sanitizer extends Wire {
 			// tel: scheme is not supported by filter_var 
 			if(!preg_match('/^tel:\+?\d+$/', $value)) {
 				$value = str_replace(' ', '', $value);
+				/** @noinspection PhpUnusedLocalVariableInspection */
 				list($tel, $num) = explode(':', $value);
 				$value = 'tel:'; 
 				if(strpos($num, '+') === 0) $value .= '+';
@@ -993,7 +994,7 @@ class Sanitizer extends Wire {
 	 * If $value is an integer or string of all numbers, it is always assumed to be a unix timestamp.
 	 *
 	 * @param string|int $value Date string or unix timestamp
-	 * @param string|null $dateFormat Format of date string ($value) in any wireDate(), date() or strftime() format.
+	 * @param string|null $format Format of date string ($value) in any wireDate(), date() or strftime() format.
 	 * @param array $options Options to modify behavior:
 	 * 	- returnFormat: wireDate() format to return date in. If not specified, then the $format argument is used.
 	 * 	- min: Minimum allowed date in $format or unix timestamp format. Null is returned when date is less than this.
@@ -1014,12 +1015,10 @@ class Sanitizer extends Wire {
 		if(!is_string($value) && !is_int($value)) $value = $this->string($value);
 		if(ctype_digit("$value")) {
 			// value is in unix timestamp format
-			$ts = (int) $value;
 			// make sure it resolves to a valid date
-			$value = date('Y-m-d H:i:s', $ts);
-			$value = strtotime($ts);
+			$value = strtotime(date('Y-m-d H:i:s', (int) $value));
 		} else {
-			if(!is_string($value)) $value = $this->string($value);
+			$value = strtotime($value);
 		}
 		// value is now a unix timestamp
 		if(empty($value)) return null;
@@ -1030,7 +1029,7 @@ class Sanitizer extends Wire {
 		}
 		if(!empty($options['max'])) {
 			// if value is more than max allowed, return null/error
-			$min = ctype_digit("$options[max]") ? (int) $options['max'] : (int) wireDate('ts', $options['max']);
+			$max = ctype_digit("$options[max]") ? (int) $options['max'] : (int) wireDate('ts', $options['max']);
 			if($value > $max) return null;
 		}
 		if(!empty($options['returnFormat'])) $value = wireDate($options['returnFormat'], $value);
@@ -1041,7 +1040,7 @@ class Sanitizer extends Wire {
 	 * Validate that $value matches regex pattern. If it does, value is returned. If not, blank is returned.
 	 * 
 	 * @param string $value
-	 * @param string $pattern PCRE regex pattern (same as you would provide to preg_match)
+	 * @param string $regex PCRE regex pattern (same as you would provide to preg_match)
 	 * @return string
 	 * 
 	 */
@@ -1079,7 +1078,7 @@ class Sanitizer extends Wire {
 		if(!is_null($options['min']) && $value < $options['min']) {
 			$value = (int) $options['min'];
 		} else if(!is_null($options['max']) && $value > $options['max']) {
-			$value = (int) $max;
+			$value = (int) $options['max'];
 		}
 		return $value;
 	}
@@ -1106,8 +1105,6 @@ class Sanitizer extends Wire {
 	 * Sanitize to signed integer (negative or positive)
 	 *
 	 * @param mixed $value
-	 * @param int|null $min Minimum allowed value (default=PHP_INT_MAX * -1)
-	 * @param int|null $max Maximum allowed value (default=PHP_INT_MAX)
 	 * @param array $options Optionally specify any one or more of the following to modify behavior:
 	 * 	- min (int|null) Minimum allowed value (default=negative PHP_INT_MAX)
 	 *  - max (int|null) Maximum allowed value (default=PHP_INT_MAX)
@@ -1319,7 +1316,7 @@ class Sanitizer extends Wire {
 	public function option($value, array $allowedValues) {
 		$key = array_search($value, $allowedValues);
 		if($key === false) return null;
-		return $options[$key];
+		return $allowedValues[$key];
 	}
 
 	/**
@@ -1432,7 +1429,7 @@ class Sanitizer extends Wire {
 	 * IMPORTANT: This method returns NULL if it can't find a validator for the file. This does
 	 * not mean the file is invalid, just that it didn't have the tools to validate it.
 	 *
-	 * @param $filename Full path and filename to validate
+	 * @param string $filename Full path and filename to validate
 	 * @param array $options If available, provide array with any one or all of the following:
 	 * 	'page' => Page object associated with $filename
 	 * 	'field' => Field object associated with $filename
