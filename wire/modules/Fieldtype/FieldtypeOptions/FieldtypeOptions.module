@@ -173,8 +173,10 @@ class FieldtypeOptions extends FieldtypeMulti implements Module {
 			
 		} else if(is_string($value)) {
 			// may be option 'title' (first) or option 'value' (second)
+			$_value = $value; // save for second check
 			$value = $this->manager->getOptions($field, array('title' => $value)); 
-			if(!$value->count()) $value = $this->manager->getOptions($field, array('value' => $value)); 
+			if(!$value->count()) $value = $this->manager->getOptions($field, array('value' => $_value));
+			unset($_value);
 			
 		} else if(is_array($value) && count($value)) {
 			// populated array of id, title or value
