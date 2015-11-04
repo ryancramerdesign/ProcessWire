@@ -410,9 +410,7 @@ class ProcessLanguageTranslator extends Process {
 		$form->description = sprintf($this->_('Translate %1$s to %2$s'), basename($file), $this->language->title);
 		$form->value = "<p>" . 
 			$this->_('Each of the inputs below represents a block of text to translate.') . ' ' .  
-			"<span class='description'>" . 
-			sprintf($this->_('The text shown immediately above the input is the text that should be translated to %s.'), $this->language->title) .
-			"</span> " . 
+			sprintf($this->_('The text shown immediately above each input is the text that should be translated to %s.'), $this->language->title) . ' ' . 
 			$this->_('If you leave an input blank, the non-translated text will be used.') . ' ' . 
 			$this->_('If the translation will be identical to the original, you may also enter a single "=" (equals sign) for the translation and it will be marked as translated.') . 
 			"</p>";
