@@ -30,6 +30,7 @@ class Permission extends Page {
 		'page-lister' => 'none',
 		'page-edit' => 'none', 
 		'user-admin' => 'page-edit',
+		'lang-edit' => 'page-edit',
 		'page-lock' => 'page-edit',
 		'page-hide' => 'page-edit',
 		'page-clone' => 'page-edit',

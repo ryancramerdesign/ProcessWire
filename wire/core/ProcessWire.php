@@ -15,6 +15,7 @@
  * 
  */
 
+if(defined("PROCESSWIRE") && PROCESSWIRE >= 300) die("Your /index.php file is for 3.x, please replace it with one for 2.x");
 define("PROCESSWIRE_CORE_PATH", dirname(__FILE__) . '/');
 
 require(PROCESSWIRE_CORE_PATH . "autoload.php"); 

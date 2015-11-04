@@ -818,7 +818,10 @@ class Sanitizer extends Wire {
 	/**
 	 * Entity encode while translating some markdown tags to HTML equivalents
 	 * 
-	 * Allowed markdown currently includes: 
+	 * If you specify boolean TRUE for the $options argument, full markdown is applied. Otherwise, 
+	 * only basic markdown allowed, as outlined below: 
+	 * 
+	 * Basic allowed markdown currently includes: 
 	 * 		**strong**
 	 * 		*emphasis*
 	 * 		[anchor-text](url)
@@ -827,10 +830,11 @@ class Sanitizer extends Wire {
 	 * 
 	 * The primary reason to use this over full-on Markdown is that it has less overhead
 	 * and is faster then full-blown Markdowon, for when you don't need it. It's also safer
-	 * for text coming from user input since it doesn't allow any other HTML.
+	 * for text coming from user input since it doesn't allow any other HTML. But if you just 
+	 * want full markdown, then specify TRUE for the $options argument. 
 	 *
 	 * @param string $str
-	 * @param array $options Options include the following:
+	 * @param array|bool|int $options Options include the following, or specify boolean TRUE to apply full markdown. 
 	 * 	- flags (int): See htmlentities() flags. Default is ENT_QUOTES. 
 	 * 	- encoding (string): PHP encoding type. Default is 'UTF-8'. 
 	 * 	- doubleEncode (bool): Whether to double encode (if already encoded). Default is true. 
@@ -841,8 +845,21 @@ class Sanitizer extends Wire {
 	 * @return string
 	 *
 	 */
-	public function entitiesMarkdown($str, array $options = array()) {
+	public function entitiesMarkdown($str, $options = array()) {
 		
+		if($options === true || (is_int($options) && $options > 0)) {
+			$markdown = $this->wire('modules')->get('TextformatterMarkdownExtra');
+			if(is_int($options)) {
+				$markdown->flavor = $options;
+			} else {
+				$markdown->flavor = TextformatterMarkdownExtra::flavorParsedown;
+			}
+			$markdown->format($str);
+			return $str;
+		}
+		
+		if(!is_array($options)) $options = array();
+
 		$defaults = array(
 			'flags' => ENT_QUOTES, 
 			'encoding' => 'UTF-8', 
@@ -853,6 +870,7 @@ class Sanitizer extends Wire {
 		);
 		
 		$options = array_merge($defaults, $options); 
+		
 		$str = $this->entities($str, $options['flags'], $options['encoding'], $options['doubleEncode']);
 		
 		if(strpos($str, '](') && in_array('a', $options['allow']) && !in_array('a', $options['disallow'])) {

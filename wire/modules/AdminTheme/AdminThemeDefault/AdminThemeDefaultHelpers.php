@@ -34,7 +34,12 @@ class AdminThemeDefaultHelpers extends WireData {
 	 * 
 	 */
 	public function _($text) {
-		return __($text, $this->wire('config')->paths->root . 'wire/templates-admin/default.php'); 
+		static $translate = null;
+		if(is_null($translate)) $translate = $this->wire('languages') !== null;
+		if($translate === false) return $text;
+		$value = __($text, $this->wire('config')->paths->root . 'wire/templates-admin/default.php'); 
+		if($value === $text) $value = parent::_($text);
+		return $value;
 	}
 
 	/**

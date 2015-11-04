@@ -254,7 +254,7 @@ class AdminThemeRenoHelpers extends AdminThemeDefaultHelpers {
 					if(isset($c['permission']) && !$this->wire('user')->hasPermission($c['permission'])) continue;
 					$segments = $this->input->urlSegments ? implode("/", $this->input->urlSegments) . '/' : '';
 					$class = $currentPagePath . $segments == $p->path . $c['url'] ? 'current' : '';
-					$title = $sanitizer->entities1($this->_($c['label'], $textdomain));
+					$title = $sanitizer->entities1(__($c['label'], $textdomain));
 					$url = $p->url . $c['url'];
 					if(isset($c['navJSON'])) {
 						$navJSON = $c['navJSON']; // url part

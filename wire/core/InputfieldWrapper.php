@@ -359,7 +359,7 @@ class InputfieldWrapper extends Inputfield implements Countable, IteratorAggrega
 			foreach(array('error', 'description', 'head', 'notes') as $property) {
 				$text = $property == 'error' ? $errorsOut : $inputfield->getSetting($property); 
 				if(!empty($text) && !$this->quietMode) {
-					$text = nl2br($entityEncodeText ? $this->entityEncode($text, true) : $text);
+					$text = nl2br($entityEncodeText ? $inputfield->entityEncode($text, true) : $text);
 					$text = str_replace('{out}', $text, $markup["item_$property"]);
 				} else {
 					$text = '';
@@ -456,7 +456,7 @@ class InputfieldWrapper extends Inputfield implements Countable, IteratorAggrega
 				if($label || $this->quietMode) {
 					$for = $inputfield->skipLabel || $this->quietMode ? '' : $inputfield->attr('id');
 					// if $inputfield has a property of entityEncodeLabel with a value of boolean FALSE, we don't entity encode
-					if($inputfield->entityEncodeLabel !== false) $label = $this->entityEncode($label);
+					if($inputfield->entityEncodeLabel !== false) $label = $inputfield->entityEncode($label);
 					$icon = $inputfield->icon ? str_replace('{name}', $this->sanitizer->name(str_replace(array('icon-', 'fa-'), '', $inputfield->icon)), $markup['item_icon']) : ''; 
 					$toggle = $collapsed == Inputfield::collapsedNever ? '' : $markup['item_toggle']; 
 					if($inputfield->skipLabel === Inputfield::skipLabelHeader || $this->quietMode) {

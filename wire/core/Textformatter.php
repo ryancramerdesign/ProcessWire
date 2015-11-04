@@ -38,19 +38,13 @@ abstract class Textformatter extends WireData implements Module {
 	/**
 	 * Format the given text string
 	 *
- 	 * This is deprecated so use the formatValue() function instead. 
-	 *
-	 * @deprecated
 	 * @param string $str
 	 *
 	 */
-	public function format(&$str) {
-	}
+	public function format(&$str) { }
 
 	/**
-	 * Format the given text string.
-	 *
- 	 * Newer version with Page and Field provided.  
+	 * Format the given text string with Page and Field provided. 
 	 *
 	 * Override this function completely when providing your own text formatter. No need to call the parent.
 	 *

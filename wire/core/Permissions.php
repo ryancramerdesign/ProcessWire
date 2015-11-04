@@ -86,7 +86,7 @@ class Permissions extends PagesType {
 			'page-rename' => $this->_('Change the name of published pages they are allowed to edit'),
 			'user-admin-all' => $this->_('Administer users in any role (except superuser)'),
 		);
-
+	
 		foreach($this->wire('roles') as $role) {
 			if($role->name == 'guest' || $role->name == 'superuser') continue;
 			$a["user-admin-$role->name"] = sprintf($this->_('Administer users in role: %s'), $role->name);
@@ -99,6 +99,9 @@ class Permissions extends PagesType {
 			foreach($languages as $language) {
 				if($language->isDefault()) continue;
 				$a["page-edit-lang-$language->name"] = sprintf($label, $language->name);
+			}
+			if(!$this->has('lang-edit')) {
+				$a["lang-edit"] = $this->_('Administer languages and static translation files');
 			}
 		}
 

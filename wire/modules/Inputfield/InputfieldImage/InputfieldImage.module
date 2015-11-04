@@ -79,8 +79,9 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		$this->wire('modules')->loadModuleFileAssets('InputfieldFile');
 		$this->modules->getInstall("JqueryMagnific");
 		if($this->value && count($this->value) && !$renderValueMode) {
-			$this->variations = $this->value->getAllVariations();
-			if(count($this->variations)) $this->wire('modules')->get('JqueryUI')->use('modal');
+			// $this->variations = $this->value->getAllVariations();
+			// if(count($this->variations)) 
+			$this->wire('modules')->get('JqueryUI')->use('modal');
 		}
 		return parent::renderReady($parent, $renderValueMode);
 	}
