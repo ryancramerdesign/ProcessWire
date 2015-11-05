@@ -9,11 +9,17 @@
  * /wire/core/Fieldtype.php
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2012 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * https://processwire.com
+ * 
+ * @property string $dateInputFormat
+ * @property String $timeInputFormat
+ * @property int $datepicker
+ * @property string $yearRange
+ * @property int|bool $defaultToday
+ * 
  *
  */
 
@@ -30,7 +36,7 @@ class InputfieldDatetime extends Inputfield {
 		return array(
 			'title' => __('Datetime', __FILE__), // Module Title
 			'summary' => __('Inputfield that accepts date and optionally time', __FILE__), // Module Summary
-			'version' => 104,
+			'version' => 105,
 			'permanent' => true, 
 			);
 	}
@@ -51,6 +57,7 @@ class InputfieldDatetime extends Inputfield {
 
 		if($this->languages) foreach($this->languages as $language) {
 			// account for alternate formats in other languages
+			/** @var Language $language */
 			if($language->isDefault()) continue; 
 			$this->set("dateInputFormat$language", '');
 			$this->set("timeInputFormat$language", '');
@@ -64,6 +71,10 @@ class InputfieldDatetime extends Inputfield {
 	 *
 	 * We are overriding it here and checking for a datepicker, so that we can make sure 
 	 * jQuery UI is loaded before the InputfieldDatetime.js
+	 * 
+	 * @param Inputfield $parent
+	 * @param bool $renderValueMode
+	 * @return $this
 	 *
 	 */
 	public function renderReady(Inputfield $parent = null, $renderValueMode = false) {
@@ -81,16 +92,9 @@ class InputfieldDatetime extends Inputfield {
 	 */
 	public function ___render() {
 
-		$dateFormat = '';
-		$timeFormat = '';
-		if($this->user->language && !$this->user->language->isDefault()) {
-			// check if alternate language formats are provided
-			$dateFormat = $this->get("dateInputFormat{$this->user->language}"); 
-			$timeFormat = $this->get("timeInputFormat{$this->user->language}"); 
-		}
-		if(!$dateFormat) $dateFormat = $this->dateInputFormat; 
-		if(!$timeFormat) $timeFormat = $this->timeInputFormat; 
+		list($dateFormat, $timeFormat) = $this->getInputFormats();
 		$useTime = false; 
+		$language = $this->wire('languages') ? $this->wire('user')->language : null;
 
 		if($this->datepicker) {
 			$this->addClass("InputfieldDatetimeDatepicker InputfieldDatetimeDatepicker{$this->datepicker}"); 
@@ -99,7 +103,7 @@ class InputfieldDatetime extends Inputfield {
 				$useTime = true; 
 				$this->config->scripts->add($this->config->urls->InputfieldDatetime . 'jquery-ui-timepicker-addon.js');
 			}
-			if($this->languages && $this->user->language) {
+			if($language) {
 				// include i18n support for the datepicker 
 				// note that the 'xx' in the filename is just a placeholder to indicate what should be replaced for translations, as that file doesn't exist
 				$langFile = ltrim($this->_('/wire/modules/Jquery/JqueryUI/i18n/jquery.ui.datepicker-xx.js'), '/'); // Datepicker translation file // Replace 'xx' with jQuery UI language code or specify your own js file
@@ -108,7 +112,7 @@ class InputfieldDatetime extends Inputfield {
 					$this->config->scripts->add($this->config->urls->root . $langFile); 
 				} else {
 					// attempt to auto-find one based on the language name (which are often 2 char language codes)
-					$langFile = "wire/modules/Jquery/JqueryUI/i18n/jquery.ui.datepicker-{$this->user->language->name}.js";
+					$langFile = "wire/modules/Jquery/JqueryUI/i18n/jquery.ui.datepicker-{$language->name}.js";
 					if(is_file($this->config->paths->root . $langFile)) $this->config->scripts->add($this->config->urls->root . $langFile); 
 				}
 			}
@@ -165,19 +169,58 @@ class InputfieldDatetime extends Inputfield {
 	public function ___renderValue() {
 		$value = $this->attr('value'); 
 		if(!$value) return '';
-		$format = trim($this->dateInputFormat . ' ' . $this->timeInputFormat); 
-		return FieldtypeDatetime::formatDate($value, trim($format));
+		return FieldtypeDatetime::formatDate($value, $this->getInputFormats(true));
 	}
 
 	/**
 	 * Capture setting of the 'value' attribute and convert string dates to unix timestamp
+	 * 
+	 * @param string $key
+	 * @param mixed $value
+	 * @return $this
 	 *
 	 */
 	public function setAttribute($key, $value) {
 		if($key == 'value') {
-			$value = FieldtypeDatetime::stringToTimestamp($value, $this->dateInputFormat . ' ' . $this->timeInputFormat); 
+			$value = FieldtypeDatetime::stringToTimestamp($value, $this->getInputFormats(true)); 
 		}
 		return parent::setAttribute($key, $value); 
+	}
+
+	/**
+	 * Get the input format string for the user's language
+	 * 
+	 * thanks to @oliverwehn (#1463)
+	 * 
+	 * @param bool $getString Specify true to get a format string rather than an array
+	 * @return array|string of dateInputFormat timeInputFormat
+	 * 
+	 */
+	protected function getInputFormats($getString = false) {
+		
+		$inputFormats = array();
+		$language = $this->wire('user')->language;
+		$useLanguages = $this->wire('languages') && $language && !$language->isDefault();
+	
+		foreach(array('date', 'time') as $type) {
+			
+			$inputFormat = '';
+
+			if($useLanguages) {
+				$inputFormat = trim($this->getSetting("{$type}InputFormat{$language->id}"));
+			}
+
+			if(!strlen($inputFormat)) {
+				// fallback to default language
+				$inputFormat = $this->get("{$type}InputFormat");
+			}
+			
+			$inputFormats[] = $inputFormat;
+		}
+		
+		if($getString) return trim(implode(' ', $inputFormats));
+		
+		return $inputFormats;
 	}
 
 	/**
@@ -197,7 +240,8 @@ class InputfieldDatetime extends Inputfield {
 		$f->description = $this->_('The displayed width of this field (in characters).'); 
 		$inputfields->append($f);
 
-		$f= $this->modules->get('InputfieldRadios');
+		/** @var InputfieldRadios $f */
+		$f = $this->modules->get('InputfieldRadios');
 		$f->label = $this->_('Date Picker');
 		$f->setAttribute('name', 'datepicker'); 
 		$f->addOption(self::datepickerNo, $this->_('No date/time picker')); 
@@ -217,6 +261,7 @@ class InputfieldDatetime extends Inputfield {
 		$f->collapsed = Inputfield::collapsedBlank;
 		$inputfields->append($f);
 
+		/** @var InputfieldFieldset $fieldset */
 		$fieldset = $this->modules->get('InputfieldFieldset'); 
 		$fieldset->label = $this->_('Date/Time Input Formats');  
 
@@ -277,6 +322,7 @@ class InputfieldDatetime extends Inputfield {
 			$f1->useLanguages = true; 
 			$f2->useLanguages = true; 
 			foreach($languages as $language) {
+				/** @var Language $language */
 				if($language->isDefault()) continue; 
 				$f1->set("value$language", (string) $this->get("dateInputFormat$language")); 	
 				$f2->set("value$language", (string) $this->get("timeInputFormat$language")); 	
