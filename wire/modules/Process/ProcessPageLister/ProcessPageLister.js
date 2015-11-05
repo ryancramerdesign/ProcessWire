@@ -256,6 +256,7 @@ var ProcessLister = {
 			ProcessLister.results.find('.Inputfield:not(.reloaded)').addClass('reloaded').trigger('reloaded', [ 'ProcessPageLister' ]);
 			$("a.actions_toggle.open").click().removeClass('open'); // auto open items corresponding to "open" get var
 			if(typeof AdminDataTable != "undefined") AdminDataTable.init();
+			$("a.lister-lightbox", ProcessLister.results).magnificPopup({ type: 'image', closeOnContentClick: true, closeBtnInside: true });
 		}, 250);
 
 		var pos = data.indexOf('ProcessListerScript');

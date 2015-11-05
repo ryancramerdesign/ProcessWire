@@ -42,7 +42,8 @@
  * @property int $defaultLimit Max items to show per pagination [25]
  * @property int $imageWidth Width for thumbnails, 0=proportional to height [0]
  * @property int $imageHeight Height for thumbnails, 0=proportional to width [100]
- * @property int|bool $imageFirst Show only first image? [false] 
+ * @property int|bool $imageFirst Show only first image? [false]
+ * @property int $imageStyle 1=Detailed, 0=Image only (default=0)
  * @property int $viewMode View mode, see windowMode constants [self::windowModeNone]
  * @property int $editMode Edit mode, see windowMode constants [self::windowModeNone] 
  * @property string $editURL Edit page base URL [$config->urls->admin . 'page/edit/'] 
@@ -189,6 +190,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		$this->set('imageWidth', 0);
 		$this->set('imageHeight', 100);
 		$this->set('imageFirst', 0); 
+		$this->set('imageStyle', 0); // 0=image only, 1=detailed
 
 		// view and edit window modes
 		$this->set('viewMode', self::windowModeNone); 
@@ -1127,6 +1129,10 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 				$subname = 'title|name';
 			}
 		}
+		
+		if($value instanceof Pageimages && $this->imageStyle == 0 && (!$subname || $subname == 'data')) {
+			$value = $value->getArray();
+		}
 
 		if($subname == 'count' && $value instanceof WireArray) {
 			// count
@@ -1193,21 +1199,27 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 			// unknown iterable value
 			//if($value instanceof Pageimages && $this->imageFirst) $value = array($value->first());
 			$values = array();
+			$isImage = false;
 			foreach($value as $k => $v) {
 				if(empty($v)) continue; 
 				if($subname == 'data') $v = (string) $v; 
 				if($subname && is_object($v)) $v = $v->$subname; 
 				if($v instanceof Pageimage) {
+					$vfull = $v;
 					if($this->imageWidth || $this->imageHeight) $v = $v->size($this->imageWidth, $this->imageHeight); 
-					$v = "<img alt='$v->basename' src='$v->URL' />";
+					$alt = $vfull->basename . ($vfull->description ? ' - ' . $this->sanitizer->entities1($vfull->description) : "");
+					$v = "<a href='$vfull->URL' title='$alt' class='lister-lightbox'><img alt='$alt' src='$v->URL' style='margin: 4px 4px 4px 0' /></a>";
+					$isImage = true;
 					
 				} else if($v instanceof Pagefile) {
 					$v = "<a target='_blank' href='$v->url'>$v->basename</a>";
 				} else {
 					$v = $this->wire('sanitizer')->entities($v); 
 				}
-				$values[] = (string) $v; 
+				$values[] = (string) $v;
+				if($isImage && $this->imageFirst) break;
 			}
+			if($isImage && !isset($this->delimiters[$fullname])) $delimiter = ' ';
 			$value = implode($delimiter, $values); 
 
 		} else if(in_array($name, array('created', 'modified', 'published'))) {
@@ -1642,6 +1654,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		$modules->get('JqueryWireTabs');
 		$modules->get('MarkupAdminDataTable'); // to ensure css/js load
 		$modules->get('JqueryTableSorter')->use('widgets');
+		$modules->get('JqueryMagnific');
 		
 		if($this->wire('input')->get('modal') == 'inline') {
 			$modules->get('JqueryCore')->use('iframe-resizer-frame');
