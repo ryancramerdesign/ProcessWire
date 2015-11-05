@@ -44,6 +44,10 @@ input[type=file] {
 	font-size: $notes-font-size;
 }
 
+textarea {
+	display: block;
+}
+
 textarea,
 input.InputfieldMaxWidth {
 	width: 100%; 
