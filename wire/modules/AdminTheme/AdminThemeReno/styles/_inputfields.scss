@@ -587,6 +587,10 @@ table {
 	display: none;
 }
 
+#content .InputfieldHeader + .InputfieldContent.langTabsContainer {
+	padding-bottom: 0.25em;
+}
+
 #content .InputfieldHeader + .InputfieldContent.langTabsContainer p.notes {
 	margin: 0 0 1em 0;
 }

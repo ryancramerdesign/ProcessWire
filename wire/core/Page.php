@@ -68,6 +68,7 @@
  * @method bool publishable() Returns true if the page is publishable by the current user, false if not. 
  * @method bool listable() Returns true if the page is listable by the current user, false if not. 
  * @method bool deleteable() Returns true if the page is deleteable by the current user, false if not. 
+ * @method bool deletable() Alias of deleteable().
  * @method bool trashable() Returns true if the page is trashable by the current user, false if not. 
  * @method bool addable($pageToAdd = null) Returns true if the current user can add children to the page, false if not. Optionally specify the page to be added for additional access checking. 
  * @method bool moveable($newParent = null) Returns true if the current user can move this page. Optionally specify the new parent to check if the page is moveable to that parent. 
