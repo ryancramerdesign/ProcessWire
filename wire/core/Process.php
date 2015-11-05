@@ -399,7 +399,8 @@ abstract class Process extends WireData implements Module {
 				'className' => $class, 
 			);
 		}
-		if($options['sort']) ksort($data['list']); // sort alpha
+		// sort alpha, case insensitive
+		if($options['sort']) uksort($data['list'], 'strcasecmp'); 
 		$data['list'] = array_values($data['list']); 
 		
 		if(!empty($options['getArray'])) return $data;
