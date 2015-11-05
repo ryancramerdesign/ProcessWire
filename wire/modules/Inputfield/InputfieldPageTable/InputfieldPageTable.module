@@ -23,7 +23,7 @@ class InputfieldPageTable extends Inputfield {
 		return array(
 			'title' => __('ProFields: Page Table', __FILE__), // Module Title
 			'summary' => __('Inputfield to accompany FieldtypePageTable', __FILE__), // Module Summary
-			'version' => 12,
+			'version' => 13,
 			'requires' => 'FieldtypePageTable'
 			);
 	}
@@ -63,15 +63,15 @@ class InputfieldPageTable extends Inputfield {
 		$this->set('template_id', 0); // placeholder only 
 		$this->set('columns', ''); 
 		$this->set('nameFormat', '');
-		$this->set('noclose', 0); 
+		$this->set('noclose', 0);
+		$this->set('editicon', 0);
 
 		// local settings
 		$this->nativeLabels = array(
 			'id' => $this->_x('ID', 'th'), 
 			'name' => $this->_x('Name', 'th'), 
 			'created' => $this->_x('Created', 'th'), 
-			'modified' => $this->_x('Modified', 'th'),
-			'published' => $this->_x('Published', 'th'), 
+			'modified' => $this->_x('Modified', 'th'), 
 			'modifiedUser' => $this->_x('Modified By', 'th'), 
 			'createdUser' => $this->_x('Created By', 'th'), 
 			'url' => $this->_x('URL', 'th'), 
@@ -238,7 +238,7 @@ class InputfieldPageTable extends Inputfield {
 	 */
 	protected function renderTableHead(array $columns, array $labels) {
 
-		$out = "<table class='AdminDataTable AdminDataList AdminDataTableResponsive AdminDataTableResponsiveAlt'><thead><tr>";
+		$out = "<table class='AdminDataTable AdminDataList'><thead><tr>";
 
 		foreach($columns as $column => $width) {
 			$attr = $width ? " style='width: $width%'" : '';
@@ -289,14 +289,24 @@ class InputfieldPageTable extends Inputfield {
 		$n = 0;
 
 		foreach($columns as $column => $width) {
-			if(!$n) $column .= "|name"; // in case first/link field was not populated, use name as a backup
-			
+			if ($this->editicon != 1) {
+				if(!$n) $column .= "|name"; // in case first/link field was not populated, use name as a backup
+			}
+
 			$url = $n++ ? "" : $this->wire('config')->urls->admin . "page/edit/?id=$item->id&modal=1&context=PageTable";
 			$out .= $this->renderTableCol($item, $fields, $column, $width, $url); 
 		}
 
-		// append a delete column/link
-		$out .= "<td><a class='InputfieldPageTableDelete' href='#'><i class='fa fa-trash-o'></i></a></td>";
+
+
+		// append an action column
+		$out .= "<td>";
+		if ($this->editicon == 1) {
+			// show an edit icon if specified by this field's settings
+			$out .= "<a class='InputfieldPageTableEdit' data-url='" . $this->wire('config')->urls->admin . "page/edit/?id=$item->id&modal=1&context=PageTable" . "' href='#'><i class='fa fa-pencil'></i></a><br />";
+		}
+		// show a delete icon for this row
+		$out .= "<a class='InputfieldPageTableDelete' href='#'><i class='fa fa-trash-o'></i></a></td>";
 
 		// wrap the row in a <tr>
 		$class = '';
@@ -320,8 +330,10 @@ class InputfieldPageTable extends Inputfield {
 	 * 
 	 */
 	protected function renderTableCol(Page $item, array $fields, $column, $width, $linkURL = '') {
-		$out = $this->getItemValue($item, $fields, $column); 
-		if($linkURL) $out = "<a class='InputfieldPageTableEdit' data-url='$linkURL' href='#'>$out</a>";
+		$out = $this->getItemValue($item, $fields, $column);
+		if ($this->editicon != 1) {
+			if ($linkURL) $out = "<a class='InputfieldPageTableEdit' data-url='$linkURL' href='#'>$out</a>";
+		}
 		$attr = $width ? " style='width: $width%'" : '';
 		return "<td$attr>$out</td>";
 	}
@@ -339,23 +351,23 @@ class InputfieldPageTable extends Inputfield {
 
 		$fieldName = $column;
 		$subfieldName = '';
-		if(strpos($column, '.') !== false) list($fieldName, $subfieldName) = explode('.', $column); 
+		if(strpos($column, '.') !== false) list($fieldName, $subfieldName) = explode('.', $column);
 
 		if(isset($fields[$column])) {
 			// custom
-			$field = $fields[$column]; 
+			$field = $fields[$column];
 			$v = $item->getFormatted($fieldName);
 			$value = $field->type->markupValue($item, $field, $v, $subfieldName);
 
 		} else {
 			// native
-			$value = $item->get($fieldName); 
+			$value = $item->get($fieldName);
 			if(is_object($value) && $subfieldName) {
-				$value = $this->objectToString($value, $subfieldName); 
-				$fieldName = $subfieldName; 
+				$value = $this->objectToString($value, $subfieldName);
+				$fieldName = $subfieldName;
 			}
-			if($fieldName == 'modified' || $fieldName == 'created' || $fieldName == 'published') {
-				$value = wireDate($this->_('Y-m-d H:i'), (int) $value); // Date format for created/modified/published
+			if($fieldName == 'modified' || $fieldName == 'created') {
+				$value = wireDate($this->_('Y-m-d H:i'), (int) $value); // Date format for created/modified
 			}
 		}
 		
@@ -587,9 +599,16 @@ class InputfieldPageTable extends Inputfield {
 		$f->label = $this->_('Modal edit window behavior'); 
 		$f->addOption(0, $this->_('Automatically close on save (default)')); 
 		$f->addOption(1, $this->_('Keep window open, close manually'));
-		$f->attr('value', (int) $this->noclose); 
 		if(!$this->noclose) $f->collapsed = Inputfield::collapsedYes; 
-		$inputfields->add($f); 
+		$inputfields->add($f);
+		
+		$f = $this->wire('modules')->get('InputfieldCheckbox');
+		$f->attr('name', 'editicon');
+		$f->label = $this->_('Edit icon at end of row ');
+		$f->notes = $this->_('Places an edit icon at the end of the table row next to the delete icon instead of making the first column clickable to edit. Useful when your first column is an image and not text.');
+		$f->attr('checked', (bool)$this->editicon);
+		$f->collapsed = Inputfield::collapsedBlank;
+		$inputfields->add($f);
 
 		return $inputfields; 
 	}
