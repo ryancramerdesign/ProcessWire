@@ -309,7 +309,9 @@ class Pageimage extends Pagefile {
 		$width = (int) $width;
 		$height = (int) $height;
 		
-		if(strpos($options['cropping'], 'x') === 0 && preg_match('/^x(\d+)[yx](\d+)/', $options['cropping'], $matches)) {
+		if(is_string($options['cropping'])
+			&& strpos($options['cropping'], 'x') === 0
+			&& preg_match('/^x(\d+)[yx](\d+)/', $options['cropping'], $matches)) {
 			$options['cropping'] = true; 
 			$options['cropExtra'] = array((int) $matches[1], (int) $matches[2], $width, $height); 
 			$crop = '';
