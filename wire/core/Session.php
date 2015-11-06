@@ -114,7 +114,7 @@ class Session extends Wire implements IteratorAggregate {
 				list($text, $flags) = $item;
 				parent::$type($text, $flags); 
 			}
-			$this->remove($type);
+			// $this->remove($type);
 		}
 		
 		$this->setTrackChanges(true);
@@ -747,6 +747,16 @@ class Session extends Wire implements IteratorAggregate {
 		$value = $this->get('_user', 'history'); 
 		if(!is_array($value)) $value = array();
 		return $value; 
+	}
+
+	/**
+	 * Remove queued notices
+	 * 
+	 */
+	public function removeNotices() {
+		foreach(array('message', 'error', 'warning') as $type) {
+			$this->remove($type);
+		}
 	}
 
 }
