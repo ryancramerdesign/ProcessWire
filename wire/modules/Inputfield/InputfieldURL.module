@@ -42,7 +42,14 @@ class InputfieldURL extends InputfieldText {
 			$value = $this->fuel('sanitizer')->url($value, $this->noRelative ? false : true); 	
 
 			if(!$value || $unsanitized != $value && "http://$unsanitized" != $value) {
-				$this->error($this->name . ': ' . $this->_("Error found - please check that it is a valid URL")); // Error message when invalid URL found
+				$error = true;
+				if($value && strpos($unsanitized, '%') !== false) {
+					$test = rawurldecode($unsanitized);
+					if($value == $test || $value == "http://$test") $error = false;
+				}
+				if($error) {
+					$this->error($this->name . ': ' . $this->_("Error found - please check that it is a valid URL")); // Error message when invalid URL found
+				}
 
 			} else if($value != $unsanitized && $value == "http://$unsanitized") {
 				$this->message($this->name . ': ' . $this->_("Note that \"http://\" was added")); // Message displayed when http scheme was automatically added to the URL
