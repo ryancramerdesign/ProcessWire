@@ -280,6 +280,7 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 		);
 		// ignore this call if in ProcessProfile
 		if($this->wire('page')->process == 'ProcessProfile') return true;
+		if($this->wire('page')->process == 'ProcessLanguage') return true;
 		
 		$user = $this->wire('user');
 		if($user->isSuperuser()) return true; 
