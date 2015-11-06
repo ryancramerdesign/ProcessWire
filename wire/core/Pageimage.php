@@ -255,7 +255,7 @@ class Pageimage extends Pagefile {
 	 *
 	 */
 	protected function ___size($width, $height, $options) {
-
+	
 		// I was getting unnecessarily resized images without this code below,
 		// but this may be better solved in ImageSizer?
 		/*
@@ -305,15 +305,16 @@ class Pageimage extends Pagefile {
 
 		$width = (int) $width;
 		$height = (int) $height;
-		
-		if(strpos($options['cropping'], 'x') === 0 && preg_match('/^x(\d+)[yx](\d+)/', $options['cropping'], $matches)) {
+
+		if(is_string($options['cropping'])
+			&& strpos($options['cropping'], 'x') === 0
+			&& preg_match('/^x(\d+)[yx](\d+)/', $options['cropping'], $matches)) {
 			$options['cropping'] = true; 
 			$options['cropExtra'] = array((int) $matches[1], (int) $matches[2], $width, $height); 
 			$crop = '';
 		} else {
 			$crop = ImageSizer::croppingValueStr($options['cropping']);
 		}
-		
 	
 		if(!is_array($options['suffix'])) {
 			// convert to array

@@ -92,7 +92,8 @@ class WireClassLoader {
 	 */
 	public function addNamespace($namespace, $path) {
 		if(!isset(self::$namespaces[$namespace])) self::$namespaces[$namespace] = array();
-		$path = '/' . trim($path, '/') . '/';
+		if(DIRECTORY_SEPARATOR !== '/') $path = str_replace(DIRECTORY_SEPARATOR, '/', $path);
+		$path = rtrim($path, '/') . '/';
 		if(!in_array($path, self::$namespaces[$namespace])) self::$namespaces[$namespace][] = $path;
 	}
 
@@ -169,7 +170,7 @@ class WireClassLoader {
 				// if namespace is for a known module, see if we can find a file in that module's directory
 				// with the same name as the request class
 				// @todo psr-4 support for these
-				foreach($this->extensions as $est) {
+				foreach($this->extensions as $ext) {
 					$file = "$path$name$ext";
 					if(is_file($file)) {
 						$found = $file;
