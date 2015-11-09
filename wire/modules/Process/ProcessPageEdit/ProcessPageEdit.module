@@ -381,6 +381,14 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 			foreach($this->fields as $field) {
 				foreach($this->page->getInputfields($field->name) as $inputfield) {
 					if(!$this->page->editable($inputfield->name, false)) continue;
+					$skipCollapsed = array(
+						Inputfield::collapsedHidden,
+						Inputfield::collapsedNoLocked,
+						Inputfield::collapsedYesLocked,
+					);
+					if($inputfield->collapsed > 0 && !in_array($inputfield->collapsed, $skipCollapsed)) {
+						$inputfield->collapsed = Inputfield::collapsedNo;
+					}
 					$form->add($inputfield);
 				}
 			}

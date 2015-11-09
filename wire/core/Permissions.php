@@ -100,6 +100,9 @@ class Permissions extends PagesType {
 				if($language->isDefault()) continue;
 				$a["page-edit-lang-$language->name"] = sprintf($label, $language->name);
 			}
+			if(!$this->has('lang-edit')) {
+				$a["lang-edit"] = $this->_('Administer languages and static translation files');
+			}
 		}
 
 		if($omitInstalled) {

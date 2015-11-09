@@ -21,6 +21,10 @@ textarea {
 	max-width: 100%; 
 }
 
+textarea {
+	display: block;
+}
+
 input,
 textarea {
 	/* slight padding for input and textarea elements... */

@@ -51,4 +51,28 @@ class InputfieldFloat extends InputfieldInteger {
 		return $inRange;
 	}
 
+	/**
+	 * Override method from Inputfield to properly handle HTML5 number values
+	 * 
+	 * @param array $attributes
+	 * @return string
+	 * 
+	 */
+	public function getAttributesString(array $attributes = null) {
+		if($attributes && $attributes['type'] === 'number' && is_float($attributes['value'])) {
+			if(strlen("$attributes[value]") && !ctype_digit(str_replace('.', '', $attributes['value']))) {
+				// the HTML5 number input type requires "." as the decimal
+				$locale = localeconv();
+				$decimal = $locale['decimal_point'];
+				if($decimal !== '.' && strpos("$attributes[value]", $decimal) !== false) {
+					$parts = explode($decimal, $attributes['value'], 2);
+					if(count($parts) == 2) {
+						$attributes['value'] = implode('.', $parts);
+					}
+				}
+			}
+		}
+		return parent::getAttributesString($attributes);
+	}
+
 }

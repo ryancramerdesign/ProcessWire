@@ -179,7 +179,7 @@ class PageBookmarks extends Wire {
 
 		if(!$this->wire('user')->isSuperuser()) throw new WirePermissionException("Superuser required to define bookmarks");
 		$moduleInfo = $modules->getModuleInfo($this->process);
-		$this->process->breadcrumb('../', $moduleInfo['title']);
+		$this->process->breadcrumb('../', $this->_($moduleInfo['title']));
 		$this->process->breadcrumb('./', $this->labels['bookmarks']);
 		
 		$role = $roleID ? $this->wire('roles')->get($roleID) : $this->wire('pages')->newNullPage();
@@ -195,7 +195,7 @@ class PageBookmarks extends Wire {
 		$form = $modules->get('InputfieldForm');
 		$form->action = "./?role=$role->id";
 		$form->addClass('InputfieldFormConfirm');
-		$form->description = sprintf($this->_('%s Bookmark Editor'), $moduleInfo['title']);
+		$form->description = sprintf($this->_('%s Bookmark Editor'), __($moduleInfo['title'], '/wire/templates-admin/default.php'));
 		$form->appendMarkup = "<p style='clear:both' class='detail'><br /><i class='fa fa-info-circle ui-priority-secondary'></i> " . 
 			$this->_('Note that only superusers are able to see this editor.') . "</p>";
 

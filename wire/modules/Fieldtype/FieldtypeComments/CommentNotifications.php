@@ -80,7 +80,11 @@ class CommentNotifications extends Wire {
 			'website' => array(
 				'label' => $this->_x('Website', 'email-body'),
 				'value' => $comment->website, 
-			), 
+			),
+			'stars' => array(
+				'label' => $this->_x('Stars', 'email-body'),
+				'value' => $comment->stars,
+			),
 			'status' => array(
 				'label' => $this->_x('Status', 'email-body'),
 				'value' => $status
@@ -90,6 +94,8 @@ class CommentNotifications extends Wire {
 				'value' => "$actionLabel: $actionURL"
 			), 
 		);
+
+		if(!$comment->stars) unset($values['stars']);
 		
 		$values['text'] = array(
 			'label' => $this->_x('Text', 'email-body'),

@@ -167,7 +167,18 @@ class WireHooks {
 		// join in static hooks
 		foreach($this->staticHooks as $className => $staticHooks) {
 			$_className = $namespace . $className;
-			if(!$object instanceof $_className && $method !== '*') continue;
+			if(!$object instanceof $_className && $method !== '*') {
+				$_namespace = wireClassName($object, 1) . "\\";
+				if($_namespace !== $namespace) {
+					// objects in other namespaces
+					$_className = $_namespace . $className;
+					if(!$object instanceof $_className && $method !== '*') {
+						continue;
+					}
+				} else {
+					continue;
+				}
+			}
 			// join in any related static hooks to the local hooks
 			if($method && $method !== '*') {
 				// retrieve all static hooks for method

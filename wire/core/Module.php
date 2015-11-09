@@ -50,15 +50,15 @@
  * 
  * The following methods may or may not be implemented, all are optional:
  * 
- * @method install()
- * @method uninstall()
- * @method upgrade($fromVersion, $toVersion)
- * @method static array getModuleInfo()
- * @method init()
- * @method ready()
- * @method setConfigData(array $data) for ConfigurableModule types
- * @method bool isSingular()
- * @method bool isAutoload()
+ * method install()
+ * method uninstall()
+ * method upgrade($fromVersion, $toVersion)
+ * method static array getModuleInfo()
+ * method init()
+ * method ready()
+ * method setConfigData(array $data) for ConfigurableModule types
+ * method bool isSingular()
+ * method bool isAutoload()
  * 
  *
  */
@@ -162,7 +162,8 @@ interface Module {
 	 *
 	 * @return array
 	 *
-	public static function getModuleInfo(); 
+	 * public static function getModuleInfo(); 
+	 * 
 	 */
 
 	/**
@@ -174,7 +175,8 @@ interface Module {
 	 * bootstrap process. This is before PW has started retrieving or rendering a page. If you need to have the
 	 * API ready with the $page ready as well, then see the ready() method below this one. 
 	 *
-	public function init();
+	 * public function init();
+	 * 
 	 */
 
 	/**
@@ -182,7 +184,8 @@ interface Module {
 	 *
 	 * Optional and only called if it exists in the module. 
 	 *
-	public function ready();
+	 * public function ready();
+	 * 
 	 */
 
 	/**
@@ -211,7 +214,8 @@ interface Module {
 	 *
 	 * This method is OPTIONAL, which is why it's commented out below. 
 	 *
-	public function ___install();
+	 * public function ___install();
+	 * 
 	 */
 
 	/**
@@ -221,13 +225,15 @@ interface Module {
 	 *
 	 * This method is OPTIONAL, which is why it's commented out below. 
 	 *
-	public function ___uninstall();
+	 * public function ___uninstall();
+	 * 
 	 */
 	
 	/**
 	 * Called when a version change is detected on the module
 	 * 
-	public function ___upgrade($fromVersion, $toVersion);
+	 * public function ___upgrade($fromVersion, $toVersion);
+	 * 
 	 */ 
 
 	/**
@@ -260,7 +266,8 @@ interface Module {
 	 * 
 	 * This method may be optional, which is why it's commented out below. 
 	 *
-	public function isSingular();
+	 * public function isSingular();
+	 * 
 	 */
 
 	/**
@@ -297,7 +304,8 @@ interface Module {
 	 *
 	 * This method may be optional, which is why it's commented out below. 
 	 *	
-	public function isAutoload(); 
+	 * public function isAutoload(); 
+	 * 
 	 */ 
 
 

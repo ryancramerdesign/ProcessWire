@@ -55,7 +55,7 @@
  * @property bool $templateCompile Allow use of compiled templates?
  * 
  * @property string $uploadUnzipCommand Shell command to unzip archives, used by WireUpload class.
- * $property string $uploadTmpDir Optionally override PHP's upload_tmp_dir with your own. Should include a trailing slash.
+ * @property string $uploadTmpDir Optionally override PHP's upload_tmp_dir with your own. Should include a trailing slash.
  * @property string $uploadBadExtensions Space separated list of file extensions that are always disallowed from uploads.
  * 
  * @property string $adminEmail Email address to send fatal error notifications to.

@@ -83,20 +83,19 @@ interface ConfigurableModule {
 	 * 	Note that this array will be empty if the module has not been configured before.
 	 * @return InputfieldWrapper
 	 *
-	 
-	// static version
-	public static function getModuleConfigInputfields(array $data); 
-	  
-	// non-static version
-	public function getModuleConfigInputfields(); 
-	 
-	// non-static version with optional $data array, if you want it for some reason
-	public function getModuleConfigInputfields(array $data); 
-	 
-	// non-static version with optional InputfieldWrapper as a convenience
-	// note that the "return" statement may be omitted when using the $inputfields param.
-	public function getModuleConfigInputfields($inputfields); 
-	 
+	 *  
+	 * // static version
+	 * public static function getModuleConfigInputfields(array $data); 
+	 * 
+	 * // non-static version
+	 * public function getModuleConfigInputfields(); 
+	 *  
+	 * // non-static version with optional $data array, if you want it for some reason
+	 * public function getModuleConfigInputfields(array $data); 
+	 *  
+	 * // non-static version with optional InputfieldWrapper as a convenience
+	 * // note that the "return" statement may be omitted when using the $inputfields param.
+	 * public function getModuleConfigInputfields($inputfields); 
 	 * 
 	 */
 
@@ -119,8 +118,8 @@ interface ConfigurableModule {
 	 *
 	 * @return array
 	 *
-	public static function getModuleConfigArray(); // static version
-	public function getModuleConfigArray(); // non-static version
+	 * public static function getModuleConfigArray(); // static version
+	 * public function getModuleConfigArray(); // non-static version
 	 */
 
 	/**
@@ -148,7 +147,7 @@ interface ConfigurableModule {
 	 *
 	 * @param array $data Array of data in $key => $value format.
 	 *
-	public function setConfigData(array $data);
+	 * public function setConfigData(array $data);
 	 *
 	 */
 

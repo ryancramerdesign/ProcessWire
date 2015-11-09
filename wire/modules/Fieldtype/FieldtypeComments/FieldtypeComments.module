@@ -16,7 +16,8 @@
 
 $dirname = dirname(__FILE__); 
 
-require_once($dirname . "/Comment.php"); 
+require_once($dirname . "/Comment.php");
+require_once($dirname . "/CommentStars.php");
 require_once($dirname . "/CommentArray.php"); 
 require_once($dirname . "/CommentList.php"); 
 require_once($dirname . "/CommentForm.php"); 
@@ -55,13 +56,16 @@ class FieldtypeComments extends FieldtypeMulti {
 	
 	const useVotesNo = 0;
 	const useVotesUp = 1; 
-	const useVotesAll = 2; 
+	const useVotesAll = 2;
 
+	const useStarsNo = 0;
+	const useStarsYes = 1;
+	const useStarsRequired = 2;
 
 	public static function getModuleInfo() {
 		return array(
 			'title' => __('Comments', __FILE__),
-			'version' => 106,
+			'version' => 107,
 			'summary' => __('Field that stores user posted comments for a single Page', __FILE__),
 			'installs' => array('InputfieldCommentsAdmin'),
 			);
@@ -206,6 +210,9 @@ class FieldtypeComments extends FieldtypeMulti {
 			if($schemaVersion > 4) {
 				$a['upvotes'] = (int) $comment->upvotes;
 				$a['downvotes'] = (int) $comment->downvotes;
+			}
+			if($schemaVersion > 5) {
+				$a['stars'] = ($comment->stars >= 1 && $comment->stars <= 5 ? (int) $comment->stars : null);
 			}
 
 			$sleepValue[] = $a;
@@ -377,6 +384,7 @@ class FieldtypeComments extends FieldtypeMulti {
 		$subcodeIndexSchema = "INDEX `subcode` (`subcode`)";
 		$upvoteSchema = "int unsigned NOT NULL default 0";
 		$downvoteSchema = "int unsigned NOT NULL default 0";
+		$starsSchema = "tinyint unsigned default NULL";
 		
 		$schemaVersion = (int) $field->schemaVersion;
 		$updateSchema = true;
@@ -452,7 +460,10 @@ class FieldtypeComments extends FieldtypeMulti {
 				$createdVotesTable = true;	
 			} catch(\Exception $e) {
 				$createdVotesTable = $e->getCode() == '42S01'; // 42S01=table already exists (which we consider success too)
-				if(!$createdVotesTable) $this->error($e->getMessage(), Notice::log);
+				if(!$createdVotesTable) {
+					$this->error($e->getMessage(), Notice::log);
+					$updateSchema = false;
+				}
 			}
 			if($createdVotesTable) try {
 				$isUpvotes = $database->prepare("SHOW columns FROM `$table` LIKE 'upvotes'");
@@ -463,9 +474,26 @@ class FieldtypeComments extends FieldtypeMulti {
 				if(!$isDownvotes->rowCount()) $database->query("ALTER TABLE `$table` ADD `downvotes` $downvoteSchema");
 				$schemaVersion = 5;
 			} catch(\Exception $e) { 
-				$this->error($e->getMessage(), Notice::log); 
+				$this->error($e->getMessage(), Notice::log);
+				$updateSchema = false;
 			}
 		}
+
+		if($schemaVersion < 6 && $updateSchema) {
+			$database = $this->wire('database');
+			$table = $database->escapeTable($field->getTable());
+			try {
+				$database->query("ALTER TABLE `$table` ADD `stars` $starsSchema");
+				$schemaVersion = 6;
+			} catch(\Exception $e) {
+				if($e->getCode() == '42S21') {
+					// column already exists
+					$schemaVersion = 6;
+				} else {
+					$updateSchema = false;
+				}
+			}
+ 		}
 
 		if(((int) $field->schemaVersion) < $schemaVersion) {
 			$this->message("Updating schema version of '{$field->name}' from $field->schemaVersion to $schemaVersion", Notice::log);
@@ -503,6 +531,9 @@ class FieldtypeComments extends FieldtypeMulti {
 		if($schemaVersion > 4) {
 			$schema['upvotes'] = $upvoteSchema;
 			$schema['downvotes'] = $downvoteSchema;
+		}
+		if($schemaVersion > 5) {
+			$schema['stars'] = $starsSchema;
 		}
 
 		$schema['keys']['primary'] = "PRIMARY KEY (`id`)"; 
@@ -808,8 +839,22 @@ class FieldtypeComments extends FieldtypeMulti {
 		$f->addOption(1, $this->_('Allow upvoting'));
 		$f->addOption(2, $this->_('Allow upvoting and downvoting'));
 		$f->attr('value', (int) $field->$name);
-		$fieldset->append($f); 
-		
+		$f->columnWidth = 50;
+		$fieldset->append($f);
+
+		$name = 'useStars';
+		$f = $this->wire('modules')->get('InputfieldRadios');
+		$f->attr('name', $name);
+		$f->label = $this->_('Use stars rating?');
+		$f->description = $this->_('Star ratings enable the commenter to rate the subject they are commenting on, using a scale of 1 to 5 stars.');
+		$f->notes = $this->_('To change default star used for output (HTML is okay too):') . "\nCommentStars::setDefault('star', '★');";
+		$f->addOption(0, $this->_x('Disabled', 'star-rating'));
+		$f->addOption(1, $this->_('Yes (star rating optional)'));
+		$f->addOption(2, $this->_('Yes (star rating required)'));
+		$f->attr('value', (int) $field->$name);
+		$f->columnWidth = 50;
+		$fieldset->append($f);
+
 		$name = 'useGravatar'; 
 		$f = $this->wire('modules')->get('InputfieldRadios'); 
 		$f->attr('name', $name); 

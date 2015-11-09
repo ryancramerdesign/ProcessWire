@@ -25,14 +25,21 @@ function __($text, $textdomain = null, $context = '') {
 	if(!$language = wire('user')->language) return $text; 
 	if(!$language->id) return $text; 
 	if(is_null($textdomain)) {
-		if(defined('DEBUG_BACKTRACE_IGNORE_ARGS')) $traces = @debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
-          		else $traces = @debug_backtrace();
-		// $traces = @debug_backtrace(defined('DEBUG_BACKTRACE_IGNORE_ARGS') ? DEBUG_BACKTRACE_IGNORE_ARGS : false);
-		if(isset($traces[0]) && $traces[0]['file'] != __FILE__) $textdomain = $traces[0]['file'];
-			else if(isset($traces[1]) && $traces[1]['file'] != __FILE__) $textdomain = $traces[1]['file'];
+		if(defined('DEBUG_BACKTRACE_IGNORE_ARGS')) {
+			$traces = @debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
+		} else {
+			$traces = @debug_backtrace();
+		}
+		if(isset($traces[0]) && $traces[0]['file'] != __FILE__) {
+			$textdomain = $traces[0]['file'];
+		} else if(isset($traces[1]) && $traces[1]['file'] != __FILE__) {
+			$textdomain = $traces[1]['file'];
+		}
 		if(is_null($textdomain)) $textdomain = 'site';
 	}
-	return htmlspecialchars($language->translator()->getTranslation($textdomain, $text, $context), ENT_QUOTES, 'UTF-8'); 
+	$value = htmlspecialchars($language->translator()->getTranslation($textdomain, $text, $context), ENT_QUOTES, 'UTF-8');
+	if($value === "=") $value = $text;
+	return $value;
 }
 
 /**

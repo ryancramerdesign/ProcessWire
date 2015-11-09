@@ -156,7 +156,12 @@ class ProcessPageType extends Process implements ConfigurableModule, WirePageEdi
 				if(!$page->editable()) $pages->remove($page);
 			}
 			$options['items'] = $pages;
-			$options['add'] = 'add/';
+			$parent = $this->pages->getParent();
+			if($parent && $parent->id && $parent->addable()) {
+				$options['add'] = 'add/';
+			} else {
+				$options['add'] = false;
+			}
 			$options['edit'] = "edit/?id={id}"; 
 		}
 		if(!isset($options['itemLabel'])) $options['itemLabel'] = $this->jsonListLabel;

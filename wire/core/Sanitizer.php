@@ -608,6 +608,11 @@ class Sanitizer extends Wire {
 		if(!$scheme) {
 			// URL is missing scheme/protocol, or is local/relative
 
+			if(strpos($value, '://') !== false) {
+				// apparently there is an attempted, but unrecognized scheme, so remove it
+				$value = preg_replace('!^[^?]*?://!', '', $value);
+			}
+
 			if($options['allowRelative']) {
 				// determine if this is a domain name 
 				// regex legend:       (www.)?      company.         com       ( .uk or / or end)
@@ -647,6 +652,7 @@ class Sanitizer extends Wire {
 			// tel: scheme is not supported by filter_var 
 			if(!preg_match('/^tel:\+?\d+$/', $value)) {
 				$value = str_replace(' ', '', $value);
+				/** @noinspection PhpUnusedLocalVariableInspection */
 				list($tel, $num) = explode(':', $value);
 				$value = 'tel:'; 
 				if(strpos($num, '+') === 0) $value .= '+';
@@ -809,7 +815,10 @@ class Sanitizer extends Wire {
 	/**
 	 * Entity encode while translating some markdown tags to HTML equivalents
 	 * 
-	 * Allowed markdown currently includes: 
+	 * If you specify boolean TRUE for the $options argument, full markdown is applied. Otherwise,
+	 * only basic markdown allowed, as outlined below: 
+	 * 
+	 * Basic allowed markdown currently includes: 
 	 * 		**strong**
 	 * 		*emphasis*
 	 * 		[anchor-text](url)
@@ -818,10 +827,11 @@ class Sanitizer extends Wire {
 	 * 
 	 * The primary reason to use this over full-on Markdown is that it has less overhead
 	 * and is faster then full-blown Markdowon, for when you don't need it. It's also safer
-	 * for text coming from user input since it doesn't allow any other HTML.
+	 * for text coming from user input since it doesn't allow any other HTML. But if you just
+	 * want full markdown, then specify TRUE for the $options argument. 
 	 *
 	 * @param string $str
-	 * @param array $options Options include the following:
+	 * @param array|bool|int $options Options include the following, or specify boolean TRUE to apply full markdown.
 	 * 	- flags (int): See htmlentities() flags. Default is ENT_QUOTES. 
 	 * 	- encoding (string): PHP encoding type. Default is 'UTF-8'. 
 	 * 	- doubleEncode (bool): Whether to double encode (if already encoded). Default is true. 
@@ -832,7 +842,20 @@ class Sanitizer extends Wire {
 	 * @return string
 	 *
 	 */
-	public function entitiesMarkdown($str, array $options = array()) {
+	public function entitiesMarkdown($str, $options = array()) {
+
+		if($options === true || (is_int($options) && $options > 0)) {
+			$markdown = $this->wire('modules')->get('TextformatterMarkdownExtra');
+			if(is_int($options)) {
+				$markdown->flavor = $options;
+			} else {
+				$markdown->flavor = TextformatterMarkdownExtra::flavorParsedown;
+			}
+			$markdown->format($str);
+			return $str;
+		}
+		
+		if(!is_array($options)) $options = array();
 		
 		$defaults = array(
 			'flags' => ENT_QUOTES, 
@@ -996,7 +1019,7 @@ class Sanitizer extends Wire {
 	 * If $value is an integer or string of all numbers, it is always assumed to be a unix timestamp.
 	 *
 	 * @param string|int $value Date string or unix timestamp
-	 * @param string|null $dateFormat Format of date string ($value) in any wireDate(), date() or strftime() format.
+	 * @param string|null $format Format of date string ($value) in any wireDate(), date() or strftime() format.
 	 * @param array $options Options to modify behavior:
 	 * 	- returnFormat: wireDate() format to return date in. If not specified, then the $format argument is used.
 	 * 	- min: Minimum allowed date in $format or unix timestamp format. Null is returned when date is less than this.
@@ -1017,12 +1040,10 @@ class Sanitizer extends Wire {
 		if(!is_string($value) && !is_int($value)) $value = $this->string($value);
 		if(ctype_digit("$value")) {
 			// value is in unix timestamp format
-			$ts = (int) $value;
 			// make sure it resolves to a valid date
-			$value = date('Y-m-d H:i:s', $ts);
-			$value = strtotime($ts);
+			$value = strtotime(date('Y-m-d H:i:s', (int) $value));
 		} else {
-			if(!is_string($value)) $value = $this->string($value);
+			$value = strtotime($value);
 		}
 		// value is now a unix timestamp
 		if(empty($value)) return null;
@@ -1033,7 +1054,7 @@ class Sanitizer extends Wire {
 		}
 		if(!empty($options['max'])) {
 			// if value is more than max allowed, return null/error
-			$min = ctype_digit("$options[max]") ? (int) $options['max'] : (int) wireDate('ts', $options['max']);
+			$max = ctype_digit("$options[max]") ? (int) $options['max'] : (int) wireDate('ts', $options['max']);
 			if($value > $max) return null;
 		}
 		if(!empty($options['returnFormat'])) $value = wireDate($options['returnFormat'], $value);
@@ -1044,7 +1065,7 @@ class Sanitizer extends Wire {
 	 * Validate that $value matches regex pattern. If it does, value is returned. If not, blank is returned.
 	 * 
 	 * @param string $value
-	 * @param string $pattern PCRE regex pattern (same as you would provide to preg_match)
+	 * @param string $regex PCRE regex pattern (same as you would provide to preg_match)
 	 * @return string
 	 * 
 	 */
@@ -1082,7 +1103,7 @@ class Sanitizer extends Wire {
 		if(!is_null($options['min']) && $value < $options['min']) {
 			$value = (int) $options['min'];
 		} else if(!is_null($options['max']) && $value > $options['max']) {
-			$value = (int) $max;
+			$value = (int) $options['max'];
 		}
 		return $value;
 	}
@@ -1109,8 +1130,6 @@ class Sanitizer extends Wire {
 	 * Sanitize to signed integer (negative or positive)
 	 *
 	 * @param mixed $value
-	 * @param int|null $min Minimum allowed value (default=PHP_INT_MAX * -1)
-	 * @param int|null $max Maximum allowed value (default=PHP_INT_MAX)
 	 * @param array $options Optionally specify any one or more of the following to modify behavior:
 	 * 	- min (int|null) Minimum allowed value (default=negative PHP_INT_MAX)
 	 *  - max (int|null) Maximum allowed value (default=PHP_INT_MAX)
@@ -1327,7 +1346,7 @@ class Sanitizer extends Wire {
 	public function minArray($data, $allowEmpty = false, $convert = false) {
 		
 		if(!is_array($data)) {
-			$data = $this->___array($data, null, $options);
+			$data = $this->___array($data, null);
 		}
 
 		foreach($data as $key => $value) {
@@ -1376,7 +1395,7 @@ class Sanitizer extends Wire {
 	public function option($value, array $allowedValues) {
 		$key = array_search($value, $allowedValues);
 		if($key === false) return null;
-		return $options[$key];
+		return $allowedValues[$key];
 	}
 
 	/**
@@ -1489,7 +1508,7 @@ class Sanitizer extends Wire {
 	 * IMPORTANT: This method returns NULL if it can't find a validator for the file. This does
 	 * not mean the file is invalid, just that it didn't have the tools to validate it.
 	 *
-	 * @param $filename Full path and filename to validate
+	 * @param string $filename Full path and filename to validate
 	 * @param array $options If available, provide array with any one or all of the following:
 	 * 	'page' => Page object associated with $filename
 	 * 	'field' => Field object associated with $filename

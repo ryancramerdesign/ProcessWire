@@ -77,6 +77,11 @@ class WireInputData extends Wire implements \ArrayAccess, \IteratorAggregate, \C
 		return $this->data; 
 	}
 
+	/**
+	 * @param string $key
+	 * @param ixed $value
+	 * 
+	 */
 	public function __set($key, $value) {
 		if(is_string($value) && $this->stripSlashes) $value = stripslashes($value); 
 		if(is_array($value)) $value = $this->cleanArray($value); 
@@ -97,6 +102,11 @@ class WireInputData extends Wire implements \ArrayAccess, \IteratorAggregate, \C
 		$this->stripSlashes = $stripSlashes ? true : false; 
 	}
 
+	/**
+	 * @param string $key
+	 * @return mixed|null
+	 * 
+	 */
 	public function __get($key) {
 		if($key == 'whitelist') return $this->whitelist; 
 		return isset($this->data[$key]) ? $this->data[$key] : null;
@@ -181,10 +191,10 @@ class WireInputData extends Wire implements \ArrayAccess, \IteratorAggregate, \C
  * @link http://processwire.com/api/variables/input/ Offical $input API variable Documentation
  * 
  * @property string[] $urlSegments Retrieve all URL segments (array). This requires url segments are enabled on the template of the requested page. You can turn it on or off under the url tab when editing a template.
- * @property WireInputVars $post POST variables
- * @property WireInputVars $get GET variables
- * @property WireInputVars $cookie COOKIE variables
- * @property WireInputVars $whitelist Whitelisted variables
+ * @property WireInputData $post POST variables
+ * @property WireInputData $get GET variables
+ * @property WireInputData $cookie COOKIE variables
+ * @property WireInputData $whitelist Whitelisted variables
  * @property int $pageNum Current page number (where 1 is first)
  * @property string $urlSegmentsStr String of current URL segments, separated by slashes, i.e. a/b/c
  * @property string $urlSegmentStr Alias of urlSegmentsStr

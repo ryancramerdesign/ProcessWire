@@ -111,7 +111,7 @@ class Session extends Wire implements \IteratorAggregate {
 				list($text, $flags) = $item;
 				parent::$type($text, $flags); 
 			}
-			$this->remove($type);
+			// $this->remove($type);
 		}
 		
 		$this->setTrackChanges(true);
@@ -389,6 +389,9 @@ class Session extends Wire implements \IteratorAggregate {
 
 	/**
 	 * Provide $session->variable get access
+	 * 
+	 * @param string $key
+	 * @return SessionCSRF|mixed|null
 	 *
 	 */
 	public function __get($key) {
@@ -397,6 +400,10 @@ class Session extends Wire implements \IteratorAggregate {
 
 	/**
 	 * Provide $session->variable = variable set access
+	 * 
+	 * @param string $key
+	 * @param mixed $value
+	 * @return $this
 	 *
 	 */
 	public function __set($key, $value) {
@@ -773,6 +780,16 @@ class Session extends Wire implements \IteratorAggregate {
 		$value = $this->get('_user', 'history'); 
 		if(!is_array($value)) $value = array();
 		return $value; 
+	}
+
+	/**
+	 * Remove queued notices
+	 * 
+	 */
+	public function removeNotices() {
+		foreach(array('message', 'error', 'warning') as $type) {
+			$this->remove($type);
+		}
 	}
 
 }

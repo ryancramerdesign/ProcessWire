@@ -103,7 +103,16 @@ abstract class Inputfield extends WireData implements Module {
 	const skipLabelFor = true; 	// don't use a 'for' attribute with the <label>
 	const skipLabelHeader = 2; 	// don't use a ui-widget-header label at all
 	const skipLabelBlank = 4; 	// skip the label only when blank
-	
+
+	/**
+	 * Formats allowed in description, notes, label
+	 * 
+	 */
+	const textFormatNone = 2;		// no type of markdown or HTML allowed
+	const textFormatBasic = 4;		// only basic/inline markdown and no HTML (default setting for Inputfields)
+	const textFormatMarkdown = 8;	// full markdown support with HTML also allowed
+
+
 	/**
 	 * The total number of Inputfield instances, kept as a way of generating unique 'id' attributes
 	 *
@@ -172,6 +181,7 @@ abstract class Inputfield extends WireData implements Module {
 		$this->set('wrapClass', ''); // optional class to apply to the Inputfield wrapper (contains InputfieldHeader + InputfieldContent)
 		$this->set('headerClass', ''); // optional class to apply to InputfieldHeader wrapper
 		$this->set('contentClass', ''); // optional class to apply to InputfieldContent wrapper
+		$this->set('textFormat', self::textFormatBasic); // format applied to description and notes
 
 		// default ID attribute if no 'id' attribute set
 		$this->defaultID = $this->className() . self::$numInstances; 
@@ -960,10 +970,10 @@ abstract class Inputfield extends WireData implements Module {
 	/**
 	 * Entity encode a string (de-encoding if necessary and then re-encoding)
 	 *
-	 * Also option for basic markdown support when 2nd argument is true. 
+	 * Also option for markdown support when 2nd argument is true. 
 	 *
 	 * @param string $str
-	 * @param bool $markdown
+	 * @param bool|int $markdown Whether to allow any kind of formatting (according to $textFormat), or specify a textFormat constant.
 	 * @return string
 	 *
 	 */
@@ -971,16 +981,32 @@ abstract class Inputfield extends WireData implements Module {
 		
 		// if already encoded, then un-encode it
 		if(strpos($str, '&') !== false && preg_match('/&(#\d+|[a-z]+);/', $str)) {
-			$str = html_entity_decode($str, ENT_QUOTES, "UTF-8"); 
+			$str = html_entity_decode($str, ENT_QUOTES, "UTF-8");
 		}
-
-		if($markdown) {
-			$str = $this->wire('sanitizer')->entitiesMarkdown($str); 
+		
+		if($markdown && $markdown !== self::textFormatNone) {
+			if(is_int($markdown)) {
+				$textFormat = $markdown;
+			} else {
+				$textFormat = $this->getSetting('textFormat');
+			}
+			if(!$textFormat) $textFormat = self::textFormatBasic;
+			if($textFormat & self::textFormatBasic) {
+				// only basic markdown allowed (default behavior)
+				$str = $this->wire('sanitizer')->entitiesMarkdown($str);
+			} else if($textFormat & self::textFormatMarkdown) {
+				// full markdown, plus HTML is also allowed
+				$str = $this->wire('sanitizer')->entitiesMarkdown($str, true);
+			} else {
+				// nothing allowed, text fully entity encoded regardless of $markdown request
+				$str = $this->wire('sanitizer')->entities($str);
+			}
+			
 		} else {
-			$str = $this->wire('sanitizer')->entities($str); 
+			$str = $this->wire('sanitizer')->entities($str);
 		}
-
-		return $str; 
+		
+		return $str;
 	}
 
 	/**

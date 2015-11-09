@@ -12,6 +12,15 @@
  * 
  * @todo add renderValue support (perhaps delegating to Fieldtype::markupValue), likewise for repeaters. 
  * 
+ * @property int $parent_id
+ * @property int $template_id
+ * @property string $columns
+ * @property string $nameFormat
+ * @property int|bool $noclose
+ * @property string $blankLabel
+ *
+ * @method string renderTable(array $columns)
+ * 
  */
 
 class InputfieldPageTable extends Inputfield {
@@ -20,7 +29,7 @@ class InputfieldPageTable extends Inputfield {
 		return array(
 			'title' => __('ProFields: Page Table', __FILE__), // Module Title
 			'summary' => __('Inputfield to accompany FieldtypePageTable', __FILE__), // Module Summary
-			'version' => 12,
+			'version' => 13,
 			'requires' => 'FieldtypePageTable'
 			);
 	}
@@ -50,6 +59,14 @@ class InputfieldPageTable extends Inputfield {
 	protected $orphans = null;
 
 	/**
+	 * Whether or not a separate "edit" column is needed
+	 * 
+	 * @var bool
+	 * 
+	 */
+	protected $needsEditColumn = false;
+
+	/**
 	 * Initialize and establish default values
 	 * 
 	 */
@@ -60,7 +77,8 @@ class InputfieldPageTable extends Inputfield {
 		$this->set('template_id', 0); // placeholder only 
 		$this->set('columns', ''); 
 		$this->set('nameFormat', '');
-		$this->set('noclose', 0); 
+		$this->set('noclose', 0);
+		$this->set('blankLabel', $this->_('[blank]'));
 
 		// local settings
 		$this->nativeLabels = array(
@@ -79,7 +97,7 @@ class InputfieldPageTable extends Inputfield {
 			'status' => $this->_x('Status', 'th'), 
 			);
 
-		return parent::init();
+		parent::init();
 	}
 	
 	public function renderReady(Inputfield $parent = null, $renderValueMode = false) {
@@ -122,7 +140,8 @@ class InputfieldPageTable extends Inputfield {
 
 		// render the 'Add New' buttons for each template
 		$btn = '';
-		foreach($this->rowTemplates as $template) { 
+		foreach($this->rowTemplates as $template) {
+			/** @var Template $template */
 			$button = $this->wire('modules')->get('InputfieldButton'); 
 			$button->icon = 'plus-circle';
 			$button->value = count($this->rowTemplates) == 1 ? $this->_x('Add New', 'button') : $template->getLabel(); 
@@ -167,6 +186,8 @@ class InputfieldPageTable extends Inputfield {
 	 */
 	protected function ___renderTable(array $columns) {
 
+		$this->needsEditColumn = false;
+		/** @var PageArray $value */
 		$value = $this->attr('value'); 
 		$this->wire('modules')->get('MarkupAdminDataTable'); // for styles
 		if(!count($value)) return ''; // if nothing in the value, just return blank
@@ -220,7 +241,8 @@ class InputfieldPageTable extends Inputfield {
 			$labels[$column] = $label;
 		}
 
-		$out = $this->renderTableHead($columns, $labels) . $this->renderTableBody($value, $columns, $fields); 
+		$out = $this->renderTableBody($value, $columns, $fields); // render order intentional
+		$out = $this->renderTableHead($columns, $labels) . $out;
 
 		return $out; 		
 	}
@@ -236,6 +258,8 @@ class InputfieldPageTable extends Inputfield {
 	protected function renderTableHead(array $columns, array $labels) {
 
 		$out = "<table class='AdminDataTable AdminDataList AdminDataTableResponsive AdminDataTableResponsiveAlt'><thead><tr>";
+
+		if($this->needsEditColumn) $out .= "<th>&nbsp;</th>";
 
 		foreach($columns as $column => $width) {
 			$attr = $width ? " style='width: $width%'" : '';
@@ -258,17 +282,25 @@ class InputfieldPageTable extends Inputfield {
 	 * 
 	 */
 	protected function renderTableBody(PageArray $items, array $columns, array $fields) {
-		$out = "<tbody>";
+		$rows = array();
 
-		foreach($items as $item) {
+		foreach($items as $key => $item) {
+			/** @var Page $item */
 			$of = $item->of();
 			$item->of(true); 
-			$out .= $this->renderTableRow($item, $columns, $fields); 
+			$rows[$key] = $this->renderTableRow($item, $columns, $fields);
 			$item->of($of); 
 		}
 
-		$out .= "</tbody></table>";
-		return $out; 
+		if($this->needsEditColumn) {
+			foreach($rows as $key => $row) {
+				list($s1, $s2) = explode('>', $row, 2);
+				$item = $items[$key];
+				$rows[$key] = "$s1><td>" . $this->renderItemLink($item, "<i class='fa fa-edit'></i>") . "</td>$s2";
+			}
+		}
+		
+		return "<tbody>" . implode("", $rows) . "</tbody></table>";
 	}
 
 	/**
@@ -286,10 +318,8 @@ class InputfieldPageTable extends Inputfield {
 		$n = 0;
 
 		foreach($columns as $column => $width) {
-			if(!$n) $column .= "|name"; // in case first/link field was not populated, use name as a backup
-			
-			$url = $n++ ? "" : $this->wire('config')->urls->admin . "page/edit/?id=$item->id&modal=1&context=PageTable";
-			$out .= $this->renderTableCol($item, $fields, $column, $width, $url); 
+			$linkURL = $n++ ? '' : $this->getItemEditURL($item);
+			$out .= $this->renderTableCol($item, $fields, $column, $width, $linkURL);
 		}
 
 		// append a delete column/link
@@ -318,7 +348,15 @@ class InputfieldPageTable extends Inputfield {
 	 */
 	protected function renderTableCol(Page $item, array $fields, $column, $width, $linkURL = '') {
 		$out = $this->getItemValue($item, $fields, $column); 
-		if($linkURL) $out = "<a class='InputfieldPageTableEdit' data-url='$linkURL' href='#'>$out</a>";
+		if($linkURL) {
+			if(stripos($out, '<a ') !== false || stripos($out, '<li') !== false || !strlen($out)) {
+				// table will need a separate edit column since this item doesn't work as a link
+				$this->needsEditColumn = true;
+				if(!strlen($out)) $out =  "<span class='detail'>$this->blankLabel</span>";
+			} else {
+				$out = $this->renderItemLink($item, $out, $linkURL);
+			}
+		}
 		$attr = $width ? " style='width: $width%'" : '';
 		return "<td$attr>$out</td>";
 	}
@@ -356,9 +394,32 @@ class InputfieldPageTable extends Inputfield {
 			}
 		}
 		
-		if(!strlen($value)) $value = "<span class='detail'>" . $this->_('[blank]') . "</span>";
-
 		return $value; 
+	}
+
+	/**
+	 * Render an item edit link surrounded by the given output
+	 * 
+	 * @param Page $item
+	 * @param string $out
+	 * @param string $url Optional
+	 * @return string
+	 * 
+	 */
+	protected function renderItemLink(Page $item, $out, $url = '') {
+		if(!$url) $url = $this->getItemEditURL($item);
+		return "<a class='InputfieldPageTableEdit' data-url='$url' href='#'>$out</a>";
+	}
+
+	/**
+	 * Get an item edit URL
+	 * 
+	 * @param Page $item
+	 * @return string
+	 * 
+	 */
+	protected function getItemEditURL(Page $item) {
+		return $this->wire('config')->urls->admin . "page/edit/?id=$item->id&modal=1&context=PageTable";
 	}
 
 	/**
@@ -404,7 +465,8 @@ class InputfieldPageTable extends Inputfield {
 		$deleteName = $name . '__delete';
 
 		$deleteIDs = explode('|', $input->$deleteName); 
-		$ids = explode('|', $input->$name); 
+		$ids = explode('|', $input->$name);
+		/** @var PageArray $value */
 		$value = $this->attr('value'); 
 		$sorted = $this->wire('pages')->newPageArray();	
 		$changed = false; 
@@ -412,6 +474,7 @@ class InputfieldPageTable extends Inputfield {
 		// trash items that have been deleted
 		foreach($deleteIDs as $id) {
 			foreach($value as $item) {
+				/** @var Page $item */
 				if($id != $item->id) continue; 
 				if(!$item->deleteable()) continue;
 				$value->remove($item); 
@@ -471,6 +534,10 @@ class InputfieldPageTable extends Inputfield {
 
 	/**
 	 * Set a property to this Inputfield
+	 * 
+	 * @param string $key
+	 * @param mixed $value
+	 * @return $this
 	 *
 	 */
 	public function set($key, $value) {

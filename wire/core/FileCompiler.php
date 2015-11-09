@@ -101,7 +101,7 @@ class FileCompiler extends Wire {
 	
 		// @todo move this somewhere outside of this class
 		$this->addExclusion($this->wire('config')->paths->wire);
-		$this->addExclusion($this->wire('config')->paths->templates . 'admin.php');
+		// $this->addExclusion($this->wire('config')->paths->templates . 'admin.php');
 		
 	}
 
@@ -146,7 +146,7 @@ class FileCompiler extends Wire {
 			}
 		}
 		if(!$run) return $sourcePathname;
-	
+
 		$this->initTargetPath();
 
 		if(!is_file($sourcePathname)) throw new WireException("$sourcePathname does not exist");

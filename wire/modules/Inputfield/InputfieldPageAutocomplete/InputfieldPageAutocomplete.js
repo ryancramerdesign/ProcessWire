@@ -105,6 +105,7 @@ var InputfieldPageAutocomplete = {
 					// AND words mode
 					term = term.replace(/\s+/, ',');
 				}
+				term = encodeURIComponent(term);
 				var ajaxURL = url + '&' + searchField + operator + term; 
 
 				$.getJSON(ajaxURL, function(data) { 

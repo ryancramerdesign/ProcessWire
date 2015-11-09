@@ -229,15 +229,15 @@ class LanguageTranslator extends Wire {
  	 * @return string Translation if available, or original EN version if translation not available.
 	 *
 	 */
-        public function getTranslation($textdomain, $text, $context = '') {
-                if($this->wire('hooks')->isHooked('LanguageTranslator::getTranslation()')) {
+	public function getTranslation($textdomain, $text, $context = '') {
+		if($this->wire('hooks')->isHooked('LanguageTranslator::getTranslation()')) {
 			// if method has hooks, we let them run
 			return $this->__call('getTranslation', array($textdomain, $text, $context));
 		} else { 
 			// if method has no hooks, we avoid any overhead
 			return $this->___getTranslation($textdomain, $text, $context);
 		}
-        }
+	}
 
 	/**
 	 * Implementation for the getTranslation() function - you should call getTranslation() without underscores instead.

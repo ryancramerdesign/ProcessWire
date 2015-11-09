@@ -145,6 +145,7 @@ if($controller && $controller->isAjax()) {
 	echo $content; 
 } else {
 	if(!strlen($content)) $content = '<p>' . __('The process returned no content.') . '</p>';
-	require($config->paths->adminTemplates . 'default.php'); 
+	require($config->paths->adminTemplates . 'default.php');
+	$session->removeNotices();
 }
 

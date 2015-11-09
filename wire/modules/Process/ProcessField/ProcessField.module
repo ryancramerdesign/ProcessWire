@@ -96,7 +96,7 @@ class ProcessField extends Process implements ConfigurableModule {
 			else $this->id = $this->input->get->id ? (int) $this->input->get->id : 0;
 
 		if($this->id) $this->field = $this->fields->get($this->id);
-			else $this->field = $this->wire(new Field());
+		if(!$this->field) $this->field = new Field();
 
 		return parent::init();
 	}

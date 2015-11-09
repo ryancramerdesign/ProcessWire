@@ -159,11 +159,16 @@ class PagePermissions extends WireData implements Module {
 		if($user->isSuperuser()) return true; 
 
 		// note there is an exception in the case of system pages, which require superuser to edit
-		if($page->status & Page::statusSystem) return false;
+		if(($page->status & Page::statusSystem) && $page->template != 'language') return false;
 
 		// If page is locked and user doesn't have permission to unlock, don't let them edit
 		if($page->status & Page::statusLocked) {
 			if(!$user->hasPermission("page-lock", $page)) return false; 
+		}
+
+		// special conditions apply if the page is a Language
+		if($page->template == 'language' && $user->hasPermission('page-edit') && $user->hasPermission('lang-edit')) {
+			return $this->hasLangPermission("page-edit-lang-$page->name", $user);
 		}
 			
 		// special conditions apply if the page is a User
@@ -215,7 +220,7 @@ class PagePermissions extends WireData implements Module {
 	public function userEditable(Page $page) {
 		
 		if($page->className() != 'User') $page = $this->wire('users')->get($page->id);
-		if($page instanceof NullPage) return false;
+		if(!$page || $page instanceof NullPage) return false;
 		
 		$user = $this->wire('user');
 

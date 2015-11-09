@@ -357,7 +357,7 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 			foreach(array('error', 'description', 'head', 'notes') as $property) {
 				$text = $property == 'error' ? $errorsOut : $inputfield->getSetting($property); 
 				if(!empty($text) && !$this->quietMode) {
-					$text = nl2br($entityEncodeText ? $this->entityEncode($text, true) : $text);
+					$text = nl2br($entityEncodeText ? $inputfield->entityEncode($text, true) : $text);
 					$text = str_replace('{out}', $text, $markup["item_$property"]);
 				} else {
 					$text = '';
@@ -454,7 +454,7 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 				if($label || $this->quietMode) {
 					$for = $inputfield->skipLabel || $this->quietMode ? '' : $inputfield->attr('id');
 					// if $inputfield has a property of entityEncodeLabel with a value of boolean FALSE, we don't entity encode
-					if($inputfield->entityEncodeLabel !== false) $label = $this->entityEncode($label);
+					if($inputfield->entityEncodeLabel !== false) $label = $inputfield->entityEncode($label);
 					$icon = $inputfield->icon ? str_replace('{name}', $this->sanitizer->name(str_replace(array('icon-', 'fa-'), '', $inputfield->icon)), $markup['item_icon']) : ''; 
 					$toggle = $collapsed == Inputfield::collapsedNever ? '' : $markup['item_toggle']; 
 					if($inputfield->skipLabel === Inputfield::skipLabelHeader || $this->quietMode) {
@@ -664,13 +664,14 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 			Inputfield::collapsedNoLocked,
 			Inputfield::collapsedYesLocked
 			);
-		if(in_array((int) $inputfield->getSetting('collapsed'), $skipTypes)) return false;
-		
-		if(in_array($inputfield->collapsed, array(Inputfield::collapsedYesAjax, Inputfield::collapsedBlankAjax))) {
+		$collapsed = (int) $inputfield->getSetting('collapsed');
+		if(in_array($collapsed, $skipTypes)) return false;
+
+		if(in_array($collapsed, array(Inputfield::collapsedYesAjax, Inputfield::collapsedBlankAjax))) {
 			$processAjax = $this->wire('input')->post('processInputfieldAjax');
 			if(is_array($processAjax) && in_array($inputfield->attr('id'), $processAjax)) {
 				// field can be processed (convention used by InputfieldWrapper)
-			} else if($inputfield->collapsed == Inputfield::collapsedBlankAjax && !$inputfield->isEmpty()) {
+			} else if($collapsed == Inputfield::collapsedBlankAjax && !$inputfield->isEmpty()) {
 				// field can be processed because it is only collapsed if blank
 			} else if(isset($_SERVER['HTTP_X_FIELDNAME']) && $_SERVER['HTTP_X_FIELDNAME'] == $inputfield->attr('name')) {
 				// field can be processed (convention used by ajax uploaded file and other ajax types)

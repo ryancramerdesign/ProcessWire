@@ -244,8 +244,8 @@ class WireDatabaseBackup {
 	 * 
 	 * @param array|object $config Containing these properties: dbUser, dbHost, dbPort, dbName,
 	 * 	and optionally: dbPass, dbPath, dbCharset
-	 * @return this
-	 * @throws Exception if missing required config settings
+	 * @return $this
+	 * @throws \Exception if missing required config settings
 	 * 
 	 */
 	public function setDatabaseConfig($config) {
@@ -378,8 +378,8 @@ class WireDatabaseBackup {
 	 * Set path where database files are stored
 	 * 
 	 * @param string $path
-	 * @return this
-	 * @throws Exception if path has a problem
+	 * @return $this
+	 * @throws \Exception if path has a problem
 	 * 
 	 */
 	public function setPath($path) {
@@ -505,14 +505,17 @@ class WireDatabaseBackup {
 
 		$query = $this->database->prepare('SHOW TABLES');
 		$query->execute();
+		/** @noinspection PhpAssignmentInConditionInspection */
 		while($row = $query->fetch(\PDO::FETCH_NUM)) $tables[$row[0]] = $row[0];
 		$query->closeCursor();
 
-		if($count) foreach($tables as $table) {
-			$query = $this->database->prepare("SELECT COUNT(*) FROM `$table`");
-			$query->execute();
-			$row = query_fetch(\PDO::FETCH_NUM);
-			$counts[$table] = (int) $row[0];
+		if($count) {
+			foreach($tables as $table) {
+				$query = $this->database->prepare("SELECT COUNT(*) FROM `$table`");
+				$query->execute();
+				$row = query_fetch(\PDO::FETCH_NUM);
+				$counts[$table] = (int) $row[0];
+			}
 			$query->closeCursor();
 			return $counts;
 			
@@ -528,7 +531,7 @@ class WireDatabaseBackup {
 	 * 
 	 * @param array $options See $backupOptions
 	 * @return string Full path and filename of database export file, or false on failure. 
-	 * @throws Exception on fatal error
+	 * @throws \Exception on fatal error
 	 * 
 	 */
 	public function backup(array $options = array()) {
@@ -619,7 +622,7 @@ class WireDatabaseBackup {
 	/**
 	 * End a new backup file, adding our footer to the bottom
 	 *
-	 * @param string|resources $file
+	 * @param string|resource $file
 	 * @param array $summary
 	 * @param array $options
 	 * @return bool
@@ -697,6 +700,7 @@ class WireDatabaseBackup {
 			$columns = array();
 			$query = $database->prepare("SHOW COLUMNS FROM `$table`");
 			$query->execute();
+			/** @noinspection PhpAssignmentInConditionInspection */
 			while($row = $query->fetch(\PDO::FETCH_NUM)) $columns[] = $row[0];
 			$query->closeCursor();
 			$columnsStr = '`' . implode('`, `', $columns) . '`';
@@ -716,8 +720,9 @@ class WireDatabaseBackup {
 			}
 			
 			$query = $database->prepare($sql);
-			$this->executeQuery($query); 
-			
+			$this->executeQuery($query);
+
+			/** @noinspection PhpAssignmentInConditionInspection */
 			while($row = $query->fetch(\PDO::FETCH_NUM)) {
 				$numInserts++;
 				$out = "\nINSERT INTO `$table` ($columnsStr) VALUES(";
@@ -803,10 +808,10 @@ class WireDatabaseBackup {
 	/**
 	 * Import a database SQL file that was created by this class
 	 * 
-	 * @param $filename Filename to restore, optionally including path (if no path, then path set to construct is assumed)
+	 * @param string $filename Filename to restore, optionally including path (if no path, then path set to construct is assumed)
 	 * @param array $options See WireDatabaseBackup::$restoreOptions
 	 * @return true on success, false on failure. Call the errors() method to retrieve errors.
-	 * @throws Exception on fatal error
+	 * @throws \Exception on fatal error
 	 *
 	 */
 	public function restore($filename, array $options = array()) {
@@ -842,14 +847,13 @@ class WireDatabaseBackup {
 	/**
 	 * Import a database SQL file using PDO
 	 * 
-	 * @param $filename Filename to restore (must be SQL file exported by this class)
+	 * @param string $filename Filename to restore (must be SQL file exported by this class)
 	 * @param array $options See $restoreOptions
 	 * @return true on success, false on failure. Call the errors() method to retrieve errors.
 	 *
 	 */
 	protected function restorePDO($filename, array $options = array()) {
 
-		$database = $this->getDatabase();
 		$fp = fopen($filename, "rb");
 		$numInserts = 0;
 		$numTables = 0; 
@@ -902,7 +906,6 @@ class WireDatabaseBackup {
 				$numQueries++;
 				
 			} catch(\Exception $e) {
-				$this->trackException($e); 
 				$this->error($e->getMessage());
 				if($options['haltOnError']) break;
 			}
@@ -925,7 +928,7 @@ class WireDatabaseBackup {
 	/**
 	 * Import a database SQL file using exec(mysql)
 	 *
-	 * @param $filename Filename to restore (must be SQL file exported by this class)
+	 * @param string $filename Filename to restore (must be SQL file exported by this class)
 	 * @param array $options See $restoreOptions
 	 * @return true on success, false on failure. Call the errors() method to retrieve errors.
 	 *
@@ -975,9 +978,9 @@ class WireDatabaseBackup {
 	 * 
 	 * This method assumes both files follow the SQL dump format created by this class. 
 	 * 
-	 * @param $filename1 Original filename
-	 * @param $filename2 Filename that may have statements that will update/override those in filename1
-	 * @param $options
+	 * @param string $filename1 Original filename
+	 * @param string $filename2 Filename that may have statements that will update/override those in filename1
+	 * @param array $options
 	 * 
 	 */
 	public function restoreMerge($filename1, $filename2, $options) {
@@ -1088,13 +1091,21 @@ class WireDatabaseBackup {
 	/**
 	 * Execute an SQL query, either a string or PDOStatement
 	 * 
-	 * @param $query
-	 * @param bool|array $haltOnError May be booean, or array containing the property (i.e. $options array)
+	 * @param string $query
+	 * @param bool|array $options May be boolean (for haltOnError), or array containing the property (i.e. $options array)
 	 * @return bool Query result
-	 * @throws Exception if haltOnError, otherwise it populates $this->errors
+	 * @throws \Exception if haltOnError, otherwise it populates $this->errors
 	 * 
 	 */
-	protected function executeQuery($query, $haltOnError = false) {
+	protected function executeQuery($query, $options = array()) {
+		$defaults = array(
+			'haltOnError' => false
+		);
+		if(is_bool($options)) {
+			$defaults['haltOnError'] = $options;
+			$options = array();
+		}
+		$options = array_merge($defaults, $options);
 		$result = false;
 		try {
 			if(is_string($query)) {
@@ -1104,7 +1115,6 @@ class WireDatabaseBackup {
 			}
 		} catch(\Exception $e) {
 			if(empty($options['haltOnError'])) {
-				$this->trackException($e);
 				$this->error($e->getMessage());
 			} else {
 				throw $e;

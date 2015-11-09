@@ -119,6 +119,7 @@ textarea {
 textarea {
 	line-height: 1.4em; 
 	padding: 0.6em;
+	display: block;
 }
 
 textarea,
@@ -584,6 +585,14 @@ table {
 .Inputfields .Inputfield:not(.InputfieldStateCollapsed) > .InputfieldHeaderHidden > span {
 	/* hide header for inputfield */
 	display: none;
+}
+
+#content .InputfieldHeader + .InputfieldContent.langTabsContainer {
+	padding-bottom: 0.25em;
+}
+
+#content .InputfieldHeader + .InputfieldContent.langTabsContainer p.notes {
+	margin: 0 0 1em 0;
 }
 
 /****************************************************************************

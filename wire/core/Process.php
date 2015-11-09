@@ -21,6 +21,8 @@
  * @method Page installPage($name = '', $parent = null, $title = '', $template = 'admin', $extras = array())
  * @method int uninstallPage()
  * @method string executeNavJSON(array $options = array())
+ * @method ready()
+ * @method setConfigData(array $data)
  *
  */
 
@@ -98,8 +100,7 @@ abstract class Process extends WireData implements Module {
 	 */
 	private $_viewVars = array();
 	
-	public function __construct() {
-	}
+	public function __construct() { }
 
 	/**
 	 * Per the Module interface, Initialize the Process, loading any related CSS or JS files
@@ -402,7 +403,8 @@ abstract class Process extends WireData implements Module {
 				'className' => $class, 
 			);
 		}
-		if($options['sort']) ksort($data['list']); // sort alpha
+		// sort alpha, case insensitive
+		if($options['sort']) uksort($data['list'], 'strcasecmp');
 		$data['list'] = array_values($data['list']); 
 		
 		if(!empty($options['getArray'])) return $data;

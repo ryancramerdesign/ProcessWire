@@ -23,6 +23,10 @@ class ProcessLanguage extends ProcessPageType {
 			'requires' => 'LanguageSupport',
 			'icon' => 'language', 
 			'useNavJSON' => true,
+			'permission' => 'lang-edit',
+			'permissions' => array(
+				'lang-edit' => 'Administer languages and static translation files'
+				)
 			);
 	}
 

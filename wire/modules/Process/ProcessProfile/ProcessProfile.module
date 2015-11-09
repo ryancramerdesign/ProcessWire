@@ -70,6 +70,7 @@ class ProcessProfile extends Process implements ConfigurableModule, WirePageEdit
 			if($field->name == 'admin_theme' && !$inputfield->value) $inputfield->value = 'AdminThemeDefault';
 			if($field->type instanceof FieldtypeFile) $inputfield->noAjax = true; 
 			if($field->type instanceof FieldtypeImage) $inputfield->useImageEditor = false;
+			if($field->type instanceof FieldtypePassword && $field->name == 'pass') $inputfield->attr('autocomplete', 'off');
 			$form->add($inputfield); 
 		}
 

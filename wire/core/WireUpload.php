@@ -116,6 +116,10 @@ class WireUpload extends Wire {
 	 *
 	 */
 	protected function getPhpFiles() {
+		
+		// @todo per https://github.com/ryancramerdesign/ProcessWire/issues/1487
+		// if(!$filename = rawurldecode($_SERVER['HTTP_X_FILENAME'])) return false;
+		
 		if(isset($_SERVER['HTTP_X_FILENAME']) && $this->allowAjax) return $this->getPhpFilesAjax();
 		if(empty($_FILES) || !count($_FILES)) return false; 
 		if(!isset($_FILES[$this->name]) || !is_array($_FILES[$this->name])) return false;

@@ -8,6 +8,10 @@
  * 
  * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
  * https://processwire.com
+ * 
+ * @method WireArray load(WireArray $items, $selectors = null);
+ * @method bool save(Saveable $item);
+ * @method bool delete(Saveable $item);
  *
  */
 
