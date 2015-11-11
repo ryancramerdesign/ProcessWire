@@ -48,6 +48,7 @@
  * @property bool $parseVars [true] Whether variables in a selector should be parsed and converted to values
  * @property string $subfieldIdentifier ...
  * @property string $groupIdentifier (1)
+ * @property int $maxUsers [20] Maximum number of users selectable. If more than regular text input used rather than select.
  *
  *
  */
@@ -199,6 +200,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		$this->setting('datePlaceholder', $this->_('yyyy-mm-dd')); // date format placeholder (what users see)
 		$this->setting('timeFormat', $this->_('H:i')); // time format
 		$this->setting('timePlaceholder', $this->_('hh:mm')); // time format placeholder (what users see)
+		$this->setting('maxUsers', 20); // text input rather than select used when useres qty is greater than this
 		
 		parent::__construct();
 	}
@@ -361,14 +363,19 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			$templates[$template->id] = $label;
 		}
 
-		// make users selectable if there are under 100 of them
+		// make users selectable if there are under $maxUsers of them
 		// otherwise utilize the user ID property
 		$users = array(); 
 		$numUsers = $this->wire('pages')->count("template=user, include=all"); 
-		if($numUsers < 100) { 
+		if($numUsers < $this->maxUsers) { 
+			$usersInput = 'select';
+			$usersOperators = array('=', '!=');
 			foreach($this->wire('users') as $user) {
 				$users[$user->id] = $user->name; 
 			}
+		} else {
+			$usersInput = 'name';
+			$usersOperators = array('=', '%=', '!=');
 		}
 		
 		$titleField = $this->wire('fields')->get('title'); 
@@ -426,16 +433,16 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 				'operators' => $this->operatorsByType['datetime'],
 			),
 			'modified_users_id' => array(
-				'input' => 'select',
+				'input' => $usersInput,
 				'label' => $this->_('Modified by user'),
 				'options' => $users,
-				'operators' => array('=', '!='),
+				'operators' => $usersOperators
 				),
 			'created_users_id' => array(
-				'input' => 'select', 
+				'input' => $usersInput, 
 				'label' => $this->_('Created by user'),
 				'options' => $users,
-				'operators' => array('=', '!='), 
+				'operators' => $usersOperators
 				),
 			'num_children' => array(
 				'input' => 'number',
@@ -478,9 +485,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			); 
 		
 		if(!count($users)) {
-			$this->systemFields['modified_users_id']['input'] = 'number';
 			unset($this->systemFields['modified_users_id']['options']);
-			$this->systemFields['created_users_id']['input'] = 'number';
 			unset($this->systemFields['created_users_id']['options']); 
 		}
 
@@ -1721,10 +1726,27 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		$userSelectors->setSelectorString($selectorString); 
 	
 		foreach($userSelectors as $s) {
+			
 			if($s->quote == '[' && !$this->allowSubselectors) {
 				$this->error("Subselectors are disabled"); 
 				$userSelectors->remove($s);
 				$userSelectors->add(new SelectorLessThan('id', 0)); // forced non match
+			}
+		
+			if(in_array($s->field, array('modified_users_id', 'created_users_id')) && !ctype_digit("$s->value")) {
+				$ids = array();
+				foreach($s->values as $key => $name) {
+					$property = ctype_digit("$name") ? 'id' : 'name';
+					$users = $this->wire('users')->find("$property$s->operator" . $this->wire('sanitizer')->pageName($name));
+					foreach($users as $u) $ids[$u->id] = $u->id;
+				}
+				if($s->operator != '=' && $s->operator != '!=') {
+					$userSelectors->remove($s);
+					$s = new SelectorEqual($s->field, count($ids) ? $ids : 0);
+					$userSelectors->add($s);
+				} else {
+					$s->value = count($ids) ? $ids : 0;
+				}
 			}
 		}
 

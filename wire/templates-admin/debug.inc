@@ -15,13 +15,23 @@
 				<tr>
 				<th>ID</th>
 				<th>Path</th>
-				<th>Title</th>
+				<th>Type</th>
+				<th>Loader</th>
 				</tr>
 				</thead>
 				<tbody>
 				<?php 
 				foreach($pages->getCache() as $p) {
-					echo "\n<tr><td>$p->id</td><td>$p->path</td><td>$p->title</td></tr>";
+					$parts = explode('/', trim($p->path, '/'));
+					$name = array_pop($parts);
+					$path = implode('/', $parts) . "/<b>$name</b>/";
+					if($path[0] != '/') $path = "/$path";
+					echo "\n<tr>" . 
+						"<td>$p->id</td>" . 
+						"<td>$path</td>" . 
+						"<td>" . wireClassName($p) . "</td>" . 
+						"<td>$p->_debug_loader</td>" . 
+						"</tr>";
 				}
 				?>
 				</tbody>

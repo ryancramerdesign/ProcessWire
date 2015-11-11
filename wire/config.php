@@ -838,7 +838,9 @@ $config->pageEdit = array(
  * Additional core logs
  * 
  * All activities from the API functions corresponding with the given log names will be logged. 
- * Options that can be specified are: pages, fields, templates, modules, exceptions
+ * Options that can be specified are: pages, fields, templates, modules, exceptions, deprecated.
+ * 
+ * Use log "deprecated" to log deprecated calls (during development only).
  * 
  * @var array
  * 

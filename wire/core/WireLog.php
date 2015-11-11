@@ -124,7 +124,7 @@ class WireLog extends Wire {
 	 * 
 	 */
 	public function deprecatedCall() {
-		if(!$this->wire('config')->debug) return;
+		if(!in_array('deprecated', $this->wire('config')->logs)) return;
 		$backtrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
 		array_shift($backtrace);
 		$a = array_shift($backtrace);

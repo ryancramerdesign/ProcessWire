@@ -561,6 +561,7 @@ class WireCache extends Wire {
 			$result = $query->execute();
 			$qty = $result ? $query->rowCount() : 0;
 			if($qty) $this->log(sprintf($this->_('General maintenance expired %d cache(s)'), $qty));
+			$query->closeCursor();
 
 		} catch(\Exception $e) {
 			$this->trackException($e, false);

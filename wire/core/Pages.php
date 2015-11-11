@@ -299,6 +299,10 @@ class Pages extends Wire {
 				if($count > 1) $note .= " ... " . $pages->last()->path;  
 			}
 			Debug::saveTimer("$caller($selectorString)", $note); 
+			foreach($pages as $item) {
+				if($item->_debug_loaded) continue;
+				$item->setQuietly('_debug_loader', "$caller($selectorString)");
+			}
 		}
 	
 		if($this->hasHook('found()')) $this->found($pages, array(
