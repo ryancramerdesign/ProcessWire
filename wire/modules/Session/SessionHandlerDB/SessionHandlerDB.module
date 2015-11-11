@@ -107,7 +107,11 @@ class SessionHandlerDB extends WireSessionHandler implements Module, Configurabl
 		
 		$query = $database->prepare($sql); 
 		$result = $query->execute() ? true : false;
-		$database->exec("SELECT RELEASE_LOCK('$id')");
+		$query->closeCursor();
+
+		$query = $database->prepare("SELECT RELEASE_LOCK('$id')");
+		$query->execute();
+		$query->closeCursor();
 		
 		return $result; 
 	}
