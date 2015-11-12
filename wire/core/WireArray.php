@@ -527,6 +527,7 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	 * 
 	 * @param int|string $key Key of item to check or selector.
 	 * @return bool True if the item exists, false if not. 
+	 * 
 	 */ 
 	public function has($key) {
 
@@ -1254,6 +1255,7 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	 * Fulfills \Countable interface. 
 	 * 
 	 * @return int
+	 * 
 	 */
 	public function count() {
 		return count($this->data); 
@@ -1266,6 +1268,7 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	 * 
 	 * @param int|string $key Key of item to set.
 	 * @param int|string|array|object $value Value of item. 
+	 * 
 	 */
 	public function offsetSet($key, $value) {
 		$this->set($key, $value); 
@@ -1276,9 +1279,14 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	 *
 	 * @param int|string $key Key of item to retrieve. 
 	 * @return int|string|array|object Value of item requested, or false if it doesn't exist. 
+	 * 
 	 */
 	public function offsetGet($key) {
-		return $this->get($key); 
+		if($this->offsetExists($key)) {
+			return $this->data[$key];
+		} else {
+			return false;
+		}
 	}
 	
 	/**
@@ -1288,11 +1296,16 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	 *
 	 * @param int|string $key Key of the item to unset. 
 	 * @return bool True if item existed and was unset. False if item didn't exist. 
+	 * 
 	 */
 	public function offsetUnset($key) {
-		return $this->remove($key); 
+		if($this->offsetExists($key)) {
+			$this->remove($key); 
+			return true;
+		} else {
+			return false;
+		}
 	}
-
 
 	/**
 	 * Determines if the given index exists in this WireArray. 	
@@ -1301,9 +1314,10 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	 * 
 	 * @param int|string $key Key of the item to check for existance.
 	 * @return bool True if the item exists, false if not.
+	 * 
 	 */
 	public function offsetExists($key) {
-		return $this->has($key); 
+		return array_key_exists($key, $this->data);
 	}
 
 	/**

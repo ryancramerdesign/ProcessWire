@@ -15,7 +15,7 @@
  *
  */
 
-class WireData extends Wire implements \IteratorAggregate {
+class WireData extends Wire implements \IteratorAggregate, \ArrayAccess {
 
 	/**
 	 * Array where get/set properties are stored
@@ -343,6 +343,63 @@ class WireData extends Wire implements \IteratorAggregate {
 	 */
 	public function __unset($key) {
 		$this->remove($key); 
+	}
+
+	/**
+	 * Sets an index in the WireArray.
+	 *
+	 * For the ArrayAccess interface.
+	 *
+	 * @param int|string $key Key of item to set.
+	 * @param int|string|array|object $value Value of item.
+	 * 
+	 */
+	public function offsetSet($key, $value) {
+		$this->set($key, $value);
+	}
+
+	/**
+	 * Returns the value of the item at the given index, or false if not set.
+	 *
+	 * @param int|string $key Key of item to retrieve.
+	 * @return int|string|array|object Value of item requested, or false if it doesn't exist.
+	 * 
+	 */
+	public function offsetGet($key) {
+		$value = $this->get($key);
+		return is_null($value) ? false : $value;
+	}
+
+	/**
+	 * Unsets the value at the given index.
+	 *
+	 * For the ArrayAccess interface.
+	 *
+	 * @param int|string $key Key of the item to unset.
+	 * @return bool True if item existed and was unset. False if item didn't exist.
+	 * 
+	 */
+	public function offsetUnset($key) {
+		if($this->__isset($key)) {
+			$this->remove($key);
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+
+	/**
+	 * Determines if the given index exists in this WireData.
+	 *
+	 * For the ArrayAccess interface.
+	 *
+	 * @param int|string $key Key of the item to check for existence.
+	 * @return bool True if the item exists, false if not.
+	 * 
+	 */
+	public function offsetExists($key) {
+		return $this->__isset($key);
 	}
 
 	/**
