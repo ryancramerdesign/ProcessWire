@@ -134,7 +134,7 @@
 	<!-- footer -->
 	<footer id='footer'>
 		<p>
-		<a href='http://processwire.com'><?php echo __('Powered by ProcessWire CMS'); ?></a> &nbsp; / &nbsp; 
+		<a href='https://processwire.com'><?php echo __('Powered by ProcessWire CMS'); ?></a> &nbsp; / &nbsp; 
 		<?php
 		if($user->isLoggedin()) {
 			// if user is logged in, show a logout link

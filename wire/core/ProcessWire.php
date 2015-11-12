@@ -7,9 +7,9 @@
  * 
  * ProcessWire 2.x 
  * Copyright (C) 2015 by Ryan Cramer 
- * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
  * 
- * http://processwire.com
+ * https://processwire.com
  * 
  * @todo: get language permissions to work with extra actions
  * 
@@ -35,11 +35,12 @@ require(PROCESSWIRE_CORE_PATH . "shutdown.php");
 class ProcessWire extends Wire {
 
 	const versionMajor = 2; 
-	const versionMinor = 6; 
-	const versionRevision = 23; 
-	const versionSuffix = 'rc2';
+	const versionMinor = 7; 
+	const versionRevision = 0; 
+	const versionSuffix = '';
 	
-	const indexVersion = 250; // required version for index.php file (represented by PROCESSWIRE define)
+	const indexVersion = 270; // required version for index.php file (represented by PROCESSWIRE define)
+	const htaccessVersion = 250; // required version for .htaccess file
 	
 	const statusBoot = 0; // system is booting
 	const statusInit = 2; // system and modules are initializing

@@ -9,6 +9,10 @@
  * accommodating just about any Fieldtype. But it is built to be
  * extended for more specific needs in various Fieldtypes. 
  * 
+ * ProcessWire 2.x
+ * Copyright 2015 by Ryan Cramer
+ * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
+ * 
  * USAGE:
  * 
  * $m = new MarkupFieldtype($page, $field, $value);

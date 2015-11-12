@@ -12,13 +12,13 @@
  * 
  * ProcessWire 2.x 
  * Copyright (C) 2015 by Ryan Cramer 
- * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
  * 
  * https://processwire.com
  *
  *
- * @see http://processwire.com/api/cheatsheet/#session Cheatsheet
- * @see http://processwire.com/api/variables/session/ Offical $session API variable Documentation
+ * @see https://processwire.com/api/cheatsheet/#session Cheatsheet
+ * @see https://processwire.com/api/variables/session/ Offical $session API variable Documentation
  *
  * @method User login() login($name, $pass) Login the user identified by $name and authenticated by $pass. Returns the user object on successful login or null on failure.
  * @method Session logout() logout() Logout the current user, and clear all session variables.

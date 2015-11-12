@@ -6,6 +6,10 @@
  * @method PageArray find() find($selectorString) Return the permissions(s) matching the the given selector query.
  * @method Role get() get(mixed $selector) Return permission by given name, numeric ID or a selector string.
  * @method array getOptionalPermissions($omitInstalled = true)
+ * 
+ * ProcessWire 2.x
+ * Copyright 2015 by Ryan Cramer
+ * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
  *
  */
 class Permissions extends PagesType {

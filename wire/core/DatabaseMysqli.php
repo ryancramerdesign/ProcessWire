@@ -8,6 +8,9 @@
  * actually instantiating mysqli (and forming a mysql connection) until the $db
  * variable is called upon to do something.
  * 
+ * Copyright 2015 by Ryan Cramer
+ * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
+ * 
  */
 
 class DatabaseMysqli {

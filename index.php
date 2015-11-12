@@ -12,21 +12,15 @@
  * 
  * ProcessWire 2.x 
  * Copyright (C) 2015 by Ryan Cramer 
- * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * Licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
  * 
- * http://processwire.com
+ * https://processwire.com
  *
- * @version 2.5
- *
- * Index Versions
- * ==============
- * 252 Extract all fuel to local API vars when in external or cli mode.
- * 251 Add $config->debugIf option.
- * 250 PW 2.5 support.
+ * @version 2.7
  *
  */
 
-define("PROCESSWIRE", 251); // index version
+define("PROCESSWIRE", 270); // index version
 
 /**
  * Build the ProcessWire configuration

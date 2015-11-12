@@ -3,6 +3,10 @@
 /**
  * Base class for FileValidator modules
  * 
+ * ProcessWire 2.x
+ * Copyright 2015 by Ryan Cramer
+ * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
+ * 
  * To create a FileValidator module: 
  * 
  * 1. Create a class that extends this and follow the naming convention: FileValidator[Something].

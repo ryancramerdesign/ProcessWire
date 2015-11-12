@@ -9,9 +9,9 @@
  * http://ckeditor.com
  *
  * ProcessWire Module Copyright (C) 2015 by Ryan Cramer 
- * http://processwire.com
+ * https://processwire.com
  * 
- * Licensed under GNU/GPL v2
+ * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
  * 
  * @property bool|int $inlineMode ($default=0)
  * @property bool|int $usePurifier (default=0)

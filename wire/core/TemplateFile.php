@@ -6,10 +6,10 @@
  * A template file that will be loaded and executed as PHP, and it's output returned
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
- * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * Copyright (C) 2015 by Ryan Cramer 
+ * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
  * 
- * http://processwire.com
+ * https://processwire.com
  * 
  * @property bool $halt
  *

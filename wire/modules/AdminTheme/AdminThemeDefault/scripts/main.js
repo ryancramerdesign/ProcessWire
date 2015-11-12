@@ -1,7 +1,7 @@
 /**
  * ProcessWire Admin Theme jQuery/Javascript
  *
- * Copyright 2012 by Ryan Cramer
+ * Copyright 2015 by Ryan Cramer
  * 
  */
 

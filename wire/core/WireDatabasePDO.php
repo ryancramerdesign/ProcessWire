@@ -6,10 +6,10 @@
  * Serves as a wrapper to PHP's PDO class
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
- * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * Copyright (C) 2015 by Ryan Cramer 
+ * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
  * 
- * http://processwire.com
+ * https://processwire.com
  *
  */
 

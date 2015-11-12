@@ -13,13 +13,13 @@
  * 
  * ProcessWire 2.x 
  * Copyright (C) 2015 by Ryan Cramer 
- * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
  * 
- * http://processwire.com
+ * https://processwire.com
  * 
  */
 
-define("PROCESSWIRE_INSTALL", 2.6); 
+define("PROCESSWIRE_INSTALL", 2.7); 
 
 /**
  * class Installer
@@ -126,7 +126,7 @@ class Installer {
 	 */
 	protected function welcome() {
 		$this->h("Welcome. This tool will guide you through the installation process."); 
-		$this->p("Thanks for choosing ProcessWire! If you downloaded this copy of ProcessWire from somewhere other than <a href='http://processwire.com/'>processwire.com</a> or <a href='https://github.com/ryancramerdesign/ProcessWire' target='_blank'>our GitHub page</a>, please download a fresh copy before installing. If you need help or have questions during installation, please stop by our <a href='http://processwire.com/talk/' target='_blank'>support board</a> and we'll be glad to help.");
+		$this->p("Thanks for choosing ProcessWire! If you downloaded this copy of ProcessWire from somewhere other than <a href='https://processwire.com/'>processwire.com</a> or <a href='https://github.com/ryancramerdesign/ProcessWire' target='_blank'>our GitHub page</a>, please download a fresh copy before installing. If you need help or have questions during installation, please stop by our <a href='https://processwire.com/talk/' target='_blank'>support board</a> and we'll be glad to help.");
 		$this->btn("Get Started", 0, 'sign-in'); 
 	}
 
@@ -367,7 +367,7 @@ class Installer {
 		}
 
 		if($this->numErrors) {
-			$this->p("One or more errors were found above. We recommend you correct these issues before proceeding or <a href='http://processwire.com/talk/'>contact ProcessWire support</a> if you have questions or think the error is incorrect. But if you want to proceed anyway, click Continue below.");
+			$this->p("One or more errors were found above. We recommend you correct these issues before proceeding or <a href='https://processwire.com/talk/'>contact ProcessWire support</a> if you have questions or think the error is incorrect. But if you want to proceed anyway, click Continue below.");
 			$this->btn("Check Again", 1, 'refresh', false, true); 
 			$this->btn("Continue to Next Step", 2, 'angle-right', true); 
 		} else {

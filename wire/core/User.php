@@ -6,13 +6,13 @@
  * A type of Page used for storing an individual User
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
- * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * Copyright (C) 2015 by Ryan Cramer 
+ * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
  * 
- * http://processwire.com
+ * https://processwire.com
  *
  *
- * @link http://processwire.com/api/variables/user/ Offical $user API variable Documentation
+ * @link https://processwire.com/api/variables/user/ Offical $user API variable Documentation
  *
  * @property string email Get or set email address for this user.
  * @property string pass Set the user's password. Note that when getting, this returns a hashed version of the password, so it is not typically useful to get this property. However, it is useful to set this property if you want to change the password. When you change a password, it is assumed to be the non-hashed/non-encrypted version. ProcessWire will hash it automatically when the user is saved.

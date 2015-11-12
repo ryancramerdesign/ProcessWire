@@ -8,6 +8,10 @@
  * @method Role add() add(string $name) Add new Role with the given name and return it.
  * @method bool save() save(Role $role) Save given role. $role must be an instance of Role.
  * @method bool delete() delete(Role $role) Delete given role. $role must be an instance of Role.
+ * 
+ * ProcessWire 2.x
+ * Copyright 2015 by Ryan Cramer
+ * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
  *
  */ 
 

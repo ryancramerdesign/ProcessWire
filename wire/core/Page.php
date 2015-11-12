@@ -10,12 +10,12 @@
  * 
  * ProcessWire 2.x 
  * Copyright (C) 2015 by Ryan Cramer 
- * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
  * 
- * http://processwire.com
+ * https://processwire.com
  *
- * @link http://processwire.com/api/variables/page/ Offical $page Documentation
- * @link http://processwire.com/api/selectors/ Official Selectors Documentation
+ * @link https://processwire.com/api/variables/page/ Offical $page Documentation
+ * @link https://processwire.com/api/selectors/ Official Selectors Documentation
  *
  * @property int $id The numbered ID of the current page
  * @property string $name The name assigned to the page, as it appears in the URL

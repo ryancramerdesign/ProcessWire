@@ -67,11 +67,11 @@
  * 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2011 by Ryan Cramer 
- * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * Copyright (C) 2015 by Ryan Cramer 
+ * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * https://processwire.com
+ * 
  * 
  *
  */
@@ -88,7 +88,7 @@ class LazyCron extends WireData implements Module {
 				"is guaranteed to be at least the time requested, rather than exactly the " . 
 				"time requested. This is fine for most cases, but you can make it not lazy " . 
 				"by connecting this to a real CRON job. See the module file for details. ", 
-			'href' => 'http://processwire.com/talk/index.php/topic,284.0.html',
+			'href' => 'https://processwire.com/talk/index.php/topic,284.0.html',
 			'permanent' => false, 
 			'singular' => true, 
 			'autoload' => true, 

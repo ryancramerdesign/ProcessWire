@@ -10,9 +10,9 @@
  * 
  * ProcessWire 2.x 
  * Copyright (C) 2015 by Ryan Cramer 
- * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
  * 
- * http://processwire.com
+ * https://processwire.com
  *
  */
 
@@ -945,7 +945,7 @@ class ProcessTemplate extends Process {
 		$field->icon = 'clock-o';
 		$field->description = $this->_('To cache the output of this template, enter the time (in seconds) that the output should be cached. Caching can help significantly with page render time on resource-heavy pages. But caching should not be used on templates that need to process constantly changing data, like from forms or sessions. Also note that URL segments are cachable, but GET and POST vars are not.'); // Cach time description
 		$field->notes = $this->_('For example: 60 = 1 minute, 600 = 10 minutes, 3600 = 1 hour, 86400 = 1 day, 604800 = 1 week, 2419200 = 1 month.'); // Cache time notes/examples
-		//$field->notes .= "\n" . sprintf($this->_('If using [ProCache](%s) there is no need to use the cache setting here.'), 'http://processwire.com/api/modules/procache/'); 
+		//$field->notes .= "\n" . sprintf($this->_('If using [ProCache](%s) there is no need to use the cache setting here.'), 'https://processwire.com/api/modules/procache/'); 
 		$field->attr('value', abs($template->cache_time)); 
 		$field->showIf = '_cache_status!=0';
 		$field->requiredIf = '_cache_status!=0';
@@ -1485,7 +1485,7 @@ class ProcessTemplate extends Process {
 		$field->attr('name', 'childNameFormat');
 		$field->label = $this->_('Name format for children');
 		$field->description = $this->_('Optionally specify a format for page names used when a new child page is added. This enables the "Page Add" step to be skipped when adding a new page. In order to work, a single (1) template must be selected for the "Allowed template(s) for children" field above.'); // Page name format, description
-		$field->notes = $this->_('Leave blank to disable. Enter "title" (without quotes) to auto-generate the name from the page title. More options including date formats are available as well. [More](http://processwire.com/api/modules/process-template/)') . "\n"; // Page name format notes
+		$field->notes = $this->_('Leave blank to disable. Enter "title" (without quotes) to auto-generate the name from the page title. More options including date formats are available as well. [More](https://processwire.com/api/modules/process-template/)') . "\n"; // Page name format notes
 		$field->attr('value', $template->childNameFormat); 
 		$field->collapsed = Inputfield::collapsedBlank;
 		$field->showIf = 'childTemplates.count=1, noChildren!=1'; 

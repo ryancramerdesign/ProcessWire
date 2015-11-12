@@ -9,7 +9,7 @@
  *
  * ProcessWire 2.x
  * Copyright (C) 2015 by Ryan Cramer
- * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
  *
  * https://processwire.com
  *
@@ -103,11 +103,11 @@ class AdminThemeRenoHelpers extends AdminThemeDefaultHelpers {
 				"class" => "superuser",
 				"label" => "<i class='fa fa-bolt'></i>",
 				"children" => array(
-					"<i class='fa fa-life-ring'></i> " . $this->_('Support Forums')  => array('http://processwire.com/talk/', 'target="_blank"'),
+					"<i class='fa fa-life-ring'></i> " . $this->_('Support Forums')  => array('https://processwire.com/talk/', 'target="_blank"'),
 					"<i class='fa fa-book'></i> " . $this->_('Documentation') => array('https://processwire.com/docs/', 'target="_blank"'),
 					"<i class='fa fa-github'></i> " . $this->_('Github Repo') => array('https://github.com/ryancramerdesign/ProcessWire/', 'target="_blank"'),
 					"<i class='fa fa-code'></i> " . $this->_('Cheatsheet')  => array('http://cheatsheet.processwire.com', 'target="_blank"'),
-					"<i class='fa fa-anchor'></i> " . $this->_('Captain Hook')  => array('http://processwire.com/api/hooks/captain-hook/', 'target="_blank"'),
+					"<i class='fa fa-anchor'></i> " . $this->_('Captain Hook')  => array('https://processwire.com/api/hooks/captain-hook/', 'target="_blank"'),
 				)
 			);
 		}

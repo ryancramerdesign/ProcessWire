@@ -4,6 +4,10 @@
  * The Users class serves as the $users API variable. 
  *
  * @method PageArray find() find($selectorString) Return the user(s) matching the the given selector query.
+ * 
+ * ProcessWire 2.x
+ * Copyright 2015 by Ryan Cramer
+ * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
  *
  */
 

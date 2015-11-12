@@ -7,6 +7,7 @@
  * it references are from your template namespace. 
  *
  * Copyright 2015 by Ryan Cramer
+ * This file licensed under Mozilla Public License v2.0 (http://mozilla.org/MPL/2.0/)
  *
  */
 
@@ -47,7 +48,7 @@ function _checkForHttpHostError($config) {
 		__('Unrecognized HTTP host:') . "'"  . 
 		htmlentities($_SERVER['HTTP_HOST'], ENT_QUOTES, 'UTF-8') . "' - " . 
 		__('Please update your $config->httpHosts setting in /site/config.php') . " - " . 
-		"<a target='_blank' href='http://processwire.com/api/variables/config/#httphosts'>" . __('read more') . "</a>", 
+		"<a target='_blank' href='https://processwire.com/api/variables/config/#httphosts'>" . __('read more') . "</a>", 
 		Notice::allowMarkup
 		); 
 }

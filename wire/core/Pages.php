@@ -10,13 +10,13 @@
  *
  * ProcessWire 2.x 
  * Copyright (C) 2015 by Ryan Cramer 
- * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
  * 
- * http://processwire.com
+ * https://processwire.com
  *
  *
- * @link http://processwire.com/api/variables/pages/ Offical $pages Documentation
- * @link http://processwire.com/api/selectors/ Official Selectors Documentation
+ * @link https://processwire.com/api/variables/pages/ Offical $pages Documentation
+ * @link https://processwire.com/api/selectors/ Official Selectors Documentation
  *
  * @method PageArray find() find($selectorString, array $options = array()) Find and return all pages matching the given selector string. Returns a PageArray.
  * @method bool save() save(Page $page) Save any changes made to the given $page. Same as : $page->save() Returns true on success

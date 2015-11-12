@@ -7,10 +7,10 @@
  * front end to PHP's $_GET, $_POST, and $_COOKIE superglobals.
  *
  * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
- * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * Copyright (C) 2015 by Ryan Cramer 
+ * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
  * 
- * http://processwire.com
+ * https://processwire.com
  *
  */
 
@@ -26,7 +26,7 @@
  * Each WireInputData is not instantiated unless specifically asked for. 
  *
  *
- * @link http://processwire.com/api/variables/input/ Offical $input API variable Documentation
+ * @link https://processwire.com/api/variables/input/ Offical $input API variable Documentation
  * 
  * @method string name($varName) Sanitize to ProcessWire name format
  * @method string varName($varName) Sanitize to PHP variable name format
@@ -180,7 +180,7 @@ class WireInputData implements ArrayAccess, IteratorAggregate, Countable {
 /**
  * Manages the group of GET, POST, COOKIE and whitelist vars, each of which is a WireInputData object.
  *
- * @link http://processwire.com/api/variables/input/ Offical $input API variable Documentation
+ * @link https://processwire.com/api/variables/input/ Offical $input API variable Documentation
  * 
  * @property string[] $urlSegments Retrieve all URL segments (array). This requires url segments are enabled on the template of the requested page. You can turn it on or off under the url tab when editing a template.
  * @property WireInputVars $post POST variables

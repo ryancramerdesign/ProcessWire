@@ -9,12 +9,12 @@
  * See the Wire class definition for more details about the addHook method. 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
- * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * Copyright (C) 2015 by Ryan Cramer 
+ * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
  * 
- * http://processwire.com
+ * https://processwire.com
  *
- * @link http://processwire.com/api/variables/sanitizer/ Offical $sanitizer API variable Documentation
+ * @link https://processwire.com/api/variables/sanitizer/ Offical $sanitizer API variable Documentation
  * 
  * @method array($value, $sanitizer = null, array $options = array())
  *
@@ -631,7 +631,7 @@ class Sanitizer extends Wire {
 
 				} else if($options['allowQuerystring']) {
 					// we'll construct a fake domain so we can use FILTER_VALIDATE_URL rules
-					$fake = 'http://processwire.com/';
+					$fake = 'https://processwire.com/';
 					$slash = strpos($value, '/') === 0 ? '/' : '';
 					$value = $fake . ltrim($value, '/'); 
 					$value = filter_var($value, FILTER_VALIDATE_URL); 

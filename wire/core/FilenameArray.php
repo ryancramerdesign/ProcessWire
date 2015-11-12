@@ -1,5 +1,12 @@
 <?php
 
+/**
+ * ProcessWire 2.x
+ * Copyright 2015 by Ryan Cramer
+ * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
+ * 
+ */
+
 class FilenameArray implements IteratorAggregate, Countable {
 
 	protected $data = array();

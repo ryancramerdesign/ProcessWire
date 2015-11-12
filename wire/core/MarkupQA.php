@@ -14,6 +14,10 @@
  * - For #2-4 use the checkImgTags($value) method. 
  * 
  * Runtime errors are logged to: /site/assets/logs/markup-qa-errors.txt
+ * 
+ * ProcessWire 2.x
+ * Copyright 2015 by Ryan Cramer
+ * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
  *
  */ 
 

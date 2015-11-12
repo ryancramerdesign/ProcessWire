@@ -8,6 +8,10 @@
  * Descending class name should follow the format: [ModuleName]Config and file [ModuleName]Config.php
  * located in the same directory as the module it is configuring. 
  * 
+ * ProcessWire 2.x
+ * Copyright 2015 by Ryan Cramer
+ * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
+ * 
  */
 
 class ModuleConfig extends WireData {

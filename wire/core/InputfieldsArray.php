@@ -4,6 +4,10 @@
  * A WireArray of Inputfield instances, as used by InputfieldWrapper. 
  *
  * The default numeric indexing of a WireArray is not overridden.
+ * 
+ * ProcessWire 2.x
+ * Copyright 2015 by Ryan Cramer
+ * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
  *
  */
 class InputfieldsArray extends WireArray {

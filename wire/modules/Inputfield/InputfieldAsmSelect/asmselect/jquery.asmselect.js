@@ -1,12 +1,10 @@
 /*
  * Alternate Select Multiple (asmSelect) 1.3 - jQuery Plugin
- * http://www.ryancramer.com/projects/asmselect/
+ * /projects/asmselect/
  * 
- * Copyright (c) 2009-2014 by Ryan Cramer - http://www.ryancramer.com
+ * Copyright (c) 2009-2015 by Ryan Cramer - 
  * 
- * Dual licensed under the MIT (MIT-LICENSE.txt)
- * and GPL (GPL-LICENSE.txt) licenses.
- *
+ * Licensed under the MIT license
  *
  */
 (function($) {

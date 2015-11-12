@@ -5,11 +5,11 @@
  *
  * ProcessWire 2.x
  * Copyright (C) 2013 by Ryan Cramer
- * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
  * 
  * Look for errors at shutdown and log them, plus echo the error if the page is editable
  *
- * http://processwire.com
+ * https://processwire.com
  *
  */
 

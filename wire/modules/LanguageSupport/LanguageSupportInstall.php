@@ -7,11 +7,11 @@
  * didn't want to keep all this code in the main module that's loaded every request.
  *
  * ProcessWire 2.x 
- * Copyright (C) 2012 by Ryan Cramer 
- * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * Copyright (C) 2015 by Ryan Cramer 
+ * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * https://processwire.com
+ * 
  *
  */
 

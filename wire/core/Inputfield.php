@@ -7,7 +7,7 @@
  * 
  * ProcessWire 2.x 
  * Copyright (C) 2015 by Ryan Cramer 
- * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
  * 
  * https://processwire.com
  *
@@ -724,7 +724,7 @@ abstract class Inputfield extends WireData implements Module {
 	public function ___getConfigInputfields() {
 
 		$conditionsText = $this->_('Conditions are expressed with a "field=value" selector containing fields and values to match. Multiple conditions should be separated by a comma.');
-		$conditionsNote = $this->_('Read more about [how to use this](http://processwire.com/api/selectors/inputfield-dependencies/).'); 
+		$conditionsNote = $this->_('Read more about [how to use this](https://processwire.com/api/selectors/inputfield-dependencies/).'); 
 
 		$fields = new InputfieldWrapper();
 
