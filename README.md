@@ -29,7 +29,7 @@ can be read at: https://processwire.com/download/readme
    - [Upgrading from ProcessWire 2.0](#upgrading-from-processwire-20)
    - [Troubleshooting an Upgrade](#troubleshooting-an-upgrade)
 4. [Debug Mode](#debug-mode)
-5. [Support](#support)
+5. [Additional Resources](#additional-resources)
 
 ## About ProcessWire
 
@@ -254,7 +254,7 @@ logging in to your admin and going to Setup > ProCache.
 
 - If using Form Builder make sure you have the latest version,
   as past versions did not support ProcessWire 2.4+. With ProcessWire
-  2.7 we recommend FormBuilder 0.2.4 or 0.2.5+. 
+  2.7 we recommend FormBuilder 0.2.5+. 
 
 - If using ProCache and you upgraded your .htaccess file, you should 
   go to your ProCache settings after the upgrade to have it update 
@@ -274,6 +274,12 @@ these directories/files:
 - /index.php
 - /COPYRIGHT.txt (if present)
 - /LICENSE.txt (if present)
+
+Next, check if any of your modules would benefit from upgrades. If 
+using any of the Pro modules, there are newer versions that provide
+additional capabilities for ProcessWire 2.6 dev and 2.7. Visit the 
+relevant support board at the ProcessWire forums to download the
+latest. 
   
 ### Upgrading from ProcessWire 2.5
 
@@ -323,6 +329,8 @@ In addition, please note the following:
   warning notice. But it is a good idea to remove duplicate copies 
   of these modules when possible. 
 
+Next, review the upgrade instructions for 2.6 to 2.7 for any 
+additional instructions. 
 
 ### Upgrading from ProcessWire 2.2 or 2.3
 
@@ -353,6 +361,9 @@ files as well.
 $config->httpHosts = array('domain.com', 'www.domain.com'); 
 ```
 Replace domain.com with the hostname(s) your site runs from.
+
+Next, review the upgrade instructions for 2.5 to 2.6 and 2.6 to 2.7
+for any additional instructions. 
 
 
 ### Upgrading from ProcessWire 2.1
@@ -416,10 +427,15 @@ notices, etc. Of course, you'll want to set it back to false once you've
 resolved any issues. 
 
 
-## Support
+## Additional Resources
 
-Get support in the ProcessWire forum at:
-[http://processwire.com/talk/](http://processwire.com/talk/)
+- [ProcessWire support board and forums](https://processwire.com/talk/)
+- [ProcessWire documentation and tutorials](https://processwire.com/docs/)
+- [ProcessWire modules, plugins and language packs](http://modules.processwire.com/)
+- [Subscribe to the ProcessWire newsletter](https://processwire.com/contact/subscribe/)
+- [ProcessWire News at weekly.pw](http://weekly.pw)
+- [ProcessWire API cheatsheet](http://cheatsheet.processwire.com)
+- [ProcessWire developer directory](http://directory.processwire.com/)
 
 ------
 
