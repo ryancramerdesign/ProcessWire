@@ -9,7 +9,7 @@ class InputfieldURL extends InputfieldText {
 	public static function getModuleInfo() {
 		return array(
 			'title' => __('URL', __FILE__), // Module Title
-			'summary' => __('URL in valid format'), // Module Summary
+			'summary' => __('URL in valid format', __FILE__), // Module Summary
 			'version' => 101,
 			);
 	}
@@ -23,7 +23,8 @@ class InputfieldURL extends InputfieldText {
 		$this->label = 'URL';
 		$this->set('noRelative', 0); // whether relative URLs are disabled
 		$this->set('addRoot', 0); // whether to prepend root path
-		// $this->description = $this->_("Enter a valid URL, i.e. http://www.company.com/dir/"); // Description of a valid URL
+		$this->set('allowIDN', 0); // whether to allow IDNs
+		$this->set('allowQuotes', 0); // whether to allow quote characters in URLs
 	}
 
 	public function ___render() {
@@ -39,7 +40,11 @@ class InputfieldURL extends InputfieldText {
 		if(strlen($value)) {
 			$value = trim($value); 
 			$unsanitized = $value; 
-			$value = $this->fuel('sanitizer')->url($value, $this->noRelative ? false : true); 	
+			$value = $this->wire('sanitizer')->url($value, array(
+				'allowRelative' => $this->noRelative ? false : true, 
+				'allowIDN' => $this->allowIDN ? true : false,
+				'stripQuotes' => $this->allowQuotes ? false : true,
+			));
 
 			if(!$value || $unsanitized != $value && "http://$unsanitized" != $value) {
 				$error = true;

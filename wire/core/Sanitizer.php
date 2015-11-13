@@ -522,10 +522,13 @@ class Sanitizer extends Wire {
 	 * @param string $value URL
 	 * @param bool|array $options Array of options including: 
 	 * 	- allowRelative (boolean) Whether to allow relative URLs, i.e. those without domains (default=true)
+	 * 	- allowIDN (boolean) Whether to allow internationalized domain names (default=false)
 	 * 	- allowQuerystring (boolean) Whether to allow query strings (default=true)
 	 * 	- allowSchemes (array) Array of allowed schemes, lowercase (default=[] any)
 	 *	- disallowSchemes (array) Array of disallowed schemes, lowercase (default=[file])
 	 * 	- requireScheme (bool) Specify true to require a scheme in the URL, if one not present, it will be added to non-relative URLs (default=true)
+	 * 	- stripTags (bool) Specify false to prevent tags from being stripped (default=true)
+	 * 	- stripQuotes (bool) Specify false to prevent quotes from being stripped (default=true)
 	 * 	- throw (bool) Throw exceptions on invalid URLs (default=false)
 	 *	Previously this was the boolean $allowRelative, and that usage will still work for backwards compatibility.
 	 * @return string
@@ -536,12 +539,14 @@ class Sanitizer extends Wire {
 	public function url($value, $options = array()) {
 
 		$defaultOptions = array(
-			'allowRelative' => true, 
+			'allowRelative' => true,
+			'allowIDN' => false, 
 			'allowQuerystring' => true,
 			'allowSchemes' => array(), 
 			'disallowSchemes' => array('file', 'javascript'), 
 			'requireScheme' => true,
 			'stripTags' => true, 
+			'stripQuotes' => true, 
 			'maxLength' => 4096,
 			'throw' => false,
 			);
@@ -627,14 +632,14 @@ class Sanitizer extends Wire {
 				if($dotPos && $slashPos > $dotPos && preg_match('{^([^\s_.]+\.)?[^-_\s.][^\s_.]+\.([a-z]{2,6})([./:#]|$)}i', $value, $matches)) {
 					// most likely a domain name
 					// $tld = $matches[3]; // TODO add TLD validation to confirm it's a domain name
-					$value = filter_var("http://$value", FILTER_VALIDATE_URL); // add scheme for validation
+					$value = $this->filterValidateURL("http://$value", $options); // add scheme for validation
 
 				} else if($options['allowQuerystring']) {
 					// we'll construct a fake domain so we can use FILTER_VALIDATE_URL rules
-					$fake = 'https://processwire.com/';
+					$fake = 'http://processwire.com/';
 					$slash = strpos($value, '/') === 0 ? '/' : '';
 					$value = $fake . ltrim($value, '/'); 
-					$value = filter_var($value, FILTER_VALIDATE_URL); 
+					$value = $this->filterValidateURL($value, $options);
 					$value = str_replace($fake, $slash, $value);
 
 				} else {
@@ -644,7 +649,7 @@ class Sanitizer extends Wire {
 				
 			} else {
 				// relative urls aren't allowed, so add the scheme/protocol and validate
-				$value = filter_var("http://$value", FILTER_VALIDATE_URL); 
+				$value = $this->filterValidateURL("http://$value", $options);
 			}
 			
 			if(!$options['requireScheme']) {
@@ -663,10 +668,10 @@ class Sanitizer extends Wire {
 			}
 		} else {
 			// URL already has a scheme
-			$value = filter_var($value, FILTER_VALIDATE_URL); 
+			$value = $this->filterValidateURL($value, $options);
 		}
 		
-		if($pathIsEncoded) {
+		if($pathIsEncoded && strlen($value)) {
 			// restore to non-encoded, UTF-8 version 
 			if(strpos('?', $value) !== false) {
 				list($domainPath, $queryString) = explode('?', $value);
@@ -682,8 +687,96 @@ class Sanitizer extends Wire {
 			$domainPath = $this->text($domainPath, $textOptions);
 			$value = $domainPath . (strlen($queryString) ? "?$queryString" : "");
 		}
+		
+		if(strlen($value)) {
+			if($options['stripTags']) {
+				if(stripos($value, '%3') !== false) {
+					$value = str_ireplace(array('%3C', '%3E'), array('!~!<', '>!~!'), $value);
+					$value = strip_tags($value); 
+					$value = str_ireplace(array('!~!<', '>!~!', '!~!'), array('%3C', '%3E', ''), $value); // restore, in case valid/non-tag
+				} else {
+					$value = strip_tags($value);
+				}
+			}
+			if($options['stripQuotes']) {
+				$value = str_replace(array('"', "'", "%22", "%27"), '', $value);
+			}
+			return $value;
+		}
+		
+		return '';
+	}
 
-		return $value ? $value : '';
+	/**
+	 * Implementation of PHP's FILTER_VALIDATE_URL with IDN support (will convert to valid)
+	 * 
+	 * Example: http://трикотаж-леко.рф
+	 * 
+	 * @param string $url
+	 * @param array $options Specify ('allowIDN' => false) to disallow internationalized domain names
+	 * @return string
+	 * 
+	 */
+	protected function filterValidateURL($url, array $options) {
+		
+		$_url = $url;
+		$url = filter_var($url, FILTER_VALIDATE_URL);
+		if($url !== false && strlen($url)) return $url;
+
+		// if allowIDN was specifically set false, don't proceed further
+		if(isset($options['allowIDN']) && !$options['allowIDN']) return $url;
+		
+		// if PHP doesn't support idn_* functions, we can't do anything further here
+		if(!function_exists('idn_to_ascii') || !function_exists('idn_to_utf8')) return $url;
+	
+		// extract scheme
+		if(strpos($_url, '//') !== false) {
+			list($scheme, $_url) = explode('//', $_url, 2);
+			$scheme .= '//';
+		} else {
+			$scheme = '';
+		}
+	
+		// extract domain, and everything else (rest)
+		if(strpos($_url, '/') > 0) {
+			list($domain, $rest) = explode('/', $_url, 2);
+			$rest = "/$rest";
+		} else {
+			$domain = $_url;
+			$rest = '';
+		}
+		
+		if(strpos($domain, '%') !== false) {
+			// domain is URL encoded
+			$domain = rawurldecode($domain);
+		}
+	
+		// extract port, if present, and prepend to $rest
+		if(strpos($domain, ':') !== false && preg_match('/^([^:]+):(\d+)$/', $domain, $matches)) {
+			$domain = $matches[1]; 
+			$rest = ":$matches[2]$rest";
+		}
+		
+		if($this->nameFilter($domain, array('-', '.'), '_', false, 1024) === $domain) {
+			// domain contains no extended characters
+			$url = $scheme . $domain . $rest;
+			$url = filter_var($url, FILTER_VALIDATE_URL);
+			
+		} else {
+			// domain contains utf8
+			$domain = idn_to_ascii($domain);
+			if($domain === false || !strlen($domain)) return '';
+			$url = $scheme . $domain . $rest;
+			$url = filter_var($url, FILTER_VALIDATE_URL);
+			if(strlen($url)) {
+				// convert back to utf8 domain
+				$domain = idn_to_utf8($domain);
+				if($domain === false) return '';
+				$url = $scheme . $domain . $rest;
+			}
+		}
+		
+		return $url;
 	}
 
 	/**
