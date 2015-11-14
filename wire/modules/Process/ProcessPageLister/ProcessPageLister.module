@@ -1059,7 +1059,8 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 					$label .= '</strong>';
 				}
 			}
-			$header[$key] = "$icon$label<b>$name</b>";
+			$sortKey = $subname ? "$name.$subname" : $name;
+			$header[$key] = "$icon$label<b>$sortKey</b>";
 			$fields[$name] = $field; 
 		}
 
@@ -1250,16 +1251,16 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 			if($subname == 'data') $subname = '';
 			$value = $field->type->markupValue($p, $field, $value, $subname); 
 			// value may be MarkupFieldtype object
-			$value = (string) $value; 
+			$value = (string) $value;
 			
 		} else {
 			// other or unknown
 			if($subname == 'data') $value = (string) $value;
 			if($subname && is_object($value)) $value = $value->$subname;
-			$value = $this->wire('sanitizer')->entities($value); 
+			$value = $this->wire('sanitizer')->entities($value);
 		}
 	
-		if($isFirstCol) $value = $this->buildListerTableColActions($p, $value); 
+		if($isFirstCol) $value = $this->buildListerTableColActions($p, $value);
 
 		return $value; 
 
