@@ -267,7 +267,7 @@ class InputfieldForm extends InputfieldWrapper {
 		// process input for any remaining delayedChildren not already processed by processInputShowIf
 		foreach($delayedChildren as $child) {
 			if($child->showIfSkipped || $child->showIfProcessed) continue; 
-			$this->debugNote("Now Processing delayed child: $child->name"); 
+			$this->debugNote("Now Processing requiredIf delayed child: $child->name"); 
 			$child->processInput($input); 
 		}
 
@@ -357,16 +357,31 @@ class InputfieldForm extends InputfieldWrapper {
 		if(is_object($value)) $value = "$value";
 
 		if($inputfield instanceof InputfieldSelect && $subfield != 'count') {
-			// allow for match by field labels, in addition to field values
+			$allowCheckLabels = false; // allow for match by field labels, in addition to field values
 			$options = $inputfield->getOptions();
-			if($inputfield instanceof InputfieldHasArrayValue) {
-				$value2 = array();
-				foreach($value as $k => $v) {
-					if(isset($options[$v])) $value2[] = $options[$v];
+			// determine if selector values are referring to a value or a label
+			foreach($selector->values as $selectorValue) {
+				// if value in selector matches a known option 'label' then we allow use of labels
+				$key = array_search($selectorValue, $options);
+				$this->debugNote("OPTIONS ($debugNote): Searching for label '$selectorValue' in " . print_r($options, true));
+				if($key !== false) {
+					$allowCheckLabels = true;
+					$this->debugNote("OPTIONS ($debugNote): Found '$selectorValue' so allowing label check");
+					break;
+				} else {
+					$this->debugNote("OPTIONS ($debugNote): Did not find '$selectorValue'");
 				}
-				if(empty($value2)) $value2 = null;
-			} else {
-				if(isset($options[$value])) $value2 = $options[$value];
+			}
+			if($allowCheckLabels) {
+				if($inputfield instanceof InputfieldHasArrayValue) {
+					$value2 = array(); // matching of labels rather than values
+					foreach($value as $k => $v) {
+						if(isset($options[$v])) $value2[] = $options[$v];
+					}
+					if(empty($value2)) $value2 = null;
+				} else {
+					if(isset($options[$value])) $value2 = $options[$value];
+				}
 			}
 		}
 		
@@ -374,6 +389,7 @@ class InputfieldForm extends InputfieldWrapper {
 			$this->debugNote("Selector ($debugNote) matched value \"$selector\" (field=$name, value=" . print_r($value, true) . ")");
 			$matches = true; 
 		} else if($value2 !== null && $selector->matches($value2)) {
+			$this->debugNote("Selector ($debugNote) did NOT match value \"$selector\" (field=$name, value=" . print_r($value, true) . ")");
 			$this->debugNote("Selector ($debugNote) matched label \"$selector\" (field=$name, label=" . print_r($value2, true) . ")");
 			$matches = true;
 		} else {
