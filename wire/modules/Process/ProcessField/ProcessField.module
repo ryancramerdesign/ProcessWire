@@ -1518,7 +1518,9 @@ class ProcessField extends Process implements ConfigurableModule {
 			if($name == 'delete') continue; 
 			if($name == 'fieldgroup_id') continue; 
 			if($name == 'field_label') $name = 'label';
-			if($name == 'id' && $this->field->id) continue; 
+			if($name == 'id' && $this->field->id) continue;
+			if($name == 'send_templates') continue;
+			if($this->field->send_templates) unset($this->field->send_templates); // value was previously getting stored	
 			if($name == 'useRoles') $value = (bool) ((int) $value);
 		
 			// if adding new field or existing name has changed, check that its an allowed name
