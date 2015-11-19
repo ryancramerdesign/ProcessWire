@@ -37,6 +37,7 @@ class Permissions extends PagesType {
 		'page-hide' => 'page-edit',
 		'page-lock' => 'page-edit',
 		'page-edit-created' => 'page-edit',
+		'page-edit-images' => 'page-edit',
 		'page-rename' => 'page-edit',
 		'user-admin-all' => 'user-admin',
 	);
@@ -87,6 +88,7 @@ class Permissions extends PagesType {
 			'page-hide' => $this->_('Hide/unhide pages'),
 			'page-publish' => $this->_('Publish/unpublish pages or edit already published pages'),
 			'page-edit-created' => $this->_('Edit only pages user has created'),
+			'page-edit-images' => $this->_('Use the image editor to manipulate (crop, resize, etc.) images'), 
 			'page-rename' => $this->_('Change the name of published pages they are allowed to edit'),
 			'user-admin-all' => $this->_('Administer users in any role (except superuser)'),
 		);

@@ -34,7 +34,7 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		return array(
 			'title' => __('Images', __FILE__), // Module Title
 			'summary' => __('One or more image uploads (sortable)', __FILE__), // Module Summary
-			'version' => 116,
+			'version' => 117,
 			'permanent' => true, 
 			);
 	}
@@ -78,10 +78,19 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 	public function renderReady(Inputfield $parent = null, $renderValueMode = false) {
 		$this->wire('modules')->loadModuleFileAssets('InputfieldFile');
 		$this->modules->getInstall("JqueryMagnific");
-		if($this->value && count($this->value) && !$renderValueMode) {
-			// $this->variations = $this->value->getAllVariations();
-			// if(count($this->variations)) 
-			$this->wire('modules')->get('JqueryUI')->use('modal');
+		if(!$renderValueMode && $this->value instanceof Pageimages) {
+			$process = $this->wire('process');
+			if($process instanceof WirePageEditor) {
+				$page = $process->getPage();
+			} else {
+				$page = new NullPage();
+			}
+			$this->variations = $this->value->getAllVariations();
+			if($page->id && $this->wire('user')->hasPermission('page-edit-images', $page)) {
+				$this->wire('modules')->get('JqueryUI')->use('modal');
+			} else {
+				$this->useImageEditor = 0;
+			}
 		}
 		return parent::renderReady($parent, $renderValueMode);
 	}
