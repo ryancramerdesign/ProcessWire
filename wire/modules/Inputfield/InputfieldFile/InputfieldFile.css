@@ -5,7 +5,7 @@
 	cursor: move; 
 }
 	.content .InputfieldFile.InputfieldItemListCollapse ul.InputfieldFileList > li,
-	.Inputfields > li.InputfieldHasFileList.InputfieldRenderValue > .InputfieldContent > ul.InputfieldFileList > li,
+	.Inputfields > li.InputfieldHasFileList.InputfieldRenderValueMode > .InputfieldContent > ul.InputfieldFileList > li,
 	.Inputfields > li.InputfieldFile.InputfieldItemListCollapse > .InputfieldContent > ul.InputfieldFileList > li {
 		/* items that have no text inputs */
 		/* or items that are in render value mode */

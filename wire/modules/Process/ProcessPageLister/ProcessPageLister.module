@@ -1129,7 +1129,6 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		}
 
 		if($value instanceof Pageimages && $this->imageStyle == 0 && (!$subname || $subname == 'data')) {
-			$value = $value->getArray();
 		}
 
 		if($subname == 'count' && $value instanceof WireArray) {
@@ -1171,19 +1170,18 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 			// Pagefiles or Pageimages
 			if($value->count()) {
 				if($value instanceof Pageimages && $this->imageFirst) $value = $value->slice(0, 1);
-				$inputfield = $field->getInputfield(new NullPage());
 				if($value instanceof Pageimages) {
 					if($this->imageWidth || $this->imageHeight) {
-						$inputfield->adminThumbs = true; 
-						$inputfield->adminThumbWidth = $this->imageWidth;
-						$inputfield->adminThumbHeight = $this->imageHeight;
+						$field->inputfieldSetting('adminThumbs', true);
+						$field->inputfieldSetting('adminThumbWidth', $this->imageWidth);
+						$field->inputfieldSetting('adminThumbHeight', $this->imageHeight);
+					}
+					if($this->imageStyle == 0) {
+						$field->inputfieldSetting('renderValueFlags', Inputfield::renderValueMinimal | Inputfield::renderValueNoWrap); 
 					}
 				}
-				$inputfield->attr('value', $value);
-				$inputfield->skipLabel = Inputfield::skipLabelHeader;
-				$wrapper = $this->wire(new InputfieldWrapper());
-				$wrapper->add($inputfield);
-				$value = $wrapper->renderValue();
+				$field->inputfieldSetting('skipLabel', Inputfield::skipLabelHeader);
+				$value = (string) $field->type->markupValue($p, $field, $value);
 			} else {
 				$value = '';
 			}

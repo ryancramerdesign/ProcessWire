@@ -44,7 +44,7 @@ $(document).ready(function() {
 			
 			var $this = $(this);
 			var qty = $this.children("li").length;
-			if($this.closest('.InputfieldRenderValue').length) return;
+			if($this.closest('.InputfieldRenderValueMode').length) return;
 			
 			var $inputfield = $this.closest('.Inputfield')
 		

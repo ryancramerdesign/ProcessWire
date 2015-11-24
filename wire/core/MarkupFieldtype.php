@@ -282,10 +282,23 @@ class MarkupFieldtype extends WireData implements Module {
 		$inputfield->attr('value', $value);
 		if(method_exists($inputfield, 'setField')) $inputfield->setField($field);
 		if(method_exists($inputfield, 'setPage')) $inputfield->setPage($page);
-		$wrapper = $this->wire(new InputfieldWrapper());
-		$wrapper->quietMode = true; 
-		$wrapper->add($inputfield);
-		$out = $wrapper->renderValue();
+		if($inputfield->renderValueFlags & Inputfield::renderValueNoWrap) {
+			$inputfield->renderReady(null, true);
+			$out = $inputfield->renderValue();
+			$inputfield->addClass('InputfieldRenderValueMode', 'wrapClass');
+			if($inputfield->renderValueFlags & Inputfield::renderValueMinimal) {
+				$inputfield->addClass('InputfieldRenderValueMinimal', 'wrapClass');
+			}
+			if($inputfield->renderValueFlags & Inputfield::renderValueFirst) {
+				$inputfield->addClass('InputfieldRenderValueFirst', 'wrapClass');
+			}
+			$out = "<div class='$inputfield->wrapClass'>$out</div>";
+		} else {
+			$wrapper = $this->wire(new InputfieldWrapper());
+			$wrapper->quietMode = true;
+			$wrapper->add($inputfield);
+			$out = $wrapper->renderValue();
+		}
 		return $out; 	
 	}
 

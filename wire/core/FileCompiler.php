@@ -274,7 +274,7 @@ class FileCompiler extends Wire {
 		// main include regex
 		$re = '/^' . 
 			'(.*?)' . // 1: open
-			'(include_once|include|require_once|require|wireIncludeFile|wireRenderFile)' . // 2:function
+			'(include_once|include|require_once|require|wireIncludeFile|wireRenderFile|TemplateFile)' . // 2:function
 			'[\(\s]+' . // open parenthesis and/or space
 			'(["\']?[^;\r\n]+);' . // 3:filename (may be quoted or end with closing parenthesis)
 			'/m';

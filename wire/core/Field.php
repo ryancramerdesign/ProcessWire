@@ -155,6 +155,16 @@ class Field extends WireData implements Saveable, Exportable {
 	protected $editRoles = array();
 
 	/**
+	 * Optional key=value runtime settings to provide to Inputfield (see: inputfieldSetting method)
+	 * 
+	 * This are runtime only and not stored in the DB.
+	 * 
+	 * @var array
+	 * 
+	 */
+	protected $inputfieldSettings = array();
+
+	/**
 	 * True if lowercase tables should be enforce, false if not (null = unset). Cached from $config
 	 *
 	 */
@@ -733,8 +743,46 @@ class Field extends WireData implements Saveable, Exportable {
 				$inputfield->collapsed = $collapsed;
 			}
 		}
+	
+		if(count($this->inputfieldSettings)) {
+			// runtime-only settings to Inputfield (these are not stored in DB)
+			foreach($this->inputfieldSettings as $name => $value) {
+				$inputfield->set($name, $value);
+			}
+		}
 
 		return $inputfield; 
+	}
+
+	/**
+	 * Get or set a runtime-only setting that will be sent to the Inputfield during the getInputfield() call
+	 * 
+	 * @param string $name Specify setting name to get or set, or '*' to get all.
+	 * @param null|mixed $value Specify value, or 'clear' to clear setting(s) described in $name argument.
+	 * @return null|array|bool|mixed Returns setting value, null if not found, true if set or clear requested, or array if all settings requested.
+	 * 
+	 */
+	public function inputfieldSetting($name, $value = null) {
+		if($name === '*') {
+			// get or clear ALL settings
+			if($value === 'clear') {
+				$this->inputfieldSettings = array();
+				return true;
+			} else {
+				return $this->inputfieldSettings;
+			}
+		} else if(is_null($value)) {
+			// get a setting, or return null if not found
+			return isset($this->inputfieldSettings[$name]) ? $this->inputfieldSettings[$name] : null;
+		} else if($value === 'clear') {
+			// clear a setting
+			unset($this->inputfieldSettings[$name]);	
+			return true;
+		} else {
+			// set a named setting
+			$this->inputfieldSettings[$name] = $value;
+			return true;
+		}
 	}
 
 	/**

@@ -113,7 +113,7 @@
 	position: relative;
 }
 
-.InputfieldImage.InputfieldRenderValue .InputfieldHeader .InputfieldImageListToggle,
+.InputfieldImage.InputfieldRenderValueMode .InputfieldHeader .InputfieldImageListToggle,
 .InputfieldStateCollapsed .InputfieldHeader .InputfieldImageListToggle {
 	display: none; 
 }
@@ -165,5 +165,15 @@
 .InputfieldImage .InputfieldImageActions a:hover {
 	color: #fff;
 	background-color: rgba(0, 0, 0, 0.8);
+}
+
+.InputfieldRenderValueMinimal .InputfieldFileList {
+	margin-top: 0;
+	margin-bottom: 5px;
+}
+.InputfieldRenderValueMinimal .InputfieldFileList .InputfieldFileItem {
+	margin: 5px 5px 0 0;
+	float: left;
+	border: none;
 }
 

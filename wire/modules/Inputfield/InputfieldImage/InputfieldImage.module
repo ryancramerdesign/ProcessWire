@@ -38,8 +38,21 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 			'permanent' => true, 
 			);
 	}
-	
+
+	/**
+	 * Cached list of all image variations
+	 * 
+	 * @var array
+	 * 
+	 */
 	protected $variations = array();
+
+	/**
+	 * Class used for modal editor windows
+	 * 
+	 * @var string
+	 * 
+	 */
 	protected $modalClass = 'pw-modal-large';
 	
 	public function init() {
@@ -229,6 +242,24 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 	}
 
 	/**
+	 * Render an image in minimal mode (renderValueMode only)
+	 * 
+	 * @param $pagefile
+	 * @param $id
+	 * @param $n
+	 * @return string
+	 * 
+	 */
+	protected function renderItemMinimal($pagefile, $id, $n) {
+		$thumb = $this->getAdminThumb($pagefile);
+		$desc = trim($this->wire('sanitizer')->entities($pagefile->description));
+		$info = "$pagefile->name <strong>({$pagefile->width}x{$pagefile->height} &bull; $pagefile->filesizeStr)</strong>";
+		$title = strip_tags($info) . ($desc ? ": $desc" : "");
+		$data = ($desc ? "$desc " : "") . "<small>$info</small>";
+		return "<a class='InputfieldFileLink' target='_blank' title='$title' data-info='$data' href='$pagefile->URL'>$thumb[markup]</a>";
+	}
+
+	/**
 	 * Render a Pageimage item
 	 * 
 	 * @param $pagefile
@@ -238,6 +269,10 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 	 * 
 	 */
 	protected function ___renderItem($pagefile, $id, $n) {
+		
+		if($this->renderValueMode && ($this->renderValueFlags & Inputfield::renderValueMinimal)) {
+			return $this->renderItemMinimal($pagefile, $id, $n);
+		}
 
 		$thumb = $this->getAdminThumb($pagefile); 
 		$error = $thumb['error'] ? "<span class='ui-state-error-text'>" . $this->wire('sanitizer')->entities($thumb['error']) . "</span>" : "";

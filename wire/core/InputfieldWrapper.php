@@ -381,17 +381,6 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 				if($appendMarkup) $ffOut .= $appendMarkup;
 			}
 			
-			/*
-			if($inputfield->getSetting('head')) {
-				$text = str_replace('{out}', $this->entityEncode($inputfield->getSetting('head'), true), $markup['item_head']);
-				$ffOut = $text . $ffOut; 
-			}
-			if($inputfield->getSetting('notes')) {
-				$text = str_replace('{out}', nl2br($this->entityEncode($inputfield->notes, true)), $markup['item_notes']);
-				$ffOut .= $text; 
-			}
-			*/
-
 			// The inputfield's classname is always used in it's LI wrapper
 			$ffAttrs = array(
 				'class' => str_replace(
@@ -524,7 +513,7 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 	}
 
 	public function ___renderValue() {
-		$this->attr('class', trim($this->attr('class') .' InputfieldRenderValueMode'));
+		$this->addClass('InputfieldRenderValueMode');
 		$this->set('renderValueMode', true); 
 		$out = $this->render(); 
 		$this->set('renderValueMode', false); 
@@ -553,8 +542,29 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 			if($collapsed == Inputfield::collapsedYesAjax) $inputfield->collapsed = Inputfield::collapsedYes;
 			if($collapsed == Inputfield::collapsedBlankAjax) $inputfield->collapsed = Inputfield::collapsedBlank;
 		}
-	
-		if($renderValueMode) $inputfield->addClass('InputfieldRenderValue', 'wrapClass');
+
+		$restoreValue = null; // value to restore, if we happen to modify it before render (renderValueMode only)
+		
+		if($renderValueMode) {
+			$inputfield->addClass('InputfieldRenderValueMode', 'wrapClass');
+			if($inputfield->renderValueFlags & Inputfield::renderValueMinimal) {
+				$inputfield->addClass('InputfieldRenderValueMinimal', 'wrapClass');
+			}
+			if($inputfield->renderValueFlags & Inputfield::renderValueFirst) {
+				// render only first item value
+				$inputfield->addClass('InputfieldRenderValueFirst', 'wrapClass');
+				$value = $inputfield->attr('value');
+				if(WireArray::iterable($value) && count($value) > 1) {
+					$restoreValue = $value;
+					if(is_array($value)) {
+						$inputfield->attr('value', array_slice($value, 0, 1));
+					} else if($value instanceof WireArray) {
+						$inputfield->attr('value', $value->slice(0, 1));
+					}
+				}
+			}
+		}
+		
 		$inputfield->renderReady($this, $renderValueMode);
 		
 		if($ajaxInputfield) {
@@ -603,6 +613,10 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 	
 		// renderValueMode
 		$out = $inputfield->renderValue();
+		if(!is_null($restoreValue)) {
+			$inputfield->attr('value', $restoreValue);
+			$inputfield->resetTrackChanges();
+		}
 		if(is_null($out)) return '';
 		if(!strlen($out)) $out = '&nbsp;'; // prevent output from being skipped over
 		return $out;

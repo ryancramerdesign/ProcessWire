@@ -383,7 +383,8 @@ class WireFileTools extends Wire {
 				$paths->templates,
 				$paths->adminTemplates,
 				$paths->modules,
-				$paths->siteModules
+				$paths->siteModules,
+				$paths->cache
 			),
 			'allowDotDot' => false,
 			'throwExceptions' => true,
@@ -419,7 +420,8 @@ class WireFileTools extends Wire {
 				if(strpos($filename, $path) === 0) $allowed = true;
 			}
 			if(!$allowed) {
-				$error = "Filename $filename is not in an allowed path.";
+				$error = "Filename $filename is not in an allowed path." ;
+				$error .= ' Paths: ' . implode("\n", $options['allowedPaths']) . '';
 				if($options['throwExceptions']) throw new WireException($error);
 				$this->error($error);
 				return false;
@@ -471,7 +473,8 @@ class WireFileTools extends Wire {
 				$paths->templates,
 				$paths->adminTemplates,
 				$paths->modules,
-				$paths->siteModules
+				$paths->siteModules,
+				$paths->cache
 			)
 		);
 

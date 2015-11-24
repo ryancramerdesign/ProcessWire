@@ -66,6 +66,7 @@ interface InputfieldHasArrayValue { }
  * @property bool|null $useLanguages When multi-language support active, can be set to true to make it provide inputs for each language (where supported).
  * @property string|null $prependMarkup Optional markup to prepend to the inputfield content container. 
  * @property string|null $appendMarkup Optional markup to append to the inputfield content container. 
+ * @property int $renderValueFlags Options that can be applied to renderValue mode, see renderValue* constants (default=0). 
  * 
  * @method string render()
  * @method string renderValue()
@@ -111,6 +112,14 @@ abstract class Inputfield extends WireData implements Module {
 	const textFormatNone = 2;		// no type of markdown or HTML allowed
 	const textFormatBasic = 4;		// only basic/inline markdown and no HTML (default setting for Inputfields)
 	const textFormatMarkdown = 8;	// full markdown support with HTML also allowed
+
+	/**
+	 * Options for renderValueFlags, applicable to renderValueMode only, $this->renderValue() method call
+	 * 
+	 */
+	const renderValueMinimal = 2;   // render only the minimum output when in renderValueMode
+	const renderValueNoWrap = 4;    // indicates a parent InputfieldWrapper is not required when rendering value
+	const renderValueFirst = 8;     // if there are multiple items, only render the first (where supported by the Inputfield)
 
 
 	/**
@@ -182,6 +191,7 @@ abstract class Inputfield extends WireData implements Module {
 		$this->set('headerClass', ''); // optional class to apply to InputfieldHeader wrapper
 		$this->set('contentClass', ''); // optional class to apply to InputfieldContent wrapper
 		$this->set('textFormat', self::textFormatBasic); // format applied to description and notes
+		$this->set('renderValueFlags', 0); // see renderValue* constants, applicable to renderValue mode only
 
 		// default ID attribute if no 'id' attribute set
 		$this->defaultID = $this->className() . self::$numInstances; 

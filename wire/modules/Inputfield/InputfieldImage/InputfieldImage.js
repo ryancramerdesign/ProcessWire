@@ -5,13 +5,15 @@ $(document).ready(function() {
 		type: 'image', 
 		closeOnContentClick: true, 
 		closeBtnInside: true,
-		/*
 		image: {
+			titleSrc: 'title'
+			/*
 			titleSrc: function(item) {
-				return item.el.find('img').attr('alt'); 
+				console.log(item);
+				return 'title';
 			}
+			*/
 		},
-		*/
 		callbacks: {
 			open: function() {
 				// for firefox, which launches Magnific after a sort
@@ -44,6 +46,7 @@ $(document).ready(function() {
 		var options = magnificOptions;
 		options['items'] = { 
 			src: $a.attr('href'), 
+			title: typeof($a.attr('data-info')) != "undefined" ? $a.attr('data-info') : $a.children('img').attr('alt')
 		};
 		$.magnificPopup.open(options, 0);
 		return false;
@@ -105,13 +108,6 @@ $(document).ready(function() {
 			else setGridMode($parent);
 		return false; 
 	}); 
-
-	/*
-	$(document).on('dblclick', '.InputfieldImage.InputfieldRenderValue .InputfieldContent', function(e) {
-		$(this).closest('.Inputfield').find('.InputfieldImageListToggle').click();
-		return false;
-	});
-	*/
 
 	$(".InputfieldImage").find(".InputfieldImageDefaultGrid").each(function() {
 		setGridMode($(this).parents(".InputfieldImage")); 
