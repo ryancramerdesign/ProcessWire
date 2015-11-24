@@ -445,13 +445,20 @@ class WireCache extends Wire {
 	/**
 	 * Delete the cache identified by $name
 	 * 
-	 * @param string $name
+	 * @param string $name Name of cache, or partial name with wildcard (i.e. "MyCache*")
 	 * @return bool True on success, false on failure
 	 * 
 	 */
 	public function delete($name) {
 		try {
-			$query = $this->wire('database')->prepare("DELETE FROM caches WHERE name=:name", "cache.delete($name)"); 
+			if(strpos($name, '*') !== false || strpos($name, '%') !== false) {
+				// delete all caches matching wildcard
+				$name = str_replace('*', '%', $name);
+				$sql = 'DELETE FROM caches WHERE name LIKE :name';
+			} else {
+				$sql = 'DELETE FROM caches WHERE name=:name';
+			}
+			$query = $this->wire('database')->prepare($sql, "cache.delete($name)"); 
 			$query->bindValue(':name', $name); 
 			$query->execute();
 			$success = true; 
@@ -467,12 +474,14 @@ class WireCache extends Wire {
 	/**
 	 * Delete the cache identified by $name within given namespace ($ns)
 	 *
-	 * @param string $name
+	 * @param string $ns 
+	 * @param string $name If none specified, all for $ns are deleted
 	 * @return bool True on success, false on failure
 	 *
 	 */
-	public function deleteFor($ns, $name) {
+	public function deleteFor($ns, $name = '') {
 		if(is_object($ns)) $ns = wireClassName($ns, false);
+		if(!strlen($name)) $name = "*";
 		return $this->delete($ns . "__$name");
 	}
 

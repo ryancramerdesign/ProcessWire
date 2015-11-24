@@ -92,7 +92,10 @@ class ProcessPageEditLink extends Process implements ConfigurableModule {
 	public function ___execute() {
 	
 		if($this->wire('input')->get('href')) {
-			$currentValue = $this->wire('sanitizer')->url($this->wire('input')->get('href')); 
+			$currentValue = $this->wire('sanitizer')->url($this->wire('input')->get('href'), array(
+				'stripQuotes' => false,
+				'allowIDN' => true,
+			));
 		} else {
 			$currentValue = '';
 		}

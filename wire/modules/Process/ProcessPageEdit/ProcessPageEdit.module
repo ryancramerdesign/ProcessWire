@@ -48,6 +48,11 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 			'useNavJSON' => true
 			);
 	}
+	
+	public function __construct() {
+		$this->set('useBookmarks', false);
+		return parent::__construct();
+	}
 
 	/**
 	 * Initialize the page editor by loading the requested page and any dependencies
@@ -57,7 +62,7 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 	
 		if(in_array($this->wire('input')->urlSegment1, array('navJSON', 'bookmarks'))) return;
 		if(isset($_GET['id']) && $_GET['id'] == 'bookmark') return $this->wire('session')->redirect('./bookmarks/');
-
+		
 		// predefined messages that maybe used in multiple places
 		$this->noticeUnknown = $this->_("Unknown page"); // Init error: Unknown page
 		$this->noticeLocked = $this->_("This page is locked for edits"); // Init error: Page is locked
@@ -1590,10 +1595,18 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 	public function ___getTabs() {
 		return $this->tabs; 
 	}
-	
+
+	/**
+	 * @return PageBookmarks
+	 * 
+	 */
 	protected function getPageBookmarks() {
-		require_once(dirname(__FILE__) . '/PageBookmarks.php');
-		return $this->wire(new PageBookmarks($this));
+		static $bookmarks = null;
+		if(is_null($bookmarks)) {
+			require_once(dirname(__FILE__) . '/PageBookmarks.php');
+			$bookmarks = $this->wire(new PageBookmarks($this));
+		}
+		return $bookmarks;
 	}
 
 	public function ___executeNavJSON(array $options = array()) {
@@ -1609,9 +1622,13 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 		return $bookmarks->editBookmarks();
 	}
 	
-	public static function getModuleConfigInputfields(array $data) {
-		// @todo does saving this empty form delete all the bookmarks?
+	public function getModuleConfigInputfields(array $data) {
 		$inputfields = new InputfieldWrapper();
+		$bookmarks = $this->getPageBookmarks();
+		$bookmarks->addConfigInputfields($inputfields);
+		$admin = $this->wire('pages')->get($this->wire('config')->adminRootPageID);
+		$page = $this->wire('pages')->get($admin->path . 'page/edit/');
+		$bookmarks->checkProcessPage($page);
 		return $inputfields;
 	}
 

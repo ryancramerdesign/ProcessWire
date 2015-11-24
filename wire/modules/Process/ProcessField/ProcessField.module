@@ -486,13 +486,37 @@ class ProcessField extends Process implements ConfigurableModule {
 		if($this->field->id && !$this->fieldgroup && $this->session->get($this, 'optimize') == $this->field->id) {
 			// this is outside of buildEditForm intentionally, in case anything has hooked buildEditForm and adding properties to it
 			$alert = $this->buildEditFormAlert();	
-			if(!is_null($alert)) $this->form->add($alert); 
+			if(!is_null($alert)) {
+				$this->form->action .= '#alert';
+				$f = $this->form->getChildByName('submit_save_field');
+				if($f) {
+					$this->form->insertBefore($alert, $f);
+				} else {
+					$this->form->add($alert);
+				}
+			}
 		}
 		
 		$out = $this->form->render(); 
 		$out .= $this->renderContextSelect();
 
 		return $out;
+	}
+
+	/**
+	 * Get an array of all template IDs (integers) that don't have the given field
+	 * 
+	 * @param Field $field
+	 * @return array
+	 * 
+	 */
+	protected function getTemplatesWithoutField(Field $field) {
+		$templatesWithoutField = array();
+		foreach($this->wire('templates') as $template) {
+			if($template->fieldgroup->hasField($field)) continue;
+			$templatesWithoutField[] = (int) $template->id;
+		}
+		return $templatesWithoutField;
 	}
 	
 	protected function buildEditFormAlert() {
@@ -512,8 +536,20 @@ class ProcessField extends Process implements ConfigurableModule {
 		}
 
 		foreach($this->wire('fields') as $field) {
+			
 			$table = $field->getTable();
-			$query = $this->database->prepare("SELECT * FROM $table LEFT JOIN pages ON $table.pages_id=pages.id WHERE pages.id IS NULL"); 
+			
+			$sql = 	"SELECT * FROM $table " .
+					"LEFT JOIN pages ON $table.pages_id=pages.id " .
+					"WHERE pages.id IS NULL ";
+			
+			$templatesWithoutField = $this->getTemplatesWithoutField($field);
+			if(count($templatesWithoutField)) {
+				$sql .= "OR pages.templates_id IN(" . implode(',', $templatesWithoutField) . ")";
+			}
+
+			$query = $this->database->prepare($sql);
+			
 			try {
 				$query->execute();
 				$cnt = $query->rowCount();
@@ -528,7 +564,7 @@ class ProcessField extends Process implements ConfigurableModule {
 						}
 						if($n >= 100) $message .= "\n" . $this->_('...and so on...');
 					} else {
-						$message = sprintf($this->_('Please run this check on field %s'), "<a href='./edit?id=$field->id'>$field->name</a>");
+						$message = sprintf($this->_('Please run "Actions > Check field data" on field %s'), "<a href='./edit?id=$field->id#info'>$field->name</a>");
 					}
 					$this->error(nl2br($message), Notice::allowMarkup); 
 				}
@@ -563,7 +599,7 @@ class ProcessField extends Process implements ConfigurableModule {
 			$f = $this->wire('modules')->get('InputfieldCheckbox'); 
 			$f->attr('name', '_remove_rows');
 			$f->label = sprintf($this->_('Remove %d orphaned table rows?'), $numRows);
-			$f->description = $this->_('We found rows of data in the table for this field that do not match up with any page.'); 
+			$f->description = $this->_('We found rows of data in the table for this field that do not match up with any page, or match pages that do not have this field.');
 			$f->icon = 'exclamation-triangle';
 			$f->attr('value', $this->field->id); 
 			$f->autocheck = false;
@@ -1287,15 +1323,20 @@ class ProcessField extends Process implements ConfigurableModule {
 			
 			if($this->input->post('_remove_rows') == $this->field->id) {
 				$table = $this->field->getTable();
-				$query = $this->database->prepare("DELETE $table FROM $table LEFT JOIN pages ON $table.pages_id=pages.id WHERE pages.id IS NULL");
+				$sql = "DELETE $table FROM $table LEFT JOIN pages ON $table.pages_id=pages.id WHERE pages.id IS NULL ";
+				$templatesWithoutField = $this->getTemplatesWithoutField($this->field);
+				if(count($templatesWithoutField)) {
+					$sql .= "OR pages.templates_id IN(" . implode(',', $templatesWithoutField) . ")";
+				}
+				$query = $this->database->prepare($sql);
 				$query->execute();
 				$cnt = $query->rowCount();
 				if($cnt) $this->message($this->field->name . ": " . sprintf($this->_('Deleted %d orphaned rows'), $cnt));
 				$optimized = true; 
 			}
-	
-			if($optimized) $this->session->remove($this, 'optimize'); 
-				else if($this->input->post('_optimize')) $this->session->set($this, 'optimize', $this->field->id); 
+
+			$this->session->remove($this, 'optimize');
+			if($this->input->post('_optimize')) $this->session->set($this, 'optimize', $this->field->id); 
 		
 			try { 
 				$this->field->save();
@@ -1363,8 +1404,13 @@ class ProcessField extends Process implements ConfigurableModule {
 			}
 		}
 	
-		if($this->listAfterSave) $this->session->redirect("./"); 
-			else $this->session->redirect("edit?id={$this->field->id}"); 
+		if($this->listAfterSave) {
+			$this->session->redirect("./");
+		} else {
+			$url = "edit?id={$this->field->id}";
+			if($this->wire('input')->post("_optimize")) $url .= '#alert';
+			$this->session->redirect($url);
+		}
 	}
 
 	/**
@@ -1467,7 +1513,9 @@ class ProcessField extends Process implements ConfigurableModule {
 			if($name == 'delete') continue; 
 			if($name == 'fieldgroup_id') continue; 
 			if($name == 'field_label') $name = 'label';
-			if($name == 'id' && $this->field->id) continue; 
+			if($name == 'id' && $this->field->id) continue;
+			if($name == 'send_templates') continue;
+			if($this->field->send_templates) unset($this->field->send_templates); // value was previously getting stored
 			if($name == 'useRoles') $value = (bool) ((int) $value);
 		
 			// if adding new field or existing name has changed, check that its an allowed name

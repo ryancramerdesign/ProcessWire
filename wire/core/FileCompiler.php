@@ -3,9 +3,8 @@
 /**
  * Class FileCompiler
  *
- * @todo maintenance of compiled files, removal of ones no longer in use, etc.
- * @todo make storage in dedicated table rather than using wire('cache').
- * @todo handle race conditions
+ * @todo determine whether we should make storage in dedicated table rather than using wire('cache').
+ * @todo handle race conditions for multiple requests attempting to compile the same file(s).
  * 
  * @method string compile($sourceFile)
  * @method string compileData($data, $sourceFile)
@@ -51,6 +50,18 @@ class FileCompiler extends Wire {
 	protected $exclusions = array();
 
 	/**
+	 * File extensions that we compile and copy
+	 * 
+	 * @var array
+	 * 
+	 */
+	protected $extensions = array(
+		'php',
+		'module',
+		'inc',
+	);
+
+	/**
 	 * Construct
 	 * 
 	 * @param string $sourcePath Path where source files are located
@@ -61,16 +72,6 @@ class FileCompiler extends Wire {
 		$this->options = array_merge($this->options, $options);
 		if(strpos($sourcePath, '..') !== false) $sourcePath = realpath($sourcePath);
 		$this->sourcePath = rtrim($sourcePath, '/') . '/';
-	}
-
-	/**
-	 * Exclude a file or path from compilation
-	 * 
-	 * @param string $pathname
-	 * 
-	 */
-	public function addExclusion($pathname) {
-		$this->exclusions[] = $pathname;
 	}
 
 	/**
@@ -120,6 +121,35 @@ class FileCompiler extends Wire {
 	}
 
 	/**
+	 * Allow the given filename to be compiled?
+	 * 
+	 * @param $filename
+	 * @return bool
+	 * 
+	 */
+	protected function allowCompile($filename) {
+		
+		if(!is_file($filename)) {
+			return false;
+		}
+		
+		$ext = pathinfo($filename, PATHINFO_EXTENSION);
+		if(!in_array(strtolower($ext), $this->extensions)) {
+			return false;
+		}
+
+		$allow = true;
+		foreach($this->exclusions as $pathname) {
+			if(strpos($filename, $pathname) === 0) {
+				$allow = false;
+				break;
+			}
+		}
+		
+		return $allow;
+	}
+
+	/**
 	 * Compile given source file and return compiled destination file
 	 * 
 	 * @param string $sourceFile Source file to compile (relative to sourcePath given in constructor)
@@ -138,19 +168,10 @@ class FileCompiler extends Wire {
 			$sourcePathname = $this->sourcePath . ltrim($sourceFile, '/');
 		}
 
-		$run = true;
-		foreach($this->exclusions as $pathname) {
-			if(strpos($sourcePathname, $pathname) === 0) {
-				$run = false;
-				break;
-			}
-		}
-		if(!$run) return $sourcePathname;
+		if(!$this->allowCompile($sourcePathname)) return $sourcePathname;
 
 		$this->initTargetPath();
 
-		if(!is_file($sourcePathname)) throw new WireException("$sourcePathname does not exist");
-	
 		$cacheName = md5($sourcePathname);
 		$sourceHash = md5_file($sourcePathname);
 		
@@ -427,6 +448,7 @@ class FileCompiler extends Wire {
 	 * @param string $source
 	 * @param string $target
 	 * @param bool $recursive
+	 * @return int Number of files copied
 	 * 
 	 */
 	protected function copyAllNewerFiles($source, $target, $recursive = true) {
@@ -436,13 +458,14 @@ class FileCompiler extends Wire {
 	
 		// don't perform full copies of some directories
 		// @todo convert this to use the user definable exclusions list
-		if($source === $this->wire('config')->paths->site) return;
-		if($source === $this->wire('config')->paths->siteModules) return;
-		if($source === $this->wire('config')->paths->templates) return;
+		if($source === $this->wire('config')->paths->site) return 0;
+		if($source === $this->wire('config')->paths->siteModules) return 0;
+		if($source === $this->wire('config')->paths->templates) return 0;
 		
 		if(!is_dir($target)) $this->wire('files')->mkdir($target, true);
 		
 		$dir = new \DirectoryIterator($source);
+		$numCopied = 0;
 		
 		foreach($dir as $file) {
 			
@@ -451,34 +474,125 @@ class FileCompiler extends Wire {
 			$sourceFile = $file->getPathname();
 			$targetFile = $target . $file->getBasename();
 			
-			if($file->isDir() && $recursive) {
-				$this->copyAllNewerFiles($sourceFile, $targetFile, $recursive);
+			if($file->isDir()) {
+				if($recursive) {
+					$numCopied += $this->copyAllNewerFiles($sourceFile, $targetFile, $recursive);
+				}
 				continue;
 			}
 			
+			$ext = strtolower($file->getExtension());
+			if(!in_array($ext, $this->extensions)) continue;
+			
 			if(is_file($targetFile)) {
-				if(filemtime($targetFile) >= filemtime($sourceFile)) continue;
+				if(filemtime($targetFile) >= filemtime($sourceFile)) {
+					$numCopied++;
+					continue;
+				}
 			}
 			
 			copy($sourceFile, $targetFile);
 			$this->wire('files')->chmod($targetFile);
 			touch($targetFile, filemtime($sourceFile));
+			$numCopied++;
 		}
+		
+		if(!$numCopied) {
+			$this->wire('files')->rmdir($target, true);
+		}
+		
+		return $numCopied;
 	}
+
+	/**
+	 * Get a count of how many files are in the cache
+	 * 
+	 * @param bool $all Specify true to get a count for all file compiler caches
+	 * @param string $targetPath for internal recursion use, public calls should omit this
+	 * @return int
+	 * 
+	 */
+	public function getNumCacheFiles($all = false, $targetPath = null) {
+		
+		if(!is_null($targetPath)) {
+			// use it
+		} else if($all) {
+			$targetPath = $this->wire('config')->paths->cache . $this->className() . '/';
+		} else {
+			$this->init();
+			$targetPath = $this->targetPath;
+		}
+		
+		if(!is_dir($targetPath)) return 0;
+		
+		$numFiles = 0;
+		
+		foreach(new \DirectoryIterator($targetPath) as $file) {
+			if($file->isDot()) continue;
+			if($file->isDir()) {
+				$numFiles += $this->getNumCacheFiles($all, $file->getPathname());
+			} else {
+				$numFiles++;
+			}
+		}
 	
-	public function maintenance() {
+		return $numFiles;
+	}
+
+	/**
+	 * Clear all file compiler caches
+	 * 
+	 * @param bool $all Specify true to clear for all FileCompiler caches
+	 * @return bool
+	 * 
+	 */
+	public function clearCache($all = false) {
+		if($all) {
+			$targetPath = $this->wire('config')->paths->cache . $this->className() . '/';
+			$this->wire('cache')->deleteFor($this);
+		} else {
+			$this->init();
+			$targetPath = $this->targetPath;
+		}
+		if(!is_dir($targetPath)) return true;
+		return $this->wire('files')->rmdir($targetPath, true);
+	}
+
+	/**
+	 * Run maintenance on the FileCompiler cache
+	 * 
+	 * This should be called at the end of each request. 
+	 * 
+	 * @param int $interval Number of seconds between maintenance runs (default=86400)
+	 * @return bool Whether or not it was necessary to run maintenance
+	 * 
+	 */
+	public function maintenance($interval = 86400) {
 		
 		$this->init();
 		$this->initTargetPath();
 		$lastRunFile = $this->targetPath . 'maint.last';
-		if(file_exists($lastRunFile) && filemtime($lastRunFile) > time() - 86400) return false;
+		if(file_exists($lastRunFile) && filemtime($lastRunFile) > time() - $interval) {
+			// maintenance already run today
+			return false;
+		}
 		touch($lastRunFile);
 		$this->wire('files')->chmod($lastRunFile);
 		clearstatcache();
 
 		return $this->_maintenance($this->sourcePath, $this->targetPath);
 	}
-	
+
+	/**
+	 * Implementation for maintenance on a given path
+	 * 
+	 * Logs maintenance actions to logs/file-compiler.txt
+	 * 
+	 * @param $sourcePath
+	 * @param $targetPath
+	 * @return bool
+	 * 
+	 */
 	protected function _maintenance($sourcePath, $targetPath) {
 
 		$sourceURL = str_replace($this->wire('config')->paths->root, '/', $sourcePath);
@@ -523,7 +637,14 @@ class FileCompiler extends Wire {
 	
 		return true; 
 	}
-	
+
+	/**
+	 * Given an array of $options convert to an PHP-code array() string
+	 * 
+	 * @param array $options
+	 * @return string
+	 * 
+	 */
 	protected function optionsToString(array $options) {
 		$str = "array(";
 		foreach($options as $key => $value) {
@@ -543,5 +664,16 @@ class FileCompiler extends Wire {
 		$str = rtrim($str, ",") . ")";
 		return $str;
 	}
+	
+	/**
+	 * Exclude a file or path from compilation
+	 *
+	 * @param string $pathname
+	 *
+	 */
+	public function addExclusion($pathname) {
+		$this->exclusions[] = $pathname;
+	}
+
 }
 

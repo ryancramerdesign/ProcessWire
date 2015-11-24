@@ -18,6 +18,7 @@
  * @property bool|int $useHoverActions Whether or not to use hover mode for action links.
  * @property int $hoverActionDelay Milliseconds delay between hover and showing of actions. 
  * @property int $hoverActionFade Milliseconds to spend fading in or out actions. 
+ * @property bool|int $useBookmarks Allow use of PageList bookmarks?
  *
  */
 
@@ -61,8 +62,10 @@ class ProcessPageList extends Process implements ConfigurableModule {
 		$this->pageLabelField = 'title';
 		$this->limit = self::defaultLimit;
 		$this->set('useHoverActions', false);
+		$this->set('useBookmarks', false);
 		$this->set('bookmarks', array());
 		
+		parent::__construct();
 	}
 
 	/**
@@ -71,22 +74,21 @@ class ProcessPageList extends Process implements ConfigurableModule {
 	 */
 	public function init() {
 		parent::init();
-		$this->start = isset($_GET['start']) ? (int) $_GET['start'] : 0; 
-		$this->limit = (isset($_GET['limit']) && $_GET['limit'] < $this->limit) ? (int) $_GET['limit'] : $this->limit; 
+		$this->start = isset($_GET['start']) ? (int) $_GET['start'] : 0;
+		$this->limit = (isset($_GET['limit']) && $_GET['limit'] < $this->limit) ? (int) $_GET['limit'] : $this->limit;
 		$this->render = isset($_GET['render']) ? strtoupper($this->sanitizer->name($_GET['render'])) : '';
 		if($this->wire('config')->ajax && !$this->render && !$this->wire('input')->get('renderInputfieldAjax')) $this->render = 'JSON';
 		if($this->render && !isset($this->allowRenderTypes[$this->render])) $this->render = null;
-		
+
 		$settings = $this->wire('config')->pageList;
 		if(is_array($settings)) {
-			if(!empty($settings['useHoverActions'])) $this->set('useHoverActions', true); 
+			if(!empty($settings['useHoverActions'])) $this->set('useHoverActions', true);
 			$this->set('hoverActionDelay', isset($settings['hoverActionDelay']) ? (int) $settings['hoverActionDelay'] : 100);
 			$this->set('hoverActionFade', isset($settings['hoverActionFade']) ? (int) $settings['hoverActionFade'] : 100);
 			if($this->speed == self::defaultSpeed) $this->set('speed', isset($settings['speed']) ? (int) $settings['speed'] : self::defaultSpeed);
 			if($this->limit == self::defaultLimit) $this->set('limit', isset($settings['limit']) ? (int) $settings['limit'] : self::defaultLimit);
 		}
 	}
-	
 
 	/**
 	 * Execute the Page List
@@ -297,8 +299,12 @@ class ProcessPageList extends Process implements ConfigurableModule {
 	 * 
 	 */
 	protected function getPageBookmarks() {
-		require_once($this->wire('config')->paths->ProcessPageEdit . 'PageBookmarks.php');
-		return $this->wire(new PageBookmarks($this));
+		static $bookmarks = null;
+		if(is_null($bookmarks)) {
+			require_once($this->wire('config')->paths->ProcessPageEdit . 'PageBookmarks.php');
+			$bookmarks = $this->wire(new PageBookmarks($this));
+		}
+		return $bookmarks;
 	}
 
 	/**
@@ -306,7 +312,7 @@ class ProcessPageList extends Process implements ConfigurableModule {
 	 *
 	 */
 	public function ___executeNavJSON(array $options = array()) {
-		$bookmarks = $this->getPageBookmarks($this);
+		$bookmarks = $this->getPageBookmarks();
 		$options['edit'] = $this->wire('config')->urls->admin . 'page/?id={id}';
 		$options = $bookmarks->initNavJSON($options);
 		return parent::___executeNavJSON($options);
@@ -341,6 +347,12 @@ class ProcessPageList extends Process implements ConfigurableModule {
 		$field->description = $this->_('Every page in a PageList is identified by a label, typically a title or headline field. You may specify which field it should use here. To specify multiple fields, separate each field name with a space, or use your own format string with field names surrounded in {brackets}. If the field resolves to an object (like another page), then specify the property with a dot, i.e. {anotherpage.title}. Note that if the format you specify resolves to a blank value then ProcessWire will use the page "name" field.'); // pageLabelField description
 		$field->notes = $this->_('You may optionally override this setting on a per-template basis in each template "advanced" settings.'); // pageLabelField notes
 		$fields->append($field);
+	
+		$bookmarks = $this->getPageBookmarks();
+		$bookmarks->addConfigInputfields($fields);
+		$admin = $this->wire('pages')->get($this->wire('config')->adminRootPageID);
+		$page = $this->wire('pages')->get($admin->path . 'page/list/');
+		$bookmarks->checkprocessPage($page);
 	
 		$settings = $this->wire('config')->pageList;
 		/*

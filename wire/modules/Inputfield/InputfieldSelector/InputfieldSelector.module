@@ -296,11 +296,16 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		
 	}
 
+	/**
+	 * Prepare output for send
+	 * 
+	 * @param $out
+	 * @return string
+	 * 
+	 */
 	protected function prep($out) {
-		$out = str_replace(array(
-			'id="Inputfield_filters__value[]"',
-			"id='Inputfield_filters__value[]'"
-		), '', $out);
+		// ensures id attributes in Inputfields (like dates) don't get array-like names
+		$out = preg_replace('/ id=[\'"]Inputfield_[a-zA-Z0-9_]+__value\[\][\'"]/', ' ', $out);
 		return $out;
 	}
 	

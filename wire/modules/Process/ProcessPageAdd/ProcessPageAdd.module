@@ -78,6 +78,8 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 			foreach($this->wire('templates') as $template) {
 				if($template->modified > $data['modified']) {
 					$data = array();
+					$session->remove($this, 'nav');
+					$session->remove($this, 'numAddable');
 					break;
 				}
 			}
@@ -129,6 +131,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 	
 				$configData = $this->wire('modules')->getModuleConfigData($this); // because admin theme calls with noInit option
 				$shortcutSort = isset($configData['shortcutSort']) ? $configData['shortcutSort'] : array(); 
+				if(!is_array($shortcutSort)) $shortcutSort = array();
 				if(!empty($shortcutSort)) {
 					$sorted = array();
 					foreach($shortcutSort as $templateID) {
@@ -155,6 +158,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 		$bookmarks = $this->getPageBookmarks($this);
 		$options2 = $bookmarks->initNavJSON(array('add' => 'ignore-me'));	
 		$lastItem = null;
+		$listLength = count($data['list']);
 		$n = 0;
 		foreach(array_values($options2['items']) as $p) {
 			if($p->id == 'bookmark' && !$user->isSuperuser()) continue;
@@ -172,7 +176,8 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 			}
 		}
 		if($lastItem) $data['list'][] = $lastItem;
-		
+	
+		$session->setFor($this, 'numAddable', $listLength + $n);
 		if(!empty($options['getArray'])) return $data;
 
 		if($this->wire('config')->ajax) header("Content-Type: application/json");
@@ -1009,7 +1014,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 	 */
 	public function ___executeBookmarks() {
 		
-		if($this->wire('input')->post('shortcutSort') && $this->wire('user')->isSuperuser()) {
+		if(is_array($this->wire('input')->post('shortcutSort')) && $this->wire('user')->isSuperuser()) {
 			$data = $this->wire('modules')->getModuleConfigData($this);	
 			$data['shortcutSort'] = $this->wire('input')->post->intArray('shortcutSort'); 
 			$this->wire('modules')->saveModuleConfigData($this, $data);
@@ -1029,21 +1034,25 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 		if($f->notes) $f->notes .= "\n\n";
 		$f->notes .= $this->_('The pages you select above represent bookmarks to the parent pages where you want children added. Note that if a user does not have permission to add a page to a given parent page (whether due to access control or template family settings), the bookmark will not appear.'); // Notes for bookmarks
 		
+		$this->wire('session')->remove($this, 'numAddable');
+		
 		return $form->render();
 	}
 	
 	public function getShortcutSortField() {
 		
+		$this->wire('session')->remove($this, 'nav');
+		$data = $this->executeNavJSON(array('getArray' => true));
+		$name = 'shortcutSort';
+	
 		$f = $this->wire('modules')->get('InputfieldAsmSelect');
-		$f->label = __('Template shortcut sort order');
-		$f->description = __('To change the order of the "Add New" page-template shortcuts, drag and drop the options to the order you want them in.');
-		$f->notes = __('To add or remove templates from these shortcuts, see the Template editor Family tab.');
-		$f->attr('name', 'shortcutSort');
+		$f->label = $this->_('Template shortcut sort order');
+		$f->description = $this->_('To change the order of the "Add New" page-template shortcuts, drag and drop the options to the order you want them in.');
+		$f->notes = $this->_('To add or remove templates from these shortcuts, see the Template editor Family tab.');
+		$f->attr('name', $name);
 		$f->icon = 'sort';
 		$f->setAsmSelectOption('removeLabel', '');
 
-		$this->wire('session')->remove($this, 'nav');
-		$data = $this->executeNavJSON(array('getArray' => true));
 		$out = '';
 		$value = array();
 
@@ -1053,6 +1062,12 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 			if(!$template) continue;
 			$f->addOption($template->id, $template->getLabel());
 			$value[] = $template->id;
+		}
+		
+		if(!count($f->getOptions)) {
+			$f = $this->wire('modules')->get('InputfieldHidden');
+			$f->attr('name', $name);
+			return $f;
 		}
 
 		$f->attr('value', $value);
@@ -1064,9 +1079,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 	public function getModuleConfigInputfields(array $data) {
 		
 		$form = $this->wire(new InputfieldWrapper());
-		
-		$process = $this->wire('modules')->get('ProcessPageAdd');
-		$form->add($process->getShortcutSortField());
+		$form->add($this->getShortcutSortField());
 		
 		$f = $this->wire('modules')->get('InputfieldCheckbox');
 		$f->label = $this->_('Disable automatic publishing');

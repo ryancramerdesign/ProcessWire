@@ -507,41 +507,46 @@ class Sanitizer extends Wire {
 	}
 
 	/**
-	 * Returns a valid URL, or blank if it can't be made valid 
+	 * Returns a valid URL, or blank if it can't be made valid
 	 *
-	 * Performs some basic sanitization like adding a protocol to the front if it's missing, but leaves alone local/relative URLs. 
+	 * Performs some basic sanitization like adding a protocol to the front if it's missing, but leaves alone local/relative URLs.
 	 *
 	 * URL is not required to confirm to ProcessWire conventions unless a relative path is given.
 	 *
-	 * Please note that URLs should always be entity encoded in your output. <script> is technically allowed in a valid URL, so 
-	 * your output should always entity encoded any URLs that came from user input. 
+	 * Please note that URLs should always be entity encoded in your output. <script> is technically allowed in a valid URL, so
+	 * your output should always entity encoded any URLs that came from user input.
 	 *
 	 * @param string $value URL
-	 * @param bool|array $options Array of options including: 
+	 * @param bool|array $options Array of options including:
 	 * 	- allowRelative (boolean) Whether to allow relative URLs, i.e. those without domains (default=true)
+	 * 	- allowIDN (boolean) Whether to allow internationalized domain names (default=false)
 	 * 	- allowQuerystring (boolean) Whether to allow query strings (default=true)
 	 * 	- allowSchemes (array) Array of allowed schemes, lowercase (default=[] any)
 	 *	- disallowSchemes (array) Array of disallowed schemes, lowercase (default=[file])
 	 * 	- requireScheme (bool) Specify true to require a scheme in the URL, if one not present, it will be added to non-relative URLs (default=true)
+	 * 	- stripTags (bool) Specify false to prevent tags from being stripped (default=true)
+	 * 	- stripQuotes (bool) Specify false to prevent quotes from being stripped (default=true)
 	 * 	- throw (bool) Throw exceptions on invalid URLs (default=false)
 	 *	Previously this was the boolean $allowRelative, and that usage will still work for backwards compatibility.
 	 * @return string
-	 * @throws WireException on invalid URLs, only if $options['throw'] is true. 
+	 * @throws WireException on invalid URLs, only if $options['throw'] is true.
 	 * @todo add TLD validation
 	 *
 	 */
 	public function url($value, $options = array()) {
 
 		$defaultOptions = array(
-			'allowRelative' => true, 
+			'allowRelative' => true,
+			'allowIDN' => false,
 			'allowQuerystring' => true,
-			'allowSchemes' => array(), 
-			'disallowSchemes' => array('file', 'javascript'), 
+			'allowSchemes' => array(),
+			'disallowSchemes' => array('file', 'javascript'),
 			'requireScheme' => true,
-			'stripTags' => true, 
+			'stripTags' => true,
+			'stripQuotes' => true,
 			'maxLength' => 4096,
 			'throw' => false,
-			);
+		);
 
 		if(!is_array($options)) {
 			$defaultOptions['allowRelative'] = (bool) $options; // backwards compatibility with old API
@@ -557,24 +562,24 @@ class Sanitizer extends Wire {
 
 		$value = $this->text($value, $textOptions);
 		if(!strlen($value)) return '';
-		
-		$scheme = parse_url($value, PHP_URL_SCHEME); 
+
+		$scheme = parse_url($value, PHP_URL_SCHEME);
 		if($scheme !== false && strlen($scheme)) {
 			$_scheme = $scheme;
 			$scheme = strtolower($scheme);
 			$schemeError = false;
-			if(!empty($options['allowSchemes']) && !in_array($scheme, $options['allowSchemes'])) $schemeError = true; 
-			if(!empty($options['disallowSchemes']) && in_array($scheme, $options['disallowSchemes'])) $schemeError = true; 
+			if(!empty($options['allowSchemes']) && !in_array($scheme, $options['allowSchemes'])) $schemeError = true;
+			if(!empty($options['disallowSchemes']) && in_array($scheme, $options['disallowSchemes'])) $schemeError = true;
 			if($schemeError) {
 				$error = sprintf($this->_('URL: Scheme "%s" is not allowed'), $scheme);
 				if($options['throw']) throw new WireException($error);
 				$this->error($error);
-				$value = str_ireplace(array("$scheme:///", "$scheme://"), '', $value); 
+				$value = str_ireplace(array("$scheme:///", "$scheme://"), '', $value);
 			} else if($_scheme !== $scheme) {
 				$value = str_replace("$_scheme://", "$scheme://", $value); // lowercase scheme
 			}
 		}
-		
+
 		// separate scheme+domain+path from query string temporarily
 		if(strpos($value, '?') !== false) {
 			list($domainPath, $queryString) = explode('?', $value);
@@ -583,7 +588,7 @@ class Sanitizer extends Wire {
 			$domainPath = $value;
 			$queryString = '';
 		}
-	
+
 		$pathIsEncoded = strpos($domainPath, '%') !== false;
 		if($pathIsEncoded || filter_var($domainPath, FILTER_SANITIZE_URL) !== $domainPath) {
 			// the domain and/or path contains extended characters not supported by FILTER_SANITIZE_URL
@@ -599,12 +604,12 @@ class Sanitizer extends Wire {
 			$domainPath = str_replace(array('%2F', '%3A'), array('/', ':'), $domainPath);
 			// restore value that is now FILTER_SANITIZE_URL compatible
 			$value = $domainPath . (strlen($queryString) ? "?$queryString" : "");
-			$pathIsEncoded = true;	
+			$pathIsEncoded = true;
 		}
 
 		// this filter_var sanitizer just removes invalid characters that don't appear in domains or paths
 		$value = filter_var($value, FILTER_SANITIZE_URL);
-	
+
 		if(!$scheme) {
 			// URL is missing scheme/protocol, or is local/relative
 
@@ -616,37 +621,37 @@ class Sanitizer extends Wire {
 			if($options['allowRelative']) {
 				// determine if this is a domain name 
 				// regex legend:       (www.)?      company.         com       ( .uk or / or end)
-				$dotPos = strpos($value, '.');	
-				$slashPos = strpos($value, '/'); 
+				$dotPos = strpos($value, '.');
+				$slashPos = strpos($value, '/');
 				if($slashPos === false) $slashPos = $dotPos+1;
 				// if the first slash comes after the first dot, the dot is likely part of a domain.com/path/
 				// if the first slash comes before the first dot, then it's likely a /path/product.html
 				if($dotPos && $slashPos > $dotPos && preg_match('{^([^\s_.]+\.)?[^-_\s.][^\s_.]+\.([a-z]{2,6})([./:#]|$)}i', $value, $matches)) {
 					// most likely a domain name
 					// $tld = $matches[3]; // TODO add TLD validation to confirm it's a domain name
-					$value = filter_var("http://$value", FILTER_VALIDATE_URL); // add scheme for validation
+					$value = $this->filterValidateURL("http://$value", $options); // add scheme for validation
 
 				} else if($options['allowQuerystring']) {
 					// we'll construct a fake domain so we can use FILTER_VALIDATE_URL rules
 					$fake = 'http://processwire.com/';
 					$slash = strpos($value, '/') === 0 ? '/' : '';
-					$value = $fake . ltrim($value, '/'); 
-					$value = filter_var($value, FILTER_VALIDATE_URL); 
+					$value = $fake . ltrim($value, '/');
+					$value = $this->filterValidateURL($value, $options);
 					$value = str_replace($fake, $slash, $value);
 
 				} else {
 					// most likely a relative path
-					$value = $this->path($value); 
+					$value = $this->path($value);
 				}
-				
+
 			} else {
 				// relative urls aren't allowed, so add the scheme/protocol and validate
-				$value = filter_var("http://$value", FILTER_VALIDATE_URL); 
+				$value = $this->filterValidateURL("http://$value", $options);
 			}
-			
+
 			if(!$options['requireScheme']) {
 				// if a scheme was added above (for filter_var validation) and it's not required, remove it
-				$value = str_replace('http://', '', $value); 
+				$value = str_replace('http://', '', $value);
 			}
 		} else if($scheme == 'tel') {
 			// tel: scheme is not supported by filter_var 
@@ -654,16 +659,16 @@ class Sanitizer extends Wire {
 				$value = str_replace(' ', '', $value);
 				/** @noinspection PhpUnusedLocalVariableInspection */
 				list($tel, $num) = explode(':', $value);
-				$value = 'tel:'; 
+				$value = 'tel:';
 				if(strpos($num, '+') === 0) $value .= '+';
 				$value .= preg_replace('/[^\d]/', '', $num);
 			}
 		} else {
 			// URL already has a scheme
-			$value = filter_var($value, FILTER_VALIDATE_URL); 
+			$value = $this->filterValidateURL($value, $options);
 		}
-		
-		if($pathIsEncoded) {
+
+		if($pathIsEncoded && strlen($value)) {
 			// restore to non-encoded, UTF-8 version 
 			if(strpos('?', $value) !== false) {
 				list($domainPath, $queryString) = explode('?', $value);
@@ -673,14 +678,102 @@ class Sanitizer extends Wire {
 			}
 			$domainPath = rawurldecode($domainPath);
 			if(strpos($domainPath, '%') !== false) {
-				$domainPath = preg_replace('/%[0-9ABCDEF]{1,2}/i', '', $domainPath); 
+				$domainPath = preg_replace('/%[0-9ABCDEF]{1,2}/i', '', $domainPath);
 				$domainPath = str_replace('%', '', $domainPath);
 			}
 			$domainPath = $this->text($domainPath, $textOptions);
 			$value = $domainPath . (strlen($queryString) ? "?$queryString" : "");
 		}
 
-		return $value ? $value : '';
+		if(strlen($value)) {
+			if($options['stripTags']) {
+				if(stripos($value, '%3') !== false) {
+					$value = str_ireplace(array('%3C', '%3E'), array('!~!<', '>!~!'), $value);
+					$value = strip_tags($value);
+					$value = str_ireplace(array('!~!<', '>!~!', '!~!'), array('%3C', '%3E', ''), $value); // restore, in case valid/non-tag
+				} else {
+					$value = strip_tags($value);
+				}
+			}
+			if($options['stripQuotes']) {
+				$value = str_replace(array('"', "'", "%22", "%27"), '', $value);
+			}
+			return $value;
+		}
+
+		return '';
+	}
+
+	/**
+	 * Implementation of PHP's FILTER_VALIDATE_URL with IDN support (will convert to valid)
+	 *
+	 * Example: http://трикотаж-леко.рф
+	 *
+	 * @param string $url
+	 * @param array $options Specify ('allowIDN' => false) to disallow internationalized domain names
+	 * @return string
+	 *
+	 */
+	protected function filterValidateURL($url, array $options) {
+
+		$_url = $url;
+		$url = filter_var($url, FILTER_VALIDATE_URL);
+		if($url !== false && strlen($url)) return $url;
+
+		// if allowIDN was specifically set false, don't proceed further
+		if(isset($options['allowIDN']) && !$options['allowIDN']) return $url;
+
+		// if PHP doesn't support idn_* functions, we can't do anything further here
+		if(!function_exists('idn_to_ascii') || !function_exists('idn_to_utf8')) return $url;
+
+		// extract scheme
+		if(strpos($_url, '//') !== false) {
+			list($scheme, $_url) = explode('//', $_url, 2);
+			$scheme .= '//';
+		} else {
+			$scheme = '';
+		}
+
+		// extract domain, and everything else (rest)
+		if(strpos($_url, '/') > 0) {
+			list($domain, $rest) = explode('/', $_url, 2);
+			$rest = "/$rest";
+		} else {
+			$domain = $_url;
+			$rest = '';
+		}
+
+		if(strpos($domain, '%') !== false) {
+			// domain is URL encoded
+			$domain = rawurldecode($domain);
+		}
+
+		// extract port, if present, and prepend to $rest
+		if(strpos($domain, ':') !== false && preg_match('/^([^:]+):(\d+)$/', $domain, $matches)) {
+			$domain = $matches[1];
+			$rest = ":$matches[2]$rest";
+		}
+
+		if($this->nameFilter($domain, array('-', '.'), '_', false, 1024) === $domain) {
+			// domain contains no extended characters
+			$url = $scheme . $domain . $rest;
+			$url = filter_var($url, FILTER_VALIDATE_URL);
+
+		} else {
+			// domain contains utf8
+			$domain = idn_to_ascii($domain);
+			if($domain === false || !strlen($domain)) return '';
+			$url = $scheme . $domain . $rest;
+			$url = filter_var($url, FILTER_VALIDATE_URL);
+			if(strlen($url)) {
+				// convert back to utf8 domain
+				$domain = idn_to_utf8($domain);
+				if($domain === false) return '';
+				$url = $scheme . $domain . $rest;
+			}
+		}
+
+		return $url;
 	}
 
 	/**

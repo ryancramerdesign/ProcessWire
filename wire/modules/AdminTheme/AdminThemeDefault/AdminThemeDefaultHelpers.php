@@ -332,12 +332,15 @@ class AdminThemeDefaultHelpers extends WireData {
 	protected function getPageTitle(Page $c) {
 		if($c->name == 'add' && $c->parent->name == 'page') {
 			// ProcessPageAdd: avoid showing this menu item if there are no predefined family settings to use
-			$addData = $this->wire('session')->getFor('ProcessPageAdd', 'nav');
-			if(empty($addData)) {
+			$numAddable = $this->wire('session')->getFor('ProcessPageAdd', 'numAddable');
+			if($numAddable === null) {
 				$processPageAdd = $this->wire('modules')->getModule('ProcessPageAdd', array('noInit' => true));
-				if($processPageAdd) $addData = $processPageAdd->executeNavJSON(array("getArray" => true));
+				if($processPageAdd) {
+					$addData = $processPageAdd->executeNavJSON(array("getArray" => true));
+					$numAddable = $addData['list'];
+				}
 			}
-			if(empty($addData) || empty($addData['list'])) return '';
+			if(!$numAddable) return '';
 			$title = $this->getAddNewLabel();
 		} else {
 			$title = $this->_($c->title);

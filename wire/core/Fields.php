@@ -696,8 +696,8 @@ class Fields extends WireSaveableItems {
 		try {
 			$query->execute();
 			if($options['getPageIDs']) {
-				while($row = $query->fetch(\PDO::FETCH_NUM)) {
-					$return[] = (int) $row['id'];
+				while($id = $query->fetchColumn()) {
+					$return[] = (int) $id;
 				}
 			} else if($useRowCount) {
 				$return = (int) $query->rowCount();

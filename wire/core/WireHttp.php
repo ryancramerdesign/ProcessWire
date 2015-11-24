@@ -899,7 +899,8 @@ class WireHttp extends Wire {
 		$options = array(
 			'allowRelative' => false, 
 			'allowSchemes' => $this->allowSchemes, 
-			'requireScheme' => true, 
+			'requireScheme' => true,
+			'stripQuotes' => false,
 			'throw' => true,
 			);
 		try {

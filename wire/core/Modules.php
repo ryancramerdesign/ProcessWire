@@ -3191,6 +3191,7 @@ class Modules extends WireArray {
 				} else if($configurableInterface === 3) {
 					// requires $data array
 					$module = $this->getModule($moduleName, array('noInit' => true, 'noCache' => true));
+					$this->setModuleConfigData($module);
 					$fields = $module->getModuleConfigInputfields($data);
 				} else if($configurableInterface === 4) {
 					// requires InputfieldWrapper

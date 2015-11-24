@@ -176,7 +176,7 @@ class PageFinder extends Wire {
 				// for getTotal auto detect
 				$limit = (int) $selector->value; 	
 
-			} else if($fieldName == 'start ') {
+			} else if($fieldName == 'start') {
 				// for getTotal auto detect
 				$start = (int) $selector->value; 	
 

@@ -1056,7 +1056,8 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 					$label .= '</strong>';
 				}
 			}
-			$header[$key] = "$icon$label<b>$name</b>";
+			$sortKey = $subname ? "$name.$subname" : $name;
+			$header[$key] = "$icon$label<b>$sortKey</b>";
 			$fields[$name] = $field; 
 		}
 

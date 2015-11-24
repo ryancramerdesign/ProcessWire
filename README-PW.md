@@ -1,7 +1,7 @@
-# Welcome to ProcessWire 2.6
+# Welcome to ProcessWire 3.x
 
 This document is in Markdown. An HTML formatted version of this document 
-can be read at: http://processwire.com/download/readme
+can be read at: https://processwire.com/download/readme
 
 ## Table of Contents
 
@@ -21,6 +21,8 @@ can be read at: http://processwire.com/download/readme
        - [Replacing the /index.php file](#replacing-the-indexphp-file)
        - [Replacing the .htaccess file](#replacing-the-htaccess-file)
        - [Additional upgrade notes](#additional-upgrade-notes)
+   - [Upgrading from ProcessWire 2.7](#upgrading-from-processwire-27)
+   - [Upgrading from ProcessWire 2.6](#upgrading-from-processwire-26)
    - [Upgrading from ProcessWire 2.5](#upgrading-from-processwire-25)
    - [Upgrading from ProcessWire 2.4](#upgrading-from-processwire-24)
    - [Upgrading from ProcessWire 2.2 or 2.3](#upgrading-from-processwire-22-or-23)
@@ -40,13 +42,15 @@ works the way you do. Not to mention, ProcessWire's API makes working with
 your content easy and enjoyable. Managing and developing a site in 
 ProcessWire is shockingly simple compared to what you may be used to.
 
-* [Learn more about ProcessWire](http://processwire.com)
-* [Download the latest ProcessWire](http://processwire.com/download/)
-* [Get support for ProcessWire](http://processwire.com/talk/)
+* [Learn more about ProcessWire](https://processwire.com)
+* [Download the latest ProcessWire](https://processwire.com/download/)
+* [Get support for ProcessWire](https://processwire.com/talk/)
 * [Browse and install ProcessWire modules/plugins](http://modules.processwire.com)
 * [Follow @ProcessWire on Twitter](http://twitter.com/processwire/)
-* [Contact ProcessWire](http://processwire.com/contact/)
-
+* [Contact ProcessWire](https://processwire.com/contact/)
+* [API Cheatsheet](http://cheatsheet.processwire.com/)
+* [Sites running ProcessWire](https://processwire.com/about/sites/)
+* [Read the ProcessWire Blog](https://processwire.com/blog/)
 
 ## Installation
 
@@ -145,12 +149,12 @@ error, please post in the [ProcessWire forums](http://processwire.com/talk).
    re-install them after upgrading. If uninstalling is 
    inconvenient, just be sure you have the ability to revert if for 
    some reason one of your modules does not like the upgrade.
-   Modules that are compatible with ProcessWire 2.4-2.5 are generally
-   going to also be compatible with 2.6. 
+   Modules that are compatible with ProcessWire 2.4-2.7 are generally
+   going to also be compatible with 3.0 with a few exceptions.
 
 If you prefer an automatic/web-based upgrade, an
 [upgrade module](https://github.com/ryancramerdesign/ProcessWireUpgrade)
-is available for upgrading to 2.6. This upgrade utility can also help with
+is available for upgrading to 3.x. This upgrade utility can also help with
 upgrading other modules as well. 
 
 
@@ -251,14 +255,31 @@ logging in to your admin and going to Setup > ProCache.
 
 - If using Form Builder make sure you have the latest version,
   as past versions did not support ProcessWire 2.4+. With ProcessWire
-  2.6 we recommend FormBuilder 0.2.4 or 0.2.5+. 
+  3.0 we recommend FormBuilder 0.2.6+. 
 
-- If using ProCache you will need to go to the ProCache
-  settings after the upgrade to have it update your .htaccess file
-  again (since it was presumably replaced during the upgrade). 
+- If using ProCache and you upgraded your .htaccess file, you should 
+  go to your ProCache settings after the upgrade to have it update 
+  your .htaccess file again. If no upgrades to your .htaccess file
+  are necessary, than the ProCache settings page own't mention it.
   
-- If using ListerPro, we recommend using version 1.0.2+ with 
-  ProcessWire 2.6.
+- If using ListerPro, we recommend using version 1.0.9+ with 
+  ProcessWire 3.x.
+  
+### Upgrading from ProcessWire 2.7
+
+Please see the [README.md](https://github.com/ryancramerdesign/ProcessWire/blob/devns/README.md)
+file for important details on the 3.x alpha/beta upgrade.
+  
+### Upgrading from ProcessWire 2.6
+
+The general upgrade process may be followed to perform this upgrade.
+It is not necessary to replace your .htaccess file. You should replace
+these directories/files:
+
+- /wire/
+- /index.php
+- /COPYRIGHT.txt (if present)
+- /LICENSE.txt (if present)
   
 ### Upgrading from ProcessWire 2.5
 
@@ -291,7 +312,7 @@ In addition, please note the following:
 
 - **TinyMCE rich text editor was replaced with CKEditor**    
   2.5 dropped TinyMCE as the rich text editor and replaced it with 
-  CKEditor. After installation of 2.6, you will see an error message
+  CKEditor. After installation of 2.7+, you will see an error message
   on any pages that use TinyMCE. From this point, you may either 
   [install TinyMCE](mods.pw/7H) or switch your fields using TinyMCE
   to CKEditor. To switch to CKEditor, go to Setup > Fields > [field] > Details,
@@ -300,7 +321,7 @@ In addition, please note the following:
   
 - **Already have CKEditor or HTML Purifier installed?**   
   A couple of modules that were previously 3rd party (site) modules 
-  are now core (wire) modules in ProcessWire 2.6. If you have either
+  are now core (wire) modules in ProcessWire 2.7+. If you have either
   the *InputfieldCKEditor* or *MarkupHTMLPurifier* modules installed,
   you will get warnings about that after upgrading. The warnings will 
   tell you to remove the dirs/files for those modules that you have in 
@@ -361,9 +382,8 @@ If you get an error message when loading your site after an upgrade,
 hit "reload" in your browser until the error messages disappear. It
 may take up to 5 reloads for ProcessWire to apply all updates. 
 
-If using Form Builder, make sure you have version 0.2.3 or newer, as older
-versions did not support ProcessWire 2.4+. For ProcessWire 2.6 we recommend
-using FormBuilder 0.2.4 or newer. 
+If using Form Builder, make sure you have version 0.2.5 or newer, as older
+versions did not support ProcessWire 3.x. 
 
 If your site still doesn't work, remove the /wire/ directory completely. 
 Then upload a fresh copy of the /wire/ directory. 
@@ -408,5 +428,5 @@ Get support in the ProcessWire forum at:
 
 ------
 
-ProcessWire, Copyright 2015 by Ryan Cramer Design, LLC
+Copyright 2015 by Ryan Cramer / Ryan Cramer Design, LLC
 
