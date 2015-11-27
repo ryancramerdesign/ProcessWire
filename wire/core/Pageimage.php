@@ -586,10 +586,20 @@ class Pageimage extends Pagefile {
 	 * 
 	 */
 	public function maxSize($width, $height, $options = array()) {
-		if($this->width() >= $this->height()) {
-			return $this->maxWidth($width);
+		$w = $this->width();
+		$h = $this->height();
+		if($w >= $h) {
+			if($w > $width && $h > $height) {
+				return $this->size($width, $height, $options);
+			} else {
+				return $this->maxWidth($width, $options);
+			}
 		} else {
-			return $this->maxHeight($height);
+			if($w > $width && $h > $height) {
+				return $this->size($width, $height, $options);
+			} else {
+				return $this->maxHeight($height, $options);
+			}
 		}
 	}
 
