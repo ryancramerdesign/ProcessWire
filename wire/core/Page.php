@@ -869,7 +869,7 @@ class Page extends WireData implements \Countable, WireMatchable {
 		$keys = explode('|', $multiKey); 
 
 		foreach($keys as $key) {
-			$value = $this->get($key);
+			$value = $this->getUnformatted($key);
 			
 			if(is_object($value)) {
 				// like LanguagesPageFieldValue or WireArray
@@ -885,8 +885,11 @@ class Page extends WireData implements \Countable, WireMatchable {
 			}
 			
 			if($value) {
-				if($getKey) $value = $key;
-				break;
+				if($this->outputFormatting) $value = $this->get($key);
+				if($value) {
+					if($getKey) $value = $key;
+					break;
+				}
 			}
 		}
 

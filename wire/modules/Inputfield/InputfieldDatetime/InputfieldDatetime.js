@@ -6,6 +6,7 @@ function InputfieldDatetimeDatepicker($t) {
 	var tsDate = null;
 	var dateFormat = $t.attr('data-dateformat'); 
 	var timeFormat = $t.attr('data-timeformat');
+	var timeSelect = parseInt($t.attr('data-timeselect'));
 	var hasTimePicker = timeFormat.length > 0 && !pickerVisible;
 	var showOn = $t.is(".InputfieldDatetimeDatepicker3") ? 'focus' : 'button';
 	var ampm = parseInt($t.attr('data-ampm')) > 0; 
@@ -41,6 +42,10 @@ function InputfieldDatetimeDatepicker($t) {
 	if(hasTimePicker) { 
 		options.ampm = ampm; 
 		options.timeFormat = timeFormat; 
+		if(timeSelect > 0) {
+			options.controlType = 'select';
+			options.oneLine = true;
+		}
 		if(timeFormat.indexOf('ss') > -1) options.showSecond = true; 
 		if(timeFormat.indexOf('m') == -1) options.showMinute = false;
 		$datepicker.datetimepicker(options); 

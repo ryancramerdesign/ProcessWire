@@ -30,3 +30,5 @@ upgrade.php
 *.css.map
 wire/modules/AdminTheme/AdminThemeDefault/styles/sass/*.css
 composer.lock
+*.min.min.js
+wire/modules/Inputfield/InputfieldDatetime/timepicker/i18n/*.min.js

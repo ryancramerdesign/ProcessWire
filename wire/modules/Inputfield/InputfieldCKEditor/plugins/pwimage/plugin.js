@@ -77,11 +77,11 @@
 
 	function loadIframeImagePicker(editor) {
 
-		var $in = $("#Inputfield_id"); 
+		var $in = jQuery("#Inputfield_id"); 
 		if($in.length) {
 			var page_id = $in.val();
 		} else {
-			var page_id = $("#" + editor.name).closest('.Inputfield').attr('data-pid');
+			var page_id = jQuery("#" + editor.name).closest('.Inputfield').attr('data-pid');
 		}
 		var edit_page_id = page_id; 
 		var file = '';
@@ -94,7 +94,7 @@
 		var selection = editor.getSelection();
 		var se = selection.getSelectedElement();
 		var node = selection.getStartElement();
-		var $node = $(node);
+		var $node = jQuery(node);
 		var nodeParent = node.getParent();
 		var nodeGrandparent = nodeParent.getParent();
 		var src = $node.attr('src');
@@ -108,16 +108,16 @@
 		editor.lockSelection();
 	
 		if(nodeGrandparentName == 'FIGURE') {
-			$figureWrapper = $(nodeGrandparent.getOuterHtml());
+			$figureWrapper = jQuery(nodeGrandparent.getOuterHtml());
 			$figureCaption = $figureWrapper.find("figcaption");
 			$figureWrapper.find('img').remove();
 		} else if(nodeParentName == 'FIGURE') {
-			$figureWrapper = $(nodeParent.getOuterHtml());
+			$figureWrapper = jQuery(nodeParent.getOuterHtml());
 			$figureCaption = $figureWrapper.find("figcaption");
 			$figureWrapper.find('img').remove();
 		}
 		if(nodeParentName === 'A') {
-			$linkWrapper = $(nodeParent.getOuterHtml()); 
+			$linkWrapper = jQuery(nodeParent.getOuterHtml()); 
 			$linkWrapper.find('img').remove();
 		}
 		
@@ -158,16 +158,16 @@
 		}
 		if($figureCaption) queryString += "&caption=1";
 		if(imgLink && imgLink.length) queryString += "&link=" + encodeURIComponent(imgLink);
-		queryString += ("&winwidth=" + ($(window).width() - 30));
+		queryString += ("&winwidth=" + (jQuery(window).width() - 30));
 
 		// create iframe dialog box
 		var modalSettings = {
 			title: "<i class='fa fa-fw fa-folder-open'></i> " + config.InputfieldCKEditor.pwimage.selectLabel, // "Select Image", 
 			open: function() {
-				if($(".cke_maximized").length > 0) {
+				if(jQuery(".cke_maximized").length > 0) {
 					// the following is required when CKE is maximized to make sure dialog is on top of it
-					$('.ui-dialog').css('z-index', 9999);
-					$('.ui-widget-overlay').css('z-index', 9998);
+					jQuery('.ui-dialog').css('z-index', 9999);
+					jQuery('.ui-widget-overlay').css('z-index', 9998);
 				}
 			}
 		};
@@ -190,18 +190,18 @@
 							function insertImage(src) {
 
 								var $i = $iframe.contents();
-								var $img = $("#selected_image", $i); 
+								var $img = jQuery("#selected_image", $i); 
 								var width = $img.attr('width');
 								var height = $img.attr('height'); 
-								var alt = $("#selected_image_description", $i).val();
-								var caption = $("#selected_image_caption", $i).is(":checked") ? true : false;
-								var hidpi = $("#selected_image_hidpi", $i).is(":checked") ? true : false;
+								var alt = jQuery("#selected_image_description", $i).val();
+								var caption = jQuery("#selected_image_caption", $i).is(":checked") ? true : false;
+								var hidpi = jQuery("#selected_image_hidpi", $i).is(":checked") ? true : false;
 								var cls = $img.removeClass('ui-resizable No Alignment resizable_setup') 
 									.removeClass('rotate90 rotate180 rotate270 rotate-90 rotate-180 rotate-270')
 									.removeClass('flip_vertical flip_horizontal').attr('class');
-								var $linkToLarger = $('#selected_image_link', $i); 
+								var $linkToLarger = jQuery('#selected_image_link', $i); 
 								var link = $linkToLarger.is(":checked") ? $linkToLarger.val() : ''; // link to larger version
-								var $insertHTML = $("<img />").attr('src', src).attr('alt', alt); 
+								var $insertHTML = jQuery("<img />").attr('src', src).attr('alt', alt); 
 
 								if(hidpi) cls += (cls.length > 0 ? ' ' : '') + 'hidpi';
 								
@@ -223,16 +223,16 @@
 										$insertHTML = $linkWrapper;
 									}
 								} else if(link && link.length > 0) {
-									var $a = $("<a />").attr('href', link).append($insertHTML); 
+									var $a = jQuery("<a />").attr('href', link).append($insertHTML); 
 									$insertHTML = $a; 
 								}
 								
 								if(caption) {
-									var $figure = $("<figure />");
+									var $figure = jQuery("<figure />");
 									//$figure.css('width', width + 'px');
 									if(cls.length) $figure.addClass(cls);
 									if(!$figureCaption) {
-										$figureCaption = $("<figcaption />"); 
+										$figureCaption = jQuery("<figcaption />"); 
 										if(alt.length > 1) {
 											$figureCaption.append(alt);
 										} else {
@@ -263,7 +263,7 @@
 							/*** INSERT BUTTON CLICKED *********************************/
 
 							var $i = $iframe.contents();
-							var $img = $("#selected_image", $i); 
+							var $img = jQuery("#selected_image", $i); 
 
 							$iframe.dialog("disable");
 							$iframe.setTitle("<i class='fa fa-fw fa-spin fa-spinner'></i> " + 
@@ -275,9 +275,9 @@
 							var height = $img.attr('height'); 
 							if(!height) height = $img.height();
 							var file = $img.attr('src'); 
-							var page_id = $("#page_id", $i).val();
-							var hidpi = $("#selected_image_hidpi", $i).is(":checked") ? 1 : 0;
-							var rotate = parseInt($("#selected_image_rotate", $i).val()); 
+							var page_id = jQuery("#page_id", $i).val();
+							var hidpi = jQuery("#selected_image_hidpi", $i).is(":checked") ? 1 : 0;
+							var rotate = parseInt(jQuery("#selected_image_rotate", $i).val()); 
 							file = file.substring(file.lastIndexOf('/')+1); 
 
 							var resizeURL = modalUri + 'resize?id=' + page_id + 
@@ -289,8 +289,8 @@
 							if(rotate) resizeURL += '&rotate=' + rotate; 
 							if($img.hasClass('flip_horizontal')) resizeURL += '&flip=h';
 								else if($img.hasClass('flip_vertical')) resizeURL += '&flip=v';
-							$.get(resizeURL, function(data) {
-								var $div = $("<div></div>").html(data); 
+							jQuery.get(resizeURL, function(data) {
+								var $div = jQuery("<div></div>").html(data); 
 								var src = $div.find('#selected_image').attr('src');
 								insertImage(src); 
 							}); 
@@ -302,7 +302,7 @@
 						'class': 'ui-priority-secondary',
 						click: function() {
 							var $i = $iframe.contents();
-							var page_id = $("#page_id", $i).val();
+							var page_id = jQuery("#page_id", $i).val();
 							$iframe.attr('src', modalUri + '?id=' + page_id + '&modal=1'); 
 							$iframe.setButtons({}); 
 						}
@@ -319,8 +319,8 @@
 
 			} else {
 				var buttons = [];
-				$("button.pw-modal-button, button[type=submit]:visible", $i).each(function() {
-					var $button = $(this);
+				jQuery("button.pw-modal-button, button[type=submit]:visible", $i).each(function() {
+					var $button = jQuery(this);
 					var button = {
 						html: $button.html(),
 						click: function() {

@@ -595,6 +595,8 @@ class FileCompiler extends Wire {
 	 */
 	protected function _maintenance($sourcePath, $targetPath) {
 
+		$sourcePath = rtrim($sourcePath, '/') . '/';
+		$targetPath = rtrim($targetPath, '/') . '/';
 		$sourceURL = str_replace($this->wire('config')->paths->root, '/', $sourcePath);
 		$targetURL = str_replace($this->wire('config')->paths->root, '/', $targetPath);
 		

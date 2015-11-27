@@ -221,7 +221,9 @@ class FieldtypeDatetime extends FieldtypeText {
 		$f->label = $this->_('Date Output Format'); 
 		$f->description = $this->_('Select the format to be used when outputting dates with this field.') . ' ';
 		$f->description .= $this->_('For relative date/time formats, see the Time Output Format.'); 
-		$f->addOption('', $this->_('None')); 
+		$f->icon = 'calendar';
+		$f->addOption('', $this->_('None'));
+		$f->columnWidth = 50;
 		$date = strtotime('2012-04-08 5:10:02 PM');
 		$found = false;
 		foreach($wdt->getDateFormats() as $format) {
@@ -240,7 +242,9 @@ class FieldtypeDatetime extends FieldtypeText {
 		$f->attr('name', '_timeOutputFormat'); 
 		$f->label = $this->_('Time Output Format'); 
 		$f->description = $this->_('If you want to output time in addition to the date, select the format to be used when outputting time with this field. This will be combined with the date format.'); 
+		$f->icon = 'clock-o';
 		$f->addOption('', $this->_('None'));
+		$f->columnWidth = 50;
 		$date = strtotime('5:10:02 PM');
 		$found = false;
 		foreach($wdt->getTimeFormats() as $format) {
@@ -262,6 +266,7 @@ class FieldtypeDatetime extends FieldtypeText {
 		$f->label = $this->_('Date/Time Output Format Code');
 		$f->description = $this->_('The date/time will be output according to the format below. This is automatically built from the date/time selections above, but you may change it as needed to suit your needs.') . ' ';
 		$f->description .= $this->_('See the [PHP date](http://www.php.net/manual/en/function.date.php) function reference for more information on how to customize this format. Alternatively, you may use a [PHP strftime](http://www.php.net/manual/en/function.strftime.php) format if desired for localization.'); 
+		$f->icon = 'code';
 		$f->collapsed = Inputfield::collapsedYes; 
 		if($this->languages) {
 			$f->useLanguages = true; 

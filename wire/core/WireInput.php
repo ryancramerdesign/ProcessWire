@@ -430,12 +430,14 @@ class WireInput extends Wire {
 	/**
 	 * URL that initiated the current request, including URL segments
 	 * 
-	 * Note that this does not include query string or fragment
+	 * Note that this does not include query string unless specified to.
+	 * WARNING: if query string requested, it can contain undefined/unsanitized user input.
 	 * 
+	 * @param bool $withQueryString Include the query string as well? (if present, default=false)
 	 * @return string
 	 * 
 	 */
-	public function url() {
+	public function url($withQueryString = false) {
 
 		$url = '';
 		/** @var Page $page */
@@ -480,17 +482,27 @@ class WireInput extends Wire {
 			}
 		}
 		
+		if($withQueryString) {
+			$queryString = $this->queryString();
+			if(strlen($queryString)) {
+				$url .= "?$queryString";
+			}
+		}
+		
 		return $url;
 	}
 
 	/**
 	 * URL including scheme
 	 * 
+	 * WARNING: if query string included, it can contain undefined/unsanitized user input. 
+	 * 
+	 * @param bool $withQueryString Include the query string? (default=false) 
 	 * @return string
 	 * 
 	 */
-	public function httpUrl() {
-		return $this->scheme() . '://' . $this->wire('config')->httpHost . $this->url();
+	public function httpUrl($withQueryString = false) {
+		return $this->scheme() . '://' . $this->wire('config')->httpHost . $this->url($withQueryString);
 	}
 
 	/**
@@ -517,7 +529,7 @@ class WireInput extends Wire {
 	 * 
 	 */
 	public function queryString() {
-		return $this->getVars->queryString();
+		return $this->get()->queryString();
 	}
 
 	/**

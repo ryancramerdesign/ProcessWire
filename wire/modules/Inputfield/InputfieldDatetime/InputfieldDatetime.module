@@ -13,6 +13,7 @@
  * 
  * @property string $dateInputFormat
  * @property String $timeInputFormat
+ * @property int $timeInputSelect
  * @property int $datepicker
  * @property string $yearRange
  * @property int|bool $defaultToday
@@ -48,6 +49,7 @@ class InputfieldDatetime extends Inputfield {
 		$this->attr('placeholder', '');
 		$this->set('dateInputFormat', self::defaultDateInputFormat);
 		$this->set('timeInputFormat', '');
+		$this->set('timeInputSelect', 0);
 		$this->set('datepicker', self::datepickerNo); 
 		$this->set('yearRange', '');
 		$this->set('defaultToday', 0); 
@@ -99,7 +101,9 @@ class InputfieldDatetime extends Inputfield {
 			if(strlen($timeFormat) && $this->datepicker != self::datepickerInline) {
 				// add in the timepicker script, if applicable
 				$useTime = true;
-				$this->config->scripts->add($this->config->urls->InputfieldDatetime . 'jquery-ui-timepicker-addon.js');
+				$url = $this->config->urls->InputfieldDatetime;
+				$this->config->scripts->add($url . 'timepicker/jquery-ui-timepicker-addon.min.js');
+				$this->config->styles->add($url . 'timepicker/jquery-ui-timepicker-addon.min.css');
 			}
 			if($language) {
 				// include i18n support for the datepicker 
@@ -112,6 +116,21 @@ class InputfieldDatetime extends Inputfield {
 					// attempt to auto-find one based on the language name (which are often 2 char language codes)
 					$langFile = "wire/modules/Jquery/JqueryUI/i18n/jquery.ui.datepicker-{$language->name}.js";
 					if(is_file($this->config->paths->root . $langFile)) $this->config->scripts->add($this->config->urls->root . $langFile);
+				}
+				if($useTime) {
+					$langFile = $this->_('timepicker/i18n/jquery-ui-timepicker-xx.js'); // Timepicker translation file // Replace 'xx' with jQuery UI language code or specify your own js file. Timepicker i18n files are located in /wire/modules/Inputfield/InputfieldDatetime/timepicker/i18n/.
+					$path = $this->config->paths->InputfieldDatetime;
+					$url = $this->config->urls->InputfieldDatetime;
+					if(is_file($path . $langFile)) {
+						// add a custom language file
+						$this->config->scripts->add($url . $langFile);
+					} else {
+						// attempt to auto-find one based on the language name (which are often 2 char language codes)
+						$langFile = str_replace('-xx.', "-$language->name.", $langFile);
+						if(is_file($path . $langFile)) {
+							$this->config->scripts->add($url . $langFile);
+						}
+					}
 				}
 			}
 		}
@@ -152,6 +171,7 @@ class InputfieldDatetime extends Inputfield {
 			"value='$value' " .
 			"data-dateformat='$dateFormatJS' " .
 			"data-timeformat='$timeFormatJS' " .
+			"data-timeselect='$this->timeInputSelect' " . 
 			"data-ts='$valueTS' " .
 			"data-ampm='$ampm' " .
 			(strlen($yearRange) ? "data-yearrange='$yearRange' " : '') .
@@ -244,22 +264,13 @@ class InputfieldDatetime extends Inputfield {
 		$f= $this->modules->get('InputfieldRadios');
 		$f->label = $this->_('Date Picker');
 		$f->setAttribute('name', 'datepicker'); 
-		$f->addOption(self::datepickerNo, $this->_('No date/time picker')); 
+		$f->addOption(self::datepickerNo, $this->_('No date/time picker'));
+		$f->addOption(self::datepickerFocus, $this->_('Date/time picker on field focus') . ' ' . 
+			$this->_('(recommended)')); 
 		$f->addOption(self::datepickerClick, $this->_('Date/time picker on button click')); 
-		$f->addOption(self::datepickerFocus, $this->_('Date/time picker on field focus')); 
+		// @todo this datepickerInline option displays a datepicker that is too large, not fully styled
 		$f->addOption(self::datepickerInline, $this->_('Inline date picker always visible (no time picker)')); 
 		$f->attr('value', (int) $this->datepicker); 
-		$inputfields->append($f);
-
-		/** @var InputfieldText $f */
-		$f = $this->modules->get("InputfieldText");
-		$f->attr('name', 'yearRange');
-		$f->attr('value', $this->yearRange); 
-		$f->attr('size', 10);
-		$f->label = $this->_('Date Picker Year Range');
-		$f->description = $this->_('When the date picker is used, it has a selectable year range minus and plus 10 years from the current year. To extend or reduce that, specify the quantity of years before and after [current year] in this format: "-30:+20", which would show 30 years before now and 20 years after now.'); 
-		$f->notes = $this->_('Default when no value present is "-10:+10" which shows a date picker year range 10 years before now, and 10 years after now.'); 
-		$f->collapsed = Inputfield::collapsedBlank;
 		$inputfields->append($f);
 
 		/** @var InputfieldFieldset $fieldset */
@@ -271,6 +282,7 @@ class InputfieldDatetime extends Inputfield {
 		$f->attr('name', '_dateInputFormat');
 		$f->label = $this->_('Date Input Format');
 		$f->description = $this->_('Select the format to be used for user input to this field. Your selection will populate the field below this, which you may customize further if needed.');
+		$f->icon = 'calendar';
 		$f->addOption('', $this->_('None'));
 		$date = strtotime('2012-04-08 5:10:02 PM');
 		foreach(FieldtypeDatetime::getDateFormats() as $format) {
@@ -288,6 +300,7 @@ class InputfieldDatetime extends Inputfield {
 		$f->label = $this->_('Time Input Format');
 		$f->addOption('', $this->_('None'));
 		$f->description = $this->_('Select an optional time format to be used for input. If used, the calendar option will include a time picker.'); 
+		$f->icon = 'clock-o';
 		foreach(FieldtypeDatetime::getTimeFormats() as $format) {
 			if(strpos($format, '!') === 0) continue; // skip relative formats
 			$timeFormatted = FieldtypeDatetime::formatDate($date, $format);
@@ -296,6 +309,21 @@ class InputfieldDatetime extends Inputfield {
 		}
 		$f->attr('onchange', "$('#Inputfield_timeInputFormat').val($(this).val());");
 		$f->collapsed = Inputfield::collapsedBlank;
+		$f->columnWidth = 50;
+		$fieldset->add($f);
+	
+		/** @var InputfieldRadios $f */
+		$f = $this->modules->get("InputfieldRadios");
+		$f->attr('name', 'timeInputSelect');
+		$f->label = $this->_('Time Input Type');
+		$f->description = $this->_('Sliders (default) let the user slide controls to choose the time, where as Select lets the user select the time from a drop-down select.');
+		$f->icon = 'clock-o';
+		$f->addOption(0, $this->_('Sliders'));
+		$f->addOption(1, $this->_('Select'));
+		$f->optionColumns = 1;
+		$f->columnWidth = 50;
+		$f->showIf = "_timeInputFormat!='', datepicker!=" . self::datepickerNo;
+		$f->attr('value', $this->timeInputSelect);
 		$fieldset->add($f);
 
 		/** @var InputfieldText $f */
@@ -305,6 +333,7 @@ class InputfieldDatetime extends Inputfield {
 		$f->attr('size', 20);
 		$f->label = $this->_('Date Input Format Code');
 		$f->description = $this->_('This is automatically built from the date select above, unless you modify it.'); 
+		$f->icon = 'calendar';
 		$notes = $this->_('See the [PHP date](http://www.php.net/manual/en/function.date.php) function reference for more information on how to customize these formats.'); 
 		if($languages) $notes .= "\n" . $this->_('You may optionally specify formats for other languages here as well. Any languages left blank will inherit the default setting.'); 
 		$f->notes = $notes; 
@@ -319,9 +348,11 @@ class InputfieldDatetime extends Inputfield {
 		$f->attr('size', 20);
 		$f->label = $this->_('Time Input Format Code');
 		$f->description = $this->_('This is automatically built from the time select above, unless you modify it.'); 
+		$f->icon = 'clock-o';
 		$f->notes = $notes; 
 		$f->collapsed = Inputfield::collapsedYes;
 		$f2 = $f;
+		
 
 		if($languages) {
 			$f1->useLanguages = true; 
@@ -335,7 +366,21 @@ class InputfieldDatetime extends Inputfield {
 
 		$fieldset->add($f1);
 		$fieldset->add($f2);
+		
 		$inputfields->add($fieldset);
+		
+		/** @var InputfieldText $f */
+		$f = $this->modules->get("InputfieldText");
+		$f->attr('name', 'yearRange');
+		$f->attr('value', $this->yearRange);
+		$f->attr('size', 10);
+		$f->label = $this->_('Date Picker Year Range');
+		$f->description = $this->_('When the date picker is used, it has a selectable year range minus and plus 10 years from the current year. To extend or reduce that, specify the quantity of years before and after [current year] in this format: "-30:+20", which would show 30 years before now and 20 years after now.');
+		$f->notes = $this->_('Default when no value present is "-10:+10" which shows a date picker year range 10 years before now, and 10 years after now.');
+		$f->icon = 'arrows-h';
+		$f->collapsed = Inputfield::collapsedBlank;
+		$f->showIf = 'datepicker!=' . self::datepickerNo;
+		$inputfields->append($f);
 
 		/** @var InputfieldCheckbox $f */
 		$f = $this->modules->get('InputfieldCheckbox');
@@ -346,7 +391,7 @@ class InputfieldDatetime extends Inputfield {
 		$f->description = $this->_("If checked, this field will hold the current date when no value is entered."); // Default today description
 		$f->columnWidth = 50;
 		$inputfields->append($f);
-
+		
 		/** @var InputfieldText $f */
 		$field = $this->modules->get('InputfieldText');
 		$field->setAttribute('name', 'placeholder');

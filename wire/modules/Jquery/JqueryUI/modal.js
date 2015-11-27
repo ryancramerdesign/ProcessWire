@@ -102,8 +102,8 @@ function pwModalWindowSettings(name) {
 		draggable: options.draggable,
 		resizable: options.resizable,
 		position: [ parseInt(modal[0]), parseInt(modal[1]) ], 
-		width: $(window).width() - parseInt(modal[2]),
-		height: $(window).height() - parseInt(modal[3]),
+		width: jQuery(window).width() - parseInt(modal[2]),
+		height: jQuery(window).height() - parseInt(modal[3]),
 		hide: options.hide,
 		show: options.show, 
 		closeOnEscape: options.closeOnEscape,
@@ -112,8 +112,8 @@ function pwModalWindowSettings(name) {
 				parent.jQuery('body').css('overflow', 'hidden');
 			}
 			// replace the jQuery ui close icon with a font-awesome equivalent (for hipdi support)
-			var $widget = $(this).dialog("widget");
-			$(".ui-dialog-titlebar-close", $widget)
+			var $widget = jQuery(this).dialog("widget");
+			jQuery(".ui-dialog-titlebar-close", $widget)
 				.css('padding-top', 0)
 				.prepend("<i class='fa fa-times'></i>")
 				.find('.ui-icon').remove();
@@ -152,7 +152,7 @@ function pwModalWindow(href, options, size) {
 	} else {
 		var url = href + (href.indexOf('?') > -1 ? '&' : '?') + 'modal=1';
 	}
-	var $iframe = $('<iframe class="pw-modal-window" frameborder="0" src="' + url + '"></iframe>');
+	var $iframe = jQuery('<iframe class="pw-modal-window" frameborder="0" src="' + url + '"></iframe>');
 	$iframe.attr('id', 'pw-modal-window-' + (pwModalWindows.length+1));
 	
 	if(typeof size == "undefined" || size.length == 0) var size = 'large';
@@ -163,13 +163,13 @@ function pwModalWindow(href, options, size) {
 		return $iframe;
 	}
 	
-	if(typeof options != "undefined") $.extend(settings, options);
+	if(typeof options != "undefined") jQuery.extend(settings, options);
 	
 	$iframe.on('dialogopen', function(event, ui) {
-		$(document).trigger('pw-modal-opened', { event: event, ui: ui });
+		jQuery(document).trigger('pw-modal-opened', { event: event, ui: ui });
 	});
 	$iframe.on('dialogclose', function(event, ui) {
-		$(document).trigger('pw-modal-closed', { event: event, ui: ui });
+		jQuery(document).trigger('pw-modal-closed', { event: event, ui: ui });
 	});
 	
 	$iframe.dialog(settings);
@@ -185,8 +185,8 @@ function pwModalWindow(href, options, size) {
 	var lastHeight = 0;
 	
 	function updateWindowSize() {
-		var width = $(window).width();
-		var height = $(window).height();
+		var width = jQuery(window).width();
+		var height = jQuery(window).height();
 		if(width == lastWidth && height == lastHeight) return;
 		var _size = size;
 		if(width <= 960 && size != 'full' && size != 'large') _size = 'large';
@@ -206,7 +206,7 @@ function pwModalWindow(href, options, size) {
 	}
 	updateWindowSize();
 	
-	$(window).resize(updateWindowSize);
+	jQuery(window).resize(updateWindowSize);
 	
 	$iframe.refresh = function() {
 		lastWidth = 0; // force update
@@ -225,7 +225,7 @@ function pwModalWindow(href, options, size) {
 	return $iframe; 
 }
 
-$(document).ready(function() {
+jQuery(document).ready(function($) {
 	
 	// enable titles with HTML in ui dialog
 	$.widget("ui.dialog", $.extend({}, $.ui.dialog.prototype, {

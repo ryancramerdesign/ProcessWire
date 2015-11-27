@@ -96,15 +96,15 @@
 
 	function loadIframeLinkPicker(editor) {
 
-		var $in = $("#Inputfield_id"); 
+		var $in = jQuery("#Inputfield_id"); 
 		if($in.length) {
 			var pageID = $in.val();
 		} else {
-			var pageID = $("#" + editor.name).closest('.Inputfield').attr('data-pid');
+			var pageID = jQuery("#" + editor.name).closest('.Inputfield').attr('data-pid');
 		}
 
 		// language support
-		var $textarea = $('#' + editor.name); // get textarea of this instance
+		var $textarea = jQuery('#' + editor.name); // get textarea of this instance
 		var selection = editor.getSelection(true);
 		var node = selection.getStartElement();
 		var nodeName = node.getName(); // will typically be 'a', 'img' or 'p' 
@@ -114,13 +114,13 @@
 
 		if(nodeName == 'a') {
 			// existing link
-			$existingLink = $(node.$);
+			$existingLink = jQuery(node.$);
 			selectionText = node.getHtml();
 			selection.selectElement(node); 
 
 		} else if(nodeName == 'img') {
 			// linked image
-			var $img = $(node.$);
+			var $img = jQuery(node.$);
 			$existingLink = $img.parent('a'); 
 			selectionText = node.$.outerHTML;
 
@@ -160,10 +160,10 @@
 		function clickInsert() {
 
 			var $i = $iframe.contents();
-			var $a = $($("#link_markup", $i).text());
+			var $a = jQuery(jQuery("#link_markup", $i).text());
 			if($a.attr('href') && $a.attr('href').length) {
 				$a.html(selectionText);
-				var html = $("<div />").append($a).html();
+				var html = jQuery("<div />").append($a).html();
 				editor.insertHtml(html);
 			}
 		
@@ -174,10 +174,10 @@
 		var modalSettings = {
 			title: "<i class='fa fa-link'></i> " + insertLinkLabel,
 			open: function() {
-				if($(".cke_maximized").length > 0) {
+				if(jQuery(".cke_maximized").length > 0) {
 					// the following is required when CKE is maximized to make sure dialog is on top of it
-					$('.ui-dialog').css('z-index', 9999);
-					$('.ui-widget-overlay').css('z-index', 9998);
+					jQuery('.ui-dialog').css('z-index', 9999);
+					jQuery('.ui-widget-overlay').css('z-index', 9998);
 				}
 			},
 			buttons: [ {
@@ -202,9 +202,9 @@
 			$i.find("#ProcessPageEditLinkForm").data('iframe', $iframe);
 		
 			// capture enter key in main URL text input
-			$("#link_page_url", $i).keydown(function(event) {
-				var $this = $(this);
-				var val = $.trim($this.val());
+			jQuery("#link_page_url", $i).keydown(function(event) {
+				var $this = jQuery(this);
+				var val = jQuery.trim($this.val());
 				if (event.keyCode == 13) {
 					event.preventDefault();
 					if(val.length > 0) clickInsert();
