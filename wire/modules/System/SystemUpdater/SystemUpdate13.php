@@ -20,7 +20,7 @@ class SystemUpdate13 extends SystemUpdate {
 			$page = $this->wire('pages')->get("template=admin, process=$moduleID, include=all");
 			if($page->id) {
 				$page->of(false);
-				$page->removeStatus(Page::statusHidden);
+				//$page->removeStatus(Page::statusHidden);
 				if($page->title == 'Edit Page') $page->title = 'Edit';
 				$page->save();
 				$this->updater->saveSystemVersion(13);

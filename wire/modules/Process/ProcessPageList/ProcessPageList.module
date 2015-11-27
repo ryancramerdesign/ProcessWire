@@ -65,6 +65,7 @@ class ProcessPageList extends Process implements ConfigurableModule {
 		$this->limit = self::defaultLimit;
 		$this->set('useHoverActions', false);
 		$this->set('bookmarks', array());
+		$this->set('useBookmarks', false);
 		
 	}
 
@@ -299,8 +300,12 @@ class ProcessPageList extends Process implements ConfigurableModule {
 	 * 
 	 */
 	protected function getPageBookmarks() {
-		require_once($this->wire('config')->paths->ProcessPageEdit . 'PageBookmarks.php');
-		return new PageBookmarks($this);
+		static $bookmarks = null;
+		if(is_null($bookmarks)) {
+			require_once($this->wire('config')->paths->ProcessPageEdit . 'PageBookmarks.php');
+			$bookmarks = new PageBookmarks($this);
+		}
+		return $bookmarks;
 	}
 
 	/**
@@ -308,7 +313,7 @@ class ProcessPageList extends Process implements ConfigurableModule {
 	 *
 	 */
 	public function ___executeNavJSON(array $options = array()) {
-		$bookmarks = $this->getPageBookmarks($this);
+		$bookmarks = $this->getPageBookmarks();
 		$options['edit'] = $this->wire('config')->urls->admin . 'page/?id={id}';
 		$options = $bookmarks->initNavJSON($options);
 		return parent::___executeNavJSON($options);
@@ -331,7 +336,7 @@ class ProcessPageList extends Process implements ConfigurableModule {
 	 * Build a form allowing configuration of this Module
 	 *
 	 */
-	static public function getModuleConfigInputfields(array $data) {
+	public function getModuleConfigInputfields(array $data) {
 
 		$fields = new InputfieldWrapper();
 		$modules = wire('modules');
@@ -339,10 +344,16 @@ class ProcessPageList extends Process implements ConfigurableModule {
 		$field = $modules->get("InputfieldText");
 		$field->attr('name', 'pageLabelField');
 		$field->attr('value', !empty($data['pageLabelField']) ? $data['pageLabelField'] : 'title');
-		$field->label = __("Name of page field to display");
-		$field->description = __('Every page in a PageList is identified by a label, typically a title or headline field. You may specify which field it should use here. To specify multiple fields, separate each field name with a space, or use your own format string with field names surrounded in {brackets}. If the field resolves to an object (like another page), then specify the property with a dot, i.e. {anotherpage.title}. Note that if the format you specify resolves to a blank value then ProcessWire will use the page "name" field.'); // pageLabelField description
-		$field->notes = __('You may optionally override this setting on a per-template basis in each template "advanced" settings.'); // pageLabelField notes
+		$field->label = $this->_("Name of page field to display");
+		$field->description = $this->_('Every page in a PageList is identified by a label, typically a title or headline field. You may specify which field it should use here. To specify multiple fields, separate each field name with a space, or use your own format string with field names surrounded in {brackets}. If the field resolves to an object (like another page), then specify the property with a dot, i.e. {anotherpage.title}. Note that if the format you specify resolves to a blank value then ProcessWire will use the page "name" field.'); // pageLabelField description
+		$field->notes = $this->_('You may optionally override this setting on a per-template basis in each template "advanced" settings.'); // pageLabelField notes
 		$fields->append($field);
+
+		$bookmarks = $this->getPageBookmarks();
+		$bookmarks->addConfigInputfields($fields);
+		$admin = $this->wire('pages')->get($this->wire('config')->adminRootPageID);
+		$page = $this->wire('pages')->get($admin->path . 'page/list/');
+		$bookmarks->checkProcessPage($page);
 	
 		$settings = wire('config')->pageList;
 		/*
@@ -357,21 +368,21 @@ class ProcessPageList extends Process implements ConfigurableModule {
 		}
 		*/
 
-		$defaultNote1 = __('Default value is %d.');
-		$defaultNote2 = __('If left at the default value, this setting can also be specified in the $config->pageList array.');
+		$defaultNote1 = $this->_('Default value is %d.');
+		$defaultNote2 = $this->_('If left at the default value, this setting can also be specified in the $config->pageList array.');
 		
 		$field = $modules->get("InputfieldInteger");
 		$field->attr('name', 'limit');
 		$field->attr('value', !empty($data['limit']) ? (int) $data['limit'] : self::defaultLimit);
-		$field->label = __('Number of pages to display before pagination');
+		$field->label = $this->_('Number of pages to display before pagination');
 		$field->notes = sprintf($defaultNote1, self::defaultLimit) . ' ' . $defaultNote2;
 		$fields->append($field);
 
 		$field = $modules->get("InputfieldInteger");
 		$field->attr('name', 'speed');
 		$field->attr('value', array_key_exists('speed', $data) ? (int) $data['speed'] : self::defaultSpeed);
-		$field->label = __('Animation Speed (in ms)');
-		$field->description = __('This is the speed at which each branch in the page tree animates up or down. Lower numbers are faster but less visible. For no animation specify 0.'); // Animation speed description 
+		$field->label = $this->_('Animation Speed (in ms)');
+		$field->description = $this->_('This is the speed at which each branch in the page tree animates up or down. Lower numbers are faster but less visible. For no animation specify 0.'); // Animation speed description 
 		$field->notes = sprintf($defaultNote1, self::defaultSpeed) . ' ' . $defaultNote2;
 		$fields->append($field);
 

@@ -51,6 +51,10 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 			'useNavJSON' => true
 			);
 	}
+	
+	public function __construct() {
+		$this->set('useBookmarks', false);
+	}
 
 	/**
 	 * Initialize the page editor by loading the requested page and any dependencies
@@ -1594,9 +1598,13 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 		return $this->tabs; 
 	}
 	
-	protected function getPageBookmarks() {
-		require_once(dirname(__FILE__) . '/PageBookmarks.php');
-		return new PageBookmarks($this);
+	public function getPageBookmarks() {
+		static $bookmarks = null;
+		if(is_null($bookmarks)) {
+			require_once(dirname(__FILE__) . '/PageBookmarks.php');
+			$bookmarks = new PageBookmarks($this);
+		}
+		return $bookmarks;
 	}
 
 	public function ___executeNavJSON(array $options = array()) {
@@ -1613,9 +1621,17 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 	}
 	
 	public static function getModuleConfigInputfields(array $data) {
-		// @todo does saving this empty form delete all the bookmarks?
 		$inputfields = new InputfieldWrapper();
+		$process = wire('modules')->getModule('ProcessPageEdit', array('noInit' => true));
+		$configData = wire('modules')->getModuleConfigData('ProcessPageEdit');
+		foreach($configData as $key => $value) $process->set($key, $value);
+		$bookmarks = $process->getPageBookmarks();
+		$bookmarks->addConfigInputfields($inputfields);
+		$admin = wire('pages')->get(wire('config')->adminRootPageID);
+		$page = wire('pages')->get($admin->path . 'page/edit/');
+		$bookmarks->checkProcessPage($page);
 		return $inputfields;
+		
 	}
 
 }

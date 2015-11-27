@@ -270,5 +270,41 @@ class PageBookmarks extends Wire {
 		}
 		return $this->editBookmarksForm()->render();
 	}
+
+	/**
+	 * Check and update the given process page for hidden/visible status depending on useBookmarks setting
+	 *
+	 * @param Process $process
+	 * @param Page $page
+	 *
+	 */
+	public function checkProcessPage(Page $page) {
+		$hidden = $page->isHidden();
+		if($this->process->useBookmarks) {
+			if($hidden) {
+				$page->removeStatus(Page::statusHidden);
+				$page->save();
+			}
+		} else if(!$hidden) {
+			$page->addStatus(Page::statusHidden);
+			$page->save();
+		}
+	}
+	/**
+	 * Populate any configuration inputfields to the given $inputfields wrapper for $process
+	 *
+	 * @param InputfieldWrapper $inputfields
+	 * @param Process $process
+	 *
+	 */
+	public function addConfigInputfields(InputfieldWrapper $inputfields) {
+		$field = $this->wire('modules')->get('InputfieldCheckbox');
+		$field->attr('name', 'useBookmarks');
+		$field->label = $this->_('Allow use of bookmarks?');
+		$field->description = $this->_('Bookmarks enable you to create shortcuts to pages from this module, configurable by user role. Useful for large applications.');
+		$field->icon = 'bookmark-o';
+		if($this->process->useBookmarks) $field->attr('checked', 'checked');
+		$inputfields->add($field);
+	}
 	
 }
