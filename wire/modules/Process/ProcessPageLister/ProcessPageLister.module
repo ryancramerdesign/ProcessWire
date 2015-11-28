@@ -19,6 +19,7 @@
  * For support of actions, new edit modules, and custom configurable Listers, 
  * check out ListerPro at https://processwire.com/ListerPro/
  * 
+ * @todo support column subfield properties for modifiedUser and createdUser
  * 
  * GET vars recognized by Lister:
  * 

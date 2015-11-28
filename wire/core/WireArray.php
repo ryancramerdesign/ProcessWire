@@ -1551,10 +1551,17 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 * The keys of the returned array remain consistent with the original WireArray. 
 	 *
 	 * @param string|function|array $property
+	 * @param array $options
+	 *  - getMethod: Method to call on each item to retrieve $property (default = "get")
 	 * @return array
 	 *
 	 */
-	public function explode($property) {
+	public function explode($property, array $options = array()) {
+		$defaults = array(
+			'getMethod' => 'get', // method used to get value from each item
+		);
+		$options = array_merge($defaults, $options);
+		$getMethod = $options['getMethod'];
 		$isArray = is_array($property);
 		$isFunction = !$isArray && !is_string($property) && is_callable($property); 
 		$values = array();
@@ -1564,10 +1571,10 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 			} else if($isArray) {
 				$values[$key] = array();
 				foreach($property as $p) {
-					$values[$key][$p] = $item->get($p);
+					$values[$key][$p] = $getMethod == 'get' ? $item->get($p) : $item->$getMethod($p);
 				}
 			} else {
-				$values[$key] = $item->get($property);
+				$values[$key] = $getMethod == 'get' ? $item->get($property) : $item->$getMethod($property);
 			}
 		}
 		return $values; 
