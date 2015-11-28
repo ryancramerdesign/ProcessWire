@@ -1601,22 +1601,4 @@ button.ui-button.ui-state-active,
 div + a > .ui-button {
   margin-top: 1em; }
 
-/*********************************************************/
-.pw-edit-buttons {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  padding: 10px;
-  background: rgba(255, 255, 255, 0.8); }
-  .pw-edit-buttons .pw-edit-save:hover {
-    background-color: #a5d70f;
-    border-color: #a5d70f; }
-  .pw-edit-buttons .pw-edit-cancel {
-    background-color: #C00C19;
-    border-color: #C00C19;
-    margin-left: 5px; }
-    .pw-edit-buttons .pw-edit-cancel:hover {
-      background-color: #d80e1c;
-      border-color: #d80e1c; }
-
 /*# sourceMappingURL=jquery-ui.css.map */

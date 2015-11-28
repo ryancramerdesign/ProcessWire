@@ -1410,28 +1410,3 @@ div + a > .ui-button {
 	margin-top: 1em;
 }
 
-/*********************************************************/
-
-.pw-edit-buttons {
-	position: fixed;
-	bottom: 0;
-	left: 0;
-	padding: 10px;
-	background: rgba(255,255,255,0.8);
-	
-	.pw-edit-save:hover {
-		background-color: lighten($green, 5%);
-		border-color: lighten($green, 5%);
-	}
-	
-	.pw-edit-cancel {
-		background-color: $red;
-		border-color: $red;
-		margin-left: 5px; 
-		&:hover {
-			background-color: lighten($red, 5%);
-			border-color: lighten($red, 5%);
-		}
-	}
-}
-
