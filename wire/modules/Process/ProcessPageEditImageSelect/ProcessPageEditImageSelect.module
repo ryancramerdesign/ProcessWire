@@ -1181,8 +1181,8 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		$variations = $pageimage->getVariations(array('info' => true));
 		$cnt = count($variations);
 		
-		$delete = $this->wire('input')->post('delete') && $hasEditPermission;
-		if(is_array($delete) && count($delete)) {
+		$delete = $this->wire('input')->post('delete');
+		if(is_array($delete) && count($delete) && $hasEditPermission) {
 			foreach($delete as $name) {
 				if(!isset($variations[$name])) continue; 
 				$info = $variations[$name]; 

@@ -368,6 +368,18 @@ class Session extends Wire implements \IteratorAggregate {
 	}
 
 	/**
+	 * Unset a session variable within a namespace
+	 * 
+	 * @param $ns
+	 * @param $key
+	 * @return $this
+	 * 
+	 */
+	public function removeFor($ns, $key) {
+		return $this->remove($ns, $key);
+	}
+
+	/**
 	 * Given a namespace object or string, return the namespace string
 	 * 
 	 * @param object|string $ns

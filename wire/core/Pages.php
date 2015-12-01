@@ -608,7 +608,19 @@ class Pages extends Wire {
 		
 		if($options['getOne']) return count($loaded) ? reset($loaded) : $this->newNullPage();
 		$pages = $this->newPageArray($options);
-		return $pages->import($loaded); 
+		$pages->import($loaded); 
+	
+		// debug mode only
+		if($this->wire('config')->debug) {
+			$_template = is_null($template) ? '' : ", $template";
+			$_parent_id = is_null($parent_id) ? '' : ", $parent_id";
+			$_ids = count($_ids) > 1 ? "[" . implode(',', $_ids) . "]" : implode('', $_ids);
+			foreach($pages as $item) {
+				$item->setQuietly('_debug_loader', "getByID($_ids$_template$_parent_id)");
+			}
+		}
+		
+		return $pages;
 	}
 	
 	/**

@@ -1237,7 +1237,7 @@ class Modules extends WireArray {
 	public function getInstall($key) {
 		$module = $this->get($key); 
 		if(!$module) {
-			$this->resetCache();
+			$this->refresh();
 			$module = $this->getModule($key); 
 		}
 		return $module; 
@@ -1936,7 +1936,7 @@ class Modules extends WireArray {
 		}
 
 		$this->log("Uninstalled module '$class'"); 
-		$this->resetCache();
+		$this->refresh();
 
 		return true; 
 	}
@@ -3425,10 +3425,10 @@ class Modules extends WireArray {
 	}
 	
 	/**
-	 * Reset the cache that stores module files by recreating it
+	 * Refresh the cache that stores module files by recreating it
 	 *
 	 */
-	public function resetCache() {
+	public function ___refresh() {
 		if($this->wire('config')->systemVersion < 6) {
 			return;
 		}
@@ -3436,6 +3436,14 @@ class Modules extends WireArray {
 		foreach($this->paths as $path) $this->findModuleFiles($path, false); 
 		foreach($this->paths as $path) $this->load($path);
 		if($this->duplicates()->numNewDuplicates() > 0) $this->duplicates()->updateDuplicates(); // PR#1020
+	}
+
+	/**
+	 * Alias of refresh method for backwards compatibility
+	 *
+	 */
+	public function resetCache() {
+		$this->refresh();
 	}
 
 	/**

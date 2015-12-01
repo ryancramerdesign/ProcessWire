@@ -27,6 +27,22 @@ class AdminThemeDefault extends AdminTheme implements Module, ConfigurableModule
 		parent::init(); 
 		if($this->isCurrent()) {
 			// this is the current admin theme
+			$this->wire('pages')->addHookAfter('saved', $this, 'hookClearCaches');
+			$this->wire('modules')->addHookAfter('refresh', $this, 'hookClearCaches');
+		}
+	}
+
+	/**
+	 * Event called when a page is saved or modules refreshed to clear caches
+	 *
+	 * @param HookEvent $event
+	 *
+	 */
+	public function hookClearCaches(HookEvent $event) {
+		$page = $event->arguments(0);
+		if(is_null($page) || ($page instanceof Page && $page->template == 'admin')) {
+			$this->wire('session')->removeFor($this, 'topnav');
+			$this->wire('session')->message("Cleared the admin theme navigation cache (topnav)", Notice::debug);
 		}
 	}
 

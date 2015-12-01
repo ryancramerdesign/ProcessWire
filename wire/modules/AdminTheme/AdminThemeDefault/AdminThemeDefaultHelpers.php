@@ -246,7 +246,7 @@ class AdminThemeDefaultHelpers extends WireData {
 		
 		if(!$showItem) return '';
 
-		$class = strpos($this->wire('page')->path, $p->path) === 0 ? 'on' : '';
+		//$class = strpos($this->wire('page')->path, $p->path) === 0 ? 'on' : '';
 		$title = strip_tags((string) $p->title); 
 		if(!strlen($title)) $title = $p->name; 
 		$title = $this->_($title); // translate from context of default.php
@@ -259,8 +259,7 @@ class AdminThemeDefaultHelpers extends WireData {
 	
 		if(!$level && count($children)) {
 	
-			$class = trim("$class dropdown-toggle"); 
-			$out .= "<a href='$p->url' id='topnav-page-$p' data-from='topnav-page-{$p->parent}' class='$class'>$title</a>"; 
+			$out .= "<a href='$p->url' id='topnav-page-$p' data-from='topnav-page-{$p->parent}' class='page-$p- dropdown-toggle'>$title</a>"; 
 			$my = 'left-1 top';
 			if(in_array($p->name, array('access', 'page', 'module'))) $my = 'left top';
 			$out .= "<ul class='dropdown-menu topnav' data-my='$my' data-at='left bottom'>";
@@ -307,14 +306,14 @@ class AdminThemeDefaultHelpers extends WireData {
 	
 		} else {
 			
-			$class = $class ? " class='$class'" : '';
+			//$class = $class ? " class='$class'" : '';
 			$url = $p->url;
 			$icon = $level > 0 ? $this->getPageIcon($p) : '';
 			
 			// The /page/ and /page/list/ are the same process, so just keep them on /page/ instead. 
 			if(strpos($url, '/page/list/') !== false) $url = str_replace('/page/list/', '/page/', $url); 
 			
-			$out .= "<a href='$url'$class>$icon$title</a>"; 
+			$out .= "<a class='page-id-$p-' href='$url'>$icon$title</a>"; 
 		}
 	
 		$out .= "</li>";
@@ -384,6 +383,13 @@ class AdminThemeDefaultHelpers extends WireData {
 	 *
 	 */
 	public function renderTopNavItems() {
+		
+		$cache = $this->wire('session')->getFor('AdminThemeDefault', 'topnav');
+		if($cache) {
+			$this->renderTopNavMarkCurrent($cache);	
+			return $cache;
+		}
+		
 		$out = '';
 		$outMobile = '';
 		$outTools = '';
@@ -432,7 +438,22 @@ class AdminThemeDefaultHelpers extends WireData {
 			"<li class='collapse-topnav-menu'><a href='$admin->url' class='dropdown-toggle'>" . 
 			"<i class='fa fa-lg fa-bars'></i></a>$outMobile</li>";
 		
+		$this->wire('session')->setFor('AdminThemeDefault', 'topnav', $out);
+		$this->renderTopNavMarkCurrent($out);	
 		return $out; 
+	}
+
+	/**
+	 * Identify current "on" items in the topnav and add appropriate class
+	 * 
+	 * @param $out
+	 * 
+	 */
+	protected function renderTopNavMarkCurrent(&$out) {
+		$page = $this->wire('page');
+		foreach($page->parents()->and($page) as $p) {
+			$out = str_replace("page-$p-", "page-$p- on", $out);
+		}
 	}
 	
 	/**
