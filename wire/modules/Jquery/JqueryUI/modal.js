@@ -117,11 +117,23 @@ function pwModalWindowSettings(name) {
 				.css('padding-top', 0)
 				.prepend("<i class='fa fa-times'></i>")
 				.find('.ui-icon').remove();
+			
+			if(frameElement && parent.jQuery != "undefined" && parent.jQuery('.ui-dialog').length) {
+				// dialog on top of dialog
+				parent.jQuery('.ui-dialog .ui-button').addClass('pw-modal-hidden').hide();
+				parent.jQuery('.ui-dialog-buttonpane').css('margin-top', '-10px');
+				jQuery('body').css('overflow', 'hidden');
+			}
 		},
 		beforeClose: function(event, ui) {
-			if(options.hideOverflow) {
-				//parent.jQuery('body').css('overflow', 'auto');
-				parent.jQuery('body').css('overflow', '');
+			if(parent.jQuery != "undefined" && parent.jQuery('.ui-dialog').length) {
+				if(frameElement) {
+					// dialog on top of another dialog
+					parent.jQuery(".pw-modal-hidden").show();
+					jQuery('body').css('overflow', '');
+				} else if(options.hideOverflow) {
+					parent.jQuery('body').css('overflow', '');
+				}
 			}
 		}
 	}
@@ -142,7 +154,7 @@ function pwModalWindow(href, options, size) {
 	for(var n = 0; n <= pwModalWindows.length; n++) {
 		var $iframe = pwModalWindows[n]; 	
 		if($iframe == null) continue; 
-		if($iframe.dialog('isOpen')) continue; 
+		if($iframe.dialog('isOpen')) continue;
 		$iframe.dialog('destroy').remove();
 		pwModalWindows[n] = null;
 	}
@@ -225,6 +237,201 @@ function pwModalWindow(href, options, size) {
 	return $iframe; 
 }
 
+/**
+ * Event handler for when an action opens a pw modal window 
+ * 
+ * @param e
+ * @returns {boolean}
+ * 
+ */
+function pwModalOpenEvent(e) {
+	
+	var $a = jQuery(this);
+	var _autoclose = $a.attr('data-autoclose');
+	var autoclose = _autoclose != null; // whether autoclose is enabled
+	var autocloseSelector = autoclose && _autoclose.length > 1 ? _autoclose : ''; // autoclose only enabled if clicked button matches this selector
+	var closeSelector = $a.attr('data-close'); // immediately close window (no closeOnLoad) for buttons/links matching this selector
+	var closeOnLoad = false;
+	var modalSize = 'medium';
+
+	if($a.hasClass('pw-modal-large')) modalSize = 'large';
+		else if($a.hasClass('pw-modal-small')) modalSize = 'small';
+		else if($a.hasClass('pw-modal-full')) modalSize = 'full';
+
+	var settings = {
+		title: $a.attr('title'),
+		close: function(event, ui) {
+			// abort is true when the "x" button at top right of window is what closed the window
+			var abort = typeof event.toElement != "undefined" && jQuery(event.toElement).hasClass('fa-times');
+			var eventData = { 
+				event: event, 
+				ui: ui, 
+				abort: abort 
+			};
+			$a.trigger('modal-close', eventData); // legacy, deprecated
+			$a.trigger('pw-modal-closed', eventData); // new
+			jQuery(document).trigger('pw-modal-closed', eventData);
+			$spinner.remove();
+			// console.log(eventData);
+		}
+	};
+
+	// attribute holding selector that determines what buttons to show, example: "#content form button.ui-button[type=submit]"
+	var buttonSelector = $a.attr('data-buttons');
+
+	// a class of pw-modal-cancel on one of the buttons always does an immediate close
+	if(closeSelector == null) closeSelector = '';
+	closeSelector += (closeSelector.length > 0 ? ', ' : '') + '.pw-modal-cancel';
+
+	var $spinner = jQuery("<i class='fa fa-spin fa-spinner fa-2x ui-priority-secondary'></i>")
+		.css({
+			'position': 'absolute',
+			'top': (parseInt(jQuery(window).height() / 2) - 80) + 'px',
+			'left': (parseInt(jQuery(window).width() / 2) - 20) + 'px',
+			'z-index': 9999
+		}).hide();
+
+	if($a.is('button')) {
+		var $aparent = $a.closest('a');
+		var href = $aparent.length ? $aparent.attr('href') : $a.attr('data-href');
+		if(!href) href = $a.find('a').attr('href');
+	} else if($a.is('a')) {
+		var href = $a.attr('href');
+	} else {
+		// some other element, we require a data-href attribute
+		var href = $a.attr('data-href');
+	}
+	
+	if(!href) {
+		alert("Unable to find href attribute for: " + $a.text());
+		return false;
+	}
+
+	var $iframe = pwModalWindow(href, settings, modalSize);
+
+	jQuery("body").append($spinner.fadeIn('fast'));
+
+	$iframe.load(function() {
+
+		var buttons = [];
+		var $icontents = $iframe.contents();
+		var n = 0;
+
+		$spinner.fadeOut('fast', function() { 
+			$spinner.remove(); 
+		});
+
+		if(closeOnLoad) {
+			// this occurs when item saved and resulting page is loaded
+			if($icontents.find(".NoticeError, .NoticeWarning, .ui-state-error").length == 0) {
+				// if there are no error messages present, close the window
+				if(typeof Notifications != "undefined") {
+					var messages = [];
+					$icontents.find(".NoticeMessage").each(function() {
+						messages[messages.length] = jQuery(this).text();
+					});
+					if(messages.length > 0) setTimeout(function() {
+						for(var i = 0; i < messages.length; i++) {
+							Notifications.message(messages[i]);
+						}
+					}, 500);
+				}
+				$iframe.dialog('close');
+				return;
+			}
+		}
+
+		var $body = $icontents.find('body');
+		$body.hide();
+
+		// copy buttons in iframe to dialog
+		if(buttonSelector) {
+			$icontents.find(buttonSelector).each(function() {
+				var $button = jQuery(this);
+				$button.find(".ui-button-text").removeClass("ui-button-text"); // prevent doubled
+				var text = $button.html();
+				var skip = false;
+				// avoid duplicate buttons
+				for(var i = 0; i < buttons.length; i++) {
+					if(buttons[i].text == text || text.length < 1) skip = true;
+				}
+				if(!skip) {
+					buttons[n] = {
+						'html': text,
+						'class': ($button.is('.ui-priority-secondary') ? 'ui-priority-secondary' : ''),
+						'click': function(e) {
+							jQuery(e.currentTarget).fadeOut('fast');
+							$button.click();
+							if(closeSelector.length > 0 && $button.is(closeSelector)) {
+								// immediately close if matches closeSelector
+								$iframe.dialog('close');
+							}
+							if(autoclose) {
+								// automatically close on next page load
+								jQuery("body").append($spinner.fadeIn());
+								if(autocloseSelector.length > 1) {
+									closeOnLoad = $button.is(autocloseSelector); // if button matches selector
+								} else {
+									closeOnLoad = true; // tell it to close window on the next 'load' event
+								}
+							}
+						}
+					};
+					n++;
+				};
+				if(!$button.hasClass('pw-modal-button-visible')) $button.hide(); // hide button that is in interface
+			});
+		} // .pw-modal-buttons
+
+		// render buttons
+		if(buttons.length > 0) $iframe.setButtons(buttons);
+
+		$body.fadeIn('fast', function() {
+			$body.show(); // for Firefox, which ignores the fadeIn()
+		});
+
+	}); // $iframe.load
+
+	return false;
+}
+
+/*
+ * jQuery Double Tap
+ * Developer: Sergey Margaritov (sergey@margaritov.net)
+ * Date: 22.10.2013
+ * Based on jquery documentation http://learn.jquery.com/events/event-extensions/
+ */
+
+(function($){
+
+	$.event.special.pwdoubletap = {
+		bindType: 'touchend',
+		delegateType: 'touchend',
+
+		handle: function(event) {
+			var handleObj   = event.handleObj,
+				targetData  = jQuery.data(event.target),
+				now         = new Date().getTime(),
+				delta       = targetData.lastTouch ? now - targetData.lastTouch : 0,
+				delay       = delay == null ? 300 : delay;
+
+			if (delta < delay && delta > 30) {
+				targetData.lastTouch = null;
+				event.type = handleObj.origType;
+				['clientX', 'clientY', 'pageX', 'pageY'].forEach(function(property) {
+					event[property] = event.originalEvent.changedTouches[0][property];
+				})
+
+				// let jQuery handle the triggering of "doubletap" event handlers
+				handleObj.handler.apply(this, arguments);
+			} else {
+				targetData.lastTouch = now;
+			}
+		}
+	};
+
+})(jQuery);
+
 jQuery(document).ready(function($) {
 	
 	// enable titles with HTML in ui dialog
@@ -237,141 +444,13 @@ jQuery(document).ready(function($) {
 			}
 		}
 	}));
-	
-	$(document).on('click', 'a.pw-modal, button.pw-modal', function() { 
-		
-		var $a = $(this);
-		var _autoclose = $a.attr('data-autoclose'); 
-		var autoclose = _autoclose != null; // whether autoclose is enabled
-		var autocloseSelector = autoclose && _autoclose.length > 1 ? _autoclose : ''; // autoclose only enabled if clicked button matches this selector
-		var closeSelector = $a.attr('data-close'); // immediately close window (no closeOnLoad) for buttons/links matching this selector
-		var closeOnLoad = false;
-		var modalSize = 'medium';
-		if($a.hasClass('pw-modal-large')) modalSize = 'large';
-			else if($a.hasClass('pw-modal-small')) modalSize = 'small';
-			else if($a.hasClass('pw-modal-full')) modalSize = 'full';
-	
-		var settings = {
-			title: $a.attr('title'),
-			close: function(event, ui) {
-				$a.trigger('modal-close', {event: event, ui: ui}); // legacy, deprecated
-				$a.trigger('pw-modal-closed', { event: event, ui: ui }); // new
-				$(document).trigger('pw-modal-closed', { event: event, ui: ui }); 
-				$spinner.remove();
-			}
-		};
-			
-		// attribute holding selector that determines what buttons to show, example: "#content form button.ui-button[type=submit]"
-		var buttonSelector = $a.attr('data-buttons'); 
 
-		// a class of pw-modal-cancel on one of the buttons always does an immediate close
-		if(closeSelector == null) closeSelector = '';
-		closeSelector += (closeSelector.length > 0 ? ', ' : '') + '.pw-modal-cancel';
-		
-		var $spinner = $("<i class='fa fa-spin fa-spinner fa-2x ui-priority-secondary'></i>")
-			.css({
-				'position': 'absolute',
-				'top': (parseInt($(window).height() / 2) - 80) + 'px',
-				'left': (parseInt($(window).width() / 2) - 20) + 'px',
-				'z-index': 9999
-			}).hide();
-		
-		if($a.is('button')) {
-			var $aparent = $a.closest('a');
-			var href = $aparent.length ? $aparent.attr('href') : $a.attr('data-href');
-			if(!href) href = $a.find('a').attr('href');
-			if(!href) {
-				alert("Unable to find href attribute for: " + $a.text());
-				return;
-			}
-		} else {
-			var href = $a.attr('href');
-		}
-		
-		var $iframe = pwModalWindow(href, settings, modalSize);
+	var isTouch = (('ontouchstart' in window) || (navigator.MaxTouchPoints > 0) || (navigator.msMaxTouchPoints > 0));
 	
-		$("body").append($spinner.fadeIn('fast')); 
-		
-		$iframe.load(function() {
-			
-			var buttons = [];
-			var $icontents = $iframe.contents();
-			var n = 0;
-			
-			$spinner.fadeOut('fast', function() { $spinner.remove(); }); 
-			
-			if(closeOnLoad) {
-				// this occurs when item saved and resulting page is loaded
-				if($icontents.find(".NoticeError, .NoticeWarning, .ui-state-error").length == 0) {
-					// if there are no error messages present, close the window
-					if(typeof Notifications != "undefined") {
-						var messages = [];
-						$icontents.find(".NoticeMessage").each(function() {
-							messages[messages.length] = $(this).text();
-						});
-						if(messages.length > 0) setTimeout(function() {
-							for(var i = 0; i < messages.length; i++) {
-								Notifications.message(messages[i]);
-							}
-						}, 500); 
-					}
-					$iframe.dialog('close'); 
-					return;
-				}
-			}
-			
-			var $body = $icontents.find('body'); 
-			$body.hide();
-	
-			// copy buttons in iframe to dialog
-			if(buttonSelector) { 
-				$icontents.find(buttonSelector).each(function() {
-					var $button = $(this);
-					$button.find(".ui-button-text").removeClass("ui-button-text"); // prevent doubled
-					var text = $button.html();
-					var skip = false;
-					// avoid duplicate buttons
-					for(var i = 0; i < buttons.length; i++) {
-						if(buttons[i].text == text || text.length < 1) skip = true;
-					}
-					if(!skip) {
-						buttons[n] = {
-							'html': text,
-							'class': ($button.is('.ui-priority-secondary') ? 'ui-priority-secondary' : ''),
-							'click': function(e) {
-								$(e.currentTarget).fadeOut('fast');
-								$button.click();
-								if(closeSelector.length > 0 && $button.is(closeSelector)) {
-									// immediately close if matches closeSelector
-									$iframe.dialog('close');
-								}
-								if(autoclose) {
-									// automatically close on next page load
-									$("body").append($spinner.fadeIn());
-									if(autocloseSelector.length > 1) {
-										closeOnLoad = $button.is(autocloseSelector); // if button matches selector
-									} else {
-										closeOnLoad = true; // tell it to close window on the next 'load' event
-									}
-								}
-							}
-						};
-						n++;
-					};
-					if(!$button.hasClass('pw-modal-button-visible')) $button.hide(); // hide button that is in interface
-				});
-			} // .pw-modal-buttons
-
-			// render buttons
-			if(buttons.length > 0) $iframe.setButtons(buttons);
-			
-			$body.fadeIn('fast', function() {
-				$body.show(); // for Firefox, which ignores the fadeIn()
-			}); 
-	
-		}); // $iframe.load
-	
-		return false;
-	}); // click(a.pw-modal)
+	$(document).on('click', '.pw-modal:not(.pw-modal-dblclick)', pwModalOpenEvent);
+	$(document).on('dblclick', '.pw-modal-dblclick', pwModalOpenEvent);
+	if(isTouch) {
+		$(document).on('pwdoubletap', '.pw-modal-dblclick', pwModalOpenEvent);
+	}
 });
 

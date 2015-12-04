@@ -26,6 +26,7 @@ class InputfieldButton extends InputfieldSubmit {
 		$this->attr('value', 'Button'); 
 		$this->attr('href', ''); 
 		$this->set('aclass', ''); 
+		$this->set('target', '');
 		$this->skipLabel = Inputfield::skipLabelBlank; 
 	}
 
@@ -36,6 +37,7 @@ class InputfieldButton extends InputfieldSubmit {
 		if($href) { 
 			$out = trim($out); 
 			$attr = $this->aclass ? " class='$this->aclass'" : "";
+			if($this->target) $attr .= " target='" . $this->wire('sanitizer')->entities($this->target) . "'";
 			$out = "<a$attr href='$href'>$out</a>";
 			$this->attr('href', $href); 
 		}

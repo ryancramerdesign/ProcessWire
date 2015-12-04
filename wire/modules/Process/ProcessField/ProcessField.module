@@ -21,7 +21,7 @@ class ProcessField extends Process implements ConfigurableModule {
 		return array(
 			'title' => __('Fields', __FILE__),
 			'summary' => __('Edit individual fields that hold page data', __FILE__),
-			'version' => 111,
+			'version' => 112,
 			'permanent' => true, 
 			'permission' => 'field-admin', // add this permission if you want this Process available for roles other than Superuser
 			'icon' => 'cube', 
@@ -880,15 +880,58 @@ class ProcessField extends Process implements ConfigurableModule {
 	 *
 	 */
 	protected function ___buildEditFormCustom($form) {
+		
 		$customFields = $this->field->getConfigInputfields();
+		$tab = null;
+		
 		foreach($customFields as $field) {
 			// skip over wrappers if they don't have fields in them 
 			if($field instanceof InputfieldWrapper && !count($field->children)) continue; 
 			//if(!$this->fieldgroup) $field->attr('class', 'WireTab');
 			$field->attr('class', 'WireTab');
 			$field->head = '';
+			if($field->name == 'inputfieldConfig') $tab = $field;
 			$form->add($field); 
 		}
+		
+		if($tab) $this->buildEditFormFrontEdit($tab);
+	}
+
+	/**
+	 * Build the front-end editor settings
+	 * 
+	 * @param InputfieldWrapper $tab
+	 * 
+	 */
+	protected function buildEditFormFrontEdit($tab) {
+		
+		if(!$this->field) return;
+		$cls = __NAMESPACE__ . "\\FieldtypeFieldsetOpen";
+		if($this->field instanceof $cls) return;
+		
+		$fieldset = $this->wire('modules')->get('InputfieldFieldset');
+		$fieldset->label = $this->_('Front-end editing');
+		$fieldset->icon = 'edit';
+		$fieldset->collapsed = Inputfield::collapsedYes;
+		$tab->add($fieldset);
+		
+		if(!$this->wire('modules')->isInstalled('PageFrontEdit')) {
+			$f = $this->wire('modules')->get('InputfieldMarkup');
+			$fieldset->add($f);
+			$button = $this->wire('modules')->get('InputfieldButton');
+			$button->href = $this->wire('config')->urls->admin . "module/installConfirm?name=PageFrontEdit";
+			$button->value = $this->_('Install');
+			$button->icon = 'sign-in';
+			$button->target = '_blank';
+			$f->description = $this->_('Please install the front-end page editor module to enable front-end editing for fields. After installing, reload and return here for more options.');
+			$f->value = $button->render();
+			return;
+		}
+		
+		$file = $this->wire('config')->paths->PageFrontEdit . 'PageFrontEditConfig.php';
+		include_once($file);
+		$moduleConfig = $this->wire(new PageFrontEditConfig());
+		$moduleConfig->fieldHelpInputfields($fieldset, $this->field); 
 	}
 
 	/**

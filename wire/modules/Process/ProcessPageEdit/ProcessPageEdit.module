@@ -130,8 +130,6 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 			$this->modules->get('JqueryUI')->use('modal');
 		}
 
-		$title = $this->page->title;
-		if($title) $this->wire('processBrowserTitle', sprintf($this->_('Edit Page: %s'), $title)); 
 	}
 	
 	/**
@@ -1201,20 +1199,37 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 	 *
 	 */
 	public function setupHeadline() {
+		
+		if($this->page && $this->page->id) {
+			$page = $this->page;
+			$title = $page->get('title|name');
+		} else if($this->parent && $this->parent->id) {
+			$page = $this->parent;
+			$title = rtrim($this->parent->path, '/') . '/[...]';
+		} else {
+			$page = new NullPage();
+			$title = '[...]';
+		}
+		
+		$browserTitle = sprintf($this->_('Edit Page: %s'), $title); 
+		
 		if($this->field) {
 			if(count($this->fields) == 1) {
-				$this->headline($this->field->getLabel());
+				$headline = $this->field->getLabel();
 			} else {
 				$labels = array();
 				foreach($this->fields as $field) {
 					$labels[] = $field->getLabel(); 
 				}
-				$this->headline(implode(', ', $labels)); 
+				$headline = implode(', ', $labels); 
 			}
+			$browserTitle .= " ($headline)";
 		} else {
-			$page = $this->page ? $this->page : $this->parent; 
-			$this->headline($page->get("title|name"));
+			$headline = $page->get("title|name");
 		}
+	
+		$this->headline($headline);
+		$this->browserTitle($browserTitle);
 	}
 
 	/**

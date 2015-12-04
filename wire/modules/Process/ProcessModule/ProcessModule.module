@@ -1288,6 +1288,7 @@ class ProcessModule extends Process {
 		$field->attr('value', $table->render()); 
 		$field->label = $this->_x("Module Information", 'edit');
 		$field->icon = 'info-circle';
+		if($this->wire('input')->get('modal')) $field->collapsed = Inputfield::collapsedYes;
 		$form->prepend($field); 
 
 		$out .= $form->render();
