@@ -447,6 +447,7 @@ class Fieldgroup extends WireArray implements Saveable, Exportable, HasLookupIte
 
 			$inputfield = $field->getInputfield($page, $contextStr);
 			if(!$inputfield) continue; 
+			if($inputfield->collapsed == Inputfield::collapsedHidden) continue;
 
 			$inputfield->value = $page->get($field->name); 
 			$container->add($inputfield); 
