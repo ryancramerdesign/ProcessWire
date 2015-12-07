@@ -7,8 +7,8 @@ var InputfieldPageName = {
 		name = name.toLowerCase();  
 
 		var srch;
-		for(srch in config.InputfieldPageName.replacements) {
-			var repl = config.InputfieldPageName.replacements[srch];
+		for(srch in ProcessWire.config.InputfieldPageName.replacements) {
+			var repl = ProcessWire.config.InputfieldPageName.replacements[srch];
 			if(name.indexOf(srch) > -1) {
                 if(srch == '.') srch = '\\.';
 				var re = new RegExp(srch, 'g'); 

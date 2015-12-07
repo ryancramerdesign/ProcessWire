@@ -518,7 +518,11 @@ class AdminThemeDefaultHelpers extends WireData {
 			'adminTemplates' => $config->urls->adminTemplates,
 			); 
 
-		return "var config = " . wireEncodeJSON($jsConfig, true, $config->debug);
+		$out = 
+			"var ProcessWire = { config: " . wireEncodeJSON($jsConfig, true, $config->debug) . " }; " . 
+			"var config = ProcessWire.config; "; // legacy support
+		
+		return $out;
 	}
 	
 	public function getAddNewLabel() {

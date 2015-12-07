@@ -15,11 +15,11 @@ $(document).ready(function() {
 	}
 	
 	$("#wrap_Inputfield_roles").find("input[type=checkbox]").each(function() {
-		if($.inArray(parseInt($(this).val()), config.ProcessUser.editableRoles) == -1) {
+		if($.inArray(parseInt($(this).val()), ProcessWire.config.ProcessUser.editableRoles) == -1) {
 			$(this).closest('label').addClass('ui-priority-secondary').click(function() {
 				var $alert = $(this).find(".ui-state-error-text");
 				if($alert.length == 0) {
-					$alert = $("<span class='ui-state-error-text'>&nbsp;(" + config.ProcessUser.notEditableAlert + ")</span>");
+					$alert = $("<span class='ui-state-error-text'>&nbsp;(" + ProcessWire.config.ProcessUser.notEditableAlert + ")</span>");
 					$(this).append($alert);
 					setTimeout(function() {
 						$alert.fadeOut('normal', function() {

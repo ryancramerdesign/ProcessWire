@@ -138,7 +138,7 @@ var ProcessWireAdminTheme = {
 			minLength: 2,
 			position: { my : "right top", at: "right bottom" },
 			search: function(event, ui) {
-				$status.html("<img src='" + config.urls.modules + "Process/ProcessPageList/images/loading.gif'>");
+				$status.html("<img src='" + ProcessWire.config.urls.modules + "Process/ProcessPageList/images/loading.gif'>");
 			},
 			open: function(event, ui) {
 				$("#topnav").hide();

@@ -1305,6 +1305,7 @@ class ProcessField extends Process implements ConfigurableModule {
 		if($isNew) {
 			// when adding new field, make sure name is valid
 			$name = $this->wire('input')->post('name');
+			$name = $this->wire('sanitizer')->fieldName($name);
 			if(!$this->isAllowedName($name)) return $this->wire('session')->redirect('./add');
 			$type = $this->wire('input')->post('type');
 			// check for clone option on create

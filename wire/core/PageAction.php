@@ -33,7 +33,7 @@ abstract class PageAction extends WireAction implements Module {
 	 *
 	 */
 	public function getItemType() {
-		return 'Page';
+		return __NAMESPACE__ . '\\Page';
 	}
 
 	/**

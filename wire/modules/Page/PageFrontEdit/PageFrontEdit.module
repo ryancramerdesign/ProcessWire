@@ -306,7 +306,7 @@ class PageFrontEdit extends WireData implements Module {
 					$this->inlineEditField = $field->id;
 					$event->return = $this->inlineRenderEditor($page, $field, $arg2);
 				} else {
-					$event->return = $this->modalRenderEditor($page, $field, $arg2);
+					$event->return = $this->modalRenderEditor($page, array($field), $arg2);
 				}
 				return;
 			} else {

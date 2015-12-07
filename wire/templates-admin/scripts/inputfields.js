@@ -971,6 +971,9 @@ function InputfieldStates($target) {
 	$icon.toggleClass($icon.attr('data-to'));
 	
 	// display a detail with the HTML field name when the toggle icon is hovered
+	if(typeof ProcessWire != "undefined") {
+		var config = ProcessWire.config;
+	} 
 	if(typeof config !== "undefined" && config.debug) {
 		$('label.InputfieldHeader > i.toggle-icon', $target).hover(function() {
 			var $label = $(this).parent('label');

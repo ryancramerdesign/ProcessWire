@@ -145,7 +145,7 @@
 			page_id = parseInt(page_id);
 		}
 
-		var modalUri = config.urls.admin + 'page/image/';
+		var modalUri = ProcessWire.config.urls.admin + 'page/image/';
 		var queryString = '?id=' + page_id + '&edit_page_id=' + edit_page_id + '&modal=1';
 
 		if(file.length) queryString += "&file=" + file; 
@@ -162,7 +162,7 @@
 
 		// create iframe dialog box
 		var modalSettings = {
-			title: "<i class='fa fa-fw fa-folder-open'></i> " + config.InputfieldCKEditor.pwimage.selectLabel, // "Select Image", 
+			title: "<i class='fa fa-fw fa-folder-open'></i> " + ProcessWire.config.InputfieldCKEditor.pwimage.selectLabel, // "Select Image", 
 			open: function() {
 				if(jQuery(".cke_maximized").length > 0) {
 					// the following is required when CKE is maximized to make sure dialog is on top of it
@@ -184,7 +184,7 @@
 
 				var buttons = [
 					{ 
-						html: "<i class='fa fa-camera'></i> " + config.InputfieldCKEditor.pwimage.insertBtn, // "Insert This Image",
+						html: "<i class='fa fa-camera'></i> " + ProcessWire.config.InputfieldCKEditor.pwimage.insertBtn, // "Insert This Image",
 						click:  function() {
 
 							function insertImage(src) {
@@ -236,7 +236,7 @@
 										if(alt.length > 1) {
 											$figureCaption.append(alt);
 										} else {
-											$figureCaption.append(config.InputfieldCKEditor.pwimage.captionLabel); 
+											$figureCaption.append(ProcessWire.config.InputfieldCKEditor.pwimage.captionLabel); 
 										}
 									}
 									if($figureCaption) $figure.append($figureCaption); 
@@ -266,8 +266,8 @@
 							var $img = jQuery("#selected_image", $i); 
 
 							$iframe.dialog("disable");
-							$iframe.setTitle("<i class='fa fa-fw fa-spin fa-spinner'></i> " + 
-								config.InputfieldCKEditor.pwimage.savingNote); // Saving Image
+							$iframe.setTitle("<i class='fa fa-fw fa-spin fa-spinner'></i> " +
+								ProcessWire.config.InputfieldCKEditor.pwimage.savingNote); // Saving Image
 							$img.removeClass("resized"); 
 
 							var width = $img.attr('width');
@@ -298,7 +298,7 @@
 						}
 					}, {
 
-						html: "<i class='fa fa-folder-open'></i> " + config.InputfieldCKEditor.pwimage.selectBtn, // "Select Another Image", 
+						html: "<i class='fa fa-folder-open'></i> " + ProcessWire.config.InputfieldCKEditor.pwimage.selectBtn, // "Select Another Image", 
 						'class': 'ui-priority-secondary',
 						click: function() {
 							var $i = $iframe.contents();
@@ -307,7 +307,7 @@
 							$iframe.setButtons({}); 
 						}
 					}, {
-						html: "<i class='fa fa-times-circle'></i> " + config.InputfieldCKEditor.pwimage.cancelBtn, // "Cancel",
+						html: "<i class='fa fa-times-circle'></i> " + ProcessWire.config.InputfieldCKEditor.pwimage.cancelBtn, // "Cancel",
 						'class': 'ui-priority-secondary',
 						click: function() { $iframe.dialog("close"); }
 					}
@@ -331,7 +331,7 @@
 					if(!$button.hasClass('pw-modal-button-visible')) $button.hide();
 				});
 				var cancelButton = {
-					html: "<i class='fa fa-times-circle'></i> " + config.InputfieldCKEditor.pwimage.cancelBtn, // "Cancel",
+					html: "<i class='fa fa-times-circle'></i> " + ProcessWire.config.InputfieldCKEditor.pwimage.cancelBtn, // "Cancel",
 					'class': "ui-priority-secondary", 
 					click: function() { $iframe.dialog("close"); }
 				};

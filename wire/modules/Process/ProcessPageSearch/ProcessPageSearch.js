@@ -8,7 +8,7 @@ ProcessPageSearch = {
 		var query = $('#ProcessPageSearchQuery').val();
 		if(query == this.lastQuery) return false;
 		$('#ProcessPageSearchStatus').text('Searching');
-		$('#ProcessPageSearchLiveResults').load(config.urls.admin + 'page/search/', { q: query }, function(data) {
+		$('#ProcessPageSearchLiveResults').load(ProcessWire.config.urls.admin + 'page/search/', { q: query }, function(data) {
 			var numResults = parseInt($('#search_num_results').hide().text());
 			if(numResults) {
 					$('#search_results').fadeIn("fast").find("a").click(function() {

@@ -9,7 +9,7 @@
  */
 
 function ProcessPageListInit() {
-	if(config.ProcessPageList) $('#' + config.ProcessPageList.containerID).ProcessPageList(config.ProcessPageList); 
+	if(ProcessWire.config.ProcessPageList) $('#' + ProcessWire.config.ProcessPageList.containerID).ProcessPageList(ProcessWire.config.ProcessPageList); 
 }
 
 $(document).ready(function() {
@@ -87,10 +87,10 @@ $(document).ready(function() {
 			selectUnselectHref: '#',
 	
 			// URL where page lists are loaded from 	
-			ajaxURL: config.urls.admin + 'page/list/', 	
+			ajaxURL: ProcessWire.config.urls.admin + 'page/list/', 	
 
 			// URL where page move's should be posted
-			ajaxMoveURL: config.urls.admin + 'page/sort/',
+			ajaxMoveURL: ProcessWire.config.urls.admin + 'page/sort/',
 
 			// pagination number that you want to open (to correspond with openPageIDs)
 			openPagination: 0, 

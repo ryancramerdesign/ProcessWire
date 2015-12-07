@@ -17,12 +17,12 @@ function setupLanguageTabs($form) {
 		if(!$content.hasClass('langTabsContainer')) {
 			if($inputfield.find('.langTabsContainer').length == 0) $content.addClass('langTabsContainer');
 		}
-		$this.tabs({ active: config.LanguageTabs.activeTab });
+		$this.tabs({ active: ProcessWire.config.LanguageTabs.activeTab });
 		if($inputfield.length) $inputfield.addClass('hasLangTabs');
 		var $parent = $this.parent('.InputfieldContent'); 
 		if($parent.length) {
 			var $span = $("<span></span>")
-				.attr('title', config.LanguageTabs.title)
+				.attr('title', ProcessWire.config.LanguageTabs.title)
 				.attr('class', 'langTabsToggle')
 				.append("<i class='fa fa-folder-o'></i>");
 			$parent.prev('.InputfieldHeader').append($span);
@@ -49,14 +49,14 @@ function toggleLanguageTabs() {
 		$inputfield.removeClass('hasLangTabs');
 		$this.addClass('langTabsOff');
 		$langTabs.tabs('destroy');
-		$this.attr("title", config.LanguageTabs.labelClose)
+		$this.attr("title", ProcessWire.config.LanguageTabs.labelClose)
 			.find('i').removeClass("fa-folder-o").addClass("fa-folder-open-o");
 	} else {
 		$content.addClass('langTabsContainer');
 		$inputfield.addClass('hasLangTabs');
 		$this.removeClass('langTabsOff');
 		$langTabs.tabs();
-		$(this).attr("title", config.LanguageTabs.labelOpen)
+		$(this).attr("title", ProcessWire.config.LanguageTabs.labelOpen)
 			.find('i').addClass("fa-folder-o").removeClass("fa-folder-open-o");
 	}
 	return false;

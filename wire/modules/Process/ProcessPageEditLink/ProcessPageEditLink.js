@@ -1,16 +1,16 @@
 $(document).ready(function() {
 
 	var options = {
-		selectStartLabel: config.ProcessPageEditLink.selectStartLabel,
-		selectSelectLabel: config.ProcessPageEditLink.selectStartLabel,
-		langID: config.ProcessPageEditLink.langID
+		selectStartLabel: ProcessWire.config.ProcessPageEditLink.selectStartLabel,
+		selectSelectLabel: ProcessWire.config.ProcessPageEditLink.selectStartLabel,
+		langID: ProcessWire.config.ProcessPageEditLink.langID
 		// openPageIDs: config.ProcessPageEditLink.openPageIDs
 		};
 	var options2 = {
 		selectStartLabel: options.selectStartLabel,
 		selectSelectLabel: options.selectStartLabel,
 		langID: options.langID,
-		rootPageID: config.ProcessPageEditLink.pageID
+		rootPageID: ProcessWire.config.ProcessPageEditLink.pageID
 		};
 
 	var selectedPageData = {
@@ -42,7 +42,7 @@ $(document).ready(function() {
 	}
 
 	function absoluteToRelativePath(path) {
-		if(config.ProcessPageEditLink.urlType == 0) return path;
+		if(ProcessWire.config.ProcessPageEditLink.urlType == 0) return path;
 
 		function slashesToRelative(url) {
 			url = url.replace(/\//g, '../'); 
@@ -50,38 +50,38 @@ $(document).ready(function() {
 			return url;
 		}
 
-		if(path === config.ProcessPageEditLink.pageUrl) {
+		if(path === ProcessWire.config.ProcessPageEditLink.pageUrl) {
 			// account for the link to self
 			path = './'; 
-			if(!config.ProcessPageEditLink.slashUrls) path += config.ProcessPageEditLink.pageName;
+			if(!ProcessWire.config.ProcessPageEditLink.slashUrls) path += ProcessWire.config.ProcessPageEditLink.pageName;
 
-		} else if(path.indexOf(config.ProcessPageEditLink.pageUrl) === 0) { 
+		} else if(path.indexOf(ProcessWire.config.ProcessPageEditLink.pageUrl) === 0) { 
 			// linking to child of current page
-			path = path.substring(config.ProcessPageEditLink.pageUrl.length); 
-			if(!config.ProcessPageEditLink.slashUrls) path = config.ProcessPageEditLink.pageName + path;
+			path = path.substring(ProcessWire.config.ProcessPageEditLink.pageUrl.length); 
+			if(!ProcessWire.config.ProcessPageEditLink.slashUrls) path = ProcessWire.config.ProcessPageEditLink.pageName + path;
 
-		} else if(config.ProcessPageEditLink.pageUrl.indexOf(path) === 0) {
+		} else if(ProcessWire.config.ProcessPageEditLink.pageUrl.indexOf(path) === 0) {
 			// linking to a parent of the current page
-			var url = config.ProcessPageEditLink.pageUrl.substring(path.length); 
+			var url = ProcessWire.config.ProcessPageEditLink.pageUrl.substring(path.length); 
 			if(url.indexOf('/') != -1) {
 				url = slashesToRelative(url); 
 			} else {
 				url = './';
 			}
 			path = url;
-		} else if(path.indexOf(config.ProcessPageEditLink.rootParentUrl) === 0) {
+		} else if(path.indexOf(ProcessWire.config.ProcessPageEditLink.rootParentUrl) === 0) {
 			// linking to a sibling or other page in same branch (but not a child)
-			var url = path.substring(config.ProcessPageEditLink.rootParentUrl.length); 
+			var url = path.substring(ProcessWire.config.ProcessPageEditLink.rootParentUrl.length); 
 			var url2 = url;
 			url = slashesToRelative(url) + url2; 	
 			path = url;
 			
-		} else if(config.ProcessPageEditLink.urlType == 2) { // 2=relative for all
+		} else if(ProcessWire.config.ProcessPageEditLink.urlType == 2) { // 2=relative for all
 			// page in a different tree than current
 			// traverse back to root
-			var url = config.ProcessPageEditLink.pageUrl.substring(config.urls.root.length); 
+			var url = ProcessWire.config.ProcessPageEditLink.pageUrl.substring(config.urls.root.length); 
 			url = slashesToRelative(url); 
-			path = path.substring(config.urls.root.length); 
+			path = path.substring(ProcessWire.config.urls.root.length); 
 			path = url + path; 
 		}
 		return path; 
@@ -91,7 +91,7 @@ $(document).ready(function() {
 
 		if(data.url && data.url.length) {
 			selectedPageData = data;
-			selectedPageData.url = config.urls.root + data.url.substring(1);
+			selectedPageData.url = ProcessWire.config.urls.root + data.url.substring(1);
 			selectedPageData.url = absoluteToRelativePath(selectedPageData.url); 
 			$linkPageURL.val(selectedPageData.url).change();
 			if($fileSelect.is(":visible")) populateFileSelect(selectedPageData);
@@ -228,8 +228,8 @@ $(document).ready(function() {
 		var httpHost = $this.attr('data-httphost');
 		if(httpHost && httpHost.length) {
 			external = true; 
-			for(var n = 0; n < config.httpHosts; n++) {
-				if(config.httpHosts[n] == httpHost) {
+			for(var n = 0; n < ProcessWire.config.httpHosts; n++) {
+				if(ProcessWire.config.httpHosts[n] == httpHost) {
 					external = false;
 					break;
 				}
@@ -246,15 +246,15 @@ $(document).ready(function() {
 			if (!$this.hasClass('external-link')) {
 				icon().removeClass(allIcons).addClass(extLinkIcon);
 				$this.addClass('external-link');
-				var extLinkTarget = config.ProcessPageEditLink.extLinkTarget;
+				var extLinkTarget = ProcessWire.config.ProcessPageEditLink.extLinkTarget;
 				if (extLinkTarget.length > 0) {
 					$("#link_target").val(extLinkTarget);
 				}
-				var extLinkRel = config.ProcessPageEditLink.extLinkRel;
+				var extLinkRel = ProcessWire.config.ProcessPageEditLink.extLinkRel;
 				if (extLinkRel.length > 0) {
 					$("#link_rel").val(extLinkRel);
 				}
-				var extLinkClass = config.ProcessPageEditLink.extLinkClass;
+				var extLinkClass = ProcessWire.config.ProcessPageEditLink.extLinkClass;
 				if (extLinkClass.length > 0) {
 					extLinkClass = extLinkClass.split(' ');
 					for (var n = 0; n < extLinkClass.length; n++) {

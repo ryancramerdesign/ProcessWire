@@ -9,7 +9,7 @@
 			var allowed = 'a[!href,target,name,title,rel]';
 			var required = 'a[href]';
 			
-			var classOptions = config.InputfieldCKEditor.pwlink.classOptions;
+			var classOptions = ProcessWire.config.InputfieldCKEditor.pwlink.classOptions;
 			if(classOptions.length) allowed += "(" + classOptions + ")";
 
 			/*
@@ -77,7 +77,7 @@
 			// add context menu item
 			if (editor.contextMenu) {
 				editor.addMenuItem('pwlinkitem', {
-					label: config.InputfieldCKEditor.pwlink.edit,
+					label: ProcessWire.config.InputfieldCKEditor.pwlink.edit,
 					command: 'pwlink',
 					group: 'link',
 					icon: (CKEDITOR.env.hidpi ? this.path + 'images/hidpi/pwlink.png' : this.path + 'images/pwlink.png')
@@ -132,7 +132,7 @@
 		}
 	
 		// build the modal URL
-		var modalUrl = config.urls.admin + 'page/link/?id=' + pageID + '&modal=1';
+		var modalUrl = ProcessWire.config.urls.admin + 'page/link/?id=' + pageID + '&modal=1';
 		var $langWrapper = $textarea.closest('.LanguageSupport');
 		if($langWrapper.length) modalUrl += "&lang=" + $langWrapper.data("language");
 		
@@ -152,8 +152,8 @@
 		}
 	
 		// labels
-		var insertLinkLabel = config.InputfieldCKEditor.pwlink.label;
-		var cancelLabel = config.InputfieldCKEditor.pwlink.cancel;
+		var insertLinkLabel = ProcessWire.config.InputfieldCKEditor.pwlink.label;
+		var cancelLabel = ProcessWire.config.InputfieldCKEditor.pwlink.cancel;
 		var $iframe; // set after modalSettings down
 
 		// action when insert link button is clicked

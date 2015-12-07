@@ -63,8 +63,8 @@ var pwModalWindows = [];
  */
 function pwModalWindowSettings(name) {
 	
-	var modal = config.modals[name];
-	if(typeof modal == "undefined") modal = config.modals['medium'];
+	var modal = ProcessWire.config.modals[name];
+	if(typeof modal == "undefined") modal = ProcessWire.config.modals['medium'];
 	modal = modal.split(','); 
 
 	// options that can be customized via config.modals, with default values

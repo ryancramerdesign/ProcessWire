@@ -179,7 +179,7 @@ var ProcessWireAdminTheme = {
 			minLength: 2,
 			position: { my : "right top", at: "right bottom" },
 			search: function(event, ui) {
-				$status.html("<img src='" + config.urls.modules + "Process/ProcessPageList/images/loading.gif'>");
+				$status.html("<img src='" + ProcessWire.config.urls.modules + "Process/ProcessPageList/images/loading.gif'>");
 			},
 			source: function(request, response) {
 				var url = $input.parents('form').attr('action') + 'for?get=template_label,title&include=all&admin_search=' + request.term;

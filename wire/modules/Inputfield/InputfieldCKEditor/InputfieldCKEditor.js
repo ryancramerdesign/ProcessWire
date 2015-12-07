@@ -14,8 +14,8 @@
  * 
  */
 function ckeLoadPlugins() {
-	for(var name in config.InputfieldCKEditor.plugins) {
-		var file = config.InputfieldCKEditor.plugins[name];
+	for(var name in ProcessWire.config.InputfieldCKEditor.plugins) {
+		var file = ProcessWire.config.InputfieldCKEditor.plugins[name];
 		CKEDITOR.plugins.addExternal(name, file, '');
 	}
 }
@@ -137,7 +137,7 @@ function ckeInlineMouseoverEvent(event) {
 	$t.effect('highlight', {}, 500);
 	$t.attr('contenteditable', 'true');
 	var configName = $t.attr('data-configName');
-	var editor = CKEDITOR.inline($(this).attr('id'), config[configName]);
+	var editor = CKEDITOR.inline($(this).attr('id'), ProcessWire.config[configName]);
 	ckeInitEvents(editor);
 	$t.addClass("InputfieldCKEditorLoaded"); 
 }
@@ -171,8 +171,8 @@ function ckeInitNormal(editorID) {
 	var $editor = $('#' + editorID);
 	var $parent = $editor.parent();
 	
-	if(typeof config.InputfieldCKEditor.editors[editorID] != "undefined") {
-		var configName = config.InputfieldCKEditor.editors[editorID];
+	if(typeof ProcessWire.config.InputfieldCKEditor.editors[editorID] != "undefined") {
+		var configName = ProcessWire.config.InputfieldCKEditor.editors[editorID];
 	} else {
 		var configName = $editor.attr('data-configName');
 	}
@@ -185,7 +185,7 @@ function ckeInitNormal(editorID) {
 		$parent.closest('.ui-tabs, .langTabs').on('tabsactivate', ckeInitTab);
 	} else {
 		// visible CKEditor
-		var editor = CKEDITOR.replace(editorID, config[configName]);
+		var editor = CKEDITOR.replace(editorID, ProcessWire.config[configName]);
 		ckeInitEvents(editor);
 		$editor.addClass('InputfieldCKEditorLoaded');
 	}
@@ -201,14 +201,14 @@ $(document).ready(function() {
 	 * Override ckeditor timestamp for cache busting
 	 * 
 	 */
-	CKEDITOR.timestamp = config.InputfieldCKEditor.timestamp;
+	CKEDITOR.timestamp = ProcessWire.config.InputfieldCKEditor.timestamp;
 
 	/**
 	 * Regular editors
 	 * 
 	 */
 	
-	for(var editorID in config.InputfieldCKEditor.editors) {
+	for(var editorID in ProcessWire.config.InputfieldCKEditor.editors) {
 		ckeInitNormal(editorID);
 	}
 	

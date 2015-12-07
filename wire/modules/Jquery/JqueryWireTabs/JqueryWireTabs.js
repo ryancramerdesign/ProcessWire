@@ -18,8 +18,8 @@
 			id: '' // id for tabList. if already exists, existing tabList will be used
 		};
 		
-		if(config.JqueryWireTabs.rememberTabs != "undefined") {
-			options.rememberTabs = config.JqueryWireTabs.rememberTabs;
+		if(ProcessWire.config.JqueryWireTabs.rememberTabs != "undefined") {
+			options.rememberTabs = ProcessWire.config.JqueryWireTabs.rememberTabs;
 		}
 		var totalTabs = 0; 
 
