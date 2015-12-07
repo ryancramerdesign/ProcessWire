@@ -242,7 +242,7 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 		} else {
 	
 			// clear the page that was saved
-			if($page->cache_time > 0) {
+			if($page->template->cache_time > 0) {
 				$cacheFile = $this->getCacheFile($page);
 				if($cacheFile->exists()) {
 					$cacheFile->remove();

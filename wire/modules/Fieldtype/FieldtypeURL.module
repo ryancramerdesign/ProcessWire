@@ -57,6 +57,7 @@ class FieldtypeURL extends FieldtypeText {
 			$root = rtrim($this->config->urls->root, '/');
 			$value = $root . $value; 
 		}		
+		$value = parent::___formatValue($page, $field, $value);
 		return $value; 
 	}
 
