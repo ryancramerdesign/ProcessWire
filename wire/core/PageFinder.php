@@ -1056,6 +1056,7 @@ class PageFinder extends Wire {
 				$subValue = $database->escapeCol($subValue);
 				$tableAlias = "_sort_$fieldName". ($subValue ? "_$subValue" : '');
 				$table = $database->escapeTable($field->table);
+				$blankValue = $field->type->getBlankValue($this->wire('pages')->newNullPage(), $field);
 
 				$query->leftjoin("$table AS $tableAlias ON $tableAlias.pages_id=pages.id");
 
@@ -1063,7 +1064,7 @@ class PageFinder extends Wire {
 					// sort by quantity of items
 					$value = "COUNT($tableAlias.data)";
 
-				} else if($field->type instanceof FieldtypePage) {
+				} else if(is_object($blankValue) && ($blankValue instanceof PageArray || $blankValue instanceof Page)) {
 					// If it's a FieldtypePage, then data isn't worth sorting on because it just contains an ID to the page
 					// so we also join the page and sort on it's name instead of the field's "data" field.
 					if(!$subValue) $subValue = 'name';

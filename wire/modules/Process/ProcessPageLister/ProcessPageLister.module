@@ -1637,7 +1637,13 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		$this->setupOpenPageIDs();
 	
 		if($this->wire('config')->ajax) {
-			return $this->renderResults();
+			$out = $this->renderResults();
+			if(self::debug) {
+				foreach($this->wire('database')->queryLog() as $n => $item) {
+					$out .= "<p>$n. $item</p>";
+				}
+			}
+			return $out;
 		}
 		
 		if($this->wire('input')->get('reset')) {
