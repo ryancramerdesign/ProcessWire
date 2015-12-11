@@ -445,10 +445,41 @@ jQuery(document).ready(function($) {
 		}
 	}));
 
-	var isTouch = (('ontouchstart' in window) || (navigator.MaxTouchPoints > 0) || (navigator.msMaxTouchPoints > 0));
-	
+	$(document).on('pwdblclick', '.pw-modal-dblclick', pwModalOpenEvent);
 	$(document).on('click', '.pw-modal:not(.pw-modal-dblclick)', pwModalOpenEvent);
 	$(document).on('dblclick', '.pw-modal-dblclick', pwModalOpenEvent);
+
+	// double click handler that still enables links within to work as single-click
+	var clicks = 0, timer = null, allowClick = false;
+	$(document).on('click', '.pw-modal-dblclick a', function() {
+		var $a = $(this);
+		if(allowClick) {
+			allowClick = false;
+			return true;
+		}
+		clicks++;  //count clicks
+		if(clicks === 1) {
+			timer = setTimeout(function() {
+				clicks = 0;
+				allowClick = true;
+				$a[0].click();
+				return true;
+			}, 700);
+		} else {
+			clearTimeout(timer); // prevent single-click action
+			allowClick = false;
+			clicks = 0;
+			$(this).closest('.pw-modal-dblclick').trigger('dblclick');
+		}
+		return false;
+	});
+	$(document).on('dblclick', '.pw-modal-dblclick a', function(e) {
+		e.stopPropagation();
+		return false;
+	});
+
+	var isTouch = (('ontouchstart' in window) || (navigator.MaxTouchPoints > 0) || (navigator.msMaxTouchPoints > 0));
+	
 	if(isTouch) {
 		$(document).on('pwdoubletap', '.pw-modal-dblclick', pwModalOpenEvent);
 	}

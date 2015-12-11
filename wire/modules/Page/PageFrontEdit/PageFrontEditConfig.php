@@ -12,12 +12,19 @@ class PageFrontEditConfig extends ModuleConfig {
 	public function getDefaults() {
 		return array(
 			'inlineEditFields' => array(), // fields that are inline-editable
+			'inlineLimitPage' => 1, // 1=limit editor to rendered page only, 0=edit for any page 
 			'editRegionAttr' => 'edit', // attribute to use for user-defined modal editable regions
 			'editRegionTag' => 'edit', // tag to use for marking user-defined modal editable regions with tags
 			'demoPages' => array(),
 			'buttonLocation' => 'auto',
 			'buttonType' => 'auto',
 		);
+	}
+	
+	protected $editHelpText; 
+	
+	public function __construct() {
+		$this->editHelpText = sprintf($this->_('Before using front-end editing, please review the [front-end editing help](%s).'), 'https://processwire.com/api/modules/front-end-editing/');
 	}
 	
 	public function getInputfields() {
@@ -39,17 +46,29 @@ class PageFrontEditConfig extends ModuleConfig {
 		$f = $this->wire('modules')->get('InputfieldCheckboxes');
 		$f->name = 'inlineEditFields';
 		$f->icon = 'cube';
-		$f->label = $this->_('Which fields should be editable inline on the front-end?');
-		$f->description = $this->_('These text-based fields will be become editable on the front-end, directly in the page, simply by checking the boxes below. Users must have page-edit permission to the page as well as page-edit-front permission (if they are not a superuser).');
-		$f->description .= ' ' . $this->_('If you are outputting the value of a field in more than one place on a page, you should instead use the front-end editor API.');
-		$f->notes = $this->_('For more fields and options, you may use the front-end API. For details, edit any field, click the "Input" tab and review the "Front-end editing" options.');
+		$f->label = $this->_('Option A: front-edit editable fields');
+		$f->description = $this->editHelpText;
+		$f->description .= ' ' . $this->_('These text-based fields will be become editable on the front-end, directly in the page, simply by checking the boxes below.');
+		$f->description .= ' ' . $this->_('**Be careful with this option:** If you are outputting the value of a field in more than one place on a page, you should instead use [Option B, C or D](https://processwire.com/api/modules/front-end-editing/).');
 		$f->optionColumns = 3;
 		foreach($fields as $field) {
-			$f->addOption($field->id, $field->name);
+			$label = $field->name;
+			if($label == 'title') $label .= ' ' . $this->_('(not recommended)');
+			$f->addOption($field->id, $label);
 		}
 		// $f->attr('value', $this->inlineEditFields);
 		$fieldset->add($f);
-
+		
+		$f = $this->wire('modules')->get('InputfieldRadios');
+		$f->name = 'inlineLimitPage';
+		$f->label = $this->_('Option A: editor scope');
+		$f->description = $this->_('When the checked fields above are output, where should they be editable?');
+		$f->addOption(1, $this->_('Fields editable only if they are from the page being rendered (recommended)'));
+		$f->addOption(0, $this->_('Fields editable regardless of page'));
+		$f->showIf = 'inlineEditFields.count>0';
+		$f->icon = 'cube';
+		$fieldset->add($f);
+		
 		if(PageFrontEdit::demo) {
 			$f = $this->modules->get('InputfieldPageListSelectMultiple');
 			$f->attr('name', 'demoPages');
@@ -93,8 +112,15 @@ class PageFrontEditConfig extends ModuleConfig {
 	
 	public function fieldHelpInputfields(InputfieldWrapper $fieldset, Field $field) {
 		
+		$moreLabel = $this->_('More') . "<i class='fa fa-angle-right'></i>";
+		
 		$module = $this->wire('modules')->get('PageFrontEdit');
-		$fieldset->description = $this->_('There are a few different ways you can enable front-end editing for this field. Regardless of which option you choose, front-end editing will only appear when the user has appropriate permissions to the page and field. Required permissions are *page-edit* and *page-edit-front*.');
+		$fieldset->description = $this->editHelpText;
+		$fieldset->description .= ' ' . $this->_('There are a few different ways you can enable front-end editing for this field. Regardless of which option you choose, front-end editing will only appear when the user has appropriate permissions to the page and field.');
+		$fieldset->description .= ' ' . sprintf($this->_('Required permissions are [page-edit](%s) and [page-edit-front](%s).'), 
+			'https://processwire.com/api/user-access/permissions/#page-edit',
+			'https://processwire.com/api/user-access/permissions/#page-edit-front'
+			);
 		$fieldset->description .= ' ' . $this->_('When a field is editable, hovering it shows a context mouse pointer rather than a regular pointer. To edit the field on the front-end, you must **double click** it.');
 		$name = $field->name;
 		$sanitizer = $this->wire('sanitizer');
@@ -108,6 +134,7 @@ class PageFrontEditConfig extends ModuleConfig {
 			$f->icon = 'check-circle';
 			$this->wire('modules')->get('JqueryUI')->use('modal');
 			$f->description = $this->_('When the formatted value of the field is retrieved from a $page, it will be editable without you having to write any markup/code for it. This is assuming the user has permission to edit it.');
+			$f->description .= " [$moreLabel](https://processwire.com/api/modules/front-end-editing/#option-a-automatic-editing)";
 			$href = "{$this->config->urls->admin}module/edit?name=PageFrontEdit&modal=1&";
 			$f->value =
 				"<p><a class='pw-modal ui-button ui-state-default' data-buttons='.ui-button' data-autoclose href='$href'>" .
@@ -136,7 +163,8 @@ class PageFrontEditConfig extends ModuleConfig {
 		}
 		if($supports) {
 			$f->icon = 'check-circle';
-			$f->description = sprintf($this->_('Use $page->edit("%s"); rather than $page->%s; when you want to output the value:'), $name, $name);
+			$f->description = sprintf($this->_('Use $page->edit("%s"); rather than $page->%s; when you want to output the value.'), $name, $name);
+			$f->description .= " [$moreLabel](https://processwire.com/api/modules/front-end-editing/#option-b-api-method-call)";
 			$f->value = "<pre$preStyle>&lt;?php echo \$page->edit('$name'); ?&gt;</pre>";
 		} else {
 			$f->icon = 'times-circle';
@@ -149,8 +177,8 @@ class PageFrontEditConfig extends ModuleConfig {
 		$fieldset->add($f);
 		$f->label = $this->_('Option C: Add HTML edit tags to create an editable region');
 		$f->icon = 'check-circle';
-		$f->description = $note;
-		$f->value = "<pre$preStyle>" . $sanitizer->entities(
+		$f->description = "$note [$moreLabel](https://processwire.com/api/modules/front-end-editing/#option-c-html-edit-tags)";
+;		$f->value = "<pre$preStyle>" . $sanitizer->entities(
 				"<edit $name>...</edit>\n" .
 				"<edit field=\"$name\">...</edit>\n" .
 				"<edit field=\"$name\" page=\"1001\">...</edit>\n" .
@@ -162,6 +190,7 @@ class PageFrontEditConfig extends ModuleConfig {
 		$f->label = $this->_('Option D: Add HTML edit attributes to existing markup tag to create editable region');
 		$f->icon = 'check-circle';
 		$f->description = $this->_('The div tag shown below may be any existing HTML tag that wraps your editable region.') . ' ' . $note;
+		$f->description .= " [$moreLabel](https://processwire.com/api/modules/front-end-editing/#option-d-html-edit-attributes)";
 		$f->value = "<pre$preStyle>" . $sanitizer->entities(
 				"<div edit=\"$name\">...</div>\n" .
 				"<div edit=\"1001.$name\">...</div>"

@@ -112,6 +112,38 @@ function PageFrontEditInit($) {
 			return false;
 		});
 
+		// check if orig has clickable links within it
+		// if so, differentiate between single and double clicks
+		// so that we can enable those links to still work while also supporting dblclick
+		if(orig.find('a').length) {
+			var clicks = 0, timer = null, allowClick = false;
+			orig.on('click', 'a', function() {
+				var $a = jQuery(this);
+				if(allowClick) {
+					allowClick = false;
+					return true;
+				}
+				clicks++;
+				if(clicks === 1) {
+					timer = setTimeout(function() {
+						clicks = 0;
+						allowClick = true;
+						$a[0].click();
+						return true;
+					}, 700);
+				} else {
+					clearTimeout(timer); // prevent single-click action
+					allowClick = false;
+					clicks = 0;
+					orig.trigger('dblclick');
+				}
+				return false;
+			});
+			orig.on('dblclick', 'a', function() {
+				return false;
+			});
+		}
+
 		// handler for non-cke blur event
 		if(!t.hasClass('pw-edit-InputfieldCKEditor')) {
 			copy.blur(function() {

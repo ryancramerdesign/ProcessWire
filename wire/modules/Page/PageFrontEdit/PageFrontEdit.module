@@ -11,6 +11,7 @@
  * @property string $buttonType
  * @property string $editRegionAttr
  * @property string $editRegionTag
+ * @property bool|int $inlineLimitPage Limit editor tocurrent page only
  * 
  * @property array $inlineAllowFieldtypes
  * 
@@ -164,7 +165,7 @@ class PageFrontEdit extends WireData implements Module {
 		} else {
 			// we are allowing this page to use the editor, so attach hooks
 			foreach($this->inlineAllowFieldtypes as $fieldtypeClass) {
-				$this->addHookAfter("$fieldtypeClass::formatValue", $this, 'inlineHookFormatValue');
+				$this->addHookAfter("$fieldtypeClass::formatValue", $this, 'inlineHookFormatValue', array('priority' => 200));
 			}
 			$this->addHookAfter('Page::render', $this, 'hookPageRender');
 		}
@@ -191,6 +192,7 @@ class PageFrontEdit extends WireData implements Module {
 	public function inlineIsEditable(Page $page, Field $field) {
 		if(!$this->inlineEditorActive || !$this->editorAllowed) return false;
 		if(!in_array($field->id, $this->inlineEditFields) && $field->id != $this->inlineEditField) return false;
+		if($this->inlineLimitPage && $page->id != $this->page->id) return false;
 		if(count($this->demoPages) && in_array($page->id, $this->demoPages)) return true;
 		if(!$this->wire('user')->hasPermission('page-edit-front', $page)) return false;
 		if(!$page->editable($field)) return false;
