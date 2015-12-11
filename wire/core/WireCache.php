@@ -105,7 +105,8 @@ class WireCache extends Wire {
 	 * 
 	 */
 	public function get($name, $expire = null, $func = null) {
-		
+	
+		$_expire = $expire;
 		if(!is_null($expire)) {
 			if(!is_int($expire) && !is_string($expire) && !$expire instanceof Wire && is_callable($expire)) {
 				$_func = $func;
@@ -154,7 +155,7 @@ class WireCache extends Wire {
 		
 		$sql = "SELECT name, data FROM caches WHERE (" . implode(' OR ', $where) . ") ";
 		
-		if(is_null($expire) || $func) {
+		if(is_null($expire)) { // || $func) {
 			$sql .= "AND (expires>=:now OR expires<=:never) ";
 			$binds[':now'] = date(self::dateFormat, time());
 			$binds[':never'] = self::expireNever;
@@ -176,7 +177,7 @@ class WireCache extends Wire {
 		$value = ''; // return value for non-multi mode
 		$values = array(); // return value for multi-mode
 		
-		try {
+		if($_expire !== self::expireNow) try {
 			$query->execute(); 
 			if($query->rowCount() == 0) {
 				$value = null; // cache does not exist
