@@ -27,15 +27,18 @@ $(document).ready(function() {
 	function addImageListToggle($target) {
 		var $listToggle = $("<a class='InputfieldImageListToggle HideIfEmpty' href='#'></a>")
 			.append("<i class='fa fa-th'></i>");
-		if($target.hasClass('.InputfieldImage')) $(this).find('.InputfieldHeader').append($listToggle);
-			else $(".InputfieldImage .InputfieldHeader", $target).append($listToggle); 
+		if($target.hasClass('InputfieldImage')) {
+			$target.find('.InputfieldHeader').append($listToggle);
+		} else {
+			$(".InputfieldImage .InputfieldHeader", $target).append($listToggle);
+		}
 	}
 	
 	$(document).on('reloaded', '.InputfieldImage', function() {
 		var $t = $(this);
 		// $t.find("a.InputfieldFileLink").magnificPopup(magnificOptions);
 		addImageListToggle($t);
-		if($t.is(".InputfieldImageGrid")) {
+		if($t.is(".InputfieldImageDefaultGrid")) {
 			unsetGridMode($t);
 			setGridMode($t);
 		}
