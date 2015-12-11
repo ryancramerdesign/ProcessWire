@@ -145,8 +145,11 @@ class Fields extends WireSaveableItems {
 		if(!$isNew && $prevTable && $prevTable != $table) {
 			// note that we rename the table twice in order to force MySQL to perform the rename 
 			// even if only the case has changed. 
-			$database->exec("RENAME TABLE `$prevTable` TO `tmp_$table`"); // QA
-			$database->exec("RENAME TABLE `tmp_$table` TO `$table`"); // QA
+			$schema = $item->type->getDatabaseSchema($item);
+			if(!empty($schema)) {
+				$database->exec("RENAME TABLE `$prevTable` TO `tmp_$table`"); // QA
+				$database->exec("RENAME TABLE `tmp_$table` TO `$table`"); // QA
+			}
 			$item->prevTable = '';
 		}
 

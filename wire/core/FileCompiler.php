@@ -223,7 +223,11 @@ class FileCompiler extends Wire {
 				);
 				$this->wire('cache')->saveFor($this, $cacheName, $cacheData, WireCache::expireNever);
 			}
+			if($this->wire('config')->debug) {
+				$this->message($this->_('Compiled file:') . ' ' . str_replace($this->wire('config')->paths->root, '/', $sourcePathname), Notice::debug);
+			}
 		}
+		
 	
 		return $targetPathname;
 	}
@@ -303,6 +307,12 @@ class FileCompiler extends Wire {
 			if(strpos($fileMatch, './') === 1) {
 				// relative to current dir, convert to absolute
 				$fileMatch = $fileMatch[0] . dirname($sourceFile) . substr($fileMatch, 2);
+			} else if(strpos($fileMatch, '/') === false 
+				&& strpos($fileMatch, '$') === false 
+				&& strpos($fileMatch, '(') === false
+				&& strpos($fileMatch, '\\') === false) {
+				// i.e. include("file.php")
+				$fileMatch = $fileMatch[0] . dirname($sourceFile) . '/' . substr($fileMatch, 1);
 			}
 		
 			if(substr($fileMatch, -1) == ')') $fileMatch = substr($fileMatch, 0, -1);

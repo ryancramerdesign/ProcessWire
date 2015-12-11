@@ -122,7 +122,7 @@ class Notification extends WireData {
 	public function title($value) { return $this->set('title', $value); }
 	public function text($value) { return $this->set('text', $value); }
 	public function html($value) { return $this->set('html', $value); }
-	public function from($value) { return $this->set('html', $value); }
+	public function from($value) { return $this->set('from', $value); }
 	public function icon($value) { return $this->set('icon', $value); }
 	public function href($value) { return $this->set('href', $value); }
 	public function progress($value) { return $this->set('progress', $value); }

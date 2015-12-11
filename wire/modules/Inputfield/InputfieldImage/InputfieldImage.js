@@ -38,7 +38,7 @@ $(document).ready(function() {
 		var $t = $(this);
 		// $t.find("a.InputfieldFileLink").magnificPopup(magnificOptions);
 		addImageListToggle($t);
-		if($t.is(".InputfieldImageDefaultGrid")) {
+		if($t.find(".InputfieldImageDefaultGrid")) {
 			unsetGridMode($t);
 			setGridMode($t);
 		}

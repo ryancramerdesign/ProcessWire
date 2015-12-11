@@ -100,7 +100,12 @@ class MarkupFieldtype extends WireData implements Module {
 			} else if(is_object($value)) { 
 				// object
 				$valid = false;
-				if($value instanceof WireArray) {
+				if($value instanceof PageArray) {
+					// PageArray object: get array of property value from each item
+					$value = $value->explode($property, array('getMethod' => 'getFormatted'));
+					$valid = true;
+					
+				} else if($value instanceof WireArray) {
 					// WireArray object: get array of property value from each item
 					$value = $value->explode($property);
 					$valid = true;
