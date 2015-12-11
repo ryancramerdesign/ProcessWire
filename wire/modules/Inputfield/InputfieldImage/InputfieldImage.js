@@ -25,8 +25,11 @@ $(document).ready(function() {
 	function addImageListToggle($target) {
 		var $listToggle = $("<a class='InputfieldImageListToggle HideIfEmpty' href='#'></a>")
 			.append("<i class='fa fa-th'></i>");
-		if($target.hasClass('.InputfieldImage')) $(this).find('.InputfieldHeader').append($listToggle);
-			else $(".InputfieldImage .InputfieldHeader", $target).append($listToggle); 
+		if($target.hasClass('InputfieldImage')) {
+			$target.find('.InputfieldHeader').append($listToggle);
+		} else {
+			$(".InputfieldImage .InputfieldHeader", $target).append($listToggle);
+		}
 	}
 	
 	$(document).on('reloaded', '.InputfieldImage', function() {
