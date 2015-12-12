@@ -49,30 +49,105 @@ ErrorDocument 404 /index.php
   # Header set X-Content-Type-Options "nosniff" 
 </IfModule>
 
+# ----------------------------------------------------------------------
+# | Document modes                                                     |
+# ----------------------------------------------------------------------
+
+# Force Internet Explorer 8/9/10 to render pages in the highest mode
+# available in the various cases when it may not.
+#
+# https://hsivonen.fi/doctype/#ie8
+#
+# (!) Starting with Internet Explorer 11, document modes are deprecated.
+# If your business still relies on older web apps and services that were
+# designed for older versions of Internet Explorer, you might want to
+# consider enabling `Enterprise Mode` throughout your company.
+#
+# https://msdn.microsoft.com/en-us/library/ie/bg182625.aspx#docmode
+# http://blogs.msdn.com/b/ie/archive/2014/04/02/stay-up-to-date-with-enterprise-mode-for-internet-explorer-11.aspx
+
+<IfModule mod_headers.c>
+
+    Header set X-UA-Compatible "IE=edge"
+
+    # `mod_headers` cannot match based on the content-type, however,
+    # the `X-UA-Compatible` response header should be send only for
+    # HTML documents and not for the other resources.
+
+    <FilesMatch "\.(appcache|atom|bbaw|bmp|crx|css|cur|eot|f4[abpv]|flv|geojson|gif|htc|ico|jpe?g|js|json(ld)?|m4[av]|manifest|map|mp4|oex|og[agv]|opus|otf|pdf|png|rdf|rss|safariextz|svgz?|swf|topojson|tt[cf]|txt|vcard|vcf|vtt|webapp|web[mp]|webmanifest|woff2?|xloc|xml|xpi)$">
+        Header unset X-UA-Compatible
+    </FilesMatch>
+
+</IfModule>
+
+# ----------------------------------------------------------------------
+# | Character encodings                                                |
+# ----------------------------------------------------------------------
+
+# Serve all resources labeled as `text/html` or `text/plain`
+# with the media type `charset` parameter set to `UTF-8`.
+#
+# https://httpd.apache.org/docs/current/mod/core.html#adddefaultcharset
+
+AddDefaultCharset utf-8
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+# Serve the following file types with the media type `charset`
+# parameter set to `UTF-8`.
+#
+# https://httpd.apache.org/docs/current/mod/mod_mime.html#addcharset
+
+<IfModule mod_mime.c>
+    AddCharset utf-8 .atom \
+                     .bbaw \
+                     .css \
+                     .geojson \
+                     .js \
+                     .json \
+                     .jsonld \
+                     .manifest \
+                     .rdf \
+                     .rss \
+                     .topojson \
+                     .vtt \
+                     .webapp \
+                     .webmanifest \
+                     .xloc \
+                     .xml
+</IfModule>
+
 # -----------------------------------------------------------------------------------------------
-# Protect ProcessWire system files (part 1A) for Apache versions older than 2.4:
-# APACHE 2.4+ NOTE: Comment out this section and uncomment second 1B below it.
+# Protect ProcessWire system files
 # -----------------------------------------------------------------------------------------------
+# (!) Update the `<FilesMatch>` regular expression from below to
+# include any files that might end up on your production server and
+# can expose sensitive information about your website. These files may
+# include: configuration files, files that contain metadata about the
+# project (e.g.: project dependencies), build scripts, etc..
 
 <FilesMatch "\.(inc|info|info\.json|module|sh|sql)$|^(\..*)$">
-  Order allow,deny
+    # Apache < 2.3
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+    </IfModule>
+    # Apache ≥ 2.3
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
 </FilesMatch>
+
 <Files .htaccess>
-  order allow,deny
-  deny from all
+    # Apache < 2.3
+    <IfModule !mod_authz_core.c>
+      order allow,deny
+      deny from all
+    </IfModule>
+    # Apache ≥ 2.3
+    <IfModule mod_authz_core.c>
+      Require all denied
+    </IfModule>
 </Files>
-
-# -----------------------------------------------------------------------------------------------
-# Protect ProcessWire system files (part 1B) for Apache versions 2.4 and newer: 
-# APACHE 2.4+ NOTE: Uncomment this section and remove or comment out section 1A above. 
-# -----------------------------------------------------------------------------------------------
-
-# <FilesMatch "\.(inc|info|info\.json|module|sh|sql)$|^(\..*)$">
-#   Require all denied 
-# </FilesMatch>
-# <Files .htaccess>
-#   Require all denied
-# </Files>
 
 # -----------------------------------------------------------------------------------------------
 # Override a few PHP settings that can't be changed at runtime (not required)
@@ -98,18 +173,11 @@ DirectoryIndex index.php index.html index.htm
 <IfModule mod_rewrite.c>
 
   RewriteEngine On
-  AddDefaultCharset UTF-8
-
-  # -----------------------------------------------------------------------------------------------
-  # If you only want to allow HTTPS, uncomment the RewriteCond and RewriteRule lines below.
-  # -----------------------------------------------------------------------------------------------
-  # RewriteCond %{HTTPS} off
-  # RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI} [L]
 
   # -----------------------------------------------------------------------------------------------
   # Set an environment variable so the installer can detect that mod_rewrite is active.
-  # Note that some web hosts don't support this. If you get a 500 error, you might try 
-  # commenting out this SetEnv line below. 
+  # Note that some web hosts don't support this. If you get a 500 error, you might try
+  # commenting out this SetEnv line below.
   # -----------------------------------------------------------------------------------------------
 
   <IfModule mod_env.c>
@@ -126,18 +194,63 @@ DirectoryIndex index.php index.html index.htm
   # RewriteBase /~user/
 
   # -----------------------------------------------------------------------------------------------
+  # If you only want to allow HTTPS, uncomment the RewriteCond and RewriteRule lines below.
+  # -----------------------------------------------------------------------------------------------
+
+  # Set %{ENV:PROTO} variable, to allow rewrites to redirect with the
+  # appropriate schema automatically (http or https).
+
+  RewriteCond %{HTTPS} =on
+  RewriteRule ^ - [env=proto:https]
+  RewriteCond %{HTTPS} !=on
+  RewriteRule ^ - [env=proto:http]
+
+  # Redirect from the `http://` to the `https://` version of the URL.
+  # https://wiki.apache.org/httpd/RewriteHTTPToHTTPS
+
+  # RewriteCond %{HTTPS} !=on
+  # RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
+
+  # -----------------------------------------------------------------------------------------------
   # Access Restrictions: Keep web users out of dirs that begin with a period
   # -----------------------------------------------------------------------------------------------
 
   RewriteRule "(^|/)\." - [F]
 
   # -----------------------------------------------------------------------------------------------
-  # OPTIONAL: Redirect users to the 'www.' version of the site (uncomment to enable).
+  # OPTIONAL: Suppressing / Forcing the `www.` at the beginning of URLs
+  # Uncomment the rules you want to activate. NEVER USE BOTH RULES AT THE SAME TIME!
   # For example: http://processwire.com/ would be redirected to http://www.processwire.com/
   # -----------------------------------------------------------------------------------------------
 
-  # RewriteCond %{HTTP_HOST} !^www\. [NC]
-  # RewriteRule ^ http://www.%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+  # The same content should never be available under two different
+  # URLs, especially not with and without `www.` at the beginning.
+  # This can cause SEO problems (duplicate content), and therefore,
+  # you should choose one of the alternatives and redirect the other
+  # one.
+  #
+  # (!) NEVER USE BOTH RULES AT THE SAME TIME!
+
+  # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  # Option 1: rewrite www.example.com → example.com
+
+# RewriteEngine On
+# RewriteCond %{HTTPS} !=on
+# RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
+# RewriteRule ^ %{ENV:PROTO}://%1%{REQUEST_URI} [R=301,L]
+
+  # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  # Option 2: rewrite example.com → www.example.com
+  #
+  # Be aware that the following might not be a good idea if you use "real"
+  # subdomains for certain parts of your website.
+
+# RewriteEngine On
+# RewriteCond %{HTTPS} !=on
+# RewriteCond %{HTTP_HOST} !^www\. [NC]
+# RewriteCond %{SERVER_ADDR} !=127.0.0.1
+# RewriteCond %{SERVER_ADDR} !=::1
+# RewriteRule ^ %{ENV:PROTO}://www.%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
 
   # ----------------------------------------------------------------------------------------------- 
   # OPTIONAL: Send URLs with non name-format characters to 404 page
@@ -225,3 +338,312 @@ DirectoryIndex index.php index.html index.htm
 # END PROCESSWIRE HTACCESS DIRECTIVES
 #################################################################################################
 
+# ----------------------------------------------------------------------
+# | Media types                                                        |
+# ----------------------------------------------------------------------
+
+# Serve resources with the proper media types (f.k.a. MIME types).
+#
+# https://www.iana.org/assignments/media-types/media-types.xhtml
+# https://httpd.apache.org/docs/current/mod/mod_mime.html#addtype
+
+<IfModule mod_mime.c>
+
+  # Data interchange
+
+    AddType application/atom+xml                        atom
+    AddType application/json                            json map topojson
+    AddType application/ld+json                         jsonld
+    AddType application/rss+xml                         rss
+    AddType application/vnd.geo+json                    geojson
+    AddType application/xml                             rdf xml
+
+
+  # JavaScript
+
+    # Normalize to standard type.
+    # https://tools.ietf.org/html/rfc4329#section-7.2
+
+    AddType application/javascript                      js
+
+
+  # Manifest files
+
+    AddType application/manifest+json                   webmanifest
+    AddType application/x-web-app-manifest+json         webapp
+    AddType text/cache-manifest                         appcache
+
+
+  # Media files
+
+    AddType audio/mp4                                   f4a f4b m4a
+    AddType audio/ogg                                   oga ogg opus
+    AddType image/bmp                                   bmp
+    AddType image/svg+xml                               svg svgz
+    AddType image/webp                                  webp
+    AddType video/mp4                                   f4v f4p m4v mp4
+    AddType video/ogg                                   ogv
+    AddType video/webm                                  webm
+    AddType video/x-flv                                 flv
+
+    # Serving `.ico` image files with a different media type
+    # prevents Internet Explorer from displaying then as images:
+    # https://github.com/h5bp/html5-boilerplate/commit/37b5fec090d00f38de64b591bcddcb205aadf8ee
+
+    AddType image/x-icon                                cur ico
+
+
+  # Web fonts
+
+    AddType application/font-woff                       woff
+    AddType application/font-woff2                      woff2
+    AddType application/vnd.ms-fontobject               eot
+
+    # Browsers usually ignore the font media types and simply sniff
+    # the bytes to figure out the font type.
+    # https://mimesniff.spec.whatwg.org/#matching-a-font-type-pattern
+    #
+    # However, Blink and WebKit based browsers will show a warning
+    # in the console if the following font types are served with any
+    # other media types.
+
+    AddType application/x-font-ttf                      ttc ttf
+    AddType font/opentype                               otf
+
+
+  # Other
+
+    AddType application/octet-stream                    safariextz
+    AddType application/x-bb-appworld                   bbaw
+    AddType application/x-chrome-extension              crx
+    AddType application/x-opera-extension               oex
+    AddType application/x-xpinstall                     xpi
+    AddType text/vcard                                  vcard vcf
+    AddType text/vnd.rim.location.xloc                  xloc
+    AddType text/vtt                                    vtt
+    AddType text/x-component                            htc
+
+</IfModule>
+
+#################################################################################################
+# WEB PERFORMANCE
+#################################################################################################
+
+# ----------------------------------------------------------------------
+# | Compression                                                        |
+# ----------------------------------------------------------------------
+
+<IfModule mod_deflate.c>
+
+    # Force compression for mangled `Accept-Encoding` request headers
+    # https://developer.yahoo.com/blogs/ydn/pushing-beyond-gzipping-25601.html
+
+    <IfModule mod_setenvif.c>
+        <IfModule mod_headers.c>
+            SetEnvIfNoCase ^(Accept-EncodXng|X-cept-Encoding|X{15}|~{15}|-{15})$ ^((gzip|deflate)\s*,?\s*)+|[X~-]{4,13}$ HAVE_Accept-Encoding
+            RequestHeader append Accept-Encoding "gzip,deflate" env=HAVE_Accept-Encoding
+        </IfModule>
+    </IfModule>
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    # Compress all output labeled with one of the following media types.
+    #
+    # (!) For Apache versions below version 2.3.7 you don't need to
+    # enable `mod_filter` and can remove the `<IfModule mod_filter.c>`
+    # and `</IfModule>` lines as `AddOutputFilterByType` is still in
+    # the core directives.
+    #
+    # https://httpd.apache.org/docs/current/mod/mod_filter.html#addoutputfilterbytype
+
+    <IfModule mod_filter.c>
+        AddOutputFilterByType DEFLATE "application/atom+xml" \
+                                      "application/javascript" \
+                                      "application/json" \
+                                      "application/ld+json" \
+                                      "application/manifest+json" \
+                                      "application/rdf+xml" \
+                                      "application/rss+xml" \
+                                      "application/schema+json" \
+                                      "application/vnd.geo+json" \
+                                      "application/vnd.ms-fontobject" \
+                                      "application/x-font-ttf" \
+                                      "application/x-javascript" \
+                                      "application/x-web-app-manifest+json" \
+                                      "application/xhtml+xml" \
+                                      "application/xml" \
+                                      "font/eot" \
+                                      "font/opentype" \
+                                      "image/bmp" \
+                                      "image/svg+xml" \
+                                      "image/vnd.microsoft.icon" \
+                                      "image/x-icon" \
+                                      "text/cache-manifest" \
+                                      "text/css" \
+                                      "text/html" \
+                                      "text/javascript" \
+                                      "text/plain" \
+                                      "text/vcard" \
+                                      "text/vnd.rim.location.xloc" \
+                                      "text/vtt" \
+                                      "text/x-component" \
+                                      "text/x-cross-domain-policy" \
+                                      "text/xml"
+
+    </IfModule>
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    # Map the following filename extensions to the specified
+    # encoding type in order to make Apache serve the file types
+    # with the appropriate `Content-Encoding` response header
+    # (do note that this will NOT make Apache compress them!).
+    #
+    # If these files types would be served without an appropriate
+    # `Content-Enable` response header, client applications (e.g.:
+    # browsers) wouldn't know that they first need to uncompress
+    # the response, and thus, wouldn't be able to understand the
+    # content.
+    #
+    # https://httpd.apache.org/docs/current/mod/mod_mime.html#addencoding
+
+    <IfModule mod_mime.c>
+        AddEncoding gzip              svgz
+    </IfModule>
+
+</IfModule>
+
+# ----------------------------------------------------------------------
+# | ETags                                                              |
+# ----------------------------------------------------------------------
+
+# Remove `ETags` as resources are sent with far-future expires headers.
+#
+# https://developer.yahoo.com/performance/rules.html#etags
+# https://tools.ietf.org/html/rfc7232#section-2.3
+
+# `FileETag None` doesn't work in all cases.
+<IfModule mod_headers.c>
+    Header unset ETag
+</IfModule>
+
+FileETag None
+
+# ----------------------------------------------------------------------
+# | Expires headers                                                    |
+# ----------------------------------------------------------------------
+
+# Serve resources with far-future expires headers.
+#
+# (!) If you don't control versioning with filename-based
+# cache busting, you should consider lowering the cache times
+# to something like one week.
+#
+# https://httpd.apache.org/docs/current/mod/mod_expires.html
+
+<IfModule mod_expires.c>
+
+    ExpiresActive on
+    ExpiresDefault                                      "access plus 1 month"
+
+  # CSS
+
+    ExpiresByType text/css                              "access plus 1 year"
+
+
+  # Data interchange
+
+    ExpiresByType application/atom+xml                  "access plus 1 hour"
+    ExpiresByType application/rdf+xml                   "access plus 1 hour"
+    ExpiresByType application/rss+xml                   "access plus 1 hour"
+
+    ExpiresByType application/json                      "access plus 0 seconds"
+    ExpiresByType application/ld+json                   "access plus 0 seconds"
+    ExpiresByType application/schema+json               "access plus 0 seconds"
+    ExpiresByType application/vnd.geo+json              "access plus 0 seconds"
+    ExpiresByType application/xml                       "access plus 0 seconds"
+    ExpiresByType text/xml                              "access plus 0 seconds"
+
+
+  # Favicon (cannot be renamed!) and cursor images
+
+    ExpiresByType image/vnd.microsoft.icon              "access plus 1 week"
+    ExpiresByType image/x-icon                          "access plus 1 week"
+
+  # HTML
+
+    ExpiresByType text/html                             "access plus 0 seconds"
+
+
+  # JavaScript
+
+    ExpiresByType application/javascript                "access plus 1 year"
+    ExpiresByType application/x-javascript              "access plus 1 year"
+    ExpiresByType text/javascript                       "access plus 1 year"
+
+
+  # Manifest files
+
+    ExpiresByType application/manifest+json             "access plus 1 week"
+    ExpiresByType application/x-web-app-manifest+json   "access plus 0 seconds"
+    ExpiresByType text/cache-manifest                   "access plus 0 seconds"
+
+
+  # Media files
+
+    ExpiresByType audio/ogg                             "access plus 1 month"
+    ExpiresByType image/bmp                             "access plus 1 month"
+    ExpiresByType image/gif                             "access plus 1 month"
+    ExpiresByType image/jpeg                            "access plus 1 month"
+    ExpiresByType image/png                             "access plus 1 month"
+    ExpiresByType image/svg+xml                         "access plus 1 month"
+    ExpiresByType image/webp                            "access plus 1 month"
+    ExpiresByType video/mp4                             "access plus 1 month"
+    ExpiresByType video/ogg                             "access plus 1 month"
+    ExpiresByType video/webm                            "access plus 1 month"
+
+
+  # Web fonts
+
+    # Embedded OpenType (EOT)
+    ExpiresByType application/vnd.ms-fontobject         "access plus 1 month"
+    ExpiresByType font/eot                              "access plus 1 month"
+
+    # OpenType
+    ExpiresByType font/opentype                         "access plus 1 month"
+
+    # TrueType
+    ExpiresByType application/x-font-ttf                "access plus 1 month"
+
+    # Web Open Font Format (WOFF) 1.0
+    ExpiresByType application/font-woff                 "access plus 1 month"
+    ExpiresByType application/x-font-woff               "access plus 1 month"
+    ExpiresByType font/woff                             "access plus 1 month"
+
+    # Web Open Font Format (WOFF) 2.0
+    ExpiresByType application/font-woff2                "access plus 1 month"
+
+
+  # Other
+
+    ExpiresByType text/x-cross-domain-policy            "access plus 1 week"
+
+</IfModule>
+
+# ----------------------------------------------------------------------
+# | Filename-based cache busting                                       |
+# ----------------------------------------------------------------------
+
+# If you're not using a build process to manage your filename version
+# revving, you might want to consider enabling the following directives
+# to route all requests such as `/style.12345.css` to `/style.css`.
+#
+# To understand why this is important and even a better solution than
+# using something like `*.css?v231`, please see:
+# http://www.stevesouders.com/blog/2008/08/23/revving-filenames-dont-use-querystring/
+
+# <IfModule mod_rewrite.c>
+#     RewriteEngine On
+#     RewriteCond %{REQUEST_FILENAME} !-f
+#     RewriteRule ^(.+)\.(\d+)\.(bmp|css|cur|gif|ico|jpe?g|js|png|svgz?|webp|webmanifest)$ $1.$3 [L]
+# </IfModule>
