@@ -178,6 +178,7 @@
 
 /*** COMMENT STARS **********************************************/
 
+.CommentStars > span, 
 .CommentForm .CommentStars > span, 
 .CommentList .CommentStars > span {
 	display: inline-block;
@@ -185,6 +186,7 @@
 	width: 1.1em;
 	color: #ccc;
 }
+span.CommentStarOn,
 .CommentForm .CommentStars > span.CommentStarOn, 
 .CommentList .CommentStars > span.CommentStarOn {
 	color: #FAA002;

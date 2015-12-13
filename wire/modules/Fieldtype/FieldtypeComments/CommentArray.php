@@ -226,6 +226,72 @@ class CommentArray extends PaginatedArray implements WirePaginatable {
 		}
 		return $isIdentical;
 	}
+
+	/**
+	 * Get an average of all star ratings for all comments in this CommentsArray
+	 * 
+	 * @param bool $allowHalf Allow half stars? If true, returns a float rather than an int
+	 * @param bool $getCount If true, this method returns an array(stars, count) where count is number of ratings.
+	 * @return int|float|false|array Returns false for stars value if no ratings yet.
+	 * 
+	 */	
+	public function stars($allowHalf = false, $getCount = false) {
+		$total = 0;
+		$count = 0;
+		$stars = false;
+		foreach($this as $comment) {
+			if(!$comment->stars) continue;
+			$total += $comment->stars;
+			$count++;
+		}
+		if($count) {
+			$stars = (string) ($total / $count);
+			if(strpos($stars, '.') === false) $stars = "$stars.0";
+			list($a, $b) = explode('.', $stars);
+			$a = (int) $a;
+			$b = (float) "0.$b";
+			if($b > 0.75) {
+				$a++;
+				$stars = $allowHalf ? (float) $a : (int) $a;
+			} else if($b >= 0.5) {
+				$stars = $allowHalf ? (float) "$a.5" : ((int) $a) + 1;
+			} else if($b > 0.25) {
+				$stars = $allowHalf ? (float) "$a.5" : (int) $a;
+			} else {
+				$stars = $allowHalf ? (float) $a : (int) $a;
+			}
+		}
+		if($getCount) return array($stars, $count);
+		return $stars;
+	}
+
+	/**
+	 * Render combined star rating for all comments in this CommentsArray
+	 * 
+	 * @param bool $showCount Specify true to include how many ratings the average is based on
+	 * @param array $options Overrides of stars and/or count, see $defaults in method
+	 * @return string
+	 * 
+	 */
+	public function renderStars($showCount = false, $options = array()) {
+		$defaults = array(
+			'stars' => null, 
+			'count' => null,
+			'blank' => true, // return blank if no ratings yet
+		);
+		$options = array_merge($defaults, $options);
+		if(!is_null($options['stars'])) {
+			$stars = (int) $options['stars'];
+			$count = (int) $options['count'];
+		} else {
+			list($stars, $count) = $this->stars(false, true);
+		}
+		if(!$count && $options['blank']) return '';
+		$commentStars = new CommentStars();
+		$out = $commentStars->render($stars, false);
+		if($showCount) $out .= $commentStars->renderCount((int) $count);
+		return $out; 
+	}
 }
 
 

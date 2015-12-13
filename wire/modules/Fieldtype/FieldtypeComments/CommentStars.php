@@ -20,6 +20,9 @@ class CommentStars extends WireData {
 		'starOnClass' => 'CommentStarOn', // class assigned to active/on stars
 		'wrapClass' => 'CommentStars', // required by JS and CSS
 		'wrapClassInput' => 'CommentStarsInput', // required by JS and CSS
+		'countClass' => 'CommentStarsCount', // class used for renderCount() method
+		'countLabelSingular' => '%d rating',
+		'countLabelPlural' => '%d ratings',
 	);
 	
 	/**
@@ -32,6 +35,8 @@ class CommentStars extends WireData {
 		foreach(self::$defaults as $key => $value) {
 			$this->set($key, $value);
 		}
+		$this->set('countLabelSingular', $this->_('%d rating'));
+		$this->set('countLabelPlural', $this->_('%d ratings'));
 	}
 
 	/**
@@ -88,4 +93,18 @@ class CommentStars extends WireData {
 		
 		return $out;
 	}
+
+	/**
+	 * Render a count of ratings
+	 * 
+	 * @param $count
+	 * @return string
+	 * 
+	 */
+	public function renderCount($count) {
+		$count = (int) $count;
+		$out = sprintf($this->_n($this->countLabelSingular, $this->countLabelPlural, $count), $count);
+		return "<span class='$this->countClass'>$out</span>";
+	}
+	
 }
