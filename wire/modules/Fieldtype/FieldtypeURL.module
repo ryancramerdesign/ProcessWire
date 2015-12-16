@@ -117,6 +117,7 @@ class FieldtypeURL extends FieldtypeText {
 		$f->notes = $this->_("Ensures that URLs aren't broken when moving a site from a subdirectory to root (the most common example)."); // addRoot notes
 		$f->collapsed = $field->addRoot ? Inputfield::collapsedNo : Inputfield::collapsedYes;
 		$f->optionColumns = 1;
+		$f->showIf = "noRelative=0";
 		$inputfields->add($f);
 
 		return $inputfields;

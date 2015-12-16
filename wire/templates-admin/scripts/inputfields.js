@@ -208,19 +208,32 @@ function InputfieldDependencies($target) {
 			consoleLog('conditionValue: ' + conditionValue);
 			var fieldID = "#Inputfield_" + conditionField + "_" + conditionValue;
 			$field = $(fieldID);
+			var inputType = $field.attr('type');
 
 			if($field.length) {
-				consoleLog("Found checkbox via value " + fieldID);
+				consoleLog("Found " + inputType + " via value " + fieldID);
 				// found a matching checkbox/radio field
 				var val = '';
 				if($field.is(":checked")) {
+					// checkbox or radio IS checked
 					val = $field.val();
-					consoleLog("Checkbox IS checked: " + fieldID);
+					consoleLog(inputType + " IS checked: " + fieldID);
+				} else if($field.attr('type') == 'radio') {
+					// radio: one we are looking for is NOT checked, but determine which one is checked
+					consoleLog(inputType + " is NOT checked: " + fieldID);
+					var $checkedField = $field.closest('form').find("input[name=" + $field.attr('name') + "]:checked");
+					if($checkedField.length) {
+						val = $checkedField.val();
+						consoleLog("Checked value is: " + val);
+					}
 				} else {
-					consoleLog("Checkbox is NOT checked: " + fieldID);
-					// checkbox/radio: if the field is not checked then we assume a blank value
+					// checkbox: if the field is not checked then we assume a blank value
+					consoleLog(inputType + " is NOT checked: " + fieldID);
 				}
-				if(val.length) value.push(val);
+				if(val.length) {
+					consoleLog('Pushing checked value: ' + val);
+					value.push(val);
+				}
 				continue;
 			}
 
@@ -373,10 +386,11 @@ function InputfieldDependencies($target) {
 				if (condition.operator == '!=') numMatchesRequired = (values.length * condition.values.length);
 				// consoleLog([values, condition.values, numMatchesRequired]);
 
-				// also allow for matching a "0" as an unchecked value
+				// also allow for matching a "0" as an unchecked value, but only if there's isn't already an input with that value
 				if(($field.attr('type') == 'checkbox' || $field.attr('type') == 'radio') && !$field.is(":checked")) {
-					// @todo this part will no longer work with multi-checkbox/radio fields
-					values[1] = '0';
+					if($("#Inputfield_" + conditionField + "_0").length == 0) {
+						values[1] = '0';
+					}
 				}
 
 				// cycle through the values (most of the time, just 1 value).

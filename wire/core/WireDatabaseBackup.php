@@ -175,7 +175,7 @@ class WireDatabaseBackup {
 		);
 	
 	/**
-	 * @var null|PDO
+	 * @var null|\PDO
 	 * 
 	 */
 	protected $database = null;
@@ -228,13 +228,19 @@ class WireDatabaseBackup {
 	 * 	- $backups->setDatabaseConfig(array|object); 
 	 * 
 	 * @param string $path Path where database files are stored
-	 * @throws Exception
+	 * @throws \Exception
 	 * 
 	 */
 	public function __construct($path = '') {
 		if(strlen($path)) $this->setPath($path);
 	}
-	
+
+	/**
+	 * Set the current ProcessWire instance
+	 * 
+	 * @param ProcessWire $wire
+	 * 
+	 */
 	public function setWire($wire) {
 		if(is_object($wire) && $wire->className() == 'ProcessWire') $this->wire = $wire;
 	}
@@ -281,8 +287,8 @@ class WireDatabaseBackup {
 	/**
 	 * Set the database connection
 	 * 
-	 * @param PDO|WireDatabasePDO $database
-	 * @throws PDOException on invalid connection
+	 * @param \PDO|WireDatabasePDO $database
+	 * @throws \PDOException on invalid connection
 	 * 
 	 */
 	public function setDatabase($database) {
@@ -296,8 +302,8 @@ class WireDatabaseBackup {
 	/**
 	 * Get current database connection, initiating the connection if not yet active
 	 * 
-	 * @return null|PDO|WireDatabasePDO
-	 * @throws Exception
+	 * @return null|\PDO|WireDatabasePDO
+	 * @throws \Exception
 	 * 
 	 */
 	public function getDatabase() {
@@ -315,8 +321,8 @@ class WireDatabaseBackup {
 		}
 		
 		$options = array(
-			PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES '$config[dbCharset]'",
-			PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION
+			\PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES '$config[dbCharset]'",
+			\PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION
 			);
 		
 		$database = new \PDO($dsn, $config['dbUser'], $config['dbPass'], $options);
@@ -513,7 +519,7 @@ class WireDatabaseBackup {
 			foreach($tables as $table) {
 				$query = $this->database->prepare("SELECT COUNT(*) FROM `$table`");
 				$query->execute();
-				$row = query_fetch(\PDO::FETCH_NUM);
+				$row = $query->fetch(\PDO::FETCH_NUM);
 				$counts[$table] = (int) $row[0];
 			}
 			$query->closeCursor();
@@ -680,9 +686,8 @@ class WireDatabaseBackup {
 			if(count($options['tables']) && !in_array($table, $options['tables'])) continue;
 
 			if(in_array($table, $options['excludeCreateTables'])) {
-				$excludeCreate = true;
+				// skip
 			} else {
-				$excludeCreate = false;
 				if($options['allowDrop']) fwrite($fp, "\nDROP TABLE IF EXISTS `$table`;");
 				$query = $database->prepare("SHOW CREATE TABLE `$table`");
 				$query->execute();
@@ -1037,7 +1042,7 @@ class WireDatabaseBackup {
 	 * @param string $regex Regex (PCRE) to match for statement to be returned, must stuff table name into first match
 	 * @param bool $multi Whether there can be multiple matches per table
 	 * @return array of statements, indexed by table name. If $multi is true, it will be array of arrays.
-	 * @throws Exception if unable to open specified file
+	 * @throws \Exception if unable to open specified file
 	 *
 	 */
 	protected function findStatements($filename, $regex, $multi = true) {
@@ -1067,7 +1072,7 @@ class WireDatabaseBackup {
 	 * 
 	 * @param string $filename to extract all CREATE TABLE statements from
 	 * @return bool|array of CREATE TABLE statements, associative: indexed by table name
-	 * @throws Exception if unable to open specified file
+	 * @throws \Exception if unable to open specified file
 	 *
 	 */
 	public function findCreateTables($filename) {
@@ -1110,7 +1115,7 @@ class WireDatabaseBackup {
 		try {
 			if(is_string($query)) {
 				$result = $this->getDatabase()->exec($query); 
-			} else if($query instanceof PDOStatement) {
+			} else if($query instanceof \PDOStatement) {
 				$result = $query->execute();
 			}
 		} catch(\Exception $e) {
@@ -1141,7 +1146,7 @@ class WireDatabaseBackup {
 	 * 
 	 * @param $filename
 	 * @return string
-	 * @throws Exception if path has not yet been set
+	 * @throws \Exception if path has not yet been set
 	 * 
 	 */
 	protected function sanitizeFilename($filename) {
@@ -1166,7 +1171,7 @@ class WireDatabaseBackup {
 	 * 
 	 * @param array $options
 	 * @return bool
-	 * @throws Exception on unknown exec type
+	 * @throws \Exception on unknown exec type
 	 * 
 	 */
 	protected function supportsExec(array $options = array()) {

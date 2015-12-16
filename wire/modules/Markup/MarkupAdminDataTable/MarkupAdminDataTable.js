@@ -105,13 +105,15 @@ var AdminDataTable = {
 					widgetOptions: { resizable: true }
 				}
 			}
-			$table.tablesorter(options);
+			if(jQuery().tablesorter) {
+				$table.tablesorter(options);
+			}
 		});
 		$("table.AdminDataTableResizable").each(function() {
 			var $table = $(this);
 			if($table.hasClass('AdminDataTableSortable')) return; // already handled above
 			$table.find('th').data("sorter", false);
-			$table.tablesorter({
+			if(jQuery().tablesorter) $table.tablesorter({
 				widgets: ['resizable'],
 				widgetOptions: { resizable: true }
 			});
