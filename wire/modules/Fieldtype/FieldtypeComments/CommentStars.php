@@ -18,11 +18,15 @@ class CommentStars extends WireData {
 		'starOn' => '', // optionally use separate star for ON...
 		'starOff' => '', // ...and OFF
 		'starOnClass' => 'CommentStarOn', // class assigned to active/on stars
+		'starOffClass' => 'CommentStarOff', // class assigned to inactive/off stars
+		'starPartialClass' => 'CommentStarPartial',
 		'wrapClass' => 'CommentStars', // required by JS and CSS
 		'wrapClassInput' => 'CommentStarsInput', // required by JS and CSS
 		'countClass' => 'CommentStarsCount', // class used for renderCount() method
-		'countLabelSingular' => '%d rating',
-		'countLabelPlural' => '%d ratings',
+		'detailsLabel' => '%g/%d', // i.e. 4.5/5
+		'countLabelSingular' => '%s via %d rating', // i.e. 4/5 via 1 rating
+		'countLabelPlural' => '%s via %d ratings', // i.e. 4.5/5 via 10 ratings
+		'unratedLabel' => 'not yet rated',
 	);
 	
 	/**
@@ -35,8 +39,9 @@ class CommentStars extends WireData {
 		foreach(self::$defaults as $key => $value) {
 			$this->set($key, $value);
 		}
-		$this->set('countLabelSingular', $this->_('%d rating'));
-		$this->set('countLabelPlural', $this->_('%d ratings'));
+		$this->set('countLabelSingular', $this->_('%s (%d rating)'));
+		$this->set('countLabelPlural', $this->_('%s (%d ratings)'));
+		$this->set('unratedLabel', $this->_('not yet rated'));
 	}
 
 	/**
@@ -55,7 +60,10 @@ class CommentStars extends WireData {
 	/**
 	 * Render stars 
 	 * 
-	 * @param int|null $stars Number of stars that are in active state
+	 * If given a float for $stars, it will render partial stars.
+	 * If given an int for $stars, it will only render whole stars.
+	 * 
+	 * @param int|float|null $stars Number of stars that are in active state
 	 * @param bool $allowInput Whether to allow input of stars
 	 * @return string
 	 * 
@@ -80,9 +88,19 @@ class CommentStars extends WireData {
 		
 		for($n = 1; $n <= $this->numStars; $n++) {
 			if($n <= $stars) {
+				// full star on
 				$star = $this->starOn;
 				$attr = " class='$this->starOnClass'";
+			} else if(is_float($stars) && $n > $stars && $n < $stars + 1) {
+				// partial star on
+				$star = "<span class='$this->starOffClass'>$this->starOff</span>";
+				if(preg_match('/^\d+[^\d]+(\d+)$/', round($stars, 2), $matches)) {
+					$star .= "<span class='$this->starOnClass' style='width:$matches[1]%;'>$this->starOn</span>";
+				}
+				$attr = " class='$this->starPartialClass'";
 			} else {
+				// star off
+				$attr = " class='$this->starOffClass'";
 				$star = $this->starOff;
 				$attr = "";
 			}
@@ -97,13 +115,25 @@ class CommentStars extends WireData {
 	/**
 	 * Render a count of ratings
 	 * 
-	 * @param $count
+	 * @param int $count
+	 * @param float|int $stars
 	 * @return string
 	 * 
 	 */
-	public function renderCount($count) {
+	public function renderCount($count, $stars = 0.0) {
 		$count = (int) $count;
-		$out = sprintf($this->_n($this->countLabelSingular, $this->countLabelPlural, $count), $count);
+		if($stars > 0) {
+			if(is_int($stars)) {
+				$stars = round($stars);
+			} else {
+				if($stars > $this->numStars) $stars = 5.0;
+				$stars = round($stars, 1);
+			}
+			$details = sprintf($this->detailsLabel, $stars, $this->numStars);
+			$out = sprintf($this->_n($this->countLabelSingular, $this->countLabelPlural, $count), $details, $count);
+		} else {
+			$out = $this->unratedLabel;
+		}
 		return "<span class='$this->countClass'>$out</span>";
 	}
 	

@@ -230,12 +230,12 @@ class CommentArray extends PaginatedArray implements WirePaginatable {
 	/**
 	 * Get an average of all star ratings for all comments in this CommentsArray
 	 * 
-	 * @param bool $allowHalf Allow half stars? If true, returns a float rather than an int
+	 * @param bool $allowPartial Allow partial stars? If true, returns a float. If false, returns int.  
 	 * @param bool $getCount If true, this method returns an array(stars, count) where count is number of ratings.
 	 * @return int|float|false|array Returns false for stars value if no ratings yet.
 	 * 
 	 */	
-	public function stars($allowHalf = false, $getCount = false) {
+	public function stars($allowPartial = true, $getCount = false) {
 		$total = 0;
 		$count = 0;
 		$stars = false;
@@ -245,21 +245,8 @@ class CommentArray extends PaginatedArray implements WirePaginatable {
 			$count++;
 		}
 		if($count) {
-			$stars = (string) ($total / $count);
-			if(strpos($stars, '.') === false) $stars = "$stars.0";
-			list($a, $b) = explode('.', $stars);
-			$a = (int) $a;
-			$b = (float) "0.$b";
-			if($b > 0.75) {
-				$a++;
-				$stars = $allowHalf ? (float) $a : (int) $a;
-			} else if($b >= 0.5) {
-				$stars = $allowHalf ? (float) "$a.5" : ((int) $a) + 1;
-			} else if($b > 0.25) {
-				$stars = $allowHalf ? (float) "$a.5" : (int) $a;
-			} else {
-				$stars = $allowHalf ? (float) $a : (int) $a;
-			}
+			$stars = $total / $count;
+			$stars = $allowPartial ? round($stars, 2) : (int) round($stars);
 		}
 		if($getCount) return array($stars, $count);
 		return $stars;
@@ -278,18 +265,19 @@ class CommentArray extends PaginatedArray implements WirePaginatable {
 			'stars' => null, 
 			'count' => null,
 			'blank' => true, // return blank if no ratings yet
+			'partials' => true, // allow partial stars?
 		);
 		$options = array_merge($defaults, $options);
 		if(!is_null($options['stars'])) {
-			$stars = (int) $options['stars'];
+			$stars = $options['stars'];
 			$count = (int) $options['count'];
 		} else {
-			list($stars, $count) = $this->stars(false, true);
+			list($stars, $count) = $this->stars($options['partials'], true);
 		}
 		if(!$count && $options['blank']) return '';
 		$commentStars = new CommentStars();
 		$out = $commentStars->render($stars, false);
-		if($showCount) $out .= $commentStars->renderCount((int) $count);
+		if($showCount) $out .= $commentStars->renderCount((int) $count, $stars);
 		return $out; 
 	}
 }
