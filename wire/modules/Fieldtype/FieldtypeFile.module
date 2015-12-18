@@ -264,8 +264,11 @@ class FieldtypeFile extends FieldtypeMulti {
 					$textformatter->formatValue($page, $field, $tags); 
 					$v->tags = $tags; 
 				}
-				$v->formatted = true; 
 			}
+		}
+		
+		foreach($value as $v) {
+			$v->formatted = true;
 		}
 
 		/*
