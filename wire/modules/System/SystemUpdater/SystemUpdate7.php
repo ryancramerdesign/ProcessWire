@@ -13,7 +13,7 @@ class SystemUpdate7 extends SystemUpdate {
 		if($query->rowCount() > 0) return true; 
 		
 		try {
-			$sql = 'ALTER TABLE `modules` ADD `created` timestamp NOT NULL DEFAULT "0000-00-00 00:00:00"';
+			$sql = 'ALTER TABLE `modules` ADD `created` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP';
 			$this->wire('database')->exec($sql);
 			$this->message("Added 'created' column to modules table");
 		} catch(\Exception $e) {
