@@ -23,7 +23,7 @@ class PageFrontEdit extends WireData implements Module {
 		return array(
 			'title' => 'Front-End Page Editor',
 			'summary' => 'Enables front-end editing of page fields.',
-			'version' => 1,
+			'version' => 2,
 			'author' => 'Ryan Cramer',
 			'license' => 'MPL 2.0',
 			'icon' => 'cube', 
@@ -793,7 +793,7 @@ class PageFrontEdit extends WireData implements Module {
 				"<$tag class=pw-edit-orig>" .
 					$formatted .
 				"</$tag>" .
-				"<$tag class=pw-edit-copy id=pw-editor-$field->name " .
+				"<$tag class=pw-edit-copy id=pw-editor-$field->name-$page->id " .
 					"style='display:none;-webkit-user-select:text;user-select:text;' contenteditable>" .
 				  	$unformatted .
 				"</$tag>" .
@@ -1081,6 +1081,7 @@ class PageFrontEdit extends WireData implements Module {
 			$page->of(false);
 
 			foreach($fields as $key => $value) {
+				if(strpos($key, $page->id . '__') !== 0) continue;
 				$name = $names[$key];	
 				$data['unformatted'][$key] = (string) $page->getUnformatted($name);
 				$data['formatted'][$key] = (string) $page->getFormatted($name);
