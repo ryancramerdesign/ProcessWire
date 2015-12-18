@@ -189,13 +189,22 @@ class InputfieldCKEditor extends InputfieldTextarea {
 
 	/**
 	 * Prep a path starting from root to include any possible subdirs
+	 * 
+	 * @param string $path
+	 * @param bool $cacheBust Specify true to append a cache busting query string to the returned URL
+	 * @return string URL from root
 	 *
 	 */
-	protected function pathFromRoot($path) {
-		if(strpos($path, '//') === false) {
-			// regular path without domain
-			$path = $this->wire('config')->urls->root . ltrim($path, '/');
+	protected function pathFromRoot($path, $cacheBust = false) {
+		if(strpos($path, '//') !== false) return $path; // don't modify URLs with scheme 
+		$path = ltrim($path, '/');
+		if($cacheBust && strpos($path, '?') === false) {
+			$file = $this->wire('config')->paths->root . $path;
+			if(file_exists($file)) {
+				$path .= "?nc=" . filemtime($file);
+			}
 		}
+		$path = $this->wire('config')->urls->root . $path;
 		return $path;
 	}
 
@@ -216,7 +225,7 @@ class InputfieldCKEditor extends InputfieldTextarea {
 		$this->globalConfig();
 
 		if($this->contentsCss) {
-			$contentsCss = $this->pathFromRoot($this->contentsCss);
+			$contentsCss = $this->pathFromRoot($this->contentsCss, true);
 		} else {
 			$contentsCss = $baseURL . 'contents.css';
 		}
@@ -248,7 +257,7 @@ class InputfieldCKEditor extends InputfieldTextarea {
 		if(empty($stylesSet)) $stylesSet = "mystyles:/wire/modules/Inputfield/InputfieldCKEditor/mystyles.js";
 		if(strpos($stylesSet, ':') !== false) {
 			list($k, $v) = explode(':', $stylesSet);
-			$settings['stylesSet'] = "$k:" . $this->pathFromRoot($v);
+			$settings['stylesSet'] = "$k:" . $this->pathFromRoot($v, strpos($v, '/wire/') === false);
 		}
 
 		foreach($this->findPlugins() as $name => $file) {
@@ -263,9 +272,9 @@ class InputfieldCKEditor extends InputfieldTextarea {
 		$configPath = $config->paths->siteModules . $class . '/';
 
 		if(file_exists($configPath . "config-$this->name.js")) {
-			$settings['customConfig'] = $configURL . "config-$this->name.js";
+			$settings['customConfig'] = $configURL . "config-$this->name.js?nc=" . filemtime($configPath . "config-$this->name.js");
 		} else if(file_exists($configPath . "config.js")) {
-			$settings['customConfig'] = $configURL . "config.js";
+			$settings['customConfig'] = $configURL . "config.js?nc=" . filemtime($configPath . "config.js");
 		} else {
 			// defaults to the one in /wire/modules/Inputfield/InputfieldCKEditor/ckeditor-x.x.x/config.js
 		}
@@ -425,7 +434,7 @@ class InputfieldCKEditor extends InputfieldTextarea {
 			$this->error($this->_('CKEditor inline mode requires the MarkupHTMLPurifier module. Using normal mode instead.')); 
 			return $this->renderNormal();
 		}
-		if($this->contentsInlineCss) $this->config->styles->add($this->pathFromRoot($this->contentsInlineCss)); 
+		if($this->contentsInlineCss) $this->config->styles->add($this->pathFromRoot($this->contentsInlineCss, true)); 
 			else $this->config->styles->add($this->config->urls->InputfieldCKEditor . "contents-inline.css"); 
 
 		$value = $this->purifyValue($this->attr('value')); 
@@ -438,7 +447,7 @@ class InputfieldCKEditor extends InputfieldTextarea {
 	}
 	
 	public function ___renderValue() {
-		if($this->contentsInlineCss) $this->config->styles->add($this->pathFromRoot($this->contentsInlineCss));
+		if($this->contentsInlineCss) $this->config->styles->add($this->pathFromRoot($this->contentsInlineCss, true));
 			else $this->config->styles->add($this->config->urls->InputfieldCKEditor . "contents-inline.css"); 
 		$out = "<div class='InputfieldTextareaContentTypeHTML InputfieldCKEditorInline'>" . 
 			$this->wire('sanitizer')->purify($this->attr('value')) . "</div>";
