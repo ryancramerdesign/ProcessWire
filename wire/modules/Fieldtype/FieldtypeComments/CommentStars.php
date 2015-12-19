@@ -24,9 +24,9 @@ class CommentStars extends WireData {
 		'wrapClassInput' => 'CommentStarsInput', // required by JS and CSS
 		'countClass' => 'CommentStarsCount', // class used for renderCount() method
 		'detailsLabel' => '%s/%s', // i.e. 4.5/5
-		'countLabelSingular' => '%1$s via %2$s rating', // i.e. 4/5 via 1 rating
-		'countLabelPlural' => '%1$s via %2$s ratings', // i.e. 4.5/5 via 10 ratings
-		'unratedLabel' => 'not yet rated',
+		'countLabelSingular' => '', // i.e. 4/5 via 1 rating
+		'countLabelPlural' => '', // i.e. 4.5/5 via 10 ratings
+		'unratedLabel' => '',
 	);
 	
 	/**
@@ -95,6 +95,7 @@ class CommentStars extends WireData {
 				// partial star on
 				$star = "<span class='$this->starOffClass'>$this->starOff</span>";
 				if(preg_match('/^\d+[^\d]+(\d+)$/', round($stars, 2), $matches)) {
+					if(strlen($matches[1]) == 1) $matches[1] .= '0';
 					$star .= "<span class='$this->starOnClass' style='width:$matches[1]%;'>$this->starOn</span>";
 				}
 				$attr = " class='$this->starPartialClass'";
