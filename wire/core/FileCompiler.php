@@ -389,7 +389,7 @@ class FileCompiler extends Wire {
 			if(strpos($class, __NAMESPACE__ . '\\') !== 0) continue; // limit only to ProcessWire classes/interfaces
 			/** @noinspection PhpUnusedLocalVariableInspection */
 			list($ns, $class) = explode('\\', $class, 2); // reduce to just class without namespace
-			if(strpos($data, $class) === false) continue; // quick exit if class name not referenced in data
+			if(stripos($data, $class) === false) continue; // quick exit if class name not referenced in data
 			
 			$patterns = array(
 				// 1=open 2=close
@@ -405,8 +405,8 @@ class FileCompiler extends Wire {
 			
 			foreach($patterns as $check => $regex) {
 				
-				if(strpos($data, $check) === false) continue;
-				if(!preg_match_all('/' . $regex . '/m', $data, $matches)) continue;
+				if(stripos($data, $check) === false) continue;
+				if(!preg_match_all('/' . $regex . '/im', $data, $matches)) continue;
 				//echo "<pre>" . print_r($matches, true) . "</pre>";
 				
 				foreach($matches[0] as $key => $fullMatch) {
@@ -430,7 +430,7 @@ class FileCompiler extends Wire {
 			if(stripos($data, $function) === false) continue; // if function name not mentioned in data, quick exit
 		
 			$n = 0;
-			while(preg_match_all('/^(.*?[(!;\[=\s.])' . $function . '\s*\(/im', $data, $matches)) {
+			while(preg_match_all('/^(.*?[()!;,\[=\s.])' . $function . '\s*\(/im', $data, $matches)) {
 				foreach($matches[0] as $key => $fullMatch) {
 					$open = $matches[1][$key];
 					if(strpos($open, 'function') !== false) continue; // skip function defined with same name

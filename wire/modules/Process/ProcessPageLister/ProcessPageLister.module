@@ -60,6 +60,8 @@
  * @property string $blankLabel Label when a field is blank (default=Blank)
  * @property int $editOption Edit option setting, used only by ListerPro
  * 
+ * 
+ * @todo make system fields hookable for output like markupValue is for custom fields
  *
  */
 
