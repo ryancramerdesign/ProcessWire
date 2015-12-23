@@ -59,10 +59,16 @@ class ProcessCommentsManager extends Process {
 
 
 	/**
-	 * Statuses and labels that a Comment can have
+	 * Statuses and names that a Comment can have
 	 *
 	 */
 	protected $statuses = array();
+
+	/**
+	 * Translated statuses
+	 *
+	 */
+	protected $statusTranslations = array();
 
 	/**
 	 * Number of comments to show per page
@@ -77,11 +83,17 @@ class ProcessCommentsManager extends Process {
 	public function init() {
 		parent::init();
 		$this->statuses = array(
+			Comment::statusApproved => 'approved',
+			Comment::statusPending => 'pending',
+			Comment::statusSpam => 'spam',
+			Comment::statusDelete => 'delete'
+		);
+		$this->statusTranslations = array(
 			Comment::statusApproved => $this->_('approved'),
 			Comment::statusPending => $this->_('pending'),
 			Comment::statusSpam => $this->_('spam'),
 			Comment::statusDelete => $this->_('delete')
-			); 
+		);
 	}
 
 	/**
@@ -260,7 +272,7 @@ class ProcessCommentsManager extends Process {
 			$numChildren = count($children);
 		}
 
-		foreach($this->statuses as $status => $label) {
+		foreach($this->statusTranslations as $status => $label) {
 			$checked = $comment->status == $status ? " checked='checked'" : '';
 			if($status == Comment::statusDelete && $numChildren) continue; 
 			$type .= 
@@ -408,10 +420,12 @@ class ProcessCommentsManager extends Process {
 		$class = $this->input->urlSegment3 == 'all' ? 'on' : '';
 		$tabs["tabStatusAll"] = "<a class='$class' href='../all/'>" . $this->_('All') . "</a>";
 
-		foreach($this->statuses as $status => $label) {
-			if($status == Comment::statusDelete) continue; 
-			$class = $this->input->urlSegment3 === $label ? 'on' : '';
-			$tabs["tabStatus$status"] = "<a class='$class' href='../$label/'>" . ucfirst($label) . "</a>";
+		foreach($this->statuses as $status => $name) {
+			if($status == Comment::statusDelete) continue;
+			$class = $this->input->urlSegment3 === $name ? 'on' : '';
+			$label = $this->statusTranslations[$status];
+			if($label === $name) $label = ucfirst($label);
+    		$tabs["tabStatus$status"] = "<a class='$class' href='../$name/'>$label</a>";
 		}
 
 		$tabsOut = $wireTabs->renderTabList($tabs);
