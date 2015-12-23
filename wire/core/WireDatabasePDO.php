@@ -46,6 +46,14 @@ class WireDatabasePDO extends Wire implements WireDatabase {
 		);
 
 	/**
+	 * Cached values from getVariable method
+	 * 
+	 * @var array associative of name => value
+	 * 
+	 */
+	protected $variableCache = array();
+
+	/**
 	 * Create a new PDO instance from ProcessWire $config API variable
 	 * 
 	 * If you need to make other PDO connections, just instantiate a new WireDatabasePDO (or native PDO)
@@ -98,7 +106,7 @@ class WireDatabasePDO extends Wire implements WireDatabase {
 	 *
 	 * Use this instead of $this->pdo because it restores a lost connection automatically. 
 	 *
-	 * @return PDO
+	 * @return \PDO
 	 *
 	 */
 	public function pdo() {
@@ -158,11 +166,14 @@ class WireDatabasePDO extends Wire implements WireDatabase {
 	 *
 	 * Active in ProcessWire debug mode only
 	 *
+	 * @deprecated use queryLog() method instead
 	 * @return array
 	 *
 	 */
 	static public function getQueryLog() {
-		return self::$queryLog; 
+		/** @var WireDatabasePDO $database */
+		$database = wire('database');
+		$database->queryLog();
 	}
 
 	/**
@@ -191,6 +202,7 @@ class WireDatabasePDO extends Wire implements WireDatabase {
 	public function queryLog($sql = '', $note = '') {
 		if(empty($sql)) return $this->queryLog;
 		$this->queryLog[] = $sql . ($note ? " -- $note" : "");
+		return true;
 	}
 
 	/**
@@ -203,7 +215,8 @@ class WireDatabasePDO extends Wire implements WireDatabase {
 		static $tables = array();
 
 		if(!count($tables)) {
-			$query = $this->query("SHOW TABLES"); 			
+			$query = $this->query("SHOW TABLES");
+			/** @noinspection PhpAssignmentInConditionInspection */
 			while($col = $query->fetchColumn()) $tables[] = $col;
 		} 
 
@@ -319,12 +332,31 @@ class WireDatabasePDO extends Wire implements WireDatabase {
 	}
 
 	/**
+	 * Get the value of a MySQL variable
+	 * 
+	 * @param string $name
+	 * @param bool $cache Allow use of cached values?
+	 * @return string|int
+	 * 
+	 */
+	public function getVariable($name, $cache = true) {
+		if($cache && isset($this->variableCache[$name])) return $this->variableCache[$name];
+		$query = $this->prepare('SHOW VARIABLES WHERE Variable_name=:name');
+		$query->bindValue(':name', $name);
+		$query->execute();
+		/** @noinspection PhpUnusedLocalVariableInspection */
+		list($varName, $value) = $query->fetch(\PDO::FETCH_NUM);
+		$this->variableCache[$name] = $value;
+		return $value;
+	}
+
+	/**
 	 * Retrieve new instance of WireDatabaseBackups ready to use with this connection
 	 * 
 	 * See WireDatabaseBackup class for usage. 
 	 * 
 	 * @return WireDatabaseBackup
-	 * @throws WireException|Exception on fatal error
+	 * @throws WireException|\Exception on fatal error
 	 * 
 	 */
 	public function backups() {

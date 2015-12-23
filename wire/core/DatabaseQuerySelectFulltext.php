@@ -27,24 +27,58 @@
  */
 class DatabaseQuerySelectFulltext extends Wire {
 
-	const maxQueryValueLength = 500; 
+	/**
+	 * Max length that we allow for a query
+	 * 
+	 */
+	const maxQueryValueLength = 500;
 
-	protected $query; 
+	/**
+	 * @var DatabaseQuerySelect
+	 * 
+	 */
+	protected $query;
 
+	/**
+	 * Keep track of field names used for scores so that the same one isn't ever used more than once
+	 * 
+	 * @var array
+	 * 
+	 */
 	static $scoreFields = array();
 
+	/**
+	 * Construct
+	 * 
+	 * @param DatabaseQuerySelect $query
+	 * 
+	 */
 	public function __construct(DatabaseQuerySelect $query) {
 		$this->query = $query; 
 	}
 
 	/**
 	 * Escape string for use in a MySQL LIKE
+	 * 
+	 * @param string $str
+	 * @return string
  	 *
 	 */
 	protected function escapeLIKE($str) {
 		return preg_replace('/([%_])/', '\\\$1', $str); 
 	}
 
+	/**
+	 * Update the query (provided to the constructor) to match the given arguments
+	 * 
+	 * @param string $tableName
+	 * @param string $fieldName
+	 * @param string $operator
+	 * @param string $value
+	 * @return $this
+	 * @throws WireException If given $operator argument is not implemented here
+	 * 
+	 */
 	public function match($tableName, $fieldName, $operator, $value) {
 
 		$database = $this->wire('database');
@@ -59,7 +93,9 @@ class DatabaseQuerySelectFulltext extends Wire {
 			case '=':
 			case '!=': 
 				$v = $database->escapeStr($value); 
-				$query->where("$tableField$operator'$v'"); 
+				$query->where("$tableField$operator'$v'");
+				// @todo, bound values can be used instead for many cases, update to use them like this:
+				// $query->where("$tableField$operator:value", array(':value' => $value)); 
 				break;	
 
 			case '*=':
@@ -68,13 +104,14 @@ class DatabaseQuerySelectFulltext extends Wire {
 
 			case '~=':
 				$words = preg_split('/[-\s,]/', $value, -1, PREG_SPLIT_NO_EMPTY); 
-				$n = 0; 
 				foreach($words as $word) {
-					if(DatabaseStopwords::has($word)) continue; 			
-					$n++; 
-					$this->matchContains($tableName, $fieldName, $operator, $word); 
+					if(DatabaseStopwords::has($word) || mb_strlen($word) < $database->getVariable('ft_min_word_len')) {
+						$this->matchWordLIKE($tableName, $fieldName, $word);
+					} else {
+						$this->matchContains($tableName, $fieldName, $operator, $word);
+					}
 				}
-				if(!$n) $query->where("1>2"); // force it not to match if all words were stopwords
+				if(!count($words)) $query->where("1>2"); // force it not to match if no words
 				break;
 
 			case '%=':
@@ -104,6 +141,13 @@ class DatabaseQuerySelectFulltext extends Wire {
 		return $this; 
 	}
 
+	/**
+	 * @param string $tableName
+	 * @param string $fieldName
+	 * @param string $operator
+	 * @param string $value
+	 * 
+	 */
 	protected function matchContains($tableName, $fieldName, $operator, $value) {
 
 		$query = $this->query; 
@@ -136,7 +180,6 @@ class DatabaseQuerySelectFulltext extends Wire {
 					$like = "^" . $like . $v; 
 				} else {
 					$like = $v . '[[:space:]]*[[:punct:]]*' . $like . '$';
-
 				}
 
 			} else {
@@ -152,6 +195,32 @@ class DatabaseQuerySelectFulltext extends Wire {
 		$query->where($j); 
 	}
 
+	/**
+	 * Match a whole word using MySQL LIKE/REGEXP
+	 * 
+	 * This is useful primarily for short whole words that can't be indexed due to MySQL ft_min_word_len, 
+	 * or for words that are stop words. It uses a slower REGEXP rather than fulltext index.
+	 * 
+	 * @param string $tableName
+	 * @param string $fieldName
+	 * @param $word
+	 * 
+	 */
+	protected function matchWordLIKE($tableName, $fieldName, $word) {
+		$tableField = "$tableName.$fieldName";
+		$database = $this->wire('database');
+		$v = $database->escapeStr(preg_quote($word)); 
+		$regex = "([[[:blank:][:punct:]]|^)$v([[:blank:][:punct:]]|$)";
+		$where = "($tableField REGEXP '$regex')"; 
+		$this->query->where($where);
+	}
+
+	/**
+	 * Get the query that was provided to the constructor
+	 * 
+	 * @return DatabaseQuerySelect
+	 * 
+	 */
 	public function getQuery() {
 		return $this->query; 
 	}

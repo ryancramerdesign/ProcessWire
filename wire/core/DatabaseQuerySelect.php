@@ -21,9 +21,18 @@
  * @property array $leftjoin
  * @property array $where
  * @property array $orderby
+ * @property array $groupby
  * @property array $limit
  * @property string $comment Comments for query
  * @property Field $field Some usages set a Field value to the $field property (like PageFinder)
+ * 
+ * @method $this select($sql, array $params = array())
+ * @method $this from($sql)
+ * @method $this join($sql, array $params = array())
+ * @method $this leftjoin($sql, array $params = array())
+ * @method $this where($sql, array $params = array())
+ * @method $this groupby($sql)
+ * @method $this limit($sql)
  *
  */
 class DatabaseQuerySelect extends DatabaseQuery {
@@ -50,7 +59,8 @@ class DatabaseQuerySelect extends DatabaseQuery {
 	 */
 	public function getQuery() {
 
-		$sql = 	$this->getQuerySelect() . 
+		$sql = 	
+			$this->getQuerySelect() . 
 			$this->getQueryFrom() . 
 			$this->getQueryJoin($this->join, "JOIN") . 
 			$this->getQueryJoin($this->leftjoin, "LEFT JOIN") . 
@@ -75,7 +85,7 @@ class DatabaseQuerySelect extends DatabaseQuery {
 	 * @param string|array $value
 	 * @param bool $prepend Should the value be prepended onto the existing value? default is to append rather than prepend.
 	 * 	Note that $prepend is applicable only when you pass this method a string. $prepend is ignored if you pass an array. 
-	 * @return this
+	 * @return $this
 	 *
 	 */
 	public function orderby($value, $prepend = false) {

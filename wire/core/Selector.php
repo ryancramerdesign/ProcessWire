@@ -28,6 +28,7 @@
  * @property bool $not Is this a NOT selector? (i.e. returns the opposite if what it would otherwise)
  * @property string|null $group Group name for this selector (if field was prepended with a "group_name@")
  * @property string $quote Type of quotes value was in, or blank if it was not quoted. One of: '"[{(
+ * @property string $str String value of selector
  * 
  * *The $field and $value properties may either be an array or string. As a result, we recommend
  * accessing the $fields or $values properties (instead of $field or $value), because they are always

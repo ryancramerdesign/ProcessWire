@@ -1,5 +1,8 @@
 <?php namespace ProcessWire;
 
+class PageFinderException extends WireException { }
+class PageFinderSyntaxException extends PageFinderException { }
+
 /**
  * ProcessWire PageFinder
  *
@@ -8,10 +11,14 @@
  * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
  * https://processwire.com
  *
+ * Hookable methods: 
+ * =================
+ * @method array|DatabaseQuerySelect find(Selectors $selectors, $options = array())
+ * @method DatabaseQuerySelect getQuery($selectors, array $options)
+ * @method string getQueryAllowedTemplatesWhere(DatabaseQuerySelect $query, $where)
+ * @method void getQueryJoinPath(DatabaseQuerySelect $query, $selector)
+ *
  */
-
-class PageFinderException extends WireException { }
-class PageFinderSyntaxException extends PageFinderException { }
 
 class PageFinder extends Wire {
 
@@ -46,7 +53,7 @@ class PageFinder extends Wire {
 		'findTrash' => false, 
 		
 		/**
-		 * Specify that no page status should be excluded - results can include unpublished, trash, system, etc.
+		 * Specify that no page should be excluded - results can include unpublished, trash, system, no-access pages, etc.
 		 *
 		 */
 		'findAll' => false,
@@ -129,6 +136,7 @@ class PageFinder extends Wire {
 		$maxStatus = null; 
 		$limit = 0; // for getTotal auto detection
 		$start = 0;
+		$checkAccessSpecified = false;
 
 		foreach($selectors as $key => $selector) {
 
@@ -170,6 +178,7 @@ class PageFinder extends Wire {
 
 			} else if($fieldName == 'check_access' || $fieldName == 'checkAccess') { 
 				$this->checkAccess = ((int) $selector->value) > 0 ? true : false;
+				$checkAccessSpecified = true;
 				$selectors->remove($key); 
 
 			} else if($fieldName == 'limit') {
@@ -207,11 +216,10 @@ class PageFinder extends Wire {
 
 		} else if($options['findAll']) { 
 			// findAll option means that unpublished, hidden, trash, system may be included
-			// $selectors->add(new SelectorLessThan('status', Page::statusMax)); 
-			$this->checkAccess = false;	
+			if(!$checkAccessSpecified) $this->checkAccess = false;
 
-		} else if($options['findOne'] || $options['findHidden']) {
-			// findHidden|findOne option, apply optimizations enabling hidden pages to be loaded
+		} else if($options['findHidden']) {
+			// findHidden option, apply optimizations enabling hidden pages to be loaded
 			$selectors->add(new SelectorLessThan('status', Page::statusUnpublished));
 			
 		} else if($options['findUnpublished']) {
@@ -250,7 +258,7 @@ class PageFinder extends Wire {
 	 * 
 	 * @param Selectors $selectors
 	 * @param array $options
-	 * @return array
+	 * @return array|DatabaseQuerySelect
 	 * @throws PageFinderException
 	 *
 	 */
@@ -274,6 +282,7 @@ class PageFinder extends Wire {
 
 		$database = $this->wire('database');
 		$matches = array(); 
+		/** @var DatabaseQuerySelect $query */
 		$query = $this->getQuery($selectors, $options);
 
 		//if($this->wire('config')->debug) $query->set('comment', "Selector: " . (string) $selectors); 
@@ -288,6 +297,7 @@ class PageFinder extends Wire {
 			} catch(\Exception $e) {
 				$this->trackException($e, true);
 				$error = $e->getMessage();
+				$stmt = null;
 			}
 		
 			if($error) {
@@ -295,7 +305,8 @@ class PageFinder extends Wire {
 				throw new PageFinderException($error); 
 			}
 		
-			if($options['loadPages']) { 	
+			if($options['loadPages']) {
+				/** @noinspection PhpAssignmentInConditionInspection */
 				while($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
 
 					// determine score for this row
@@ -313,6 +324,7 @@ class PageFinder extends Wire {
 					}
 				}
 			}
+			
 			$stmt->closeCursor();
 		} 
 			
@@ -386,8 +398,11 @@ class PageFinder extends Wire {
 					$templates = array();
 					$parents = array();
 					$findSelector = '';
-					foreach($fields as $fieldName) { 
-						if(strpos($fieldName, '.') !== false) list($unused, $fieldName) = explode('.', $fieldName); 
+					foreach($fields as $fieldName) {
+						if(strpos($fieldName, '.') !== false) {
+							/** @noinspection PhpUnusedLocalVariableInspection */
+							list($unused, $fieldName) = explode('.', $fieldName);
+						}
 						$field = $this->wire('fields')->get($fieldName); 	
 						if(!$field) continue;
 						if(!$hasTemplate && $field->template_id) {
@@ -415,6 +430,7 @@ class PageFinder extends Wire {
 					foreach($selector->fields as $key => $fieldName) {
 						if(strpos($fieldName, '.') !== false) {
 							// reduce fieldName to just field name without subfield name
+							/** @noinspection PhpUnusedLocalVariableInspection */
 							list($fieldName, $subname) = explode('.', $fieldName); // subname intentionally unused
 						}
 						$fieldName .= '.id';
@@ -463,6 +479,7 @@ class PageFinder extends Wire {
 	protected function ___getQuery($selectors, array $options) {
 
 		$where = '';
+		$whereBindValues = array();
 		$cnt = 1;
 		$fieldCnt = array(); // counts number of instances for each field to ensure unique table aliases for ANDs on the same field
 		$lastSelector = null; 
@@ -471,12 +488,15 @@ class PageFinder extends Wire {
 		$startLimit = false; // true when the start/limit part of the query generation is done
 		$database = $this->wire('database');
 
+		/** @var DatabaseQuerySelect $query */
 		$query = $this->wire(new DatabaseQuerySelect());
 		$query->select($options['returnVerbose'] ? array('pages.id', 'pages.parent_id', 'pages.templates_id') : array('pages.id')); 
 		$query->from("pages"); 
 		$query->groupby("pages.id"); 
 
 		foreach($selectors as $selector) {
+			
+			/** @var Selector $selector */
 
 			if(is_null($lastSelector)) $lastSelector = $selector; 
 			if(!$this->preProcessSelector($selector)) continue; 
@@ -572,11 +592,12 @@ class PageFinder extends Wire {
 								continue;
 							}
 						}
-					} 
-					
+					}
+
+					/** @var DatabaseQuerySelect $q */
 					if(isset($subqueries[$tableAlias])) $q = $subqueries[$tableAlias];
 						else $q = $this->wire(new DatabaseQuerySelect());
-
+					
 					$q->set('field', $field); // original field if required by the fieldtype
 					$q->set('group', $group); // original group of the field, if required by the fieldtype
 					$q->set('selector', $selector); // original selector if required by the fieldtype
@@ -584,13 +605,14 @@ class PageFinder extends Wire {
 					$q->set('parentQuery', $query);
 					$q = $fieldtype->getMatchQuery($q, $tableAlias, $subfield, $selector->operator, $value); 
 
-					if(count($q->select)) $query->select($q->select); 
-					if(count($q->join)) $query->join($q->join);
-					if(count($q->leftjoin)) $query->leftjoin($q->leftjoin);
-					if(count($q->orderby)) $query->orderby($q->orderby); 
-					if(count($q->groupby)) $query->groupby($q->groupby); 
+					if(count($q->select)) $query->select($q);
+					if(count($q->join)) $query->join($q);
+					if(count($q->leftjoin)) $query->leftjoin($q);
+					if(count($q->orderby)) $query->orderby($q);
+					if(count($q->groupby)) $query->groupby($q);
 
 					if(count($q->where)) { 
+						$whereBindValues = array_merge($whereBindValues, $q->getBindValues('where'));
 						// $and = $selector->not ? "AND NOT" : "AND";
 						$and = "AND"; /// moved NOT condition to entire generated $sql
 						$sql = ''; 
@@ -661,7 +683,12 @@ class PageFinder extends Wire {
 		
 		} // selectors
 
-		if($where) $query->where("($where)"); 
+		if($where) {
+			$query->where("($where)", $whereBindValues);
+		} else if(count($whereBindValues)) {
+			foreach($whereBindValues as $k => $v) $query->bindValue($k, $v);
+		}
+		
 		$this->getQueryAllowedTemplates($query, $options); 
 
 		// complete the joins, matching up any conditions for the same table
@@ -673,11 +700,17 @@ class PageFinder extends Wire {
 		if(count($sortSelectors)) foreach(array_reverse($sortSelectors) as $s) $this->getQuerySortSelector($query, $s);
 		$this->postProcessQuery($query); 
 		
-
 		return $query; 
 
 	}
-	
+
+	/**
+	 * Post process a DatabaseQuerySelect for page finder 
+	 * 
+	 * @param DatabaseQuerySelect $parentQuery
+	 * @throws WireException
+	 * 
+	 */
 	protected function postProcessQuery($parentQuery) {
 		
 		if(count($this->extraOrSelectors)) {
@@ -694,6 +727,7 @@ class PageFinder extends Wire {
 				$sql = "\tpages.id IN (\n";
 				foreach($selectorGroup as $selectors) {
 					$pageFinder = $this->wire(new PageFinder());	
+					/** @var DatabaseQuerySelect $query */
 					$query = $pageFinder->find($selectors, array(
 						'returnQuery' => true, 
 						'returnVerbose' => false,
@@ -750,8 +784,8 @@ class PageFinder extends Wire {
 	 * can potentially match blank or 0. 
 	 * 
 	 * @param Field $field
-	 * @param $selector
-	 * @param $query
+	 * @param Selector $selector
+	 * @param DatabaseQuerySelect $query
 	 * @param string $value The value presumed to be blank (passed the empty() test)
 	 * @param string $where SQL where string that will be modified/appended
 	 * @return bool Whether or not the query was handled and modified
@@ -774,6 +808,7 @@ class PageFinder extends Wire {
 		if($blankIsObject) $blankValue = '';
 		$blankValue = $database->escapeStr($blankValue);
 		$whereType = 'OR';
+		$sql = '';
 		$operators = array(
 			'=' => '!=', 
 			'!=' => '=', 
@@ -848,9 +883,19 @@ class PageFinder extends Wire {
 
 	/**
 	 * Determine which templates the user is allowed to view
+	 * 
+	 * @param DatabaseQuerySelect $query
+	 * @param array $options
 	 *
 	 */
 	protected function getQueryAllowedTemplates(DatabaseQuerySelect $query, $options) {
+		
+		// if access checking is disabled then skip this
+		if(!$this->checkAccess) return;
+
+		// no need to perform this checking if the user is superuser
+		$user = $this->wire('user');
+		if($user->isSuperuser()) return;
 
 		static $where = null;
 		static $where2 = null;
@@ -862,15 +907,7 @@ class PageFinder extends Wire {
 		// if($this->templates_id) return; 
 
 		// if findOne optimization is set, we don't check template access
-		if($options['findOne']) return;
-
-		// if access checking is disabled then skip this
-		if(!$this->checkAccess) return; 
-
-		$user = $this->wire('user'); 
-
-		// no need to perform this checking if the user is superuser
-		if($user->isSuperuser()) return; 
+		// if($options['findOne']) return;
 
 		// if we've already figured out this part from a previous query, then use it
 		if(!is_null($where)) {
@@ -1143,6 +1180,10 @@ class PageFinder extends Wire {
 
 	/**
 	 * Special case when requested value is path or URL
+	 * 
+	 * @param DatabaseQuerySelect $query
+	 * @param Selector $selector
+	 * @throws PageFinderSyntaxException
 	 *
 	 */ 
 	protected function ___getQueryJoinPath(DatabaseQuerySelect $query, $selector) {
@@ -1188,6 +1229,7 @@ class PageFinder extends Wire {
 		$alias = 'pages';
 		$lastAlias = 'pages';
 
+		/** @noinspection PhpAssignmentInConditionInspection */
 		while($n = count($parts)) {
 			$part = $database->escapeStr(array_pop($parts)); 
 			if(strlen($part)) {
@@ -1368,6 +1410,9 @@ class PageFinder extends Wire {
 
 	/**
 	 * Make the query specific to all pages below a certain parent (children, grandchildren, great grandchildren, etc.)
+	 * 
+	 * @param DatabaseQuerySelect $query
+	 * @param Selector $selector
 	 *
 	 */
 	protected function getQueryHasParent(DatabaseQuerySelect $query, $selector) {

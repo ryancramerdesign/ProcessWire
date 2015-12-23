@@ -17,33 +17,142 @@
  * https://processwire.com/about/license/mit/
  * 
  * @property array $where
+ * @property array $bindValues
+ * @properety array $bindIndex
  *
  */
-abstract class DatabaseQuery extends WireData { 
-	
+abstract class DatabaseQuery extends WireData {
+
+	/**
+	 * Bound parameters of name => value
+	 * 
+	 * @var array
+	 * 
+	 */
 	protected $bindValues = array();
-	
+
+	/**
+	 * Index of bound values per originating method
+	 * 
+	 * Indexed by originating method, with values as the bound parameter names as in $bindValues.
+	 * This is populated by the setupBindValues() method
+	 * 
+	 * @var array 
+	 * 
+	 */
+	protected $bindIndex = array();
+
+	/**
+	 * Bind a parameter value
+	 * 
+	 * @param string $key Parameter name
+	 * @param mixed $value Parameter value
+	 * @return $this
+	 * 
+	 */
 	public function bindValue($key, $value) {
 		$this->bindValues[$key] = $value; 
 		return $this; 
 	}
 
 	/**
+	 * Get bound parameter values, optionally for a specific method call
+	 * 
+	 * @param string $method
+	 * @return array
+	 * 
+	 */
+	public function getBindValues($method = '') {
+		if(empty($method)) return $this->bindValues;
+		if(!isset($this->bindIndex[$method])) return array();
+		$names = $this->bindIndex[$method];
+		$values = array();
+		foreach($names as $name) {
+			$values[$name] = $this->bindValues[$name];
+		}
+		return $values;	
+	}
+
+	/**
 	 * Enables calling the various parts of a query as functions for a fluent interface.
 	 * 
-	 * i.e. $query->select("id")->from("mytable")->orderby("name"); 
-	 * See DatabaseSelectQuery class for an example. 
+	 * Examples (all in context of DatabaseQuerySelect): 
+	 * 
+	 *   $query->select("id")->from("mytable")->orderby("name"); 
+	 * 
+	 * To bind parameters, specify associative array as second argument: 
+	 * 
+	 *   $query->where("name=:name", array(':name' => $page->name)); 
+	 * 
+	 * To import query/method and bound values from another DatabaseQuery: 
+	 * 
+	 *   $query->select($anotherQuery); 
+	 * 
+	 * The "select" may be any method supported by the class. 
+	 * 
+	 * @param string $method
+	 * @param array $args
+	 * @return $this
 	 *
 	 */
 	public function __call($method, $args) {
 		if(!$this->has($method)) return parent::__call($method, $args); 
 		$curValue = $this->get($method); 
 		$value = $args[0]; 
-		if(empty($value)) return $this; 
-		if(is_array($value)) $curValue = array_merge($curValue, $value); 
-			else $curValue[] = trim($value, ", "); 
+		if(empty($value)) return $this;
+		if(is_object($value) && $value instanceof DatabaseQuery) {
+			// if we've been given another DatabaseQuery, load from it's $method
+			$query = $value;
+			$value = $query->$method; 
+			if(!is_array($value) || !count($value)) return $this; // nothing to import
+			$params = $query->getBindValues($method);
+		} else {
+			$params = isset($args[1]) && is_array($args[1]) ? $args[1] : null;
+		}
+		if(!empty($params)) {
+			$value = $this->setupBindValues($value, $params, $method);
+		}
+		if(is_array($value)) {
+			$curValue = array_merge($curValue, $value);
+		} else {
+			$curValue[] = trim($value, ", ");
+		}
 		$this->set($method, $curValue); 
 		return $this; 
+	}
+
+	/**
+	 * Setup bound parameters for the given query, returning an updated $value if any renames needed to be made
+	 * 
+	 * @param string|array $sql
+	 * @param array $params
+	 * @return string
+	 * 
+	 */
+	public function setupBindValues($sql, array $params, $method) {
+		foreach($params as $name => $value) {
+			if(strpos($name, ':') !== 0) $name = ":$name";
+			$newName = $name;
+			$n = 0;
+			while(isset($this->bindValues[$newName])) {
+				$newName = $name . (++$n);
+			}
+			if($n) {
+				if(is_array($sql)) {
+					foreach($sql as $k => $v) {
+						if(strpos($v, $name) === false) continue;
+						$sql[$k] = preg_replace('/' . $name . '\b/', $newName, $v);
+					}
+				} else {
+					$sql = preg_replace('/' . $name . '\b/', $newName, $sql);
+				}
+				$name = $newName;
+			}
+			$this->bindValue($name, $value);
+			if(!isset($this->bindIndex[$method])) $this->bindIndex[$method] = array();
+			$this->bindIndex[$method][] = $name;
+		}
+		return $sql;	
 	}
 
 	public function __set($key, $value) {
@@ -52,14 +161,17 @@ abstract class DatabaseQuery extends WireData {
 
 	public function __get($key) {
 		if($key == 'query') return $this->getQuery();
+			else if($key == 'bindValues') return $this->bindValues;	
+			else if($key == 'bindIndex') return $this->bindIndex;
 			else return parent::__get($key); 
 	}
 
 	/**
-	 * Merge the contents of current query with another
+	 * Merge the contents of current query with another (experimental/incomplete)
 	 * 
+	 * @internal
 	 * @param DatabaseQuery $query
-	 * @return this
+	 * @return $this
 	 *
 	 */
 	public function merge(DatabaseQuery $query) {
@@ -90,7 +202,7 @@ abstract class DatabaseQuery extends WireData {
 	/**
 	 * Prepare and return a PDOStatement
 	 * 
-	 * @return PDOStatement
+	 * @return \PDOStatement
 	 * 
 	 */
 	public function prepare() {
