@@ -277,6 +277,14 @@ class ProcessModule extends Process {
 			$this->executeDownloadURL($this->input->post->download_zip_url); 		
 		}
 		
+		if($this->input->post->clear_file_compiler) {
+			$this->session->CSRF->validate();
+			$compiler = new FileCompiler($this->wire('config')->paths->siteModules); 
+			$compiler->clearCache(true);
+			$this->session->message($this->_('Cleared file compiler cache'));
+			$this->session->redirect('./');
+		}	
+		
 		if($this->input->get->update) {
 			$name = $this->sanitizer->name($this->input->get->update); 
 			if(isset($this->modulesArray[$name])) return $this->downloadConfirm($name, true); 
@@ -368,6 +376,12 @@ class ProcessModule extends Process {
 		$tab->attr('id', 'tab_site_modules'); 
 		$tab->attr('title', $this->labels['site']);
 		$tab->attr('class', 'WireTab');
+
+		$button = $this->modules->get('InputfieldSubmit');
+		$button->attr('name', 'clear_file_compiler');
+		$button->attr('value', $this->_('Clear compiled files'));
+		$button->addClass('ui-priority-secondary');
+		$button->icon = 'trash-o';
 		
 		$markup = $this->modules->get('InputfieldMarkup');
 		$markup->label = $this->_('/site/modules/ - Modules specific to your site');
@@ -375,7 +389,10 @@ class ProcessModule extends Process {
 		$markup->value .= $this->renderListTable($siteModulesArray, true);
 		$markup->value .= "<p class='detail'><i class='fa fa-fw fa-star'></i> " . sprintf($this->_('Browse the modules directory at %s'), "<a target='_blank' href='http://modules.processwire.com'>modules.processwire.com</a>") . "</p>"; 
 		$markup->value .= "<p class='detail'><i class='fa fa-fw fa-eraser'></i> " .  $this->_("To remove a module, click the module to edit, check the Uninstall box, then save. Once uninstalled, the module's file(s) may be removed from /site/modules/. If it still appears in the list above, you may need to click the Refresh button for ProcessWire to see the change."); // Instructions on how to remove a module
+		$markup->value .= "<p class='detail'><i class='fa fa-fw fa-info-circle'></i> " . $this->_('The button below clears compiled site modules and template files, forcing them to be re-compiled the next time they are accessed. Note that this may cause a temporary delay for one or more requests while files are re-compiled.') . "</p>";
+		$markup->value .= "<p class='detail'>" . $button->render() . "</p>";
 		$tab->add($markup);
+		
 		$form->add($tab); 
 		
 		// core

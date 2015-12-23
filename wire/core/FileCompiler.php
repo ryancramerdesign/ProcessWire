@@ -223,8 +223,8 @@ class FileCompiler extends Wire {
 				);
 				$this->wire('cache')->saveFor($this, $cacheName, $cacheData, WireCache::expireNever);
 			}
-			if($this->wire('config')->debug) {
-				$this->message($this->_('Compiled file:') . ' ' . str_replace($this->wire('config')->paths->root, '/', $sourcePathname), Notice::debug);
+			if($this->wire('config')->debug || $this->wire('user')->isSuperuser()) {
+				$this->message($this->_('Compiled file:') . ' ' . str_replace($this->wire('config')->paths->root, '/', $sourcePathname));
 			}
 		}
 		
@@ -394,7 +394,7 @@ class FileCompiler extends Wire {
 			$patterns = array(
 				// 1=open 2=close
 				// all patterns match within 1 line only
-				"new" => '(new\s+)' . $class . '\s*(\(|;)',  // 'new Page(' or 'new Page;'
+				"new" => '(new\s+)' . $class . '\s*(\(|;|\))',  // 'new Page(' or 'new Page;' or 'new Page)'
 				"function" => '([_a-zA-Z0-9]+\s*\([^)]*?)\b' . $class . '(\s+\$[_a-zA-Z0-9]+)', // 'function(Page $page' or 'function($a, Page $page'
 				"::" => '(^|[^_a-zA-Z0-9"\'])' . $class . '(::)', // constant ' Page::foo' or '(Page::foo' or '=Page::foo' or bitwise open
 				"extends" => '(\sextends\s+)' . $class . '(\s|\{|$)', // 'extends Page'
@@ -430,7 +430,7 @@ class FileCompiler extends Wire {
 			if(stripos($data, $function) === false) continue; // if function name not mentioned in data, quick exit
 		
 			$n = 0;
-			while(preg_match_all('/^(.*?[()!;,\[=\s.])' . $function . '\s*\(/im', $data, $matches)) {
+			while(preg_match_all('/^(.*?[()!;,@\[=\s.])' . $function . '\s*\(/im', $data, $matches)) {
 				foreach($matches[0] as $key => $fullMatch) {
 					$open = $matches[1][$key];
 					if(strpos($open, 'function') !== false) continue; // skip function defined with same name
