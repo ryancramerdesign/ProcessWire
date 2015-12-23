@@ -110,8 +110,8 @@ $extras = $adminTheme->getExtraMarkup();
 				<?php endif; ?>
 				<a class='action' href='<?php echo $config->urls->admin; ?>login/logout/'><?php echo $helpers->_('Logout'); ?></a>
 			</span>
-			<?php endif; ?>
 			ProcessWire <?php echo $config->versionName . ' <!--v' . $config->systemVersion; ?>--> &copy; <?php echo date("Y"); ?>
+			<?php endif; ?>
 			</p>
 
 			<?php 
