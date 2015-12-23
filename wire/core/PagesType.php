@@ -109,7 +109,7 @@ class PagesType extends Wire implements \IteratorAggregate, \Countable {
 			} else if(is_string($parent) && ctype_digit($parent)) {
 				$id = (int) $parent;
 			} else if(is_string($parent)) {
-				$parent = $this->wire('pages')->findOne($parent, array('loadOptions' => array('autojoin' => false)));
+				$parent = $this->wire('pages')->get($parent, array('loadOptions' => array('autojoin' => false)));
 				$id = $parent->id;
 			} else if(is_object($parent) && $parent instanceof Page) {
 				$id = $parent->id;
@@ -277,7 +277,7 @@ class PagesType extends Wire implements \IteratorAggregate, \Countable {
 			// selector string with operators, can pass through
 		}
 
-		$page = $this->pages->findOne($this->selectorString($selectorString), array('loadOptions' => $options)); 
+		$page = $this->pages->get($this->selectorString($selectorString), array('loadOptions' => $options)); 
 		if($page->id && !$this->isValid($page)) $page = $this->wire('pages')->newNullPage();
 		if($page->id) $this->loaded($page);
 		
@@ -382,7 +382,7 @@ class PagesType extends Wire implements \IteratorAggregate, \Countable {
 	}
 
 	public function getParent() {
-		return $this->wire('pages')->findOne($this->parent_id);
+		return $this->wire('pages')->get($this->parent_id);
 	}
 	
 	public function getParents() {

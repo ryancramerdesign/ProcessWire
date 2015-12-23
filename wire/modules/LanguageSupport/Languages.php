@@ -213,7 +213,7 @@ class Languages extends PagesType {
 	}
 
 	public function getParent() {
-		return $this->wire('pages')->findOne($this->parent_id, array('loadOptions' => array('autojoin' => false)));
+		return $this->wire('pages')->get($this->parent_id, array('loadOptions' => array('autojoin' => false)));
 	}
 
 	public function getParents() {

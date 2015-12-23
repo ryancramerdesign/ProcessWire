@@ -146,7 +146,8 @@ class Pages extends Wire {
 	 *
 	 * @param string|int|array $selectorString Specify selector string (standard usage), but can also accept page ID or array of page IDs.
 	 * @param array|string $options Optional one or more options that can modify certain behaviors. May be assoc array or key=value string.
-	 *	- findOne: boolean - apply optimizations for finding a single page and include pages with 'hidden' status (default: false)
+	 *	- findOne: boolean - apply optimizations for finding a single page 
+	 *  - findAll: boolean - find all pages with no exculsions (same as include=all option)
 	 *	- getTotal: boolean - whether to set returning PageArray's "total" property (default: true except when findOne=true)
 	 *	- loadPages: boolean - whether to populate the returned PageArray with found pages (default: true). 
 	 *		The only reason why you'd want to change this to false would be if you only needed the count details from 
@@ -317,38 +318,50 @@ class Pages extends Wire {
 
 	/**
 	 * Like find() but returns only the first match as a Page object (not PageArray)
+	 * 
+	 * This is functionally similar to the get() method except that its default behavior is to
+	 * filter for access control and hidden/unpublished/etc. states, in the same way that the
+	 * find() method does. You can add an "include=..." to your selector string to bypass. 
+	 * This method also accepts an $options arrray, whereas get() does not. 
 	 *
 	 * @param string $selectorString
-	 * @param array $options See $options for Pages::find
-	 * @return Page|null
+	 * @param array|string $options See $options for Pages::find
+	 * @return Page|NullPage
 	 *
 	 */
 	public function findOne($selectorString, $options = array()) {
 		if(empty($selectorString)) return $this->newNullPage();
-		if($page = $this->getCache($selectorString)) return $page; 
 		if(is_string($options)) $options = Selectors::keyValueStringToArray($options);
 		$defaults = array(
-			'findOne' => true, 
-			'getTotal' => false, 
-			'caller' => 'pages.get'
-		); 
-		$options = array_merge($defaults, $options); 
+			'findOne' => true, // find only one page
+			'getTotal' => false, // don't count totals
+			'caller' => 'pages.findOne'
+		);
+		$options = array_merge($defaults, $options);
 		$page = $this->find($selectorString, $options)->first();
-		if(!$page) $page = $this->newNullPage();
-		return $page; 
+		if(!$page->viewable(false)) $page = $this->newNullPage();
+		return $page;
 	}
 
 	/**
-	 * Returns only the first match as a Page object (not PageArray).
-	 *
-	 * This is an alias of the findOne() method for syntactic convenience and consistency.
-	 * Using get() is preferred.
+	 * Returns the first page matching the given selector with no exclusions
 	 *
 	 * @param string $selectorString
 	 * @return Page|NullPage Always returns a Page object, but will return NullPage (with id=0) when no match found
+	 * 
 	 */
 	public function get($selectorString) {
-		return $this->findOne($selectorString); 
+		if(empty($selectorString)) return $this->newNullPage();
+		if($page = $this->getCache($selectorString)) return $page;
+		$options = array(
+			'findOne' => true, // find only one page
+			'findAll' => true, // no exclusions
+			'getTotal' => false, // don't count totals
+			'caller' => 'pages.get'
+		);
+		$page = $this->find($selectorString, $options)->first();
+		if(!$page) $page = $this->newNullPage();
+		return $page; 
 	}
 
 	/**
