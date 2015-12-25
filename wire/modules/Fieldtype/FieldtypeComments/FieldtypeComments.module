@@ -1010,7 +1010,7 @@ class FieldtypeComments extends FieldtypeMulti {
 			} else if($f == 'sort') {
 				$desc = substr($value, 0, 1) == '-';
 				$value = trim($value, '-');
-				if(in_array($value, array('sort', 'status', 'id', 'pages_id', 'created_users_id', 'created', 'upvotes', 'downvotes'))) {
+				if(in_array($value, array('sort', 'status', 'id', 'pages_id', 'created_users_id', 'created', 'upvotes', 'downvotes', 'stars'))) {
 					$sort = $database->escapeCol($value);
 				}
 

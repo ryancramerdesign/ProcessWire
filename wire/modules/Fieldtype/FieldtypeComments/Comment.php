@@ -7,6 +7,25 @@
  * 
  * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
  * https://processwire.com
+ * 
+ * @property int $id
+ * @property int $parent_id 
+ * @property string $text 
+ * @property int $sort 
+ * @property int $status 
+ * @property int $flags 
+ * @property int $created 
+ * @property string $email 
+ * @property string $cite 
+ * @property string $website 
+ * @property string $ip 
+ * @property string $user_agent 
+ * @property int $created_users_id 
+ * @property string $code 
+ * @property string $subcode 
+ * @property int $upvotes 
+ * @property int $downvotes 
+ * @property int $stars 
  *
  */
 
@@ -339,6 +358,21 @@ class Comment extends WireData {
 			if($comment->parent_id == $id) $children->add($comment);
 		}
 		return $children;
+	}
+
+	/**
+	 * Render stars markup
+	 *
+	 * @param array $options See CommentArray::renderStars for $options
+	 * @return string
+	 *
+	 */
+	public function renderStars(array $options = array()) {
+		$field = $this->getField();
+		$comments = $this->getPage()->get($field->name);
+		if(!isset($options['stars'])) $options['stars'] = $this->stars;
+		if(!isset($options['blank'])) $options['blank'] = false;
+		return $comments->renderStars(false, $options);
 	}
 
 }

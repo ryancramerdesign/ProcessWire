@@ -27,4 +27,83 @@ $(document).ready(function() {
 			$text.addClass('CommentTextOverflow'); 
 		}
 	});
+	
+	$("#CommentLimitSelect").change(function() {
+		window.location = './?limit=' + parseInt($(this).val());
+	});
+	$("#CommentListSort").change(function() {
+		window.location = './?sort=' + $(this).val();
+	}); 
+	
+	function commentCheckboxClicked($checkbox) {
+		var $item = $checkbox.closest(".CommentItem");
+		if($checkbox.is(":checked")) {
+			$item.addClass('CommentChecked'); // .css('background-color', bgcolor);
+		} else {
+			$item.removeClass('CommentChecked'); // .css('background-color', '');
+		}
+	};
+
+	$(".CommentCheckbox").click(function() {
+		commentCheckboxClicked($(this));
+	}); 
+	
+	$("#CommentCheckAll").click(function() {
+		var $items = $(".CommentCheckbox");
+		if($(this).is(":checked")) {
+			$items.attr('checked', 'checked');
+		} else {
+			$items.removeAttr('checked');
+		}
+		$items.each(function() {
+			commentCheckboxClicked($(this));
+		});
+	});
+	
+	$("#CommentActions").change(function() {
+		var val = $(this).val();
+		if(!val.length) return;
+		var $checkedItems = $(".CommentChecked");
+		if($checkedItems.length) {
+			$checkedItems.each(function() {
+				if(val == 'reset-upvotes') {
+					// upvotes
+					$(this).find(".CommentUpvotes > input").val(0).change();
+				} else if(val == 'reset-downvotes') {
+					// downvotes
+					$(this).find(".CommentDownvotes > input").val(0).change();
+				} else {
+					// status
+					$(this).find(".CommentStatus > input[value='" + val + "']").click();
+				}
+			});
+			$checkedItems.effect('highlight', 500);
+		} else {
+			alert($(this).attr('data-nochecked'));
+		}
+		$(this).val('');
+	});
+
+	$(document).on('change', '.CommentItem :input', function() {
+		var $this = $(this);
+		if($this.is("[type='checkbox']")) return;
+		$(this).closest('.CommentItem').addClass('CommentItemChanged');
+	});
+
+	$("#CommentListForm").submit(function() {
+		$(this).addClass('CommentListFormSubmitted');
+	});
+	
+	window.addEventListener("beforeunload", function(e) {
+		if($(".CommentListFormSubmitted").length) return;
+		var $changes = $(".CommentItemChanged");
+		if($changes.length == 0) return;
+		var msg = $("#CommentListForm").attr('data-unsaved');
+		(e || window.event).returnValue = msg; // Gecko and Trident
+		return msg; // Gecko and WebKit
+	});
+
+	// for AdminThemeReno
+	var color = $(".WireTabs a.on").css('border-top-color');
+	$("#CommentListHeader").css('border-top-color', color);
 }); 
