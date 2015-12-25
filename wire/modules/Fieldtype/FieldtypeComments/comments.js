@@ -77,6 +77,7 @@ function CommentFormStars($) {
 		var $input = $parent.prev('input');
 		$input.val(value);
 		setStars($parent, value);
+		$input.change();
 		return false;
 	});
 

@@ -343,6 +343,21 @@ class Comment extends WireData {
 		return $children;
 	}
 
+	/**
+	 * Render stars markup
+	 * 
+	 * @param array $options See CommentArray::renderStars for $options
+	 * @return string
+	 * 
+	 */
+	public function renderStars(array $options = array()) {
+		$field = $this->getField();
+		$comments = $this->getPage()->get($field->name);
+		if(!isset($options['stars'])) $options['stars'] = $this->stars;
+		if(!isset($options['blank'])) $options['blank'] = false;
+		return $comments->renderStars(false, $options);
+	}
+
 }
 
 

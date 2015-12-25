@@ -267,9 +267,10 @@ class CommentArray extends PaginatedArray implements WirePaginatable {
 			'blank' => true, // return blank string if no ratings yet?
 			'partials' => true, // allow partial stars?
 			'schema' => '', // may be 'rdfa', 'microdata' or blank. Used only if showCount=true. 
+			'input' => false, // allow input? (may not be combined with 'partials' option)
 		);
 		$options = array_merge($defaults, $options);
-		if(!is_null($options['stars']) && !is_null($options['count'])) {
+		if(!is_null($options['stars'])) {
 			$stars = $options['stars'];
 			$count = (int) $options['count'];
 		} else {
@@ -277,7 +278,7 @@ class CommentArray extends PaginatedArray implements WirePaginatable {
 		}
 		if(!$count && $options['blank']) return '';
 		$commentStars = new CommentStars();
-		$out = $commentStars->render($stars, false);
+		$out = $commentStars->render($stars, $options['input']);
 		if($showCount) $out .= $commentStars->renderCount((int) $count, $stars, $options['schema']);
 		return $out; 
 	}
