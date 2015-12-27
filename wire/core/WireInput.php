@@ -504,6 +504,7 @@ class WireInput {
 	 * 
 	 */
 	public function queryString() {
+		$this->get('queryString');
 		return $this->getVars->queryString();
 	}
 
