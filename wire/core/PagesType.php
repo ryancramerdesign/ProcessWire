@@ -238,12 +238,11 @@ class PagesType extends Wire implements \IteratorAggregate, \Countable {
 	}
 
 	/**
-	 * Like find() but returns only the first match as a Page object (not PageArray)
+	 * Get the first match of your selector string
 	 * 
-	 * This is an alias of the findOne() method for syntactic convenience and consistency.
-	 *
 	 * @param string $selectorString
 	 * @return Page|null
+	 * 
 	 */
 	public function get($selectorString) {
 		

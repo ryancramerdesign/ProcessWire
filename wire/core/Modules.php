@@ -1191,7 +1191,8 @@ class Modules extends WireArray {
 			$moduleName = $module->className(false);
 		} else {
 			$module = null;
-			$className = wireClassName($moduleName, true);
+			// $className = wireClassName($moduleName, true);
+			$className = $this->getModuleClass($moduleName, true); // ???
 			$moduleName = wireClassName($moduleName, false);
 		}
 
@@ -1204,7 +1205,6 @@ class Modules extends WireArray {
 		if(!empty($info['permission'])) {
 			if(!$user->hasPermission($info['permission'])) return false;
 		}
-		
 		
 		if(!empty($info['permissionMethod'])) {
 			// module specifies a static method to call for permission

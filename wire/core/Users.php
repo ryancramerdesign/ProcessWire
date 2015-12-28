@@ -12,15 +12,15 @@ class Users extends PagesType {
 	protected $currentUser = null; 
 	protected $guestUser = null;
 	
-	public function __construct($templates = array(), $parents = array()) {
-		parent::__construct($templates, $parents);
+	public function __construct(ProcessWire $wire, $templates = array(), $parents = array()) {
+		parent::__construct($wire, $templates, $parents);
 		$this->setPageClass('User'); 
 	}
 	
 	/**
-	 * Like find() but returns only the first match as a Page object (not PageArray)
-	 *
-	 * This is an alias of the findOne() method for syntactic convenience and consistency.
+	 * Get the user identified by $selectorString
+	 * 
+	 * Selector string may also be user ID or name. 
 	 *
 	 * @param string $selectorString
 	 * @return Page|null
@@ -59,6 +59,8 @@ class Users extends PagesType {
 
 	/**
 	 * Ensure that every user loaded has at least the 'guest' role
+	 * 
+	 * @param Page $page
 	 *
 	 */
 	protected function loaded(Page $page) {
