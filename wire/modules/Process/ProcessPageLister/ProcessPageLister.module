@@ -751,8 +751,18 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		if(empty($s2)) return $s1; 
 		if(empty($s1)) return $s2; 
 		
-		$selectors1 = $this->wire(new Selectors($s1)); 
-		$selectors2 = $this->wire(new Selectors($s2)); 
+		try {
+			$selectors1 = $this->wire(new Selectors($s1));
+		} catch(\Exception $e) {
+			$this->error($e->getMessage());
+			$selectors1 = new Selectors();
+		}
+		try {
+			$selectors2 = $this->wire(new Selectors($s2));
+		} catch(\Exception $e) {
+			$this->error($e->getMessage());
+			$selectors2 = new Selectors();
+		}
 		
 		foreach($selectors1 as $key1 => $selector1) {
 			//$value = $selector1->value; 
@@ -775,6 +785,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		
 		$combined = ((string) $selectors1) . ", " . ((string) $selectors2);
 		return $combined; 	
+		
 	}
 
 
