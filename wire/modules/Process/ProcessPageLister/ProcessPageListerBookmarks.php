@@ -304,7 +304,8 @@ class ProcessPageListerBookmarks extends Wire {
 		}
 
 		$bookmarkSort = '';
-		$bookmarkSelector = $bookmarkID ? $input->post->text('bookmark_selector') : $this->lister->getSelector();
+		$textOptions = array('maxLength' => 1024, 'stripTags' => false);
+		$bookmarkSelector = $bookmarkID ? $input->post->text('bookmark_selector', $textOptions) : $this->lister->getSelector();
 		if(preg_match('/\bsort=([-_.a-zA-Z]+)/', $bookmarkSelector, $matches)) $bookmarkSort = $matches[1];
 		$bookmarkSelector = preg_replace('/\b(include|sort|limit)=[^,]+,?/', '', $bookmarkSelector);
 		if($this->initSelector && strpos($bookmarkSelector, $this->lister->initSelector) !== false) {
