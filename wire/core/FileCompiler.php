@@ -123,21 +123,28 @@ class FileCompiler extends Wire {
 	/**
 	 * Allow the given filename to be compiled?
 	 * 
-	 * @param $filename
-	 * @return bool
+	 * @param string $filename This property can be modified by the function
+	 * @param string $basename This property can be modified by the function
+	 * @return bool 
 	 * 
 	 */
-	protected function allowCompile($filename) {
+	protected function allowCompile(&$filename, &$basename) {
 		
+		$ext = pathinfo($filename, PATHINFO_EXTENSION);
+		if(!in_array(strtolower($ext), $this->extensions)) {
+			if(!strlen($ext) && !is_file($filename) && is_file("$filename.php")) {
+				// assume PHP file extension if none given, for cases like wireIncludeFile
+				$filename .= '.php';
+				$basename .= '.php';
+			} else {
+				return false;
+			}
+		}
+
 		if(!is_file($filename)) {
 			return false;
 		}
 		
-		$ext = pathinfo($filename, PATHINFO_EXTENSION);
-		if(!in_array(strtolower($ext), $this->extensions)) {
-			return false;
-		}
-
 		$allow = true;
 		foreach($this->exclusions as $pathname) {
 			if(strpos($filename, $pathname) === 0) {
@@ -145,8 +152,8 @@ class FileCompiler extends Wire {
 				break;
 			}
 		}
-		
-		return $allow;
+
+		return $allow; 
 	}
 
 	/**
@@ -168,7 +175,7 @@ class FileCompiler extends Wire {
 			$sourcePathname = $this->sourcePath . ltrim($sourceFile, '/');
 		}
 
-		if(!$this->allowCompile($sourcePathname)) return $sourcePathname;
+		if(!$this->allowCompile($sourcePathname, $sourceFile)) return $sourcePathname;
 
 		$this->initTargetPath();
 
@@ -274,11 +281,21 @@ class FileCompiler extends Wire {
 		}
 		
 		$optionsStr = $this->optionsToString($this->options);
+		
+		$funcs = array(
+			'include_once',
+			'include', 
+			'require_once',
+			'require',
+			'wireIncludeFile',
+			'wireRenderFile',
+			'TemplateFile',
+		);
 
 		// main include regex
 		$re = '/^' . 
 			'(.*?)' . // 1: open
-			'(include_once|include|require_once|require|wireIncludeFile|wireRenderFile|TemplateFile)' . // 2:function
+			'(' . implode('|', $funcs) . ')' . // 2:function
 			'[\(\s]+' . // open parenthesis and/or space
 			'(["\']?[^;\r\n]+);' . // 3:filename (may be quoted or end with closing parenthesis)
 			'/m';

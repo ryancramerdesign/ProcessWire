@@ -88,7 +88,13 @@ if($page->process && $page->process != 'ProcessPageView') {
 		$controller = new ProcessController(); 
 		$controller->setProcessName($page->process); 
 		$initFile = $config->paths->adminTemplates . 'init.php'; 
-		if(is_file($initFile)) include($initFile); 
+		if(is_file($initFile)) {
+			if(strpos($initFile, $config->paths->site) === 0) {
+				// admin themes in /site/modules/ may be compiled
+				$initFile = $wire->files->compile($initFile);
+			}
+			include($initFile);
+		}
 		if($input->get->modal) $session->addHookBefore('redirect', null, '_hookSessionRedirectModal'); 
 		$content = $controller->execute();
 
@@ -145,7 +151,11 @@ if($controller && $controller->isAjax()) {
 	echo $content; 
 } else {
 	if(!strlen($content)) $content = '<p>' . __('The process returned no content.') . '</p>';
-	require($config->paths->adminTemplates . 'default.php');
+	$adminThemeFile = $config->paths->adminTemplates . 'default.php';
+	if(strpos($adminThemeFile, $config->paths->site) === 0) {
+		$adminThemeFile = $wire->files->compile($adminThemeFile);
+	}
+	require($adminThemeFile);
 	$session->removeNotices();
 }
 
