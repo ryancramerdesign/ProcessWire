@@ -307,6 +307,7 @@ class PageFrontEdit extends WireData implements Module {
 				if(!$forceModal && $this->inlineSupported($field)) {
 					$this->inlineEditField = $field->id;
 					$event->return = $this->inlineRenderEditor($page, $field, $arg2);
+					$this->inlineEditField = 0;
 				} else {
 					$event->return = $this->modalRenderEditor($page, array($field), $arg2);
 				}
@@ -326,6 +327,7 @@ class PageFrontEdit extends WireData implements Module {
 			if(!in_array($field->id, $this->inlineEditFields)) $this->inlineEditField = $field->id; 
 			$event->return = $page->getFormatted($field->name);
 			$this->inlineEditorActive = $editorActive;
+			$this->inlineEditField = 0;
 		} else {
 			// ...otherwise just return the formatted value
 			$event->return = $page->getFormatted($field->name);
