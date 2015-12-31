@@ -230,7 +230,8 @@ class FileCompiler extends Wire {
 				);
 				$this->wire('cache')->saveFor($this, $cacheName, $cacheData, WireCache::expireNever);
 			}
-			if($this->wire('config')->debug || $this->wire('user')->isSuperuser()) {
+			$u = $this->wire('user');
+			if($this->wire('config')->debug || ($u && $u->isSuperuser())) {
 				$this->message($this->_('Compiled file:') . ' ' . str_replace($this->wire('config')->paths->root, '/', $sourcePathname));
 			}
 		}
