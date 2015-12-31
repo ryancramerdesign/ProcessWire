@@ -352,7 +352,7 @@ class WireHttp extends Wire {
 	 * @return bool|string False on failure or string of contents received on success.
 	 *
 	 */
-	protected function send($url, $data = array(), $method = 'POST') { 
+	protected function ___send($url, $data = array(), $method = 'POST') { 
 
 		$url = $this->validateURL($url, false); 
 		if(empty($url)) return false;
