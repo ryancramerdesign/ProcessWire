@@ -89,7 +89,15 @@ class DatabaseQuerySelect extends DatabaseQuery {
 	 *
 	 */
 	public function orderby($value, $prepend = false) {
-
+	
+		if(is_object($value)) {
+			if($value instanceof DatabaseQuerySelect) {
+				$value = $value->orderby;
+			} else {
+				// invalid
+				return $this;
+			}
+		}
 		$oldValue = $this->get('orderby'); 
 
 		if(is_array($value)) {
