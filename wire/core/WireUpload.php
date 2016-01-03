@@ -12,28 +12,141 @@
  */
 
 class WireUpload extends Wire {
-	
 
+	/**
+	 * Submitted field name for files field
+	 * 
+	 * @var string
+	 * 
+	 */
 	protected $name;
-	protected $destinationPath; 
+
+	/**
+	 * Path where files will be saved
+	 * 
+	 * @var string
+	 * 
+	 */
+	protected $destinationPath;
+	
+	/**
+	 * Max number of files accepted
+	 * 
+	 * @var int
+	 * 
+	 */
 	protected $maxFiles;
+
+	/**
+	 * Max size (in bytes) of uploaded file
+	 * 
+	 * @var int
+	 * 
+	 */
 	protected $maxFileSize = 0;
-	protected $completedFilenames = array(); 
-	protected $overwrite; 
-	protected $overwriteFilename = ''; // if specified, only this filename may be overwritten
-	protected $lowercase = true; 
+
+	/**
+	 * Array of uploaded filenames (basenames)
+	 * 
+	 * @var array
+	 * 
+	 */
+	protected $completedFilenames = array();
+
+	/**
+	 * Allow files to be overwritten?
+	 * 
+	 * @var bool
+	 * 
+	 */
+	protected $overwrite;
+	
+	/**
+	 * If specified, only this filename may be overwritten
+	 * 
+	 * @var string
+	 * 
+	 */
+	protected $overwriteFilename = '';
+
+	/**
+	 * Enforce lowercase filenames?
+	 * 
+	 * @var bool
+	 * 
+	 */
+	protected $lowercase = true;
+
+	/**
+	 * The filename to save to (if not using uploaded filename)
+	 * 
+	 * @var string
+	 * 
+	 */
 	protected $targetFilename = '';
-	protected $extractArchives = false; 
-	protected $validExtensions = array(); 
-	protected $badExtensions = array('php', 'php3', 'phtml', 'exe', 'cfm', 'shtml', 'asp', 'pl', 'cgi', 'sh'); 
+
+	/**
+	 * Allow extraction of archives/ZIPs?
+	 * 
+	 * @var bool
+	 * 
+	 */
+	protected $extractArchives = false;
+
+	/**
+	 * Allowed extensions for uploaded filenames
+	 * 
+	 * @var array
+	 * 
+	 */
+	protected $validExtensions = array();
+
+	/**
+	 * Disallowed extensions for uploaded filenames
+	 * 
+	 * @var array
+	 * 
+	 */
+	protected $badExtensions = array('php', 'php3', 'phtml', 'exe', 'cfm', 'shtml', 'asp', 'pl', 'cgi', 'sh');
+
+	/**
+	 * Errors that occurred
+	 * 
+	 * @var array of strings
+	 * 
+	 */
 	protected $errors = array();
+
+	/**
+	 * Allow AJAX uploads?
+	 * 
+	 * @var bool
+	 * 
+	 */
 	protected $allowAjax = false;
+
+	/**
+	 * Array of files (full paths) that were overwritten in format: backed up filename => replaced file name
+	 * 
+	 * @var array
+	 * 
+	 */
 	protected $overwrittenFiles = array();
 
-	// static protected $unzipCommand = 'unzip -j -qq -n /src/ -x __MACOSX .* -d /dst/';
+	/**
+	 * Predefined error message strings indexed by PHP UPLOAD_ERR_* defines
+	 * 
+	 * @var array
+	 * 
+	 */
+	protected $errorInfo = array();
 
-	protected $errorInfo = array(); 
-
+	/**
+	 * Construct with the given input name
+	 * 
+	 * @param string $name
+	 * 
+	 */
 	public function __construct($name) {
 
 		$this->errorInfo = array(
@@ -57,15 +170,12 @@ class WireUpload extends Wire {
 			if(is_string($badExtensions) && $badExtensions) $badExtensions = explode(' ', $badExtensions); 
 			if(is_array($badExtensions)) $this->badExtensions = $badExtensions; 			
 		}	
-
-		/*
-		if($this->config->uploadUnzipCommand) {
-			self::setUnzipCommand($this->config->uploadUnzipCommand); 
-		}
-		*/
-	
 	}
 
+	/**
+	 * Destruct by removing overwritten backup files (if applicable)
+	 * 
+	 */
 	public function __destruct() {
 		// cleanup files that were backed up when overwritten
 		foreach($this->overwrittenFiles as $bakDestination => $destination) {
@@ -73,9 +183,14 @@ class WireUpload extends Wire {
 		}
 	}
 
+	/**
+	 * Execute/process the upload
+	 * 
+	 * @return array of uploaded filenames
+	 * @throws WireException
+	 * 
+	 */
 	public function execute() {
-
-		// returns array of files (multi file upload)
 
 		if(!$this->name) throw new WireException("You must set the name for WireUpload before executing it"); 
 		if(!$this->destinationPath) throw new WireException("You must set the destination path for WireUpload before executing it");
@@ -113,13 +228,12 @@ class WireUpload extends Wire {
 
 	/**
 	 * Returns PHP's $_FILES or one constructed from an ajax upload
+	 * 
+	 * @return array|bool
+	 * @throws WireException
 	 *
 	 */
 	protected function getPhpFiles() {
-		
-		// @todo per https://github.com/ryancramerdesign/ProcessWire/issues/1487
-		// if(!$filename = rawurldecode($_SERVER['HTTP_X_FILENAME'])) return false;
-		
 		if(isset($_SERVER['HTTP_X_FILENAME']) && $this->allowAjax) return $this->getPhpFilesAjax();
 		if(empty($_FILES) || !count($_FILES)) return false; 
 		if(!isset($_FILES[$this->name]) || !is_array($_FILES[$this->name])) return false;
@@ -128,16 +242,22 @@ class WireUpload extends Wire {
 
 	/**
 	 * Handles an ajax file upload and constructs a resulting $_FILES 
+	 * 
+	 * @return array|bool
+	 * @throws WireException
 	 *
 	 */
 	protected function getPhpFilesAjax() {
 
 		if(!$filename = $_SERVER['HTTP_X_FILENAME']) return false; 
+		$filename = rawurldecode($filename); // per #1487
 
 		$dir = $this->wire('config')->uploadTmpDir;
 		if(!$dir || !is_writable($dir)) $dir = ini_get('upload_tmp_dir');
 		if(!$dir || !is_writable($dir)) $dir = sys_get_temp_dir();
-		if(!$dir || !is_writable($dir)) throw new WireException("Error writing to $dir. Please define \$config->uploadTmpDir and ensure it is writable."); 
+		if(!$dir || !is_writable($dir)) {
+			throw new WireException("Error writing to $dir. Please define \$config->uploadTmpDir and ensure it is writable.");
+		}
 		$tmpName = tempnam($dir, wireClassName($this, false));
 		file_put_contents($tmpName, file_get_contents('php://input')); 
 		$filesize = is_file($tmpName) ? filesize($tmpName) : 0;
@@ -152,9 +272,15 @@ class WireUpload extends Wire {
 			);
 
 		return $file;
-
 	}
 
+	/**
+	 * Does the given filename have a valid extension?
+	 * 
+	 * @param string $name
+	 * @return bool
+	 * 
+	 */
 	protected function isValidExtension($name) {
 		
 		$pathInfo = pathinfo($name); 
@@ -167,6 +293,17 @@ class WireUpload extends Wire {
 		return false; 
 	}
 
+	/**
+	 * Is the given upload information valid?
+	 * 
+	 * Also populates $this->errors
+	 * 
+	 * @param string $name Filename
+	 * @param int $size Size in bytes
+	 * @param int $error Error code from PHP
+	 * @return bool
+	 * 
+	 */
 	protected function isValidUpload($name, $size, $error) { 
 		$valid = false;
 		$fname = $this->wire('sanitizer')->name($name); 
@@ -178,7 +315,10 @@ class WireUpload extends Wire {
 		} else if($name[0] == '.') {
 			$valid = false; 
 		} else if(!$this->isValidExtension($name)) {
-			$this->error("$fname - " . $this->_('Invalid file extension, please use one of:') . ' ' . implode(', ', $this->validExtensions)); 
+			$this->error(
+				"$fname - " . $this->_('Invalid file extension, please use one of:') . ' ' . 
+				implode(', ', $this->validExtensions)
+			); 
 		} else if($this->maxFileSize > 0 && $size > $this->maxFileSize) {
 			$this->error("$fname - " . $this->_('Exceeds max allowed file size')); 
 		} else {
@@ -188,14 +328,27 @@ class WireUpload extends Wire {
 		return $valid; 
 	}
 
-
+	/**
+	 * Check that the destination path exists and populate $this->errors with appropriate message if it doesn't
+	 * 
+	 * @return bool
+	 * 
+	 */
 	protected function checkDestinationPath() {
 		if(!is_dir($this->destinationPath)) {
 			$this->error("Destination path does not exist {$this->destinationPath}"); 
+			return false;
 		}
 		return true; 
 	}
 
+	/**
+	 * Given a filename/path destination, adjust it to ensure it is unique
+	 * 
+	 * @param string $destination
+	 * @return string
+	 * 
+	 */
 	protected function getUniqueFilename($destination) {
 
 		$cnt = 0; 
@@ -211,13 +364,19 @@ class WireUpload extends Wire {
 		return $destination; 	
 	}
 
+	/**
+	 * Sanitize/validate a given filename
+	 * 
+	 * @param string $value Filename
+	 * @param array $extensions Allowed file extensions
+	 * @return bool|string Returns boolean false if invalid or string of potentially modified filename if valid
+	 * 
+	 */
 	public function validateFilename($value, $extensions = array()) {
 		$value = basename($value);
 		if($value[0] == '.') return false; // no hidden files
-		if($this->lowercase) $value = strtolower($value); 
+		if($this->lowercase) $value = mb_strtolower($value); 
 		$value = $this->wire('sanitizer')->filename($value, Sanitizer::translate); 
-		//$value = preg_replace('/[^-a-zA-Z0-9_\.]/', '_', $value);
-		//$value = preg_replace('/__+/', '_', $value);
 		$value = trim($value, "_");
 
 		$p = pathinfo($value);
@@ -234,7 +393,16 @@ class WireUpload extends Wire {
 
 		return $value;
 	}
-	
+
+	/**
+	 * Save the uploaded file
+	 * 
+	 * @param string $tmp_name Temporary filename
+	 * @param string $filename Actual filename
+	 * @param bool $ajax Is this an AJAX upload?
+	 * @return array|bool|string Boolean false on fail, array of multiple filenames, or string of filename if maxFiles=1
+	 * 
+	 */
 	protected function saveUpload($tmp_name, $filename, $ajax = false) {
 
 		if(!$this->checkDestinationPath()) return false; 
@@ -271,24 +439,28 @@ class WireUpload extends Wire {
 			return false;
 		}
 
-		if($this->config->chmodFile) chmod($destination, octdec($this->config->chmodFile));
+		$this->wire('files')->chmod($destination);
 
 		if($p['extension'] == 'zip' && ($this->maxFiles == 0) && $this->extractArchives) {
-
 			if($this->saveUploadZip($destination)) {
 				if(count($this->completedFilenames) == 1) return $this->completedFilenames[0];
 			}
-
 			return $this->completedFilenames; 
 
 		} else {
 			$this->completedFilenames[] = $filename; 
 			return $filename; 
 		}
-
-
 	}
 
+	/**
+	 * Save and process an uploaded ZIP file
+	 * 
+	 * @param string $zipFile
+	 * @return array|bool Array of files in the ZIP or boolean false on fail
+	 * @throws WireException If ZIP is empty
+	 * 
+	 */
 	protected function saveUploadZip($zipFile) {
 
 		// unzip with command line utility
@@ -298,25 +470,17 @@ class WireUpload extends Wire {
 		$tmpDir = $dir . '.zip_tmp/';
 	
 		try {
-			$files = wireUnzipFile($zipFile, $tmpDir); 
+			$files = $this->wire('files')->unzip($zipFile, $tmpDir); 
 			if(!count($files)) {
 				throw new WireException($this->_('No files found in ZIP file'));
 			}
 		} catch(\Exception $e) {
 			$this->error($e->getMessage());
-			wireRmdir($tmpDir, true);
+			$this->wire('files')->rmdir($tmpDir, true);
 			unlink($zipFile); 
 			return $files;
 		}
 	
-
-		/* OLD METHOD (for reference)
-		$unzipCommand = self::$unzipCommand;	
-		$unzipCommand = str_replace('/src/', escapeshellarg($zipFile), $unzipCommand); 
-		$unzipCommand = str_replace('/dst/', $tmpDir, $unzipCommand); 
-		$str = exec($unzipCommand); 
-		*/
-		
 		$cnt = 0; 
 
 		foreach($files as $file) {
@@ -328,7 +492,6 @@ class WireUpload extends Wire {
 				continue; 
 			}
 
-			//$destination = $dir . $file->getFilename(); 
 			$basename = $file;
 			$basename = $this->validateFilename($basename, $this->validExtensions); 
 
@@ -359,102 +522,193 @@ class WireUpload extends Wire {
 			}
 		}
 
-		wireRmdir($tmpDir, true); 
+		$this->wire('files')->rmdir($tmpDir, true); 
 		@unlink($zipFile); 
 
 		if(!$cnt) return false; 
 		return true; 	
 	}
 
+	/**
+	 * Get array of uploaded filenames
+	 * 
+	 * @return array
+	 * 
+	 */
 	public function getCompletedFilenames() {
 		return $this->completedFilenames; 
 	}
 
+	/**
+	 * Set the target filename, only useful for single uploads
+	 * 
+	 * @param $filename
+	 * 
+	 */
 	public function setTargetFilename($filename) {
-		// target filename as destination
-		// only useful for single uploads
 		$this->targetFilename = $filename; 
 	}
 
+	/**
+	 * Get target filename updated for extension
+	 * 
+	 * Given a filename, takes its extension and combines it with that if the targetFilename (if set).
+	 * Otehrwise returns the filename you gave it.
+	 * 
+	 * @param string $filename
+	 * @return string
+	 * 
+	 */
 	protected function getTargetFilename($filename) {
-		// given a filename, takes it's extension and combines it with that
-		// if the targetFilename (if set). Otherwise returns the filename you gave it
 		if(!$this->targetFilename) return $filename; 
 		$pathInfo = pathinfo($filename); 
 		$targetPathInfo = pathinfo($this->targetFilename); 
 		return rtrim(basename($this->targetFilename, $targetPathInfo['extension']), ".") . "." . $pathInfo['extension'];
 	}
 
+	/**
+	 * Set the filename that may be overwritten (i.e. myphoto.jpg) for single uploads only
+	 * 
+	 * @param string $filename
+	 * @return $this
+	 * 
+	 */
 	public function setOverwriteFilename($filename) {
-		// only this filename may be overwritten if specified, i.e. myphoto.jpg
-		// only useful for single uploads
 		$this->overwrite = false; // required
 		if($this->lowercase) $filename = strtolower($filename); 
 		$this->overwriteFilename = $filename; 
 		return $this; 
 	}
 
-	static public function setUnzipCommand($unzipCommand) {
-		wire()->error("Deprecated: WireUpload::unzipCommand calls can be removed because they do nothing", Notice::debug); 
-		// if(strpos($unzipCommand, '/src/') && strpos($unzipCommand, '/dst/')) 
-		//	self::$unzipCommand = $unzipCommand; 
-	}
-	
-	static public function getUnzipCommand() {
-		return self::$unzipCommand; 
-	}
-
+	/**
+	 * Set allowed file extensions
+	 * 
+	 * @param array $extensions Array of file extensions (strings), not including periods
+	 * @return $this
+	 * 
+	 */
 	public function setValidExtensions(array $extensions) {
 		foreach($extensions as $ext) $this->validExtensions[] = strtolower($ext); 
 		return $this; 
 	}
 
+	/**
+	 * Set the max allowed number of uploaded files
+	 * 
+	 * @param int $maxFiles
+	 * @return $this
+	 * 
+	 */
 	public function setMaxFiles($maxFiles) {
 		$this->maxFiles = (int) $maxFiles; 
 		return $this; 
 	}
 
+	/**
+	 * Set the max allowed uploaded file size
+	 * 
+	 * @param int $bytes
+	 * @return $this
+	 * 
+	 */
 	public function setMaxFileSize($bytes) {
 		$this->maxFileSize = (int) $bytes;
 		return $this;
 	}
 
+	/**
+	 * Set whether or not overwrite is allowed
+	 * 
+	 * @param bool $overwrite
+	 * @return $this
+	 * 
+	 */
 	public function setOverwrite($overwrite) {
 		$this->overwrite = $overwrite ? true : false; 
 		return $this; 
 	}
 
+	/**
+	 * Set the destination path for uploaded files
+	 * 
+	 * @param string $destinationPath Include a trailing slash
+	 * @return $this
+	 * 
+	 */
 	public function setDestinationPath($destinationPath) {
 		$this->destinationPath = $destinationPath; 
 		return $this; 
 	}
 
+	/**
+	 * Set whether or not ZIP files may be extracted
+	 * 
+	 * @param bool $extract
+	 * @return $this
+	 * 
+	 */
 	public function setExtractArchives($extract = true) {
 		$this->extractArchives = $extract; 
 		$this->validExtensions[] = 'zip';
 		return $this; 
 	}
 
+	/**
+	 * Set the upload field name (same as that provided to the constructor)
+	 * 
+	 * @param string $name
+	 * @return $this
+	 * 
+	 */
 	public function setName($name) {
 		$this->name = $this->wire('sanitizer')->fieldName($name); 
 		return $this; 
 	}
 
+	/**
+	 * Set whether or not lowercase is enforced
+	 * 
+	 * @param bool $lowercase
+	 * @return $this
+	 * 
+	 */
 	public function setLowercase($lowercase = true) {
 		$this->lowercase = $lowercase ? true : false; 
 		return $this; 
 	}
 
+	/**
+	 * Set whether or not AJAX uploads are allowed
+	 * 
+	 * @param bool $allowAjax
+	 * @return $this
+	 * 
+	 */
 	public function setAllowAjax($allowAjax = true) {
 		$this->allowAjax = $allowAjax ? true : false; 
 		return $this; 
 	}
 
+	/**
+	 * Record an error message
+	 * 
+	 * @param array|Wire|string $text
+	 * @param int $flags
+	 * @return $this
+	 * 
+	 */
 	public function error($text, $flags = 0) {
 		$this->errors[] = $text; 
-		parent::error($text, $flags); 
+		return parent::error($text, $flags); 
 	}
 
+	/**
+	 * Get error messages
+	 * 
+	 * @param bool $clear Clear the list of error messages? (default=false)
+	 * @return array of strings
+	 * 
+	 */
 	public function getErrors($clear = false) {
 		$errors = $this->errors; 
 		if($clear) $this->errors = array();
@@ -473,8 +727,6 @@ class WireUpload extends Wire {
 	public function getOverwrittenFiles() {
 		return $this->overwrittenFiles;
 	}
-
-
 }
 
 

@@ -282,8 +282,9 @@ $(document).ready(function() {
 				
 				// Here we go
 				xhr.open("POST", postUrl, true);
-				// @todo remove the unescape() and test per issue https://github.com/ryancramerdesign/ProcessWire/issues/1487
-				xhr.setRequestHeader("X-FILENAME", unescape(encodeURIComponent(file.name)));
+				//see:https://github.com/ryancramerdesign/ProcessWire/issues/1487
+				//xhr.setRequestHeader("X-FILENAME", unescape(encodeURIComponent(file.name)));
+				xhr.setRequestHeader("X-FILENAME", encodeURIComponent(file.name));
 				xhr.setRequestHeader("X-FIELDNAME", fieldName);
 				xhr.setRequestHeader("Content-Type", "application/octet-stream"); // fix issue 96-Pete
 				xhr.setRequestHeader("X-" + postTokenName, postTokenValue);
