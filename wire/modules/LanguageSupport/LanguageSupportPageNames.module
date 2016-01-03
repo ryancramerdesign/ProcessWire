@@ -687,7 +687,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 			$database->exec("ALTER TABLE pages DROP $name"); 
 			$database->exec("ALTER TABLE pages DROP $status"); 
 		} catch(\Exception $e) {
-			$this->error($e->getMessage(), Notice::log); 
+			// $this->error($e->getMessage(), Notice::log); // error message can be ignored here
 		}
 	}
 

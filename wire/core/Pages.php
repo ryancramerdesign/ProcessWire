@@ -1965,7 +1965,8 @@ class Pages extends Wire {
 	public function uncacheAll(Page $page = null) {
 	
 		$this->pageFinder = null;
-		$language = $this->wire('languages') ? $this->wire('user')->language : null;
+		$user = $this->wire('user');
+		$language = $this->wire('languages') ? $user->language : null;
 
 		unset($this->sortfields); 
 		$this->sortfields = $this->wire(new PagesSortfields());
@@ -1973,6 +1974,7 @@ class Pages extends Wire {
 		if($this->config->debug) $this->debugLog('uncacheAll', 'pageIdCache=' . count($this->pageIdCache) . ', pageSelectorCache=' . count($this->pageSelectorCache)); 
 
 		foreach($this->pageIdCache as $id => $page) {
+			if($id == $user->id || ($language && $language->id == $id)) continue;
 			if(!$page->numChildren) $this->uncache($page); 
 		}
 
@@ -1981,8 +1983,6 @@ class Pages extends Wire {
 
 		Page::$loadingStack = array();
 		Page::$instanceIDs = array(); 
-		
-		if($language) $this->wire('user')->language = $language;
 	}
 
 	/**
