@@ -1457,7 +1457,7 @@ class Pages extends Wire {
 			$query->execute();
 			list($id) = $query->fetch(\PDO::FETCH_NUM); 
 			$id = (int) $id; 
-			if(!$id) break;
+			if($id < 2) break; // no need to record 1 for every page, since it is assumed
 			$insertSql .= "($pages_id, $id),";
 			$cnt++; 
 
