@@ -139,7 +139,7 @@ abstract class Wire implements WireTranslatable, WireFuelable, WireTrackable {
 	}
 	
 	/**
-	 * Should fuel vars be scoped locally to this class instance?
+	 * Should fuel vars be scoped locally to this class instance? (internal use only)
 	 *
 	 * If so, you can do things like $this->apivar.
 	 * If not, then you'd have to do $this->wire('apivar').
@@ -151,7 +151,6 @@ abstract class Wire implements WireTranslatable, WireFuelable, WireTrackable {
 	 *
 	 * @param bool $useFuel Optional boolean to turn it on or off.
 	 * @return bool Current value of $useFuel
-	 * @internal
 	 *
 	 */
 	public function useFuel($useFuel = null) {

@@ -16,15 +16,18 @@
  *
  * @property int $id The numbered ID of the current page
  * @property string $name The name assigned to the page, as it appears in the URL
+ * @property string $namePrevious Previous name, if changed. Blank if not. 
  * @property string $title The page's title (headline) text
  * @property string $path The page's URL path from the homepage (i.e. /about/staff/ryan/)
  * @property string $url The page's URL path from the server's document root (may be the same as the $page->path)
  * @property string $httpUrl Same as $page->url, except includes protocol (http or https) and hostname.
  * @property Page|string|int $parent The parent Page object or a NullPage if there is no parent. For assignment, you may also use the parent path (string) or id (integer). 
+ * @property Page|null $parentPrevious Previous parent, if parent was changed.
  * @property int $parent_id The numbered ID of the parent page or 0 if homepage or NullPage.
  * @property PageArray $parents All the parent pages down to the root (homepage). Returns a PageArray.
  * @property Page $rootParent The parent page closest to the homepage (typically used for identifying a section)
  * @property Template|string $template The Template object this page is using. The template name (string) may also be used for assignment.
+ * @property Template|null $templatePrevious Previous template, if template was changed. 
  * @property FieldsArray $fields All the Fields assigned to this page (via it's template, same as $page->template->fields). Returns a FieldsArray.
  * @property int $numChildren The number of children (subpages) this page has, with no exclusions (fast).
  * @property int $numVisibleChildren The number of visible children (subpages) this page has. Excludes unpublished, no-access, hidden, etc.
@@ -42,17 +45,18 @@
  * @property User $modifiedUser The user that last modified this page. Returns a User or a NullUser.
  * @property PagefilesManager $filesManager
  * @property bool $outputFormatting Whether output formatting is enabled or not. 
- * @property Page|null $parentPrevious Previous parent, if changed. Null if not. 
- * @property Template|null $templatePrevious Previous template, if changed. Null if not. 
- * @property string $namePrevious Previous name, if changed. Blank if not. 
  * @property int $sort Sort order of this page relative to siblings (applicable when manual sorting is used).  
  * @property string $sortfield Field that a page is sorted by relative to its siblings (default=sort, which means drag/drop manual)
  * @property null|array _statusCorruptedFields Field names that caused the page to have Page::statusCorrupted status. 
  * @property int $status Page status flags
+ * @property int|null $statusPrevious Previous status, if status was changed. 
  * @property string statusStr Returns space-separated string of status names active on this page.
  * @property Fieldgroup $fieldgroup Shorter alias for $page->template->fieldgroup
  * @property string $editUrl
  * @property string $editURL
+ * 
+ * @property bool|null $_hasAutogenName Internal runtime use, set by Pages class when page as auto-generated name.
+ * @property bool|null $_forceSaveParents Internal runtime/debugging use, force a page to refresh its pages_parents DB entries on save().
  * 
  * Methods added by PageRender.module: 
  * -----------------------------------
@@ -78,7 +82,7 @@
  * 
  * Methods added by ProDrafts.module (if installed)
  * ------------------------------------------------
- * @method ProDraft|int|string|Page|array draft($key = null, $value = null)
+ * @method ProDraft|\ProDraft|int|string|Page|array draft($key = null, $value = null)
  * 
  * Hookable methods
  * ----------------
@@ -87,7 +91,7 @@
  * @method void loaded() Called when page is loaded.
  * @method void setEditor(WirePageEditor $editor)
  * @method string getIcon()
- * @method getMarkup($key) Return the markup value for a given field name or {tag} string.
+ * @method string getMarkup($key) Return the markup value for a given field name or {tag} string.
  *
  */
 
@@ -442,6 +446,7 @@ class Page extends WireData implements \Countable, WireMatchable {
 		}
 
 		switch($key) {
+			/** @noinspection PhpMissingBreakStatementInspection */
 			case 'id':
 				if(!$this->isLoaded) Page::$loadingStack[(int) $value] = $this;
 				// no break is intentional
@@ -515,6 +520,7 @@ class Page extends WireData implements \Countable, WireMatchable {
 				break;
 			case 'pageNum':
 				// note: pageNum is deprecated, use $input->pageNum instead
+				/** @noinspection PhpDeprecationInspection */
 				$this->pageNum = ((int) $value) > 1 ? (int) $value : 1; 
 				break;
 			case 'instanceID': 
@@ -825,6 +831,7 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 *
 	 */
 	public function ___getUnknown($key) {
+		// $key unused is intentional, for access by hooks
 		return null;
 	}
 
@@ -966,8 +973,6 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 */
 	public function ___getMarkup($key) {
 		
-		$value = '';
-		
 		if(strpos($key, '{') !== false && strpos($key, '}')) {
 			// populate a string with {tags}
 			// note that the wirePopulateStringTags() function calls back on this method
@@ -1002,7 +1007,7 @@ class Page extends WireData implements \Countable, WireMatchable {
 			
 			if($value instanceof Page) {
 				$value = $value->getFormatted($name);
-			} else if($value instanceof Wire) {
+			} else if($value instanceof WireData) {
 				$value = $value->get($name);
 			} else {
 				$value = $value->$name;
@@ -1296,7 +1301,7 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 * Return this page's parent Page, or the closest parent matching the given selector.
 	 *
 	 * @param string $selector Optional selector string. When used, it returns the closest parent matching the selector. 
-	 * @return Page|NullPage Returns a Page or a NullPage when there is no parent or the selector string did not match any parents.
+	 * @return Page Returns a Page or a NullPage when there is no parent or the selector string did not match any parents.
 	 *
 	 */
 	public function parent($selector = '') {
@@ -1697,11 +1702,10 @@ class Page extends WireData implements \Countable, WireMatchable {
 	}
 
 	/**
-	 * Get the output TemplateFile object for rendering this page
+	 * Get the output TemplateFile object for rendering this page (internal use only)
 	 *
 	 * You can retrieve the results of this by calling $page->out or $page->output
 	 *
-	 * @internal This method is intended for internal use only, not part of the public API. 
 	 * @param bool $forceNew Forces it to return a new (non-cached) TemplateFile object (default=false)
 	 * @return TemplateFile
 	 *
@@ -1918,9 +1922,8 @@ class Page extends WireData implements \Countable, WireMatchable {
 	}
 
 	/**
-	 * Set the value for isNew, i.e. doesn't exist in the DB
+	 * Set the value for isNew, i.e. doesn't exist in the DB (internal use only)
 	 *
-	 * @internal
 	 * @param bool @isNew
 	 * @return $this
 	 *
@@ -1931,12 +1934,11 @@ class Page extends WireData implements \Countable, WireMatchable {
 	}
 
 	/**
-	 * Set that the Page is fully loaded
+	 * Set that the Page is fully loaded (internal use only)
 	 *
 	 * Pages::getById sets this once it has completed loading the page
 	 * This method also triggers the loaded() method that hooks may listen to
 	 *
-	 * @internal
 	 * @param bool $isLoaded
 	 * @return $this
 	 *

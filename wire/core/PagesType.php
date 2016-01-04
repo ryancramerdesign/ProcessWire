@@ -9,6 +9,17 @@
  * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
  * https://processwire.com
  *
+ * @method Page add($name)
+ * @method bool save(Page $page)
+ * @method bool delete(Page $page, $recursive = false)
+ * 
+ * @method saveReady(Page $page)
+ * @method saved(Page $page, array $changes = array(), $values = array())
+ * @method added(Page $page)
+ * @method deleteReady(Page $page)
+ * @method deleted(Page $page)
+ * 
+ *
  */
 
 class PagesType extends Wire implements \IteratorAggregate, \Countable {
@@ -58,6 +69,7 @@ class PagesType extends Wire implements \IteratorAggregate, \Countable {
 	/**
 	 * Construct this PagesType manager for the given parent and template
 	 *
+	 * @param ProcessWire $wire
 	 * @param Template|int|string|array $templates Template object or array of template objects, names or IDs
 	 * @param int|Page|array $parents Parent ID or array of parent IDs (may also be Page or array of Page objects)
 	 *
@@ -113,6 +125,8 @@ class PagesType extends Wire implements \IteratorAggregate, \Countable {
 				$id = $parent->id;
 			} else if(is_object($parent) && $parent instanceof Page) {
 				$id = $parent->id;
+			} else {
+				$id = 0;
 			}
 			if($id) {
 				$this->parents[$id] = $id;
@@ -187,7 +201,7 @@ class PagesType extends Wire implements \IteratorAggregate, \Countable {
 		}
 	
 		if(!$validParent && count($this->parents)) {
-			$validParents = impode(', ', $this->parents);
+			$validParents = implode(', ', $this->parents);
 			$this->error("Page $page->path must have parent: $validParents");
 			return false;
 		}
@@ -227,6 +241,7 @@ class PagesType extends Wire implements \IteratorAggregate, \Countable {
 		if(!isset($options['loadOptions'])) $options['loadOptions'] = array();
 		$options['loadOptions'] = $this->getLoadOptions($options['loadOptions']); 
 		$pages = $this->wire('pages')->find($this->selectorString($selectorString), $options);
+		/** @var PageArray $pages */
 		foreach($pages as $page) {
 			if(!$this->isValid($page)) {
 				$pages->remove($page);
