@@ -432,7 +432,7 @@ class WireFileTools extends Wire {
 		$t = new TemplateFile();
 		$t->setThrowExceptions($options['throwExceptions']);
 		$t->setFilename($filename);
-		
+
 		foreach($vars as $key => $value) {
 			$t->set($key, $value);
 		}
