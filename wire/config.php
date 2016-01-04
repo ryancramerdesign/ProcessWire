@@ -320,32 +320,40 @@ $config->templateExtension = 'php';
 /**
  * Directory mode
  *
- * Octal string permissions assigned to directories created by ProcessWire
- * This value should always be overwritten by site-specific settings as 0777 
- * is too open for many installations. Note that changing this does not change 
- * permissions for existing directories, only newly created directories. 
+ * Octal string permissions assigned to directories created by ProcessWire.
+ * Please avoid 0777 if at all possible as that is too open for most installations. 
+ * Note that changing this does not change permissions for existing directories, 
+ * only newly created directories. 
  * 
  * #notes See [chmod man page](http://ss64.com/bash/chmod.html).
  * #pattern /^0[0-9]{3}$/
  * @var string
  *
  */
-$config->chmodDir = "0777";
+$config->chmodDir = "0755";
 
 /**
  * File mode
  *
- * Octal string permissions assigned to files created by ProcessWire
- * This value should always be overwritten by site-specific settings as 0666
- * is too open for many installations. Note that changing this does not change
- * permissions for existing files, only newly created/uploaded files.
+ * Octal string permissions assigned to files created by ProcessWire.
+ * Please avoid 0666 if at all possible as that is too open for most installations. 
+ * Note that changing this does not change permissions for existing files, only newly 
+ * created/uploaded files.
  * 
  * #notes See [chmod man page](http://ss64.com/bash/chmod.html).
  * #pattern /^0[0-9]{3}$/
  * @var string
  *
  */
-$config->chmodFile = "0666";
+$config->chmodFile = "0644";
+
+/**
+ * Set this to false if you want to suppress warnings about 0666/0777 permissions that are too open
+ * 
+ * @var bool 
+ * 
+ */
+$config->chmodWarn = true;
 
 /**
  * Bad file extensions for uploads

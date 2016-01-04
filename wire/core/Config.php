@@ -41,6 +41,7 @@
  * 
  * @property string $chmodDir Octal string permissions assigned to directories created by ProcessWire
  * @property string $chmodFile Octal string permissions assigned to files created by ProcessWire
+ * @property bool $chmodWarn Set to false to suppress warnings about 0666/0777 file permissions that are potentially too loose
  * 
  * @property string $timezone Current timezone using PHP timeline options: http://php.net/manual/en/timezones.php
  * 

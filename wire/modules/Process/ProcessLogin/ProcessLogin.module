@@ -128,7 +128,7 @@ class ProcessLogin extends Process {
 		if($this->wire('input')->post('login_submit')) {
 			$this->form->processInput($this->wire('input')->post);
 		} else if($this->isAdmin) {
-			$this->beforeLoginChecks();
+			$this->beforeLogin();
 		}
 
 		if(!$this->nameField->attr('value') || !$this->passField->attr('value')) {
@@ -144,13 +144,12 @@ class ProcessLogin extends Process {
 				$this->session->set('hidpi', $this->wire('input')->post->login_hidpi ? true : false);
 				$this->session->set('touch', $this->wire('input')->post->login_touch ? true : false);
 				$this->session->remove('error');
-				$this->afterLoginChecks();
+				$this->afterLogin();
 			}
 			$this->session->redirect("./?login=1" . ($this->id ? "&id={$this->id}" : ''));  
 		} else {
 			$this->error($name . " - " . $this->_("Login failed")); 
 		}
-		$this->message('hello');
 
 		return $this->renderLoginForm();
 
@@ -180,7 +179,7 @@ class ProcessLogin extends Process {
 	 * Happens only on the admin login form. 
 	 *
 	 */
-	protected function beforeLoginChecks() {
+	protected function ___beforeLogin() {
 		
 		// if checks already completed don't run them again
 		if($this->wire('session')->get($this, 'beforeLoginChecks')) return;
@@ -230,20 +229,18 @@ class ProcessLogin extends Process {
 			}
 		}
 		
-		if($this->wire('fields')->get('published')) {
-			$this->error("Warning: you have a field named 'published' that conflicts with the page 'published' property. Please rename your field field to something else and update any templates referencing it.");
-		}
-		
 		$this->wire('session')->set($this, 'beforeLoginChecks', 1); 
 	}
 
 	/**
-	 * After login, notify admin if there are any issues that need their attention
-	 * 
+	 * Hook called after login
+	 *
+	 * @todo: move the following elsewhere out of this class: 
+	 * Notify admin if there are any issues that need their attention.
 	 * Happens only on the admin login form after superuser login. 
 	 *
 	 */
-	protected function afterLoginChecks() {
+	protected function ___afterLogin() {
 		if(!$this->user->isSuperuser()) return;
 
 		$indexVersion = ProcessWire::indexVersion; 
@@ -281,6 +278,27 @@ class ProcessLogin extends Process {
 				"and first-time use errors may be suppressed. Installed at: " . 
 				"[{$this->config->paths->root}]";
 			file_put_contents($file, $data); 
+		}
+	
+		// warnings about 0666/0777 file permissions
+		if($this->config->chmodWarn && ($this->config->chmodDir == '0777' || $this->config->chmodFile == '0666')) {
+			$warning = 
+				$this->_('Warning, your /site/config.php specifies file permissions that are too loose for many environments:') . '<br />' . 
+				"<span style='font-family:monospace'>" . 
+				"\$config->chmodFile = '{$this->config->chmodFile}';<br />" . 
+				"\$config->chmodDir = '{$this->config->chmodDir}';" . 
+				"</span><br /><i class='fa fa-angle-right'></i> " . 
+				"<a href='https://processwire.com/docs/security/file-permissions/' target='_blank'>" . 
+				$this->_('Read "Securing file permissions" for more details') . "</a><br />" . 
+				"<small class='ui-priority-secondary'>" . 
+				$this->_('To suppress this warning, set $config->chmodWarn = false; in your /site/config.php file.') . 
+				"</small>";
+			$warning = str_replace(array('0666', '0777'), array('<u>0666</u>', '<u>0777</u>'), $warning);
+			$this->warning($warning, Notice::allowMarkup | Notice::log);
+		}
+		
+		if($this->wire('fields')->get('published')) {
+			$this->error("Warning: you have a field named 'published' that conflicts with the page 'published' property. Please rename your field field to something else and update any templates referencing it.");
 		}
 
 	}
