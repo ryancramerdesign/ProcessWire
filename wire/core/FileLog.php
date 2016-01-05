@@ -423,10 +423,11 @@ class FileLog extends Wire {
 	 * Prune log file to specified number of bytes (from the end)
 	 * 
 	 * @param int $bytes
+	 * @param bool $split
 	 * @return int|bool positive integer on success, 0 if no prune necessary, or boolean false on failure.
 	 * 
 	 */
-	public function pruneBytes($bytes) {
+	public function pruneBytes($bytes, $split = false) {
 
 		$filename = $this->logFilename; 
 
@@ -450,7 +451,7 @@ class FileLog extends Wire {
 		fclose($fpr); 
 
 		if($cnt) {
-			unlink($filename); 
+			$split? rename($filename,  $this->path.date('ymdhis').'-'.substr(strrchr($filename, "/"), 1)):unlink($filename); 
 			rename("$filename.new", $filename);
 			$this->wire('files')->chmod($filename); 
 		} else {
