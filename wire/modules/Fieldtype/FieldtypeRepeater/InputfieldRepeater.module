@@ -5,12 +5,12 @@
  *
  * Maintains a collection of fields that are repeated for any number of times.
  *
- * For documentation about how Fieldtypes work, see: 
- * /wire/core/Fieldtype.php
- * /wire/core/FieldtypeMulti.php
- * 
  * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
  * https://processwire.com
+ * 
+ * @property int $repeaterMaxItems
+ * 
+ * @method string renderRepeaterLabel($label, $cnt, Page $page)
  *
  *
  */
@@ -21,7 +21,7 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 		return array(
 			'title' => __('Repeater', __FILE__), // Module Title
 			'summary' => __('Repeats fields from another template. Provides the input for FieldtypeRepeater.', __FILE__), // Module Summary
-			'version' => 102,
+			'version' => 103,
 			'requires' => 'FieldtypeRepeater',
 			);
 	}
@@ -40,21 +40,35 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 
 	/**
 	 * The page that the repeaters field lives on, set by FieldtypeRepeater::getInputfield
+	 * 
+	 * @var Page
 	 *
 	 */
-	protected $page = null;
+	protected $page;
 
 	/**
 	 * The field this InputfieldRepeater is serving, set by FieldtypeRepeater::getInputfield
+	 * 
+	 * @var Field
 	 *
 	 */
-	protected $field = null;
+	protected $field;
 
 	/**
 	 * Cached form containing the repeaters
+	 * 
+	 * @var InputfieldWrapper
 	 *
 	 */
-	protected $form = null;
+	protected $form;
+
+	/**
+	 * All Inputfield classes (strings) used by the Inputfield
+	 * 
+	 * @var array
+	 * 
+	 */
+	protected $inputfieldClasses = array();
 
 	/**
 	 * Set config defaults
@@ -64,7 +78,6 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 		parent::__construct();
 		// these are part of the Fieldtype's config, and automatically set from it
 		$this->set('repeaterMaxItems', 0); 
-		$this->set('repeaterReadyItems', 0); 
 	}
 
 	/**
@@ -80,23 +93,107 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 	/**
 	 * Render the repeater label
 	 * 
-	 * Added by @netcarver so that label generation can be hookable
-	 * 
-	 * @param string $label Label
+	 * @param string $label Default label
 	 * @param int $cnt Item index (1-based)
 	 * @param Page $page Repeater item
 	 * @return string
 	 *
 	 */
 	public function ___renderRepeaterLabel($label, $cnt, Page $page) {
-		return "$label #" . $cnt;
+		
+		$out = '';
+		$repeaterTitle = $this->field ? $this->field->get('repeaterTitle') : '';
+		
+		if($page->id && $repeaterTitle) {
+			// custom repeater titles specified
+			
+			if($this->wire('sanitizer')->fieldName($repeaterTitle) === $repeaterTitle) {
+				// just a single field name
+				$value = $page->getFormatted($repeaterTitle);
+				if(is_object($value)) {
+					if($value instanceof Page) {
+						$out = $value->get('title|name');
+					} else if($value instanceof PageArray) {
+						$out = $value->implode(', ');
+					} else {
+						$out = (string) $value;
+					}
+				}
+			} else {
+				// formatted {label}
+				$out = $page->getMarkup($repeaterTitle);
+			}
+			
+			$out = strip_tags(trim($out));
+		
+			// update index numbers?
+			if(stripos($out, '#n') !== false) {
+				// replace "#n" with index number of repeater item
+				$out = preg_replace('/#n\b/i', "#$cnt", $out);
+			} else {
+				// otherwise remove any pound signs so the JS side doesn't detect them
+				$out = str_replace('#', '', $out); 
+			}
+		}
+		
+		if(!strlen($out)) {
+			// fallback to default
+			if(!strlen($label)) $label = $this->field->getLabel();
+			$out = "$label #" . $cnt;
+		}
+	
+		// note {brackets} surround text that will be visually muted from the JS side
+		if(!$page->id) {
+			// non-editable new item
+			$out .= ' {• ' . $this->_('This item will become editable after you save.') . '}';
+		} else if($page->isUnpublished() && $page->hasStatus(Page::statusOn)) {
+			// editable new item
+			$out .= ' {• ' . $this->_('New') . '}';
+		}
+		
+		return $out;
 	}
 
 	/**
-	 * Build and cache the form containing the repeaters
+	 * Get the repeater item type (if used)
+	 * 
+	 * @param Page $page
+	 * @return int
+	 * 
+	 */
+	protected function getRepeaterItemType(Page $page) {
+		return 1;
+	}
+
+	/**
+	 * Preload all assets used by Inputfields of this type
+	 * 
+	 * This ensures all required JS/CSS files are loaded in the original/non-ajax request.
+	 * This should be called only when needed, like if there are 0 items in the repeater 
+	 * when ajax-add support enabled.
+	 * 
+	 * @param array $fieldIDs Optionally specify the IDs of the Field objects you want to limit preload to.
+	 * 
+	 */
+	protected function preloadInputfieldAssets($fieldIDs = array()) {
+		if(empty($fieldIDs)) $fieldIDs = $this->field->get('repeaterFields');
+		foreach($fieldIDs as $fieldID) {
+			$field = $this->wire('fields')->get($fieldID);
+			try {
+				// the following forces assets to be loaded
+				$inputfield = $field->getInputfield($this->page);
+				$inputfield->renderReady(null, false);
+			} catch(\Exception $e) {
+				$this->warning("Repeater '$this->name' preload '$field': " . $e->getMessage(), Notice::debug);
+			}
+		}
+	}
+
+	/**
+	 * Build the form containing the repeaters
 	 *
 	 * @return InputfieldWrapper
-	 * @throws WireException
+	 * @throws WireException if $this->page or $this->field are set incorrectly
 	 *
 	 */
 	protected function buildForm() {
@@ -105,19 +202,23 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 		if(!is_null($this->form)) return $this->form; 
 
 		// if required fields don't exist then exit
-		if(!$this->field || !$this->field->type instanceof FieldtypeRepeater) throw new WireException("You must set a 'field' (type Field) property to {$this->className} and the Fieldtype must be FieldtypeRepeater"); 
-		if(!$this->page || !$this->page->id) throw new WireException("You must set a 'page' (type Page) property to {$this->className} that has a repeater field assigned to its template"); 
+		if(!$this->field || !$this->field->type instanceof FieldtypeRepeater) {
+			throw new WireException("You must set a 'field' (type Field) property to {$this->className} of FieldtypeRepeater");
+		}
+		if(!$this->page || !$this->page->id) {
+			throw new WireException("You must set a 'page' (type Page) property to {$this->className} with repeater field '$this->name'");
+		}
 
-		$out = '';
+		/** @var InputfieldWrapper $form */
 		$form = $this->wire(new InputfieldWrapper());
+		/** @var PageArray $value */
 		$value = $this->attr('value'); 
-		$language = $this->wire('user')->language; 
-		$languages = $this->wire('languages'); 
-
-		// locate and remove any unpublished+hidden items so we can ensure they are at the end
+	
+		/*
+		// locate and remove any unpublished+hidden items so we can remove them
 		$appendItems = array();
 		foreach($value as $key => $page) {
-			if($page->hasStatus(Page::statusUnpublished) && $page->hasStatus(Page::statusHidden)) {
+			if($page->isUnpublished() && $page->isHidden()) {
 				$value->remove($page); 
 				$appendItems[] = $page; 
 			}
@@ -128,25 +229,28 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 			$value->import($appendItems); 
 			$value->resetTrackChanges(true); 
 		}	
-
-		$blankPage = $this->field->type->getBlankRepeaterPage($this->page, $this->field); 
-		$template = $blankPage->template; 
+		*/
 
 		// get field label in user's language if available
-		$key = ($languages && $language && $language->id ? "label{$language->id}" : "label");
-		$label = $this->field->get($key); 
-		if(!$label) $label = $this->field->label;
+		$label = $this->field->getLabel();
 		if(!$label) $label = ucfirst($this->field->name); 
 
 		$cnt = 0;
-	
+		
 		// create field for each repeater iteration	
 		foreach($value as $key => $page) {
+			
+			/** @var Page $page */
+			$isUnpublished = $page->isUnpublished();
+			$isHidden = $page->isHidden();
+			$isOn = $page->hasStatus(Page::statusOn);
+			$isReadyItem = $isHidden && $isUnpublished;
 
 			// get the inputfields for the repeater page
 			$inputfields = $page->template->fieldgroup->getPageInputfields($page, "_repeater{$page->id}");
-			$this->wrappers[$page->id] = $inputfields; 
-
+			$inputfields->set('useDependencies', false);
+			$this->wrappers[$page->id] = $inputfields;
+			
 			// also add a delete checkbox to the repeater page fields
 			$delete = $this->wire('modules')->get('InputfieldCheckbox'); 
 			$delete->attr('id+name', "delete_repeater{$page->id}"); 
@@ -162,47 +266,58 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 
 			$wrap = $this->wire('modules')->get('InputfieldFieldset'); 
 			$wrap->addClass('InputfieldRepeaterItem');
-			$wrap->label = $this->renderRepeaterLabel($label, ++$cnt, $page); 
+			$wrap->label = $this->renderRepeaterLabel($label, ++$cnt, $page);
+			$wrap->wrapAttr('data-page', $page->id);
+			$wrap->wrapAttr('data-type', $this->getRepeaterItemType($page));
+			$wrap->set('useDependencies', false);
+			
+			$repeaterCollapse = (int) $this->field->get('repeaterCollapse');
+			if($repeaterCollapse == 2 && !$page->get('_repeater_new') && !$isHidden) {
+				$wrap->collapsed = Inputfield::collapsedYes;
+			} else if($repeaterCollapse == 1) {
+				$wrap->collapsed = Inputfield::collapsedYes;
+			}
+			
+			$hasErrors = count($inputfields->getErrors()) > 0; 
+			if($hasErrors) $wrap->icon = 'warning';
 
 			// add a hidden field that will be populated with a positive value for all visible repeater items
 			// this is so that processInput can see this item should be a published item
 			$f = $this->wire('modules')->get('InputfieldHidden');
 			$f->attr('name', "publish_repeater{$page->id}"); 
 			$f->attr('class', 'InputfieldRepeaterPublish'); 
-			$f->attr('value', $page->hasStatus(Page::statusHidden) ? 0 : 1); 
+			
+			if($isReadyItem) {
+				// ready item
+				$f->attr('value', 0);
+			} else if($isUnpublished && !$isOn) {
+				// unpublished item
+				$f->attr('value', -1);
+			} else {
+				// published item
+				$f->attr('value', 1);
+			}
+			
 			$wrap->add($f); 
 
-			if($page->hasStatus(Page::statusHidden)) {
-				$wrap->addClass('InputfieldRepeaterReady');
-				$wrap->label .= ' - ' . $this->_('New');
-
-				// add a hidden field that will be removed upon revealing it with JS
-				// this is so fields can have default values (like Datetime today's date)
-				$f = $this->wire('modules')->get('InputfieldHidden');
-				$f->attr('name', "_disable_repeater{$page->id}"); 
-				$f->attr('class', 'InputfieldRepeaterDisabled'); 
-				$f->attr('value', $page->id); 
-				$wrap->add($f); 
-
-
-			} else if($page->hasStatus(Page::statusUnpublished)) {
-				$wrap->label .= ' - ' . $this->_('Unpublished');
+			if($isUnpublished) {
+				$wrap->addClass('InputfieldRepeaterUnpublished');
+				if(!$isOn) $wrap->addClass('InputfieldRepeaterOff');
 			}
-
+		
 			$wrap->add($inputfields); 
 			$wrap->prepend($delete); 
 			$wrap->prepend($sort);
-			$form->add($wrap); 
-
+			
+			if(!$isReadyItem) $form->add($wrap);
 			$this->labels[$page->id] = $wrap->label;
 		}	
 
 		// create a new/blank item to be used as a template for any new items added
-		$wrap = $this->wire('modules')->get('InputfieldFieldset'); 
-		$wrap->label = $this->renderRepeaterLabel($label, ++$cnt, new NullPage()); 
-		$wrap->description = $this->_('This item will become editable after you save.');
+		$wrap = $this->wire('modules')->get('InputfieldFieldset');
+		$wrap->label = $this->renderRepeaterLabel($label, ++$cnt, new NullPage());
 		$wrap->class = 'InputfieldRepeaterItem InputfieldRepeaterNewItem';
-		$wrap->collapsed = Inputfield::collapsedNo; 
+		$wrap->collapsed = Inputfield::collapsedNo;
 		$form->add($wrap);
 
 		// cache
@@ -212,39 +327,135 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 	}
 
 	/**
+	 * Get next page ready to be used as new item
+	 * 
+	 * @param array $notIDs Page IDs that we won't allow for the new item (because already rendered)
+	 * @return Page
+	 * 
+	 */
+	protected function getNextReadyPage(array $notIDs) {
+		/** @var FieldtypeRepeater $fieldtype */
+		$fieldtype = $this->field->type;
+		/** @var PageArray $value */
+		$value = $this->attr('value');
+		$readyPage = $fieldtype->getNextReadyPage($this->page, $this->field, $value, $notIDs);
+		return $readyPage;
+	}
+
+	/**
+	 * Render a new item for ajax after 'add new' link clicked
+	 * 
+	 * @return string
+	 * 
+	 */
+	public function renderAjaxNewItem() {
+
+		/** @var PageArray $value */
+		$value = $this->attr('value');
+		$notIDs = $this->wire('sanitizer')->intArray(explode(',', trim($this->wire('input')->get('repeater_not'), ',')));
+		$readyPage = $this->getNextReadyPage($notIDs);
+		$readyPage->removeStatus(Page::statusHidden);
+		
+		// ensure editing page doesn't get saved (just in case) since we're removing all items
+		$this->page->addStatus(Page::statusCorrupted); 
+		
+		$value->removeAll();
+		$value->add($readyPage);
+		
+		return $this->buildForm()->render();
+	}
+
+	/**
+	 * Render the "add new" repeater label
+	 * 
+	 * @return mixed|string
+	 * @throws WireException
+	 * 
+	 */
+	protected function renderAddLabel() {
+		$addLabel = $this->field->get('repeaterAddLabel');
+		if($this->wire('languages'))  {
+			$language = $this->wire('user')->language;
+			if(!$language->isDefault()) {
+				$addLabel = $this->field->get("repeaterAddLabel$language");
+			}
+		}
+		if(!strlen($addLabel)) $addLabel = $this->_('Add New');
+		return $addLabel;
+	}
+
+	/**
+	 * Called before render() or renderValue() method by InputfieldWrapper, before Inputfield-specific CSS/JS files added
+	 *
+	 * @param Inputfield|InputfieldWrapper|null The parent Inputfield/wrapper that is rendering it or null if no parent.
+	 * @param bool $renderValueMode Whether renderValueMode will be used.
+	 * @return bool
+	 *
+	 */
+	public function renderReady(Inputfield $parent = null, $renderValueMode = false) {
+		$this->preloadInputfieldAssets();	
+		return parent::renderReady($parent, $renderValueMode);
+	}
+
+	/**
 	 * Render the repeater items
+	 * 
+	 * @return string
 	 *
 	 */
 	public function ___render() {
+	
+		$input = $this->wire('input');
+		$noAjaxAdd = $this->field->get('noAjaxAdd') ? '1' : '';
+		$ajax = $this->wire('config')->ajax;
+		
+		if($ajax && !$noAjaxAdd && $input->get('repeater_add') && $input->get('field') == $this->attr('name')) {
+			return $this->renderAjaxNewItem();
+		}
 
 		// a hidden checkbox with link that we use to identify when items have been added
-		$out = 	"\n<p class='InputfieldRepeaterAddItem'>" . 
-			"\n\t<input type='text' name='_{$this->name}_add_items' value='0' />" . 
-			"\n\t<a href='#' class='InputfieldRepeaterAddLink'><i class='fa fa-plus-circle'></i> " . $this->_('Add Item') . "</a>" . 
-			"\n</p>";
+		$out = 	
+			"<p class='InputfieldRepeaterAddItem'>" . 
+				"<input class='InputfieldRepeaterAddItemsQty' type='text' name='_{$this->name}_add_items' value='0' />" . // noAjaxAdd
+				"<a href='#' data-type='1' class='InputfieldRepeaterAddLink' data-noajax='$noAjaxAdd'>" . 
+					"<i class='fa fa-fw fa-plus-circle InputfieldRepeaterSpinner' " . 
+						"data-on='fa-spin fa-spinner' data-off='fa-plus-circle'></i>" . 
+					$this->renderAddLabel() . 
+				"</a>" . 
+			"</p>";
 
 		return $this->buildForm()->render() . $out; 
 	}
 
 	/**
 	 * Process the input from a submitted repeaters field
+	 * 
+	 * @param WireInputData $input
+	 * @return $this
 	 *
 	 */
 	public function ___processInput(WireInputData $input) {
-
+	
 		$this->buildForm();
-
-		$value = $this->attr('value'); // PageArray	
+		
+		/** @var PageArray $value */
+		$value = $this->attr('value'); 
 		$numChanges = 0;
 		$sortChanged = false;
 		$value->setTrackChanges(true);
+		$pageIDs = array();
 
 		// existing items
 		foreach($value as $key => $page) {
-
+			
+			/** @var Page $page */
+			$isHidden = $page->isHidden();
+			$isUnpublished = $page->isUnpublished();
+			$isOn = $page->hasStatus(Page::statusOn);
+	
+			$pageIDs[] = $page->id;
 			$deleteName = "delete_repeater{$page->id}";
 			$sortName = "sort_repeater{$page->id}";
-			$disabledName = "_disable_repeater{$page->id}";
 			$publishName = "publish_repeater{$page->id}";
 
 			if($input->$deleteName == $page->id) {
@@ -253,27 +464,43 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 				continue; 
 			}
 
-			// skip items disabled/hidden (ready items)
-			if($input->$disabledName == $page->id) {
-				$page->resetTrackChanges(false);
-				continue; 
-			}
-
-			if($input->$publishName > 0 && $page->hasStatus(Page::statusHidden)) {
-				$page->removeStatus(Page::statusHidden | Page::statusUnpublished); 
-			}
-
-			$page->sort = (int) $input->$sortName;
+			$sort = $input->$sortName;
+			// skip pages that don't appear in the POST data (most likely ready pages)
+			if(is_null($sort)) continue; 
+			
+			$page->sort = (int) $sort;
 			if($page->isChanged('sort')) {
-				$this->message("Sort changed for field {$this->field} page {$page->id}", Notice::debug); 
+				// $this->message("Sort changed for field {$this->field} page {$page->id}", Notice::debug); 
 				$sortChanged = true; 
 			}
-
+			
+			/** @var InputfieldWrapper $wrapper */
 			$wrapper = $this->wrappers[$page->id]; 
 			$wrapper->resetTrackChanges(true); 
-			$wrapper->processInput($input); 
-
-			$this->formToPage($wrapper, $page); 
+			$wrapper->processInput($input);
+			
+			$numErrors = count($wrapper->getErrors());
+			$page->setQuietly('_repeater_errors', $numErrors); // signal to FieldtypeRepeater::savePageField() that page has errors
+			$page->setQuietly('_repeater_processed', true); // signal to FieldtypeRepeater::savePageField() that page had input processed
+			$this->formToPage($wrapper, $page);
+			$publish = (int) $input->$publishName;
+			
+			if($publish > 0 && ($isHidden || $isUnpublished)) {
+				// publish requested (publish=1)
+				if($isHidden) $page->removeStatus(Page::statusHidden);
+				if(!$numErrors && $isUnpublished) $page->removeStatus(Page::statusUnpublished);
+				if(!$isOn) $page->addStatus(Page::statusOn);
+				
+			} else if($publish < 0) {
+				// unpublish requested (publish=-1)
+				if($isOn) $page->removeStatus(Page::statusOn);
+				if($isHidden) $page->removeStatus(Page::statusHidden);
+				if(!$isUnpublished) $page->addStatus(Page::statusUnpublished);
+				
+			} else if(!$isOn) {
+				// no publish change requested, just ensure page is on
+				$page->addStatus(Page::statusOn);
+			}
 
 			if($page->isChanged() && $this->page->id) $numChanges++;
 		}
@@ -284,26 +511,24 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 			$numChanges++;
 		}
 
+		if($this->field->get('noAjaxAdd')) {	
+			$numNewItems = (int) $input["_{$this->name}_add_items"];
+			if($numNewItems) {
+				// iterate through each new item added for non-ajax mode
+				for($n = 0; $n < $numNewItems; $n++) {
+					$page = $this->getNextReadyPage($pageIDs);
+					$page->removeStatus(Page::statusHidden);
+					$page->sort = count($value);
+					$value->add($page);
+					$numChanges++;
+				}
+			}
+		}
+		
 		// if changes occurred, then tell $this->page and the PageArray $value
 		if($numChanges) {
-			$this->page->trackChange($this->attr('name')); 
+			$this->page->trackChange($this->attr('name'));
 			$this->trackChange('value');
-		}
-
-		// if no value present, then no new items were added so we can exit now
-		$numNewItems = (int) $input["_{$this->name}_add_items"];
-		if(!$numNewItems) return $this; 
-
-		// new items were added
-		$newItems = array();
-		$name = $this->attr('name');
-
-		// iterate through each new item
-		for($n = 0; $n < $numNewItems; $n++) { 
-			$page = $this->field->type->getBlankRepeaterPage($this->page, $this->field);
-			$page->removeStatus(Page::statusHidden); 
-			$page->sort = count($value); 
-			$value->add($page); 
 		}
 
 		return $this; 
@@ -312,7 +537,11 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 	/**
 	 * Take a form (InputfieldWrapper) and map the data to a Page that has the same fields
 	 *
-	 * @TODO convert this to it's own FormToPage class to avoid duplication between this as ProcessPageEdit
+	 * @todo potentially convert this to it's own FormToPage class to avoid duplication between this as ProcessPageEdit
+	 * 
+	 * @param InputfieldWrapper $wrapper
+	 * @param Page $page
+	 * @param int $level
 	 *
 	 */
 	protected function formToPage(InputfieldWrapper $wrapper, Page $page, $level = 0) {
@@ -350,12 +579,16 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 
 	/**
 	 * Returns whether any values are present
+	 * 
+	 * @return bool
 	 *
 	 */
 	public function isEmpty() {
-		if(count($this->attr('value')) == 0) return true; 
+		/** @var PageArray $value */
+		$value = $this->attr('value');
+		if(count($value) == 0) return true; 
 		$cnt = 0;
-		foreach($this->attr('value') as $item) {
+		foreach($value as $item) {
 			if($item->hasStatus(Page::statusHidden) && $item->hasStatus(Page::statusUnpublished)) continue;
 			$cnt++;
 		}
@@ -364,6 +597,10 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 
 	/**
 	 * Override the default set() to capture the required $page variable that the repeaters field lives on.
+	 * 
+	 * @param string $key
+	 * @param mixed $value
+	 * @return $this
 	 *
 	 */
 	public function set($key, $value) {
@@ -373,6 +610,24 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 		return $this;
 	}
 
+	/**
+	 * Get the repeater wrappers (InputfieldWrappers) indexed by repeater page ID
+	 * 
+	 * @param mixed|null Optionally specify key to retrieve just one
+	 * @return array|InputfieldWrapper
+	 * 
+	 */
+	public function getWrappers($key = null) {
+		if(!is_null($key)) {
+			return isset($this->wrappers[$key]) ? $this->wrappers[$key] : null;
+		}
+		return $this->wrappers;
+	}
+
+	/**
+	 * @return InputfieldWrapper
+	 * 
+	 */
 	public function ___getConfigInputfields() {
 		$inputfields = parent::___getConfigInputfields();
 		return $inputfields;

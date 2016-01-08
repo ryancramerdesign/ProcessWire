@@ -715,7 +715,7 @@ class Field extends WireData implements Saveable, Exportable {
 
 		// just in case an Inputfield needs to know it's Fieldtype context, or lack of it
 		$inputfield->hasFieldtype = $this->type; 
-
+		
 		// custom field settings
 		foreach($this->data as $key => $value) {
 			if($inputfield->has($key)) {
@@ -748,6 +748,15 @@ class Field extends WireData implements Saveable, Exportable {
 			// runtime-only settings to Inputfield (these are not stored in DB)
 			foreach($this->inputfieldSettings as $name => $value) {
 				$inputfield->set($name, $value);
+			}
+		}
+		
+		if($contextStr) {
+			// update dependency strings for the context 
+			foreach(array('showIf', 'requiredIf') as $depType) {
+				$theIf = $inputfield->getSetting($depType);
+				if(empty($theIf)) continue;
+				$inputfield->set($depType, preg_replace('/([_.|a-zA-Z0-9]+)([=!%*<>]+)/', '$1' . $contextStr . '$2', $theIf));
 			}
 		}
 

@@ -1,61 +1,51 @@
-
-.Inputfields .InputfieldRepeater > .ui-widget-content > ul.Inputfields, /* old */
-.Inputfields .InputfieldRepeater > .InputfieldContent > ul.Inputfields { /* new */
-	margin-bottom: 0; 
-}
+.Inputfields .InputfieldRepeater > .InputfieldContent > ul.Inputfields {
+  margin-bottom: 1em; }
+.Inputfields .InputfieldRepeater .InputfieldRepeaterItem > .InputfieldHeader {
+  line-height: 1em;
+  padding: 0.5em; }
+  .Inputfields .InputfieldRepeater .InputfieldRepeaterItem > .InputfieldHeader .toggle-icon {
+    line-height: 1em;
+    margin-right: 0.5em; }
+  .Inputfields .InputfieldRepeater .InputfieldRepeaterItem > .InputfieldHeader > .InputfieldRepeaterToggle, .Inputfields .InputfieldRepeater .InputfieldRepeaterItem > .InputfieldHeader > .InputfieldRepeaterTrash {
+    cursor: pointer;
+    float: right; }
+  .Inputfields .InputfieldRepeater .InputfieldRepeaterItem > .InputfieldHeader > .InputfieldRepeaterTrash {
+    padding-right: 3px; }
+  .Inputfields .InputfieldRepeater .InputfieldRepeaterItem > .InputfieldHeader > .InputfieldRepeaterToggle {
+    margin-right: 1em; }
+.Inputfields .InputfieldRepeater .InputfieldRepeaterItem:not(.InputfieldRepeaterDeletePending).InputfieldStateCollapsed > .InputfieldHeader {
+  opacity: 0.90; }
+  .Inputfields .InputfieldRepeater .InputfieldRepeaterItem:not(.InputfieldRepeaterDeletePending).InputfieldStateCollapsed > .InputfieldHeader:hover {
+    opacity: 1.0; }
+.Inputfields .InputfieldRepeater .InputfieldRepeaterItem:not(.InputfieldRepeaterDeletePending).InputfieldRepeaterUnpublished > .InputfieldHeader {
+  opacity: 0.7; }
+.Inputfields .InputfieldRepeater .InputfieldRepeaterItem:not(.InputfieldRepeaterDeletePending).InputfieldRepeaterOff > .InputfieldHeader {
+  opacity: 0.5; }
+  .Inputfields .InputfieldRepeater .InputfieldRepeaterItem:not(.InputfieldRepeaterDeletePending).InputfieldRepeaterOff > .InputfieldHeader:not(:hover) {
+    text-decoration: line-through; }
+.Inputfields .InputfieldRepeater .InputfieldRepeaterNewItem {
+  display: none; }
 
 .InputfieldRepeater .InputfieldWrapper,
 .InputfieldRepeater .InputfieldWrapper > .Inputfields {
-        margin-top: 0 !important;
-}
-
-.InputfieldRepeater li.InputfieldRepeaterReady {
-	/* item that's rendered and ready to be a new item */
-	position: absolute;
-	top: 0;
-	left: -9999px; 
-}
-
-.InputfieldRepeaterAddItem input {
-	position: absolute;	
-	left: -9999px; 
-	top: 0;
-}
-
-.Inputfields .InputfieldRepeater .InputfieldRepeaterItem > .InputfieldHeader {
-	line-height: 1em;
-	padding: 0.5em;
-}
-.Inputfields .InputfieldRepeater .InputfieldRepeaterItem > .InputfieldHeader .toggle-icon {
-	line-height: 1em;
-}
-
-.Inputfields .InputfieldRepeater .InputfieldRepeaterNewItem {
-	display: none; 
-	margin-bottom: 1em !important; 
-}
-
-.InputfieldRepeater  ul.ui-sortable > .InputfieldFieldset > label {
-	padding-left: 25px; 
-	position: relative;
-}
-
-.InputfieldRepeaterDrag {
-	cursor: ns-resize;
-	opacity: 0.7;
-	line-height: 1em;
-}
-	.InputfieldRepeaterDrag:hover {
-		cursor: move; 	
-		opacity: 1.0;
-	}
-
-.InputfieldRepeater .InputfieldFieldset > label > .InputfieldRepeaterTrash {
-	cursor: pointer; 
-	float: right;
-}
-
+  margin-top: 0 !important; }
+.InputfieldRepeater ul.ui-sortable > .InputfieldRepeaterItem > .InputfieldHeader {
+  position: relative; }
+.InputfieldRepeater .InputfieldRepeaterAddItem input {
+  position: absolute;
+  left: -9999px;
+  top: 0; }
 .InputfieldRepeater ul.Inputfields + .InputfieldRepeaterAddItem {
-	/* removes extra space at top when 'add item' is the only thing in the repeater field */
-	margin-top: 0;
-}
+  margin-top: 0; }
+.InputfieldRepeater .InputfieldRepeaterDrag {
+  cursor: ns-resize;
+  opacity: 0.7;
+  line-height: 1em; }
+  .InputfieldRepeater .InputfieldRepeaterDrag:hover {
+    cursor: move;
+    opacity: 1.0; }
+
+.AdminThemeReno .InputfieldRepeaterItem > .InputfieldHeader .ui-priority-secondary {
+  color: rgba(255, 255, 255, 0.8) !important; }
+
+/*# sourceMappingURL=InputfieldRepeater.css.map */
