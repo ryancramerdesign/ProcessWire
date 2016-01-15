@@ -44,7 +44,7 @@ class WireHttp extends Wire {
 	 * HTTP methods we are allowed to use
 	 *
 	 */
-	protected $allowHttpMethods = array('GET', 'POST', 'PUT', 'DELETE', 'HEAD'); 
+	protected $allowHttpMethods = array('GET', 'POST', 'PUT', 'DELETE', 'HEAD', 'PATCH'); 
 
 	/**
 	 * Headers to include in the request
@@ -344,15 +344,15 @@ class WireHttp extends Wire {
 	}	
 
 	/**
-	 * Send the given $data array to a URL using either POST, GET, PUT or DELETE
+	 * Send the given $data array to a URL using given method (i.e. POST, GET, PUT, DELETE, etc.)
 	 *
 	 * @param string $url URL to post to (including http:// or https://)
 	 * @param array $data Array of data to send (if not already set before)
-	 * @param string $method Method to use (either POST, GET, PUT or DELETE)
+	 * @param string $method Method to use (either POST, GET, PUT, DELETE or others as needed)
 	 * @return bool|string False on failure or string of contents received on success.
 	 *
 	 */
-	protected function send($url, $data = array(), $method = 'POST') { 
+	public function ___send($url, $data = array(), $method = 'POST') { 
 
 		$url = $this->validateURL($url, false); 
 		if(empty($url)) return false;

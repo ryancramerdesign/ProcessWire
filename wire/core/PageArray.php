@@ -9,6 +9,8 @@
  * https://processwire.com
  * 
  * @method string getMarkup($key = null) Render a simple/default markup value for each item
+ * 
+ * @property Page[] $data
  *
  */
 
@@ -60,6 +62,8 @@ class PageArray extends PaginatedArray implements WirePaginatable {
 
 	/**
 	 * Per WireArray interface, return a blank Page
+	 * 
+	 * @return Page
 	 *
 	 */
 	public function makeBlankItem() {
@@ -224,6 +228,81 @@ class PageArray extends PaginatedArray implements WirePaginatable {
 	}
 
 	/**
+	 * Get one or more random pages from this PageArray.
+	 *
+	 * If one item is requested, the item is returned (unless $alwaysArray is true).
+	 * If multiple items are requested, a new WireArray of those items is returned.
+	 *
+	 * @param int $num Number of items to return. Optional and defaults to 1.
+	 * @param bool $alwaysArray If true, then method will always return a container of items, even if it only contains 1.
+	 * @return Page|PageArray Returns value of item, or new PageArray of items if more than one requested.
+	 */
+	public function getRandom($num = 1, $alwaysArray = false) {
+		return parent::getRandom($num, $alwaysArray);
+	}
+
+	/**
+	 * Get a quantity of random pages from this PageArray.
+	 *
+	 * Unlike getRandom() this one always returns a PageArray (or derived type).
+	 *
+	 * @param int $num Number of items to return
+	 * @return PageArray
+	 *
+	 */
+	public function findRandom($num) {
+		return parent::findRandom($num);
+	}
+
+	/**
+	 * Get a slice of the PageArray.
+	 *
+	 * Given a starting point and a number of items, returns a new PageArray of those items.
+	 * If $limit is omitted, then it includes everything beyond the starting point.
+	 *
+	 * @param int $start Starting index.
+	 * @param int $limit Number of items to include. If omitted, includes the rest of the array.
+	 * @return PageArray
+	 *
+	 */
+	public function slice($start, $limit = 0) {
+		return parent::slice($start, $limit);
+	}
+
+	/**
+	 * Returns the item at the given index starting from 0, or NULL if it doesn't exist.
+	 *
+	 * Unlike the index() method, this returns an actual item and not another PageArray.
+	 *
+	 * @param int $num Return the nth item in this WireArray. Specify a negative number to count from the end rather than the start.
+	 * @return Page|null
+	 *
+	 */
+	public function eq($num) {
+		return parent::eq($num);
+	}
+
+	/**
+	 * Returns the first item in the PageArray or boolean FALSE if empty.
+	 *
+	 * @return Page|bool
+	 *
+	 */
+	public function first() {
+		return parent::first();
+	}
+
+	/**
+	 * Returns the last item in the PageArray or boolean FALSE if empty.
+	 *
+	 * @return Page|bool
+	 *
+	 */
+	public function last() {
+		return parent::last();
+	}
+
+	/**
 	 * Set the Selectors that led to this PageArray, if applicable
 	 *
 	 * @param Selectors $selectors
@@ -252,12 +331,58 @@ class PageArray extends PaginatedArray implements WirePaginatable {
 	 *
 	 * @param string|Selectors $selectors AttributeSelector string to use as the filter.
 	 * @param bool $not Make this a "not" filter? (default is false)
-	 * @return WireArray reference to current [filtered] instance
+	 * @return PageArray reference to current [filtered] instance
 	 *
 	 */
 	protected function filterData($selectors, $not = false) {
 		if(is_string($selectors) && $selectors[0] === '/') $selectors = "path=$selectors";
 		return parent::filterData($selectors, $not); 
+	}
+
+	/**
+	 * Filter out pages that don't match the selector (destructive)
+	 *
+	 * @param string $selector AttributeSelector string to use as the filter.
+	 * @return PageArray reference to current instance.
+	 *
+	 */
+	public function filter($selector) {
+		return parent::filter($selector);
+	}
+
+	/**
+	 * Filter out pages that don't match the selector (destructive)
+	 *
+	 * @param string $selector AttributeSelector string to use as the filter.
+	 * @return PageArray reference to current instance.
+	 *
+	 */
+	public function not($selector) {
+		return parent::not($selector);
+	}
+
+	/**
+	 * Find all pages in this PageArray that match the given selector (non-destructive)
+	 *
+	 * This is non destructive and returns a brand new PageArray.
+	 *
+	 * @param string $selector AttributeSelector string.
+	 * @return PageArray
+	 *
+	 */
+	public function find($selector) {
+		return parent::find($selector);
+	}
+
+	/**
+	 * Same as find, but returns a single Page rather than PageArray or FALSE if empty.
+	 *
+	 * @param string $selector
+	 * @return Page|bool
+	 *
+	 */
+	public function findOne($selector) {
+		return parent::findOne($selector);
 	}
 
 	/**
@@ -292,6 +417,7 @@ class PageArray extends PaginatedArray implements WirePaginatable {
 		} else if(strpos($property, '.') !== false) {
 			$value = WireData::_getDot($property, $item);
 		} else if($item instanceof WireArray) {
+			/** @var PageArray $item */
 			$value = $item->getProperty($property); 
 			if(is_null($value)) {
 				$value = $item->first();
@@ -304,6 +430,16 @@ class PageArray extends PaginatedArray implements WirePaginatable {
 		if(is_array($value)) $value = implode('|', $value); 
 
 		return $value;
+	}
+
+	/**
+	 * Allows iteration of the PageArray.
+	 *
+	 * @return Page[]|\ArrayObject
+	 *
+	 */
+	public function getIterator() {
+		return parent::getIterator();
 	}
 
 	/**
@@ -324,7 +460,7 @@ class PageArray extends PaginatedArray implements WirePaginatable {
 	 * 
 	 * Primarily for testing/debugging purposes.
 	 * 
-	 * @param string|callable|function $key
+	 * @param string|callable $key
 	 * @return string
 	 * 
 	 */

@@ -230,7 +230,8 @@ class FileCompiler extends Wire {
 				);
 				$this->wire('cache')->saveFor($this, $cacheName, $cacheData, WireCache::expireNever);
 			}
-			if($this->wire('config')->debug || $this->wire('user')->isSuperuser()) {
+			$u = $this->wire('user');
+			if($this->wire('config')->debug || ($u && $u->isSuperuser())) {
 				$this->message($this->_('Compiled file:') . ' ' . str_replace($this->wire('config')->paths->root, '/', $sourcePathname));
 			}
 		}
@@ -297,7 +298,7 @@ class FileCompiler extends Wire {
 			'(.*?)' . // 1: open
 			'(' . implode('|', $funcs) . ')' . // 2:function
 			'[\(\s]+' . // open parenthesis and/or space
-			'(["\']?[^;\r\n]+);' . // 3:filename (may be quoted or end with closing parenthesis)
+			'(["\']?[^;\r\n]+);' . // 3:filename, and the rest of the statement (filename may be quoted or end with closing parenthesis)
 			'/m';
 		
 		if(!preg_match_all($re, $data, $matches)) return;
@@ -320,6 +321,16 @@ class FileCompiler extends Wire {
 				
 			$funcMatch = $matches[2][$key];
 			$fileMatch = $matches[3][$key];
+			$argsMatch = '';
+
+			if(substr($fileMatch, -1) == ')') $fileMatch = substr($fileMatch, 0, -1);
+			
+			$commaPos = strpos($fileMatch, ',');
+			if($commaPos) {
+				// fileMatch contains additional function arguments
+				$argsMatch = substr($fileMatch, $commaPos);
+				$fileMatch = substr($fileMatch, 0, $commaPos);
+			}
 			
 			if(strpos($fileMatch, './') === 1) {
 				// relative to current dir, convert to absolute
@@ -332,9 +343,8 @@ class FileCompiler extends Wire {
 				$fileMatch = $fileMatch[0] . dirname($sourceFile) . '/' . substr($fileMatch, 1);
 			}
 		
-			if(substr($fileMatch, -1) == ')') $fileMatch = substr($fileMatch, 0, -1);
 			$fileMatch = str_replace(array(' ', "\t"), '', $fileMatch);
-			$newFullMatch = $open . ' ' . $funcMatch . "(\\ProcessWire\\wire('files')->compile($fileMatch,$optionsStr));";
+			$newFullMatch = $open . ' ' . $funcMatch . "(\\ProcessWire\\wire('files')->compile($fileMatch,$optionsStr)$argsMatch);";
 			$data = str_replace($fullMatch, $newFullMatch, $data);
 		}
 		

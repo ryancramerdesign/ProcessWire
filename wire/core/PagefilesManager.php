@@ -7,6 +7,8 @@
  * 
  * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
  * https://processwire.com
+ * 
+ * @method save()
  *
  */
 

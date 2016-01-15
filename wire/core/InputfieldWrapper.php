@@ -395,14 +395,6 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 			if(count($errors)) $ffAttrs['class'] .= ' ' . $classes['item_error'];
 			if($required) $ffAttrs['class'] .= ' ' . $classes['item_required']; 
 			if(strlen($showIf) && !$this->renderValueMode) { // note: $this->renderValueMode (rather than $renderValueMode) is intentional
-				// support for repeaters, added by soma:
-				if(strpos($inputfield->name, "_repeater") !== false) { 
-					$rep = explode("repeater", $inputfield->name);
-					$showIfPart = explode("=", $showIf);
-					if(!empty($rep[1]) && ctype_digit($rep[1])) {
-						$showIf = $showIfPart[0] . "_repeater{$rep[1]}={$showIfPart[1]}";
-					}
-				} // -soma
 				$ffAttrs['data-show-if'] = $showIf;
 				$ffAttrs['class'] .= ' ' . $classes['item_show_if'];
 			}
@@ -481,8 +473,17 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 				if(!isset($ffAttrs['id'])) $ffAttrs['id'] = 'wrap_' . $inputfield->attr('id'); 
 				$ffAttrs['class'] = str_replace('Inputfield_ ', '', $ffAttrs['class']); 
 				if($inputfield->wrapClass) $ffAttrs['class'] .= " " . $inputfield->wrapClass; 
+				foreach($inputfield->wrapAttr() as $k => $v) {
+					if(!empty($ffAttrs[$k])) {
+						$ffAttrs[$k] .= " $v";
+					} else {
+						$ffAttrs[$k] = $v;
+					}
+				}
 				foreach($ffAttrs as $k => $v) {
-					$attrs .= " $k='" . $this->entityEncode(trim($v)) . "'";
+					$k = $this->entityEncode($k);
+					$v = $this->entityEncode(trim($v));
+					$attrs .= " $k='$v'";
 				}
 				$markupItemContent = $markup['item_content'];
 				$contentClass = trim("$inputfield->contentClass $classes[item_content]");
@@ -503,9 +504,15 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 
 		if($out) {
 			$ulClass = $classes['list'];
-			if($columnWidthTotal || ($lastInputfield && $lastInputfield->columnWidth >= 10 && $lastInputfield->columnWidth < 100)) $ulClass .= ' ' . $classes['list_clearfix']; 
+			if($columnWidthTotal || ($lastInputfield && $lastInputfield->columnWidth >= 10 && $lastInputfield->columnWidth < 100)) {
+				$ulClass .= ' ' . $classes['list_clearfix'];
+			}
 			$attrs = "class='$ulClass'"; // . ($this->attr('class') ? ' ' . $this->attr('class') : '') . "'";
-			if(!($this instanceof InputfieldForm)) foreach($this->getAttributes() as $attr => $value) if(strpos($attr, 'data-') === 0) $attrs .= " $attr='" . $this->entityEncode($value) . "'";
+			if(!($this instanceof InputfieldForm)) {
+				foreach($this->getAttributes() as $attr => $value) {
+					if(strpos($attr, 'data-') === 0) $attrs .= " $attr='" . $this->entityEncode($value) . "'";
+				}
+			}
 			$out = $this->attr('value') . str_replace(array('{attrs}', '{out}'), array($attrs, $out), $markup['list']); 
 		}
 
@@ -851,7 +858,7 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 		}
 		return $all;
 	}
-
+	
 	/**
 	 * Start or stop tracking changes, applying the same to any children
 	 *

@@ -1,7 +1,7 @@
 <?php namespace ProcessWire;
 
 /**
- * ProcessWire Pages
+ * ProcessWire Pages ($pages API variable)
  *
  * Manages Page instances, providing find, load, save and delete capabilities,
  * some of which are delegated to other classes but this provides the interface to them.
@@ -11,20 +11,58 @@
  * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
  * https://processwire.com
  *
- *
  * @link http://processwire.com/api/variables/pages/ Offical $pages Documentation
  * @link http://processwire.com/api/selectors/ Official Selectors Documentation
- *
+ * 
+ * PROPERTIES
+ * ==========
+ * @property bool cloning Whether or not a clone() operation is currently active
+ * @property bool outputFormatting Current default output formatting mode.
+ * 
+ * HOOKABLE METHODS
+ * ================
  * @method PageArray find() find($selectorString, array $options = array()) Find and return all pages matching the given selector string. Returns a PageArray.
  * @method bool save() save(Page $page) Save any changes made to the given $page. Same as : $page->save() Returns true on success
  * @method bool saveField() saveField(Page $page, $field) Save just the named field from $page. Same as : $page->save('field')
  * @method bool trash() trash(Page $page, $save = true) Move a page to the trash. If you have already set the parent to somewhere in the trash, then this method won't attempt to set it again.
+ * @method bool restore(Page $page, $save = true) Restore a trashed page to its original location. 
+ * @method int emptyTrash() Empty the trash and return number of pages deleted. 
  * @method bool delete() delete(Page $page, $recursive = false) Permanently delete a page and it's fields. Unlike trash(), pages deleted here are not restorable. If you attempt to delete a page with children, and don't specifically set the $recursive param to True, then this method will throw an exception. If a recursive delete fails for any reason, an exception will be thrown.
- * @method Page|NullPage clone() clone(Page $page, Page $parent = null, $recursive = true, $options = array()) Clone an entire page, it's assets and children and return it.
+ * @method Page|NullPage clone(Page $page, Page $parent = null, $recursive = true, $options = array()) Clone an entire page, it's assets and children and return it.
+ * @method Page|NullPage add($template, $parent, $name = '', array $values = array())
+ * @method setupNew(Page $page) Setup new page that does not yet exist by populating some fields to it. 
+ * @method string setupPageName(Page $page, array $options = array()) Determine and populate a name for the given page.
  * 
- * @property bool cloning Whether or not a clone() operation is currently active
- * @property bool outputFormatting Current default output formatting mode. 
+ * METHODS PURELY FOR HOOKS
+ * ========================
+ * You can hook these methods, but you should not call them directly. 
+ * See the phpdoc in the actual methods for more details about arguments and additional properties that can be accessed.
+ * 
+ * @method saveReady(Page $page) Hook called just before a page is saved. 
+ * @method saved(Page $page, array $changes = array(), $values = array()) Hook called after a page is successfully saved. 
+ * @method added(Page $page) Hook called when a new page has been added. 
+ * @method moved(Page $page) Hook called when a page has been moved from one parent to another. 
+ * @method templateChanged(Page $page) Hook called when a page template has been changed. 
+ * @method trashed(Page $page) Hook called when a page has been moved to the trash. 
+ * @method restored(Page $page) Hook called when a page has been moved OUT of the trash. 
+ * @method deleteReady(Page $page) Hook called just before a page is deleted. 
+ * @method deleted(Page $page) Hook called after a page has been deleted. 
+ * @method cloneReady(Page $page, Page $copy) Hook called just before a page is cloned. 
+ * @method cloned(Page $page, Page $copy) Hook called after a page has been successfully cloned. 
+ * @method renamed(Page $page) Hook called after a page has been successfully renamed. 
+ * @method statusChangeReady(Page $page) Hook called when a page's status has changed and is about to be saved.
+ * @method statusChanged(Page $page) Hook called after a page status has been changed and saved. 
+ * @method publishReady(Page $page) Hook called just before an unpublished page is published. 
+ * @method published(Page $page) Hook called after an unpublished page has just been published. 
+ * @method unpublishReady(Page $page) Hook called just before a pubished page is unpublished. 
+ * @method unpublished(Page $page) Hook called after a published page has just been unpublished. 
+ * @method saveFieldReady(Page $page, Field $field) Hook called just before a saveField() method saves a page fied. 
+ * @method savedField(Page $page, Field $field) Hook called after saveField() method successfully executes. 
+ * @method found(PageArray $pages, array $details) Hook called at the end of a $pages->find().
+ * @method unknownColumnError($column) Called when a page-data loading query encounters an unknown column.
  *
+ * TO-DO
+ * =====
  * @todo Add a getCopy method that does a getById($id, array('cache' => false) ?
  * @todo Some methods here (find, save, etc.) need their own dedicated classes. 
  * @todo Update saveField to accept array of field names as an option. 
@@ -123,6 +161,8 @@ class Pages extends Wire {
 
 	/**
 	 * Create the Pages object
+	 * 
+	 * @param ProcessWire $wire
 	 *
 	 */
 	public function __construct(ProcessWire $wire) {
@@ -133,10 +173,13 @@ class Pages extends Wire {
 		$this->compat2x = $this->config->compat2x;
 	}
 
+	/**
+	 * Initialize $pages API var by preloading some pages 
+	 * 
+	 */
 	public function init() {
 		$this->getById($this->config->preloadPageIDs); 
 	}
-	
 
 	/**
 	 * Given a Selector string, return the Page objects that match in a PageArray. 
@@ -339,7 +382,7 @@ class Pages extends Wire {
 		);
 		$options = array_merge($defaults, $options);
 		$page = $this->find($selectorString, $options)->first();
-		if(!$page->viewable(false)) $page = $this->newNullPage();
+		if(!$page || !$page->viewable(false)) $page = $this->newNullPage();
 		return $page;
 	}
 
@@ -352,7 +395,8 @@ class Pages extends Wire {
 	 */
 	public function get($selectorString) {
 		if(empty($selectorString)) return $this->newNullPage();
-		if($page = $this->getCache($selectorString)) return $page;
+		$page = $this->getCache($selectorString); 
+		if($page) return $page;
 		$options = array(
 			'findOne' => true, // find only one page
 			'findAll' => true, // no exclusions
@@ -510,12 +554,15 @@ class Pages extends Wire {
 
 			$query = $database->prepare($sql);
 			$result = $this->executeQuery($query);
-			if($result) while($row = $query->fetch(\PDO::FETCH_NUM)) {
-				list($id, $templates_id) = $row;
-				$id = (int) $id;
-				$templates_id = (int) $templates_id;
-				if(!isset($idsByTemplate[$templates_id])) $idsByTemplate[$templates_id] = array();
-				$idsByTemplate[$templates_id][] = $id;
+			if($result) {
+				/** @noinspection PhpAssignmentInConditionInspection */
+				while($row = $query->fetch(\PDO::FETCH_NUM)) {
+					list($id, $templates_id) = $row;
+					$id = (int) $id;
+					$templates_id = (int) $templates_id;
+					if(!isset($idsByTemplate[$templates_id])) $idsByTemplate[$templates_id] = array();
+					$idsByTemplate[$templates_id][] = $id;
+				}
 			}
 			$query->closeCursor();
 
@@ -539,7 +586,8 @@ class Pages extends Wire {
 			} else {
 				$fields = $this->wire('fields'); 
 			}
-			
+		
+			/** @var DatabaseQuerySelect $query */
 			$query = $this->wire(new DatabaseQuerySelect());
 			$sortfield = $template ? $template->sortfield : ''; 
 			$joinSortfield = empty($sortfield) && $options['joinSortfield'];
@@ -592,6 +640,7 @@ class Pages extends Wire {
 			try {
 				$_class = wireClassName($class, true);
 				// while($page = $stmt->fetchObject($_class, array($template))) {
+				/** @noinspection PhpAssignmentInConditionInspection */
 				while($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
 					$page = $this->newPage(array(
 						'pageClass' => $_class, 
@@ -672,7 +721,7 @@ class Pages extends Wire {
 	 * If no name is specified one will be assigned based on the current timestamp.
 	 * 
 	 * @param string|Template $template Template name or Template object
-	 * @param string|id|Page $parent Parent path, ID or Page object
+	 * @param string|int|Page $parent Parent path, ID or Page object
 	 * @param string $name Optional name or title of page. If none provided, one will be automatically assigned based on microtime stamp.
 	 * 	If you want to specify a different name and title then specify the $name argument, and $values['title']. 
 	 * @param array $values Field values to assign to page (optional). If $name is ommitted, this may also be 3rd param. 
@@ -753,10 +802,16 @@ class Pages extends Wire {
 		if(!$id) return '';
 
 		// if page is already loaded, then get the path from it
-		if(isset($this->pageIdCache[$id])) return $this->pageIdCache[$id]->path();
+		if(isset($this->pageIdCache[$id])) {
+			/** @var Page $page */
+			$page = $this->pageIdCache[$id];
+			return $page->path();
+		}
 
 		if($this->modules->isInstalled('PagePaths')) {
-			$path = $this->modules->get('PagePaths')->getPath($id);
+			/** @var PagePaths $pagePaths */
+			$pagePaths = $this->modules->get('PagePaths');
+			$path = $pagePaths->getPath($id);
 			if(is_null($path)) $path = '';
 			return $path; 
 		}
@@ -807,7 +862,7 @@ class Pages extends Wire {
 	 *
 	 * @param Page $page
 	 * @param string $reason Text containing the reason why it can't be saved (assuming it's not saveable)
-	 * @param string $fieldName Optional fieldname to limit check to. 
+	 * @param string|Field $fieldName Optional fieldname to limit check to. 
 	 * @param array $options Options array given to the original save method (optional)
 	 * @return bool True if saveable, False if not
 	 *
@@ -817,7 +872,12 @@ class Pages extends Wire {
 		$saveable = false; 
 		$outputFormattingReason = "Call \$page->setOutputFormatting(false) before getting/setting values that will be modified and saved. "; 
 		$corrupted = array(); 
-		if($fieldName && is_object($fieldName)) $fieldName = $fieldName->name;
+		
+		if($fieldName && is_object($fieldName)) {
+			/** @var Field $fieldName */
+			$fieldName = $fieldName->name;
+			/** @var string $fieldName */
+		}
 		
 		if($page->hasStatus(Page::statusCorrupted)) {
 			$corruptedFields = $page->_statusCorruptedFields; 
@@ -903,7 +963,8 @@ class Pages extends Wire {
 	 */
 	public function ___setupNew(Page $page) {
 
-		if(!$page->parent()->id) {
+		$parent = $page->parent();
+		if(!$parent->id) {
 			// auto-assign a parent, if we can find one in family settings
 
 			$parentTemplates = $page->template->parentTemplates; 
@@ -982,7 +1043,11 @@ class Pages extends Wire {
 			}
 		}
 
-		if(!strlen($format)) $format = $page->parent()->template->childNameFormat;
+		if(!strlen($format)) {
+			$parent = $page->parent();
+			if($parent && $parent->id) $format = $parent->template->childNameFormat;
+		}
+		
 		if(!strlen($format)) {
 			if(strlen($page->title)) {
 				// default format is title
@@ -1121,7 +1186,7 @@ class Pages extends Wire {
 	 * @param Page $page
 	 * @param array $options
 	 * @return bool
-	 * @throws Exception
+	 * @throws WireException|\Exception
 	 * 
 	 */
 	protected function savePageQuery(Page $page, array $options) {
@@ -1349,10 +1414,10 @@ class Pages extends Wire {
 
 		} else if(($page->parentPrevious && $page->parent->numChildren == 1) ||
 			($isNew && $page->parent->numChildren == 1) ||
-			($page->forceSaveParents)) {
+			($page->_forceSaveParents)) {
 			// page is moved and is the first child of it's new parent
 			// OR page is NEW and is the first child of it's parent
-			// OR $page->forceSaveParents is set (debug/debug, can be removed later)
+			// OR $page->_forceSaveParents is set (debug/debug, can be removed later)
 			$this->saveParents($page->parent_id, $page->parent->numChildren);
 		}
 
@@ -1457,7 +1522,7 @@ class Pages extends Wire {
 			$query->execute();
 			list($id) = $query->fetch(\PDO::FETCH_NUM); 
 			$id = (int) $id; 
-			if(!$id) break;
+			if($id < 2) break; // no need to record 1 for every page, since it is assumed
 			$insertSql .= "($pages_id, $id),";
 			$cnt++; 
 
@@ -1478,7 +1543,8 @@ class Pages extends Wire {
 		$query = $database->prepare($sql);
 		$query->bindValue(':pages_id', $pages_id, \PDO::PARAM_INT); 
 		$this->executeQuery($query);
-		
+
+		/** @noinspection PhpAssignmentInConditionInspection */
 		while($row = $query->fetch(\PDO::FETCH_ASSOC)) {
 			$this->saveParents($row['id'], $row['numChildren'], $level+1);
 		}
@@ -1531,6 +1597,7 @@ class Pages extends Wire {
 				);
 				$query->bindValue(':parent_id', $parentID, \PDO::PARAM_INT);
 				$this->executeQuery($query);
+				/** @noinspection PhpAssignmentInConditionInspection */
 				while($row = $query->fetch(\PDO::FETCH_ASSOC)) {
 					$parentIDs[] = (int) $row['id'];
 				}
@@ -1615,6 +1682,7 @@ class Pages extends Wire {
 		if(preg_match('/^(' . $page->id . ')((?:\.\d+\.\d+)?)_(.+)$/', $page->name, $matches)) {
 	
 			if($matches[2]) {
+				/** @noinspection PhpUnusedLocalVariableInspection */
 				list($unused, $parentID, $sort) = explode('.', $matches[2]);
 				$parentID = (int) $parentID;
 				$sort = (int) $sort;
@@ -1722,6 +1790,7 @@ class Pages extends Wire {
 	 */
 	public function ___delete(Page $page, $recursive = false, array $options = array()) {
 
+		if($options) {} // to ignore unused parameter inspection
 		if(!$this->isDeleteable($page)) throw new WireException("This page may not be deleted");
 		$numDeleted = 0;
 
@@ -1788,7 +1857,7 @@ class Pages extends Wire {
 	 * 	- set (array): Array of properties to set to the clone (you can also do this later)
 	 * 	- recursionLevel (int): recursion level, for internal use only. 
 	 * @return Page the newly cloned page or a NullPage() with id=0 if unsuccessful.
-	 * @throws WireException|Exception on fatal error
+	 * @throws WireException|\Exception on fatal error
 	 *
 	 */
 	public function ___clone(Page $page, Page $parent = null, $recursive = true, $options = array()) {
@@ -1925,6 +1994,7 @@ class Pages extends Wire {
 		if(!ctype_digit("$id")) $id = str_replace('id=', '', $id); 
 		if(ctype_digit("$id")) $id = (int) $id; 
 		if(!isset($this->pageIdCache[$id])) return null; 
+		/** @var Page $page */
 		$page = $this->pageIdCache[$id];
 		$page->setOutputFormatting($this->outputFormatting); 
 		return $page; 
@@ -1963,9 +2033,11 @@ class Pages extends Wire {
 	 *
 	 */
 	public function uncacheAll(Page $page = null) {
-	
+
+		if($page) {} // to ignore unused parameter inspection
 		$this->pageFinder = null;
-		$language = $this->wire('languages') ? $this->wire('user')->language : null;
+		$user = $this->wire('user');
+		$language = $this->wire('languages') ? $user->language : null;
 
 		unset($this->sortfields); 
 		$this->sortfields = $this->wire(new PagesSortfields());
@@ -1973,6 +2045,7 @@ class Pages extends Wire {
 		if($this->config->debug) $this->debugLog('uncacheAll', 'pageIdCache=' . count($this->pageIdCache) . ', pageSelectorCache=' . count($this->pageSelectorCache)); 
 
 		foreach($this->pageIdCache as $id => $page) {
+			if($id == $user->id || ($language && $language->id == $id)) continue;
 			if(!$page->numChildren) $this->uncache($page); 
 		}
 
@@ -1981,8 +2054,6 @@ class Pages extends Wire {
 
 		Page::$loadingStack = array();
 		Page::$instanceIDs = array(); 
-		
-		if($language) $this->wire('user')->language = $language;
 	}
 
 	/**
@@ -2057,6 +2128,9 @@ class Pages extends Wire {
 
 	/**	
  	 * Return a fuel or other property set to the Pages instance
+	 * 
+	 * @param string $key
+	 * @return mixed
 	 *
 	 */
 	public function __get($key) {
@@ -2069,6 +2143,8 @@ class Pages extends Wire {
 	 * Set whether loaded pages have their outputFormatting turn on or off
 	 *
 	 * By default, it is turned on. 
+	 * 
+	 * @param bool $outputFormatting
 	 *
 	 */
 	public function setOutputFormatting($outputFormatting = true) {
@@ -2138,7 +2214,7 @@ class Pages extends Wire {
 	/**
 	 * Execute a PDO statement, with additional error handling
 	 * 
-	 * @param PDOStatement $query
+	 * @param \PDOStatement $query
 	 * @param bool $throw Whether or not to throw exception on query error (default=true)
 	 * @param int $maxTries Max number of times it will attempt to retry query on error
 	 * @return bool
@@ -2250,7 +2326,7 @@ class Pages extends Wire {
 	/**
 	 * Return a new NullPage
 	 * 
-	 * @return mixed
+	 * @return NullPage
 	 * 
 	 */
 	public function newNullPage() {
@@ -2266,7 +2342,7 @@ class Pages extends Wire {
 	/**
 	 * Called when a page-data loading query encounters an unknown column
 	 * 
-	 * @param string $column Column informat tableName.columnName
+	 * @param string $column Column format tableName.columnName
 	 * 
 	 */
 	protected function ___unknownColumnError($column) {
@@ -2488,7 +2564,7 @@ class Pages extends Wire {
 	}
 
 	/**
-	 * Hook called when a page's has been changed and saved
+	 * Hook called when a page status has been changed and saved
 	 *
 	 * Previous status may be accessed at $page->statusPrevious
 	 *

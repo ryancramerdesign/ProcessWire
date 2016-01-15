@@ -184,6 +184,10 @@ class LanguageTranslator extends Wire {
 			if($pos !== false) $filename = substr($filename, $pos+1);
 		}
 
+		// convert FileCompiler paths
+		$pos = stripos($filename, '/cache/FileCompiler/');
+		if($pos) $filename = substr($filename, $pos+20);
+
 		$textdomain = str_replace(array('/', '\\'), '--', ltrim($filename, '/')); 
 		$textdomain = str_replace('.', '-', $textdomain); 
 

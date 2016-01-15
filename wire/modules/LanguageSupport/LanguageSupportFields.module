@@ -281,9 +281,10 @@ class LanguageSupportFields extends WireData implements Module {
 	public function pageFinderGetQuery(HookEvent $event) {
 
 		$user = $this->wire('user');
+		$language = $user->language;
 		$database = $this->wire('database');
 
-		if(!$user->language || !$user->language->id || $user->language->isDefault()) return;
+		if(!$language || !$language->id || $language->isDefault()) return;
 
 		$arguments = $event->arguments; 
 		$selectors = $arguments[0]; 

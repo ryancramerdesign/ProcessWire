@@ -12,7 +12,17 @@
  * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
  * https://processwire.com
  *
- * @todo: option to have them collapsed by default (the repeater items themselves), ability to control labels of repeater items, and automatic sorting.
+ * @todo: automatic sorting.
+ * 
+ * @property int $repeatersRootPageID
+ * @method saveConfigInputfields(Field $field, Template $template, Page $parent)
+ * 
+ * Page status notes for repeater items: 
+ * - Unpublished & Hidden: Ready page, not yet used. Appears in unformatted repeater PageArray but user has not saved it.
+ * - Unpublished & On: Publish requested and can be published as long as no input errors. 
+ * - Unpublished & NOT On: Item has been unpublished.
+ * 
+ * Unpublished or hidden pages do not appear in formatted PageArray value, only in unformatted. 
  *
  */
 
@@ -22,7 +32,7 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 		return array(
 			'title' => __('Repeater', __FILE__), // Module Title
 			'summary' => __('Maintains a collection of fields that are repeated for any number of times.', __FILE__), // Module Summary
-			'version' => 102,
+			'version' => 103,
 			'autoload' => true,
 			'installs' => 'InputfieldRepeater'
 			);
@@ -31,7 +41,6 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 	const templateNamePrefix = 'repeater_';
 	const fieldPageNamePrefix = 'for-field-';
 	const repeaterPageNamePrefix = 'for-page-'; 
-	const defaultRepeaterReadyItems = 3; 
 	const defaultRepeaterMaxItems = 0; 
 
 	/**
@@ -44,9 +53,11 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 
 	/**
 	 * Page assigned by our ProcessPageEdit::ajaxSave hook, kept for comparison for editable() access
+	 * 
+	 * @var Page
 	 *
 	 */
-	protected $ajaxPage = null;
+	protected $ajaxPage;
 
 	/**
 	 * Name of field that appeared in HTTP_X_FIELDNAME, before it was modified
@@ -71,7 +82,7 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 	 *
 	 */
 	public function init() {
-		wire('pages')->addHookAfter('deleteReady', $this, 'hookPagesDelete');
+		$this->wire('pages')->addHookAfter('deleteReady', $this, 'hookPagesDelete');
 		parent::init();
 	}
 
@@ -80,7 +91,10 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 	 *
 	 */
 	public function ready() {
-		if($this->wire('page')->process == 'ProcessPageEdit') $this->addHookBefore('ProcessPageEdit::ajaxSave', $this, 'hookProcessPageEditAjaxSave'); 
+		// if(in_array('WirePageEditor', wireClassImplements((string) $this->wire('page')->process))) { // @todo
+		if($this->wire('page')->process == 'ProcessPageEdit') {
+			$this->addHookBefore('ProcessPageEdit::ajaxSave', $this, 'hookProcessPageEditAjaxSave');
+		}
 		$this->addHookBefore('PageFinder::getQuery', $this, 'hookPageFinderGetQuery'); 
 
 		// make sure that all templates used by repeater pages enforce a Page type of RepeaterPage
@@ -97,6 +111,8 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 	 * If it is, then it specifically excludes them. This is so that one could use a 'title' field
 	 * in both a repeater and elsewhere, and not worry about repeaters themselves appearing in 
 	 * search results for an admin.
+	 * 
+	 * @param HookEvent $event
 	 *
 	 */
 	public function hookPageFinderGetQuery(HookEvent $event) {
@@ -104,7 +120,9 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 		static $fieldsUsedInRepeaters = null;
 		static $templatesUsedByRepeaters = array();
 
+		/** @var Selectors $selectors */
 		$selectors = $event->arguments[0]; 
+		$pageFinderOptions = $event->object->getOptions();
 
 		// determine which fields are used in repeaters
 		if(is_null($fieldsUsedInRepeaters)) {
@@ -123,42 +141,48 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 		$found = false;
 
 		// was include=all specified?
-		$includeAll = false;
+		$includeAll = !empty($pageFinderOptions['findAll']);
 
 		// if user is guest, then repeater pages will already be excluded (since they don't have view access to them) so no need for extra filter
-		if($this->wire('user')->isGuest()) $includeAll = true; 
+		if(!$includeAll && $this->wire('user')->isGuest()) $includeAll = true; 
 
 		// determine if any of the fields used in the selector are also used in a repeater
 		// and set $found and $includeAll as appropriate
 		if(!$includeAll) foreach($selectors as $selector) {
 
 			$fields = $selector->field; 
-
 			if(!is_array($fields)) $fields = array($fields);
 
 			foreach($fields as $name) {
 
-				if(strpos($name, '.')) list($name, $unused) = explode('.', $name); // field.subfield
+				if(strpos($name, '.')) {
+					/** @noinspection PhpUnusedLocalVariableInspection */
+					list($name, $unused) = explode('.', $name); // field.subfield
+				}
 
 				// is field name one used by a repeater?
 				if(in_array($name, $fieldsUsedInRepeaters)) $found = true;
 
-				// include=all is the same as status<Page::statusMax, so we look for that here
-				if($name == 'status' && $selector->operator == '<' && $selector->value == Page::statusMax) $includeAll = true; 
-
-				// optimization: if parent, parent_id, template, or templates_id is given, and an equals '=' operator is used, 
-				// there's no need to explicitly exclude repeaters since the parent and/or template is specific
-				if(in_array($name, array('parent', 'parent_id', 'template', 'templates_id')) && $selector->operator == '=') $includeAll = true;
-
-				// ensure that the repeaters own queries work since they specify a templates_id
-				// note: this is now redundent given the code added directly above this, but kept for clarification
-				if($name == 'templates_id' && $selector->operator == '=' && in_array($selector->value, $templatesUsedByRepeaters)) $includeAll = true; 
-
-				// if has_parent is specified and is not homepage, no need to exclude results
-				if($name == 'has_parent' && $selector->value != 1 && $selector->operator == '=' && $selector->value != '/') $includeAll = true;
+				if($name == 'status' && $selector->operator == '<' && $selector->value == Page::statusMax) {
+					// include=all is the same as status<Page::statusMax, so we look for that here
+					$includeAll = true;
+				} else if(in_array($name, array('parent', 'parent_id', 'template', 'templates_id')) && $selector->operator == '=') {
+					// optimization: if parent, parent_id, template, or templates_id is given, and an equals '=' operator is used, 
+					// there's no need to explicitly exclude repeaters since the parent and/or template is specific
+					$includeAll = true;
+				} else if($name == 'templates_id' && $selector->operator == '=' && in_array($selector->value, $templatesUsedByRepeaters)) {
+					// ensure that the repeaters own queries work since they specify a templates_id
+					// note: this is now redundent given the code added directly above this, but kept for clarification
+					$includeAll = true;
+				} else if($name == 'has_parent' && $selector->value != 1 && $selector->operator == '=' && $selector->value != '/') {
+					// if has_parent is specified and is not homepage, no need to exclude results
+					$includeAll = true;
+				}
 
 				if($includeAll) break;
 			}
+			
+			if($includeAll) break;
 		}
 
 		// if field is one used by a repeater, and there was no include=all, 
@@ -174,6 +198,8 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 	 *
 	 * We modify the HTTP_X_FIELDNAME var to remove the "_repeater123" portion of the variable, 
 	 * since ProcessPageEdit doesn't know about repeaters. 
+	 * 
+	 * @param HookEvent $event
 	 *
  	 */
 	public function hookProcessPageEditAjaxSave(HookEvent $event) {
@@ -185,6 +211,7 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 		if($repeaterPageID < 1) return;
 
 		// make sure the owning page is editable since we'll be replacing the $page param that goes to ajaxSave
+		/** @var Page $ownerPage */
 		$ownerPage = $event->arguments[0]; 
 		if(!$ownerPage->editable()) return;
 
@@ -236,9 +263,12 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 	 * Temporary hook into Page::editable to capture the editable check for the page we swapped into the ajaxSave
 	 *
 	 * Prevents the 'no access' error when non-superuser attempts to perform an ajax save
+	 * 
+	 * @param HookEvent $event
 	 *
 	 */
 	public function hookProcessPageEditAjaxEditable(HookEvent $event) {
+		/** @var Page $page */
 		$page = $event->arguments[0]; 
 		$fieldName = isset($event->arguments[1]) ? $this->wire('sanitizer')->fieldName($event->arguments[1]) : '';
 		if($page->id && $this->ajaxPage && $this->ajaxPage->id == $page->id) {
@@ -253,6 +283,8 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 
 	/**
 	 * Ensure that InputfieldFile outputs markup with the proper fieldname (including the repeater_ part)
+	 * 
+	 * @param HookEvent $event
 	 *
 	 */
 	public function hookInputfieldFileRenderItem(HookEvent $event) {
@@ -273,6 +305,8 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 
 	/**
 	 * Delete any repeater pages that are owned by a page that was deleted
+	 * 
+	 * @param HookEvent $event
 	 *
 	 */
 	public function hookPagesDelete(HookEvent $event) {
@@ -288,7 +322,7 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 			$p->addStatus(Page::statusSystemOverride); 
 			$p->removeStatus(Page::statusSystem);
 			$this->message("Deleted repeater page {$p->path}", Notice::debug); 
-			wire('pages')->delete($p, true);
+			$this->wire('pages')->delete($p, true);
 		}
 	}
 
@@ -296,7 +330,7 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 	 * FieldtypeRepeater instances are only compatible with other FieldtypeRepeater derived classes. 
 	 *
 	 * @param Field $field 
-	 * @return FieldtypesArray
+	 * @return WireArray
 	 *
 	 */
 	public function ___getCompatibleFieldtypes(Field $field) {
@@ -331,6 +365,16 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 	}
 
 	/**
+	 * Get the class for the Inputfield (template method)
+	 * 
+	 * @return string
+	 * 
+	 */
+	protected function getInputfieldClass() {
+		return 'InputfieldRepeater';
+	}
+
+	/**
 	 * Return an InputfieldRepeater, ready to be used
 	 *
 	 * @param Page $page Page being edited
@@ -340,11 +384,11 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 	 */
 	public function getInputfield(Page $page, Field $field) {
 
-		$inputfield = $this->wire('modules')->get("InputfieldRepeater"); 
+		$inputfield = $this->wire('modules')->get($this->getInputfieldClass()); 
 		$inputfield->set('page', $page); 
 		$inputfield->set('field', $field);
-		$inputfield->set('repeaterMaxItems', $field->repeaterMaxItems); 
-		$inputfield->set('repeaterReadyItems', $field->repeaterReadyItems); 
+		$inputfield->set('repeaterMaxItems', $field->get('repeaterMaxItems')); 
+		$inputfield->set('repeaterReadyItems', 0);  // ready items deprecated
 
 		$pageArray = $page->get($field->name); 
 		if(!$pageArray instanceof PageArray) $pageArray = $this->getBlankValue($page, $field); 
@@ -353,7 +397,11 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 		// this is just since PW may call getInputfield with a dummyPage (usually homepage) for tests
 		// and we don't want to go on creating readyPages or setting up parent/template where not used
 		if($page->template && $page->template->fieldgroup->has($field)) {
-			$pageArray = $this->createReadyPages($page, $field, $pageArray); 
+			if(!count($pageArray)) {
+				// force the wakeup function to be called since it wouldn't have been for a field that doesn't yet exist
+				$pageArray = $this->wakeupValue($page, $field, null);
+			}
+			// $pageArray = $this->createReadyPages($page, $field, $pageArray); 
 		}
 		$page->set($field->name, $pageArray); 
 		$inputfield->attr('value', $pageArray); 
@@ -362,57 +410,33 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 	}
 
 	/**
-	 * Add new ready-to-edit pages to $pageArray in the requested quantity 
-	 *
-	 * @param Page $page Page being edited
-	 * @param Field $field Field being edited
-	 * @param PageArray Container for repeater pages
-	 * @return PageArray
-	 *
+	 * Get next page ready to be used as a new repeater item, creating it if it doesn't already exist
+	 * 
+	 * @param Page $page
+	 * @param Field $field
+	 * @param PageArray $value
+	 * @param array $notIDs Optional Page IDs that should be excluded from the next ready page
+	 * @return Page
+	 * 
 	 */
-	protected function createReadyPages(Page $page, Field $field, PageArray $pageArray) {
-
-		$numReady = 0;
-		$maxItems = $field->repeaterMaxItems; 
-		$numItems = count($pageArray); 
-
-		if(!$numItems) {
-			// force the wakeup function to be called since it wouldn't have been for a field that doesn't yet exist
-			$pageArray = $this->wakeupValue($page, $field, null);
-		}
-
-		// determine how many ready items there are
-		foreach($pageArray as $p) {
-			// note statusHidden + statusUnpublished identifies a repeater page as being a readyPage
-			if($p->hasStatus(Page::statusUnpublished) && $p->hasStatus(Page::statusHidden)) $numReady++;
-		}
-
-		// determine how many more ready items need to be created				
-		$numNeeded = $field->repeaterReadyItems - $numReady; 
-
-		// if there is a max limit set, adjust the numNeeded downwards till we are compliant
-		if($maxItems > 0) while($numItems + $numNeeded > $maxItems) $numNeeded--; 
-
-		// if no ready items are needed, then we can quit now
-		if($numNeeded < 1) return $pageArray;
-		
-		$sort = count($pageArray); 
-
-		for($n = 0; $n < $numNeeded; $n++) {
-
-			$readyPage = $this->getBlankRepeaterPage($page, $field);
-			$readyPage->sort = $sort; 
-			$readyPage->save();	
-
-			if($readyPage->id) { 
-				$pageArray->append($readyPage); 
-				$sort++;
+	public function getNextReadyPage(Page $page, Field $field, PageArray $value, array $notIDs = array()) {
+		$readyPage = null;
+		foreach($value as $item) {
+			if($item->hasStatus(Page::statusUnpublished) 
+				&& $item->hasStatus(Page::statusHidden) 
+				&& $item->id
+				&& !in_array($item->id, $notIDs)) {
+				$readyPage = $item;
+				break;
 			}
 		}
-
-		$this->message("Added $n ready pages for $field in {$page->path}", Notice::debug);
-
-		return $pageArray;
+		if(!$readyPage) {
+			$readyPage = $this->getBlankRepeaterPage($page, $field);
+			$readyPage->sort = count($value);
+			$readyPage->save();
+		}
+		$readyPage->setQuietly('_repeater_new', 1);
+		return $readyPage;
 	}
 
 	/**
@@ -431,8 +455,9 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 		$readyPage = $this->wire(new RepeaterPage());
 		$readyPage->template = $this->getRepeaterTemplate($field);
 		if($parent->id) $readyPage->parent = $parent; 
-		$readyPage->addStatus(Page::statusHidden); 
-		$readyPage->addStatus(Page::statusUnpublished); 
+		$readyPage->addStatus(Page::statusOn); // request publish for new items by defalt
+		$readyPage->addStatus(Page::statusHidden); // ready page
+		$readyPage->addStatus(Page::statusUnpublished); // ready page
 		$readyPage->name = $this->getUniqueRepeaterPageName();
 		$readyPage->setForPage($page);
 		$readyPage->setForField($field);
@@ -456,8 +481,8 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 	public function ___wakeupValue(Page $page, Field $field, $value) {
 
 		$parent_id = null; 
-		$field_parent_id = $field->parent_id; 
-		$template_id = $field->template_id; 
+		$field_parent_id = $field->get('parent_id'); 
+		$template_id = $field->get('template_id'); 
 		$outputFormatting = $page->outputFormatting();
 
 		// if it's already in the target format, leave it
@@ -483,8 +508,10 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 		if(!$parent_id || !$template_id) return $this->getBlankValue($page, $field); 
 
 		// build the selector: find pages with our parent
-		$selector = "parent_id=$parent_id, templates_id=$template_id, sort=sort, check_access=0";
+		// $selector = "parent_id=$parent_id, templates_id=$template_id, sort=sort, check_access=0";
+		$selector = "parent_id=$parent_id, templates_id=$template_id, sort=sort, include=all";
 
+		/*
 		if($outputFormatting) { 
 			// if an unpublished page is being previewed, let unpublished items be shown (ready items will be removed afterwards)
 			if($page->hasStatus(Page::statusUnpublished) && $page->editable($field->name)) $selector .= ", include=all"; 
@@ -492,6 +519,7 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 			// if the page is an edit state, then make it include the hidden/unpublished ready pages
 			if($page->editable($field->name)) $selector .= ", include=all";
 		}
+		*/
 
 		// load the repeater pages
 		$a = $this->wire('pages')->find($selector);
@@ -529,7 +557,7 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 
 		// iterate through the array and count how many published we have
 		foreach($value as $p) {
-			if(!$p->id || $p->hasStatus(Page::statusHidden) || $p->hasStatus(Page::statusUnpublished)) continue; 
+			if(!$p->id || $p->isHidden() || $p->isUnpublished()) continue; 
 			$ids[] = $p->id;
 			$count++;
 		}
@@ -549,6 +577,7 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 	public function ___exportValue(Page $page, Field $field, $value, array $options = array()) {
 		$a = array();
 		foreach($value as $k => $p) {
+			/** @var Page $p */
 			if($p->isUnpublished()) continue; 
 			$v = array();
 			foreach($p->template->fieldgroup as $f) {
@@ -598,7 +627,7 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 
 		// exit early if a field is in the process of being deleted
 		// so that a repeater page parent doesn't get automatically re-created
-		if($this->deletePageField === $field->parent_id) return $parent; 
+		if($this->deletePageField === $field->get('parent_id')) return $parent; 
 
 		$parent->save();
 		$this->message("Created Repeater Page Parent: " . $parent->path, Notice::debug); 
@@ -618,16 +647,17 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 	 */
 	protected function getRepeaterParent(Field $field) {
 
-		if($field->parent_id) {
-			$parent = $this->wire('pages')->get($field->parent_id); 
+		$parentID = (int) $field->get('parent_id');
+		if($parentID) {
+			$parent = $this->wire('pages')->get($parentID); 
 			if($parent->id) return $parent; 
 		}
 
-		$repeatersRootPage = $this->wire('pages')->get($this->repeatersRootPageID); 
+		$repeatersRootPage = $this->wire('pages')->get((int) $this->repeatersRootPageID); 
 		$parentName = self::fieldPageNamePrefix . $field->id; 
 
 		// we call this just to ensure it exists, so template is created if it doesn't exist yet
-		if(!$field->template_id) $template = $this->getRepeaterTemplate($field); 
+		if(!$field->get('template_id')) $this->getRepeaterTemplate($field); 
 
 		$parent = $repeatersRootPage->child("name=$parentName, include=all"); 
 
@@ -642,7 +672,7 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 		}
 
 		if($parent->id) {
-			if(!$field->parent_id) {
+			if(!$field->get('parent_id')) {
 				// parent_id setting not yet in field
 				$field->set('parent_id', $parent->id); 
 				$field->save();
@@ -668,7 +698,8 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 	protected function getRepeaterTemplate(Field $field) {
 
 		$template = null;
-		if($field->template_id) $template = $this->wire('templates')->get($field->template_id); 
+		$templateID = (int) $field->get('template_id');
+		if($templateID) $template = $this->wire('templates')->get($templateID); 
 		if($template) return $template;
 
 		// template does not exist, so we create it
@@ -777,11 +808,13 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 				$v = (int) $v; 
 				if($v) $result[] = $v; 
 			}
-			$result = $this->wire('pages')->getById($result, $this->getRepeaterTemplate($field), $field->parent_id); 
+			$result = $this->wire('pages')->getById($result, $this->getRepeaterTemplate($field), $field->get('parent_id')); 
 
 		} else if(Selectors::stringHasOperator($value)) {
 			// selector
-			$result = $this->wire('pages')->find("parent_id={$field->parent_id}, templates_id={$field->template_id}, $value");
+			$parentID = $field->get('parent_id');
+			$templateID = $field->get('template_id');
+			$result = $this->wire('pages')->find("parent_id=$parentID, templates_id=$templateID, $value");
 
 		} else if(strlen($value) && $value[0] == '/') {
 			// path
@@ -797,6 +830,11 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 	 * If the repeaterMaxItems setting is 1, then we format the value to dereference as single Page rather than a PageArray.
 	 *
 	 * This method is only used when $page->outputFormatting is true. 
+	 * 
+	 * @param Page $page
+	 * @param Field $field
+	 * @param PageArray $value
+	 * @return PageArray
 	 *
 	 */
 	public function ___formatValue(Page $page, Field $field, $value) {
@@ -810,21 +848,22 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 		}
 		*/
 
-		// remove ready items that shouldn't be here
+		// remove unpublished and ready items that shouldn't be here
 		foreach($value as $p) {
 
+			/*
 			if($p->status < Page::statusHidden) continue; 
 			$remove = false; 
-
-			if($p->hasStatus(Page::statusHidden)) {
+			if($p->isHidden()) {
 				// hidden pages (assumed to be a ready page) should never be included when page is being viewed (outputFormatting)
 				$remove = true; 
-			} else if($p->hasStatus(Page::statusUnpublished) && !$page->hasStatus(Page::statusUnpublished)) {
+			} else if($p->isUnpublished() && !$page->isUnpublished()) {
 				// unpublished items may only be included if the page is also unpublished (and presumably being previewed)
 				$remove = true; 
 			}
-
 			if($remove) {
+			*/
+			if($p->isHidden() || $p->isUnpublished()) {
 				$trackChanges = $value->trackChanges();
 				$value->setTrackChanges(false); 
 				$value->remove($p); 
@@ -836,14 +875,14 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 	}
 
 	/**
-	 * Update a DatabaseSelectQuery object to match a Page
+	 * Update a DatabaseQuerySelect object to match a Page
 	 *
-	 * @param DatabaseSelectQuery $query
+	 * @param DatabaseQuerySelect $query
 	 * @param string $table
 	 * @param string $subfield
 	 * @param string $operator
 	 * @param string $value
-	 * @return DatabaseSelectQuery
+	 * @return DatabaseQuerySelect
 	 *
 	 */
 	public function getMatchQuery($query, $table, $subfield, $operator, $value) {
@@ -890,26 +929,28 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 				$query->where("$table.count{$operator}0"); 
 
 			} else {
-				// @TODO
-				// match 123, 123|456|789 or /path/to/page
+				// @todo match 123, 123|456|789 or /path/to/page
 			}
 			
-		} else if($f = $this->wire('fields')->get($subfield)) {
-			// match fields from the repeater template
+		} else {
+			$f = $this->wire('fields')->get($subfield);
+			if($f) {
+				// match fields from the repeater template
+				// perform a separate find() operation for the subfield
+				$pageFinder = $this->wire(new PageFinder());
+				$value = $this->wire('sanitizer')->selectorValue($value);
+				$templateID = $field->get('template_id');
+				$selectors = $this->wire(new Selectors("templates_id=$templateID, check_access=0, $f->name$operator$value"));
+				$matches = $pageFinder->find($selectors);
 
-			// perform a separate find() operation for the subfield
-			$pageFinder = $this->wire(new PageFinder());
-			$value = $this->wire('sanitizer')->selectorValue($value); 
-			$selectors = $this->wire(new Selectors("templates_id={$field->template_id}, check_access=0, $subfield$operator$value")); 
-			$matches = $pageFinder->find($selectors); 
-
-			// use the IDs found from the separate find() as our getMatchQuery
-			if(count($matches)) { 
-				$ids = array();
-				foreach($matches as $match) $ids[$match['parent_id']] = $match['parent_id'];
-				$query->where("$table.parent_id IN(" . implode(',', $ids) . ")"); 
-			} else {
-				$query->where("1>2");  // force a non-match
+				// use the IDs found from the separate find() as our getMatchQuery
+				if(count($matches)) {
+					$ids = array();
+					foreach($matches as $match) $ids[$match['parent_id']] = $match['parent_id'];
+					$query->where("$table.parent_id IN(" . implode(',', $ids) . ")");
+				} else {
+					$query->where("1>2");  // force a non-match
+				}
 			}
 			
 		}
@@ -919,6 +960,9 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 
 	/**
 	 * Return the database schema in predefined format 
+	 * 
+	 * @param Field $field
+	 * @return array
 	 *
 	 */
 	public function getDatabaseSchema(Field $field) {
@@ -966,11 +1010,13 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 
 		$repeaterParent = $this->getRepeaterPageParent($page, $field);
 		$parent_id = $repeaterParent->id;
-		$template_id = $field->template_id; 
+		$template_id = $field->get('template_id'); 
 
 		// iterate through each page in the pageArray value
 		// and determine which need to be saved 
 		foreach($value as $key => $p) {
+			
+			/** @var Page $p */
 
 			if($p->template->id != $template_id) {
 				$value->remove($p);
@@ -988,7 +1034,7 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 			}
 
 			if($p->isNew() && !$p->name && !$p->title) {
-				// if we've got a new repeater page wihtout a name or title
+				// if we've got a new repeater page without a name or title
 				// then it's not going to save because it has no way of generating a name
 				// so we will generate one for it
 				$p->name = $this->getUniqueRepeaterPageName();
@@ -998,7 +1044,7 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 				// if the page has changed or is new, then we will queue it to be saved
 				$savePages[] = $p; 
 
-			} else if($p->id && $p->hasStatus(Page::statusUnpublished) && !$p->hasStatus(Page::statusHidden)) {
+			} else if($p->id && $p->isUnpublished() && !$p->isHidden()) {
 				// if the page has an ID, but is still unpublished, though not hidden, then we queue it to be saved (and published)
 				$savePages[] = $p; 
 			}
@@ -1006,16 +1052,24 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 
 		// iterate the pages that had changes and need to be saved
 		foreach($savePages as $p) {
-
+			
 			if($p->id) {
 				// existing page
-				if($p->hasStatus(Page::statusHidden) && $p->hasStatus(Page::statusUnpublished)) continue; // this is a 'ready' page, we can ignore
+				$isHidden = $p->isHidden();
+				$isUnpublished = $p->isUnpublished();
+				$isOn = $p->hasStatus(Page::statusOn);
+				$isProcessed = $p->get('_repeater_processed') === true;
+				$hasErrors = $p->get('_repeater_errors') ? true : false;
+				
+				if($isHidden && $isUnpublished) continue; // this is a 'ready' page, we can ignore
+				
 				$changes = implode(', ', $p->getChanges());
 				$this->message("Saved Repeater {$p->path} " . ($changes ? "($changes)" : ''), Notice::debug); 
 
-				// if the repeater is unpublished and the $page isn't, then remove the unpublished status from the repeater
-				// if($p->is(Page::statusUnpublished) && !$page->is(Page::statusUnpublished)) $p->removeStatus(Page::statusUnpublished); 
-				if($p->hasStatus(Page::statusUnpublished)) $p->removeStatus(Page::statusUnpublished); 
+				if($isUnpublished && $isOn && $isProcessed && !$hasErrors) {
+					// publish requested and allowed
+					$p->removeStatus(Page::statusUnpublished);
+				}
 
 			} else {
 				$this->message("Added New Repeater", Notice::debug); 
@@ -1053,8 +1107,8 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 	 */
 	public function ___deleteField(Field $field) {
 
-		$template = $this->wire('templates')->get($field->template_id); 
-		$parent = $this->wire('pages')->get($field->parent_id); 
+		$template = $this->wire('templates')->get((int) $field->get('template_id')); 
+		$parent = $this->wire('pages')->get((int) $field->get('parent_id')); 
 
 		// delete the pages used by this field
 		// check that the parent really is still in our repeaters structure before deleting anything
@@ -1112,8 +1166,8 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 	public function ___deletePageField(Page $page, Field $field) {
 
 		$result = parent::___deletePageField($page, $field); 
-		$this->deletePageField = $field->parent_id;
-		$fieldParent = $this->wire('pages')->get($field->parent_id);
+		$this->deletePageField = $field->get('parent_id');
+		$fieldParent = $this->wire('pages')->get($field->get('parent_id'));
 
 		// confirm that this field parent page is still part of the pages we manage
 		if($fieldParent->parent_id == $this->repeatersRootPageID) {
@@ -1135,6 +1189,10 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 
 	/**
 	 * Create a cloned copy of Field
+	 * 
+	 * @param Field $field
+	 * @throws WireException
+	 * @return Field
 	 *
 	 */
 	public function ___cloneField(Field $field) {
@@ -1149,6 +1207,9 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 
 	/**
 	 * Return configuration fields definable for each FieldtypePage
+	 * 
+	 * @param Field $field
+	 * @return InputfieldWrapper
 	 *
 	 */
 	public function ___getConfigInputfields(Field $field) {
@@ -1156,10 +1217,23 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 		$inputfields = parent::___getConfigInputfields($field);
 		$template = $this->getRepeaterTemplate($field); 
 		$parent = $this->getRepeaterParent($field); 
+		$languages = $this->wire('languages');
 
 		if($this->wire('input')->post->repeaterFields) $this->saveConfigInputfields($field, $template, $parent);
 
-		if(!count($template->fieldgroup)) $this->message($this->_('Please add fields to this repeater from the "details" tab.')); 
+		if(count($template->fieldgroup)) {
+			foreach($template->fieldgroup as $f) {
+				$f = $template->fieldgroup->getFieldContext($f);
+				if($f->get('required') && $f->get('requiredIf')) {
+					$this->warning(sprintf(
+						$this->_('Repeater field "%s" has a "required only if" dependency setting, and this is not supported in Repeaters.'), 
+						$f->name
+					));
+				}
+			}
+		} else {
+			$this->message($this->_('Please add fields to this repeater from the "details" tab.'));
+		}
 
 		$f = $this->modules->get('InputfieldHidden');
 		$f->attr('name', 'template_id');
@@ -1175,8 +1249,10 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 
 		// -------------------------------------------------
 
+		/** @var InputfieldAsmSelect $select */
 		$select = $this->modules->get('InputfieldAsmSelect');
-		$select->label = $this->_x('Repeater Fields', 'field-label');
+		$select->label = $this->_x('Repeater fields', 'field-label');
+		$select->icon = 'cube';
 		$select->description = $this->_('Define the fields that are used by this repeater. You may also drag and drop fields to the desired order.'); // Fields definition, description
 		$select->attr('name', 'repeaterFields');
 		$select->attr('id', 'repeaterFields');
@@ -1187,21 +1263,31 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 
 		foreach($template->fieldgroup as $f) {
 			$f = $template->fieldgroup->getField($f->id, true); // get in context
-			$columnWidth = $f->columnWidth ? $f->columnWidth : '100';
+			$columnWidth = (int) $f->get('columnWidth');
+			
 			$attrs = array(
 				'selected' => 'selected',
-				'data-status' => ($columnWidth > 0 ? $columnWidth . '%': ' ')
-				);
+				'data-status' => str_replace('Fieldtype', '', $f->type) . ' ' . ($columnWidth > 0 ? $columnWidth . '%': '100%'),
+				'data-desc' => $f->getLabel(),
+			);
+			$icon = $f->getIcon();
+			if($icon) $attrs['data-handle'] = "<i class='fa fa-fw fa-$icon'></i>";
 			$select->addOption($f->id, $f->name, $attrs);
 		}
 
 		foreach($this->wire('fields') as $f) {
 			if($template->fieldgroup->has($f)) continue;
 			if($f->type instanceof FieldtypeRepeater) continue; 
-			if(($f->flags & Field::flagPermanent) && !wire('config')->advanced) continue;
+			if(($f->flags & Field::flagPermanent) && !$this->wire('config')->advanced) continue;
 			$name = $f->name;
 			if($f->flags & Field::flagSystem) $name .= "*";
-			$attrs = array('data-status' => ($field->columnWidth > 0 ? $field->columnWidth . '%': ' '));
+			$columnWidth = (int) $f->get('columnWidth');
+			$attrs = array(
+				'data-desc' => $f->getLabel(),
+				'data-status' => str_replace('Fieldtype', '', $f->type) . ' ' . ($columnWidth > 0 ? $columnWidth . '%': '100%'),
+			);
+			$icon = $f->getIcon();
+			if($icon) $attrs['data-handle'] = "<i class='fa fa-fw fa-$icon'></i>";
 			$select->addOption($f->id, $name, $attrs);
 		}
 
@@ -1210,20 +1296,85 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 
 		// -------------------------------------------------
 
-		if(is_null($field->repeaterReadyItems)) $field->repeaterReadyItems = self::defaultRepeaterReadyItems; 
-		$input = $this->wire('modules')->get('InputfieldInteger'); 
-		$input->attr('id+name', 'repeaterReadyItems'); 
-		$input->attr('value', (int) abs($field->repeaterReadyItems)); 
+		$f = $this->wire('modules')->get('InputfieldText');
+		$f->attr('name', 'repeaterTitle');
+		$f->attr('value', $field->get('repeaterTitle'));
+		$f->label = $this->_('Repeater item labels');
+		$f->icon = 'list-ul';
+		$f->collapsed = Inputfield::collapsedBlank;
+		$f->description = $this->_('Enter the field name to use for repeater labels in the page editor, or leave blank to auto-generate.');
+		$f->description .= ' ' . $this->_('To use multiple fields, or to specify your own format string, surround field names in {brackets}.');
+		$f->description .= ' ' . $this->_('To include a repeater index number with each label, add "#n" somewhere in your format string.');
+		$f->notes = $this->_('Example: #n: {title}');
+		$inputfields->add($f);
+		
+		// -------------------------------------------------
+		
+		$f = $this->wire('modules')->get('InputfieldText');
+		$f->attr('name', 'repeaterAddLabel');
+		$f->attr('value', $field->get('repeaterAddLabel'));
+		$f->label = $this->_('Label for adding new item');
+		$f->icon = 'plus-circle';
+		$f->collapsed = Inputfield::collapsedBlank;
+		$f->description = $this->_('Enter the label you want to use for the "Add New Item" text/button, or leave blank for the default.');
+		if($languages) {
+			$f->useLanguages = true;
+			foreach($languages as $language) {
+				if($language->isDefault()) continue;
+				$f->set("value$language", $field->get("repeaterAddLabel$language"));
+			}
+		}
+		$inputfields->add($f);
+		
+		// -------------------------------------------------
+	
+		$f = $this->wire('modules')->get('InputfieldRadios');
+		$f->attr('name', 'repeaterCollapse');
+		$f->label = $this->_('Repeater item visibility in editor');
+		$f->description = $this->_('Repeater items can be open or collapsed (requiring a click to open). Collapsed mode is more convenient for sorting and seeing all your items together.');
+		$f->icon = 'sun-o';
+		$f->collapsed = Inputfield::collapsedBlank;
+		$f->addOption(0, $this->_('Items always open'));
+		$f->addOption(1, $this->_('Items always collapsed'));
+		$f->addOption(2, $this->_('New items open, existing items collapsed (recommended)'));
+		$f->attr('value', (int) $field->get('repeaterCollapse'));
+		$inputfields->add($f);
+			
+		// -------------------------------------------------
+
+		$f = $this->wire('modules')->get('InputfieldCheckbox');
+		$f->attr('name', 'noAjaxAdd');
+		$f->label = $this->_('Disable AJAX for adding items in editor');
+		$f->description = $this->_('By default, clicking the "Add Item" link will load the new repeater item via AJAX, which provides a more seamless experience. But some fields may not be compatible with this. Check this box to disable AJAX for adding items.'); // Description for noAjaxAdd option
+		$f->icon = 'frown-o';
+		$f->columnWidth = 50;
+		if($field->get('noAjaxAdd')) {
+			$f->attr('checked', 'checked');
+		} else {
+			$f->collapsed = Inputfield::collapsedYes;
+		}
+		$inputfields->add($f);
+		
+		// -------------------------------------------------
+	
+		/*
+		if(is_null($field->repeaterReadyItems)) $field->repeaterReadyItems = self::defaultRepeaterReadyItems;
+		if($field->noAjaxAdd) $field->repeaterReadyItems = 0;
+		$input = $this->wire('modules')->get('InputfieldInteger');
+		$input->attr('id+name', 'repeaterReadyItems');
+		$input->attr('value', (int) abs($field->repeaterReadyItems));
 		$input->label = $this->_('Ready-To-Edit New Repeater Items') . " ({$field->repeaterReadyItems})";
 		$input->description = $this->_('The number of ready-to-edit (unpublished) items per page to keep rendered for use as new items.');
-		$input->notes = 
-			$this->_('If set to 0, new items will only be created as needed. This is the most efficient setting.') . " \n" . 
-			$this->_('If set to 1 or above, that many new items will be ready to edit as soon as you click "add item". This makes for faster additions.'); 
-		$input->collapsed = Inputfield::collapsedYes; 
-		$inputfields->add($input); 
-
+		$input->notes =
+			$this->_('If set to 0, new items will only be created as needed. This is the most efficient setting.') . " \n" .
+			$this->_('If set to 1 or above, that many new items will be ready to edit as soon as you click "add item". This makes for faster additions.');
+		$input->collapsed = Inputfield::collapsedYes;
+		$input->showIf = 'noAjaxAdd=1';
+		$inputfields->add($input);
+		*/
 
 		// -------------------------------------------------
+
 
 		/** TBA 
 		if(is_null($field->repeaterMaxItems)) $field->repeaterMaxItems = self::defaultRepeaterMaxItems; 
@@ -1258,6 +1409,15 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 		return $inputfields; 
 	}
 
+	/**
+	 * Helper to getConfigInputfields, handles adding and removing of repeater fields
+	 * 
+	 * @param Field $field
+	 * @param Template $template
+	 * @param Page $parent
+	 * @throws WireException
+	 * 
+	 */
 	protected function ___saveConfigInputfields(Field $field, Template $template, Page $parent) {
 
 		$ids = $this->wire('input')->post->repeaterFields;	

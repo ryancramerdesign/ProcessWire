@@ -118,7 +118,10 @@ class WireData extends Wire implements \IteratorAggregate, \ArrayAccess {
 		if(array_key_exists($key, $this->data)) return $this->data[$key]; 
 		if(strpos($key, '|')) {
 			$keys = explode('|', $key); 
-			foreach($keys as $k) if($value = $this->get($k)) return $value; 
+			foreach($keys as $k) {
+				/** @noinspection PhpAssignmentInConditionInspection */
+				if($value = $this->get($k)) return $value;
+			}
 		}
 		return parent::__get($key); // back to Wire
 	}
@@ -136,9 +139,9 @@ class WireData extends Wire implements \IteratorAggregate, \ArrayAccess {
 	 * the value in the $this->data container, and not potentially elsewhere, if it matters
 	 * in the descending class.
 	 * 
-	 * @param $key Property you want to get or set
+	 * @param string $key Property you want to get or set
 	 * @param mixed $value Optionally specify a value if you want to set rather than get
-	 * @return mixed|null|this Returns value if geting a value or null if not found.
+	 * @return mixed|null|$this Returns value if geting a value or null if not found.
 	 * 	If you intead specify a value to set, it always returns $this.  
 	 * 
 	 */
@@ -272,7 +275,7 @@ class WireData extends Wire implements \IteratorAggregate, \ArrayAccess {
 	/**
 	 * Make the $data array iterable through this object, per the \IteratorAggregate interface
 	 * 
-	 * @return ArrayObject
+	 * @return \ArrayObject
 	 *
 	 */
 	public function getIterator() {

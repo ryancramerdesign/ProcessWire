@@ -275,7 +275,7 @@ class Templates extends WireSaveableItems {
 	 *
 	 */
 	protected function encodeData(array $value) {
-		return wireEncodeJSON($value, array('slashUrls')); 	
+		return wireEncodeJSON($value, array('slashUrls', 'compile')); 	
 	}
 
 	/**

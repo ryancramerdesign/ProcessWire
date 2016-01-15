@@ -16,6 +16,8 @@
  * 
  * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
  * https://processwire.com
+ * 
+ * @method WireArray and($item)
  *
  */
 
@@ -23,6 +25,8 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 
 	/**
 	 * Basic type managed by the WireArray for data storage
+	 * 
+	 * @var Wire[]
 	 *
 	 */
 	protected $data = array();
@@ -71,6 +75,7 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	 *
 	 */
 	public function isValidKey($key) {
+		// unused $key intentional for descending class/template purposes
 		return true; 
 	}
 
@@ -107,7 +112,7 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	 *
 	 * Used by add() and prepend()
 	 *
-	 * @param object $item
+	 * @param object|Wire $item
 	 * @return string|int|null 
 	 *
 	 */
@@ -123,7 +128,7 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	 * Get a blank copy of an item of the type that this WireArray holds
 	 *
 	 * @throws WireException
-	 * @return mixed
+	 * @return Wire|null
 	 *
 	 */
 	public function makeBlankItem() {
@@ -183,7 +188,7 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	 * Add an item to the end of the WireArray.
 	 * 
 	 * @throws WireException
-	 * @param int|string|array|object $item Item to add. 
+	 * @param int|string|array|object|Wire|WireArray $item Item to add. 
 	 * @return WireArray This instance.
 	 */
 	public function add($item) {
@@ -218,8 +223,8 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	 * @param int|string|array|object $item Item you want to insert
 	 * @param int|string|array|object $existingItem Item already present that you want to insert before/afer
 	 * @param bool $insertBefore True if you want to insert before, false if after
-	 * @return WireArray
-	 * @throws WireException ig given an invalid item
+	 * @return $this
+	 * @throws WireException if given an invalid item
 	 *
 	 */
 	protected function _insert($item, $existingItem, $insertBefore = true) {
@@ -256,9 +261,9 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	/**
 	 * Insert an item before an existing item
 	 *
-	 * @param int|string|array|object $item Item you want to insert
-	 * @param int|string|array|object $existingItem Item already present that you want to insert before
-	 * @return \WireArray
+	 * @param Wire|string|int $item Item you want to insert
+	 * @param Wire|string|int $existingItem Item already present that you want to insert before
+	 * @return $this
 	 *
 	 */
 	public function insertBefore($item, $existingItem) {
@@ -268,9 +273,9 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	/**
 	 * Insert an item after an existing item
 	 *
-	 * @param int|string|array|object $item Item you want to insert
-	 * @param int|string|array|object $existingItem Item already present that you want to insert after
-	 * @return \WireArray
+	 * @param Wire|string|int $item Item you want to insert
+	 * @param Wire|string|int $existingItem Item already present that you want to insert after
+	 * @return $this
 	 *
 	 */
 	public function insertAfter($item, $existingItem) {
@@ -286,7 +291,7 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	 *
 	 * @param Wire|string|int $itemA
 	 * @param Wire|string|int $itemB
-	 * @return \WireArray
+	 * @return $this
 	 *
 	 */
 	public function replace($itemA, $itemB) {
@@ -324,9 +329,9 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	 * Sets an index in the WireArray.
 	 *
 	 * @param int|string $key Key of item to set.
-	 * @param int|string|array|object $value Value of item. 
+	 * @param int|string|array|object|Wire $value Value of item. 
 	 * @throws WireException
-	 * @return \WireArray
+	 * @return $this
 	 *
 	 */
 	public function set($key, $value) {
@@ -400,7 +405,7 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	 * @throws WireException
 	 * @param int|string|array $key Key of item to retrieve. If not specified, 0 is assumed (for first item).
 	 * 	You may also provide an array of keys, in which case an array of matching items will be returned, indexed by your keys.
-	 * @return int|string|array|object Value of item requested, or null if it doesn't exist. 
+	 * @return WireData|Page|mixed|null Value of item requested, or null if it doesn't exist. 
 	 *
 	 */
 	public function get($key) {
@@ -409,10 +414,12 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 		if(is_object($key)) {
 			/** @var object $key */
 			$key = $this->getItemKey($key);
+			/** @var string|int $key */
 		}
 
 		// if given an array of keys, return all matching items
 		if(is_array($key)) {
+			/** @var array $key */
 			$items = array();
 			foreach($key as $k) {
 				$item = $this->get($k);
@@ -455,7 +462,7 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	 * Fuel properties and hooked properties have precedence with this type of call.
 	 * 
 	 * @param int|string $property 
-	 * @return mixed Value of requested index, or false if it doesn't exist. 
+	 * @return Wire|WireData|Page|mixed|bool Value of item requested, or false if it doesn't exist. 
 	 *
 	 */
 	public function __get($property) {
@@ -473,7 +480,7 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	 * These can also be accessed by direct reference. 
 	 *
 	 * @param string $property
-	 * @return mixed
+	 * @return Wire|mixed
 	 *
 	 */
 	public function getProperty($property) {
@@ -525,13 +532,17 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	 *
 	 * If the WireArray uses numeric keys, then this will also match a wire's "name" field.
 	 * 
-	 * @param int|string $key Key of item to check or selector.
+	 * @param int|string|Wire $key Key of item to check or selector.
 	 * @return bool True if the item exists, false if not. 
 	 * 
 	 */ 
 	public function has($key) {
 
-		if(is_object($key)) $key = $this->getItemKey($key); 
+		if(is_object($key)) {
+			/** @var object|Wire $key */
+			$key = $this->getItemKey($key);
+			/** @var int|string $key */
+		}
 
 		if(array_key_exists($key, $this->data)) return true; 
 
@@ -565,7 +576,7 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	 *
 	 * This is for syntax convenience, as it simply eturns this instance of the WireArray. 
 	 *
-	 * @return WireArray
+	 * @return $this
 	 * 
 	 */
 	public function getAll() {
@@ -586,7 +597,7 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	/**
 	 * Returns an array of all values used in this WireArray. 
 	 * 
-	 * @return array Values used in the WireArray.
+	 * @return array|Wire[] Values used in the WireArray.
 	 * 
 	 */
 	public function getValues() {
@@ -602,7 +613,7 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	 *
 	 * @param int $num Number of items to return. Optional and defaults to 1. 
 	 * @param bool $alwaysArray If true, then method will always return a container of items, even if it only contains 1. 
-	 * @return int|string|array|object|WireArray|null Returns value of item, or new WireArray of items if more than one requested. 
+	 * @return WireArray|Wire|mixed|null Returns value of item, or new WireArray of items if more than one requested. 
 	 */
 	public function getRandom($num = 1, $alwaysArray = false) {
 		$items = $this->makeNew(); 
@@ -642,7 +653,7 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	 *
 	 * @param int $num the amount of items to extract from the given list
 	 * @param int|string $seed a number used to see the random number generator; or a string compatible with date()
-	 * @return \WireArray
+	 * @return WireArray
 	 *
 	 */
 	public function findRandomTimed($num, $seed = 'Ymd') {
@@ -685,8 +696,8 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	/**
 	 * Prepend an element to the beginning of the WireArray. 
 	 *
-	 * @param int|string|array|object $item Item to prepend. 
-	 * @return \WireArray This instance.
+	 * @param Wire|WireArray|mixed $item Item to prepend. 
+	 * @return $this This instance.
 	 * @throws WireException
 	 *
 	 */
@@ -717,8 +728,8 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	/**
 	 * Append an item to the end of the WireArray.
 	 *
-	 * @param int|string|array|object Item to append. 
-	 * @return WireArray This instance.
+	 * @param Wire|WireArray|mixed $item Item to append. 
+	 * @return $this This instance.
 	 *
 	 */
 	public function append($item) {
@@ -731,8 +742,8 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	 *
 	 * Alias for prepend()
 	 * 
-	 * @param int|string|array|object Item to prepend. 
-	 * @return WireArray This instance.
+	 * @param Wire|WireArray|mixed $item Item to prepend. 
+	 * @return $this This instance.
 	 *
 	 */
 	public function unshift($item) {
@@ -742,11 +753,12 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	/**
 	 * Shift an element off the beginning of the WireArray.
 	 *
-	 * @return int|string|array|object Item shifted off the beginning.
+	 * @return Wire|mixed|null Item shifted off the beginning or NULL if empty.
 	 *
 	 */
 	public function shift() {
 		$item = array_shift($this->data); 
+		if(is_null($item)) return $item;
 		$this->trackChange('shift', $item, null);
 		$this->trackRemove($item); 
 		return $item; 
@@ -757,8 +769,8 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	 * 
 	 * Same as add() and append(), but here for syntax convenience.
 	 *
-	 * @param int|string|array|object Item to push. 
-	 * @return WireArray This instance.
+	 * @param Wire|mixed $item Item to push. 
+	 * @return $this This instance.
 	 *
 	 */
 	public function push($item) {
@@ -769,11 +781,12 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	/**
 	 * Pop an element off the end of the WireArray.
 	 * 
-	 * @return int|string|array|object Item popped off the end. 
+	 * @return Wire|mixed|null Item popped off the end or NULL if empty.
 	 *
 	 */
 	public function pop() {
 		$item = array_pop($this->data); 
+		if(is_null($item)) return $item;
 		$this->trackChange('pop', $item, null);
 		$this->trackRemove($item); 
 		return $item; 
@@ -782,7 +795,7 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	/**
 	 * Shuffle/randomize the WireArray. 
 	 *
-	 * @return WireArray This instance.
+	 * @return $this This instance.
 	 *
 	 */
 	public function shuffle() {
@@ -839,7 +852,7 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	 *
 	 * Note that this resets the internal WireArray pointer, which would affect other active iterations. 
 	 *
-	 * @return int|string|array|object 
+	 * @return Wire|mixed|bool
 	 *
 	 */
 	public function first() {
@@ -851,7 +864,7 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	 *
 	 * Note that this resets the internal WireArray pointer, which would affect other active iterations. 
 	 * 
-	 * @return int|string|array|object
+	 * @return Wire|mixed|bool
 	 *
 	 */
 	public function last() {
@@ -863,7 +876,7 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	 * Removes the item at the given index from the WireArray (if it exists).
 	 * 
 	 * @param int|string|Wire $key Index of item or object instance.
-	 * @return WireArray This instance.
+	 * @return $this This instance.
 	 *
 	 */
 	public function remove($key) {
@@ -886,8 +899,8 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	/**
 	 * Removes multiple items at once
 	 *
-	 * @param array|Wire|string|WireArray Items to remove
-	 * @return this
+	 * @param array|Wire|string|WireArray $items Items to remove
+	 * @return $this
 	 * 
 	 */
 	public function removeItems($items) {
@@ -898,6 +911,8 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 
 	/**
 	 * Removes all items from the WireArray
+	 * 
+	 * @return $this
 	 *
 	 */
 	public function removeAll() {
@@ -911,7 +926,7 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	 * Remove an item without any record of the event or telling anything else. 
 	 *
 	 * @param int|string|Wire $key Index of item or object instance.
-	 * @return WireArray This instance. 
+	 * @return $this This instance. 
 	 *
 	 */
 	public function removeQuietly($key) {
@@ -928,7 +943,7 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	 * and subproperty resolves to a property within that object. 
 	 * 
 	 * @param string|array $properties Field names to sort by (comma separated string or an array). Prepend or append a minus "-" to reverse the sort (per field).
-	 * @return WireArray reference to current instance.
+	 * @return $this reference to current instance.
 	 */
 	public function sort($properties) {
 		return $this->_sort($properties);
@@ -945,7 +960,7 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	 * 
 	 * @param string|array $properties Field names to sort by (comma separated string or an array). Prepend or append a minus "-" to reverse the sort (per field).
 	 * @param int $numNeeded *Internal* amount of rows that need to be sorted (optimization used by filterData)
-	 * @return WireArray reference to current instance.
+	 * @return $this reference to current instance.
 	 */
 	protected function _sort($properties, $numNeeded = null) {
 
@@ -970,7 +985,7 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	 *
 	 * This function contains additions and modifications by @niklaka.
 	 *
-	 * @param array &$data Reference to an array to sort.
+	 * @param array|WireArray &$data Reference to an array to sort.
 	 * @param array $properties Array of properties: first property is used now and others in recursion, if needed.
 	 * @param int $numNeeded *Internal* amount of rows that need to be sorted (optimization used by filterData)
 	 * @return array Sorted array (at least $numNeeded items, if $numNeeded is given)
@@ -989,13 +1004,14 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 			$property = trim($property, '-'); 
 		}
 
-		if($pos = strpos($property, ".")) {
+		$pos = strpos($property, ".");
+		if($pos) {
 			$subProperty = substr($property, $pos+1); 
 			$property = substr($property, 0, $pos); 
 		}
 
 		foreach($data as $item) {
-
+			/** @var Wire $item */
 			$key = $this->getItemPropertyValue($item, $property); 
 
 			// if item->property resolves to another Wire, then try to get the subProperty from that Wire (if it exists)
@@ -1081,7 +1097,7 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	 *
 	 * @param string|Selectors $selectors AttributeSelector string to use as the filter.
 	 * @param bool $not Make this a "not" filter? (default is false)
-	 * @return WireArray reference to current [filtered] instance
+	 * @return $this reference to current [filtered] instance
 	 *
 	 */
 	protected function filterData($selectors, $not = false) {
@@ -1158,40 +1174,38 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	protected function filterDataSelectors(Selectors $selectors) { }
 
 	/**
-	 * Filter out Wires that don't match the selector. 
+	 * Filter out Wires that don't match the selector (destructive)
 	 *
 	 * Same as filterData, but for public interface without the $not option. 
 	 * 
 	 * @param string $selector AttributeSelector string to use as the filter. 
-	 * @return WireArray reference to current instance.
+	 * @return $this reference to current instance.
 	 * @see filterData
 	 *
 	 */
 	public function filter($selector) {
-		// destructive
 		return $this->filterData($selector, false); 
 	}
 
 
 	/**
-	 * Filter out Wires that don't match the selector. 
+	 * Filter out Wires that don't match the selector (destructive)
 	 *
 	 * Same as filterData, but for public interface with the $not option specifically set to "true".
 	 * Example: $pages->not("nonav"); // returns all pages that don't have a nonav variable set to a positive value. 
 	 * 
 	 * @param string $selector AttributeSelector string to use as the filter. 
-	 * @return WireArray reference to current instance.
+	 * @return $this reference to current instance.
 	 * @see filterData
 	 *
 	 */
 	public function not($selector) {
-		// destructive
 		return $this->filterData($selector, true); 
 	}
 
 
 	/**
-	 * Find all Wires in this WireArray that match the given selector.
+	 * Find all Wires in this WireArray that match the given selector (non-destructive)
 	 * 
 	 * This is non destructive and returns a brand new WireArray.
 	 *
@@ -1200,11 +1214,9 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	 *
 	 */
 	public function find($selector) {
-		// non descructive
 		$a = $this->makeCopy();
 		if(!strlen($selector)) return $a;
 		$a->filter($selector); 	
-
 		return $a; 
 	}
 
@@ -1212,13 +1224,12 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	 * Same as find, but returns a single Page rather than WireArray or FALSE if empty.
 	 * 
 	 * @param string $selector
-	 * @return WireArray
+	 * @return Wire|bool
 	 *
 	 */
 	public function findOne($selector) {
 		return $this->find($selector)->first();
 	}
-
 
 	/**	
 	 * Determines if the given item iterable as an array.
@@ -1240,9 +1251,9 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	 * Allows iteration of the WireArray. 
 	 *
 	 * Fulfills \IteratorAggregate interface. 
-	 * TODO return $this rather than ArrayObject ?
+	 * @todo can we return $this rather than ArrayObject?
 	 * 
-	 * @return ArrayObject
+	 * @return Wire[]|\ArrayObject
 	 *
 	 */
 	public function getIterator() {
@@ -1267,7 +1278,7 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	 * For the \ArrayAccess interface. 
 	 * 
 	 * @param int|string $key Key of item to set.
-	 * @param int|string|array|object $value Value of item. 
+	 * @param Wire|mixed $value Value of item. 
 	 * 
 	 */
 	public function offsetSet($key, $value) {
@@ -1278,7 +1289,7 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	 * Returns the value of the item at the given index, or false if not set. 
 	 *
 	 * @param int|string $key Key of item to retrieve. 
-	 * @return int|string|array|object Value of item requested, or false if it doesn't exist. 
+	 * @return Wire|mixed|bool Value of item requested, or false if it doesn't exist. 
 	 * 
 	 */
 	public function offsetGet($key) {
@@ -1336,9 +1347,9 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	}
 
 	/**
-	 * Return a reversed version of this WireArray
+	 * Return a reversed version of this WireArray (non-destructive)
 	 *
-	 * Non destructive
+	 * @return WireArray
 	 *
 	 */ 
 	public function reverse() {
@@ -1365,7 +1376,7 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	 * Clears out any tracked changes and turns change tracking ON or OFF
 	 *
 	 * @param bool $trackChanges True to turn change tracking ON, or false to turn OFF. Default of true is assumed. 
-	 * @return WireArray
+	 * @return $this
 	 *
 	 */
 	public function resetTrackChanges($trackChanges = true) {
@@ -1376,6 +1387,8 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 
 	/**
 	 * Track an item added
+	 * 
+	 * @param Wire|mixed $item
  	 *
 	 */
 	protected function trackAdd($item) {
@@ -1384,6 +1397,8 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 
 	/**
 	 * Track an item removed
+	 * 
+	 * @param Wire|mixed $item
  	 *
 	 */
 	protected function trackRemove($item) {
@@ -1393,7 +1408,7 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	/**
 	 * Return array of all keys added while trackChanges was on
 	 *
-	 * @return array
+	 * @return array|Wire[]
 	 *
 	 */
 	public function getItemsAdded() {
@@ -1403,7 +1418,7 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	/**
 	 * Return array of all keys removed while trackChanges was on
 	 *
-	 * @return array
+	 * @return array|Wire[]
 	 *
 	 */
 	public function getItemsRemoved() {
@@ -1499,7 +1514,7 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	 * 
 	 * @param string $delimiter The delimiter to separate each item by (or the glue to tie them together).
 	 *	If not needed, this argument may be omitted and $property supplied first (also shifting $options to 2nd arg).
-	 * @param string|function $property The property to retrieve from each item, or a function that returns the value to store.
+	 * @param string|callable $property The property to retrieve from each item, or a function that returns the value to store.
 	 *	If a function/closure is provided it is given the $item (argument 1) and the $key (argument 2), and it should 
 	 *	return the value (string) to use. 
 	 *	If delimiter is omitted, this becomes the first argument. 
@@ -1566,7 +1581,7 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	 *
 	 * The keys of the returned array remain consistent with the original WireArray.
 	 *
-	 * @param string|function|array $property
+	 * @param string|callable|array $property
 	 * @param array $options
 	 *  - getMethod: Method to call on each item to retrieve $property (default = "get")
 	 * @return array
@@ -1628,8 +1643,8 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	 *   $data = $a->data(); // no arguments = return all data as array
 	 *
 	 * @param string|null $key
-	 * @param string|int|object|array|null $value
-	 * @return this|string|int|object|array|null
+	 * @param mixed|null $value
+	 * @return $this|mixed|null
 	 *
 	 * @todo Consider whether the utility of this may go beyond WireArray and perhaps into Wire.
 	 *
@@ -1645,7 +1660,7 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	 * Remove an attribute
 	 *
 	 * @param string $key
-	 * @return this
+	 * @return $this
 	 *
 	 */
 	public function removeData($key) {
@@ -1706,7 +1721,7 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	/**
 	 * Execute a function for each item, or build a string or array from each item
 	 * 
-	 * @param callable|function|string|array|null $func Accepts any of the following:
+	 * @param callable|string|array|null $func Accepts any of the following:
 	 * 1. Callable function that each item will be passed to as first argument. If this 
 	 *    function returns a string, it will be appended to that of the other items and 
 	 *    the result returned by this each() method.

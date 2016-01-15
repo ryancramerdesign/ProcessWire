@@ -144,7 +144,15 @@ abstract class Inputfield extends WireData implements Module {
 	 * Attributes specified for the XHTML output, like class, rows, cols, etc. 
 	 *
 	 */
-	protected $attributes = array(); 
+	protected $attributes = array();
+
+	/**
+	 * Attributes that accompany this Inputfield's wrapping element
+	 * 
+	 * @var array
+	 * 
+	 */
+	protected $wrapAttributes = array();
 
 	/**
 	 * The parent Inputfield, if applicable
@@ -442,7 +450,7 @@ abstract class Inputfield extends WireData implements Module {
 		}
 		return $this->setAttribute($key, $value); 
 	}
-
+	
 	/**
 	 * Get all attributes specified for this Inputfield
 	 *
@@ -461,6 +469,30 @@ abstract class Inputfield extends WireData implements Module {
 	 */
 	public function getAttribute($key) {
 		return isset($this->attributes[$key]) ? $this->attributes[$key] : null; 
+	}
+
+	/**
+	 * Get or set attribute for wrapping element
+	 * 
+	 * @param string|null $key Omit to get all wrap attributes as associative array.
+	 * @param string|null|bool $value Omit if getting rather than setting. Set to boolean false to remove attribute.
+	 * @return string|array|$this If getting, returns attribute value of NULL if not present. If setting, returns $this.
+	 * 
+	 */
+	public function wrapAttr($key = null, $value = null) {
+		if(is_null($value)) {
+			if(is_null($key)) {
+				return $this->wrapAttributes;
+			} else {
+				return isset($this->wrapAttributes[$key]) ? $this->wrapAttributes[$key] : null;
+			}
+		} else if($value === false) {
+			unset($this->wrapAttributes[$key]);
+			return $this;
+		} else {
+			if(strlen($key)) $this->wrapAttributes[$key] = $value;
+			return $this;
+		}
 	}
 
 	/**

@@ -14,12 +14,16 @@ class RepeaterPageArray extends PageArray {
 
 	/**
 	 * The page that contains the repeater field (not the parent in the repeaters structure)
+	 * 
+	 * @var Page
 	 *
 	 */ 
 	protected $parent = null;
 
 	/**
 	 * The repeater field (from $this->fields API var)
+	 * 
+	 * @var Field
 	 *
 	 */
 	protected $field = null;
@@ -62,7 +66,7 @@ class RepeaterPageArray extends PageArray {
 
 		// first try to get a ready item, if available
 		foreach($this as $item) {
-			if($item->hasStatus(Page::statusUnpublished) && $item->hasStatus(Page::statusHidden)) {
+			if($item->isUnpublished() && $item->isHidden()) {
 				$page = $item;
 				break;
 			}
