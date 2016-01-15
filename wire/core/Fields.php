@@ -282,21 +282,24 @@ class Fields extends WireSaveableItems {
 	 *
 	 * @param Field $field Field to save context for
 	 * @param Fieldgroup $fieldgroup Context for when field is in this fieldgroup
+	 * @param string $namespace An optional namespace for additional context
 	 * @return bool True on success
 	 * @throws WireException
 	 *
 	 */
-	public function ___saveFieldgroupContext(Field $field, Fieldgroup $fieldgroup) {
+	public function ___saveFieldgroupContext(Field $field, Fieldgroup $fieldgroup, $namespace = '') {
 
 		// get field without contxt
 		$fieldOriginal = $this->get($field->name);
 
-		$data = array();
-
 		// make sure given field and fieldgroup are valid
-		if(!($field->flags & Field::flagFieldgroupContext)) throw new WireException("Field must be in fieldgroup context before its context can be saved"); 
-		if(!$fieldgroup->has($fieldOriginal)) throw new WireException("Fieldgroup $fieldgroup does not contain field $field"); 
-		
+		if(!($field->flags & Field::flagFieldgroupContext)) throw new WireException("Field must be in fieldgroup context before its context can be saved");
+		if(!$fieldgroup->has($fieldOriginal)) throw new WireException("Fieldgroup $fieldgroup does not contain field $field");
+
+		$field_id = (int) $field->id;
+		$fieldgroup_id = (int) $fieldgroup->id; 
+		$database = $this->wire('database');
+
 		$newValues = $field->getArray();
 		$oldValues = $fieldOriginal->getArray();
 
@@ -350,6 +353,19 @@ class Fields extends WireSaveableItems {
 		// keep all in the same order so that it's easier to compare (by eye) in the DB
 		ksort($data);
 
+		if($namespace) {
+			// get existing data and move everything here into a namespace within that data
+			$query = $database->prepare('SELECT data FROM fieldgroups_fields WHERE fields_id=:field_id AND fieldgroups_id=:fieldgroup_id'); 
+			$query->bindValue(':field_id', $field_id, \PDO::PARAM_INT);
+			$query->bindValue(':fieldgroup_id', $fieldgroup_id, \PDO::PARAM_INT);
+			$query->execute();
+			list($existingData) = $query->fetch(\PDO::FETCH_NUM);
+			$existingData = strlen($existingData) ? json_decode($existingData, true) : array();
+			if(!is_array($existingData)) $existingData = array();
+			$existingData[Fieldgroup::contextNamespacePrefix . $namespace] = $data;
+			$data = $existingData;
+		}
+		
 		// inject updated context back into model
 		$fieldgroup->setFieldContextArray($field->id, $data);
 
@@ -361,10 +377,7 @@ class Fields extends WireSaveableItems {
 		} else {
 			$data = "'" . $this->wire('database')->escapeStr($data) . "'";
 		}
-		$field_id = (int) $field->id; 
-		$fieldgroup_id = (int) $fieldgroup->id; 
 		
-		$database = $this->wire('database');
 		$query = $database->prepare("UPDATE fieldgroups_fields SET data=$data WHERE fields_id=:field_id AND fieldgroups_id=:fieldgroup_id"); // QA
 		$query->bindValue(':field_id', $field_id, \PDO::PARAM_INT);
 		$query->bindValue(':fieldgroup_id', $fieldgroup_id, \PDO::PARAM_INT); 

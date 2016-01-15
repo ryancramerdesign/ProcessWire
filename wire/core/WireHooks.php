@@ -251,7 +251,7 @@ class WireHooks {
 	/**
 	 * Similar to isHooked(), returns true if the method or property hooked, false if it isn't.
 	 *
-	 * Accomplishes the same thing as the static isHooked() method, but this is non-static, more accruate,
+	 * Accomplishes the same thing as the isHooked() method, but this is more accruate,
 	 * and potentially slower than isHooked(). Less for optimization use, more for accuracy use.
 	 *
 	 * It checks for both static hooks and local hooks, but only accepts a method() or property
@@ -516,7 +516,11 @@ class WireHooks {
 	 * @param Wire $object
 	 * @param string $method Method or property to run hooks for.
 	 * @param array $arguments Arguments passed to the method and hook.
-	 * @param string $type May be either 'method' or 'property', depending on the type of call. Default is 'method'.
+	 * @param string $type May be any one of the following: 
+	 *  - method: for hooked methods (default)
+	 *  - property: for hooked properties
+	 *  - before: only run before hooks and do nothing else
+	 *  - after: only run after hooks and do nothing else
 	 * @return array Returns an array with the following information:
 	 * 	[return] => The value returned from the hook or NULL if no value returned or hook didn't exist.
 	 *	[numHooksRun] => The number of hooks that were actually run.
@@ -542,6 +546,7 @@ class WireHooks {
 		}
 
 		$hooks = $this->getHooks($object, $method);
+		$cancelHooks = false;
 
 		foreach(array('before', 'after') as $when) {
 
@@ -627,6 +632,8 @@ class WireHooks {
 				}
 
 				$result['numHooksRun']++;
+				
+				if($event->cancelHooks === true) $cancelHooks = true;
 
 				if($when == 'before') {
 					$arguments = $event->arguments;
@@ -635,7 +642,9 @@ class WireHooks {
 				}
 
 				if($when == 'after') $result['return'] = $event->return;
+				if($cancelHooks) break;
 			}
+			if($cancelHooks) break;
 		}
 		
 		if($hookTimer) Debug::saveTimer($hookTimer);

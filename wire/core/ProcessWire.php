@@ -24,7 +24,7 @@ class ProcessWire extends Wire {
 
 	const versionMajor = 3; 
 	const versionMinor = 0; 
-	const versionRevision = 4; 
+	const versionRevision = 5; 
 	const versionSuffix = 'devns';
 	
 	const indexVersion = 300; // required version for index.php file (represented by PROCESSWIRE define)
@@ -495,7 +495,7 @@ class ProcessWire extends Wire {
 	 * @return int
 	 * 
 	 */
-	public function getInstanceID() {
+	public function getProcessWireInstanceID() {
 		return $this->instanceID;
 	}
 
@@ -655,6 +655,7 @@ class ProcessWire extends Wire {
 		$config->urls->files = "$assetsDir/files/";
 		$config->urls->tmp = "$assetsDir/tmp/";
 		$config->urls->templates = "$siteDir/templates/";
+		$config->urls->fieldTemplates = "$siteDir/templates/fields/";
 		$config->urls->adminTemplates = is_dir("$siteDir/$adminTplDir") ? "$siteDir/$adminTplDir/" : "$wireDir/$adminTplDir/";
 		$config->paths = clone $config->urls;
 		$config->paths->root = $rootPath . '/';

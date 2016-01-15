@@ -912,7 +912,8 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 		$publishNow = $this->page->publishable() && $this->wire('input')->post('submit_publish');
 		$languages = $this->wire('languages'); 
 
-		foreach($this->page->fields as $field) {
+		foreach($this->page->fieldgroup as $field) {
+			if(!$this->page->hasField($field)) continue;
 			$f = $form->children->get($field->name); 
 			if($f) {
 				if($languages && $f->useLanguages) {

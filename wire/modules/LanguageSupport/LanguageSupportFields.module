@@ -136,7 +136,7 @@ class LanguageSupportFields extends WireData implements Module {
 		// determine name of language field, if present.
 		// note that if the language name contains dashes or dots (- or .) the field name should contain underscores there instead
 		$newName = $field->name . '_' . str_replace(array('-', '.'), '_', $language->name); 
-		$newField = $page->fields->getField($newName);
+		$newField = $page->fieldgroup->getField($newName);
 		if(!$newField) return;
 
 		// unformatted so nothing can modify it first

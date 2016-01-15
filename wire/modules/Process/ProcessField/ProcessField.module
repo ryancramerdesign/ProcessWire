@@ -70,6 +70,24 @@ class ProcessField extends Process implements ConfigurableModule {
 	protected $fieldgroup = null;
 
 	/**
+	 * Optional namespace for context fieldgroup
+	 * 
+	 * @var string
+	 * 
+	 */
+	protected $contextNamespace = '';
+
+	/**
+	 * Label that indicates what the context is (whether fieldgroup or namespace)
+	 * 
+	 * Provided via get/post var $context_label
+	 * 
+	 * @var string
+	 * 
+	 */
+	protected $contextLabel = '';
+
+	/**
 	 * Data thats been overridden by all fieldgroups, indexed by fieldgroup ID with array value indexed by overridden field keys
 	 * 
 	 * @var array $fieldgroupData
@@ -476,7 +494,11 @@ class ProcessField extends Process implements ConfigurableModule {
 		
 		if($this->fieldgroup) {
 			$this->breadcrumb("./edit?id=" . $this->field->id, $this->field->name);
-			$headline .= ' (' . sprintf($this->_('when used with template: %s'), $this->fieldgroup->name) . ')';
+			if($this->contextLabel) {
+				$headline .= ' (' . sprintf($this->_('when used with: %s'), $this->contextLabel) . ')';
+			} else {
+				$headline .= ' (' . sprintf($this->_('when used with template: %s'), $this->fieldgroup->name) . ')';
+			}
 		}
 
 		$this->headline($headline);
@@ -620,7 +642,7 @@ class ProcessField extends Process implements ConfigurableModule {
 		if(!$this->fieldgroup) return;
 
 		$fieldOriginal = $this->wire('fields')->get($this->field->id);
-		$context = $this->fieldgroup->getFieldContextArray($this->field->id); 
+		$context = $this->fieldgroup->getFieldContextArray($this->field->id, $this->contextNamespace); 
 		$languages = $this->wire('languages');
 
 		foreach($context as $key => $value) {
@@ -697,6 +719,24 @@ class ProcessField extends Process implements ConfigurableModule {
 			else if($this->input->get->fieldgroup_id && !count($_POST)) $fieldgroup_id = (int) $this->input->get->fieldgroup_id; 
 			else $fieldgroup_id = 0;
 		
+		if($fieldgroup_id) {
+			// optional namespace for context fieldgroup
+			if($this->input->post('_context_namespace')) $contextNamespace = $this->input->post('_context_namespace');
+				else if($this->input->get('context_namespace') && !count($_POST)) $contextNamespace = $this->input->get('context_namespace');
+				else $contextNamespace = '';
+			if($contextNamespace) {
+				$contextNamespace = $this->wire('sanitizer')->fieldName($contextNamespace);
+				$this->contextNamespace = $contextNamespace;
+			}	
+		}
+		if($this->input->post('_context_label')) $contextLabel = $this->input->post('_context_label');
+			else if($this->input->get('context_label')) $contextLabel = $this->input->get('context_label');
+			else $contextLabel = '';
+		if(strlen($contextLabel)) {
+			$contextLabel = $this->wire('sanitizer')->entities($contextLabel);
+			$this->contextLabel = $contextLabel;
+		}
+		
 		if($this->field->id && $this->session->get($this, 'optimize') == $this->field->id) {
 			// keep track of what gets retrieved from each field
 			foreach($this->wire('fields') as $field) $field->trackGets(true);
@@ -713,7 +753,7 @@ class ProcessField extends Process implements ConfigurableModule {
 			$this->fieldgroup = $this->wire('fieldgroups')->get($fieldgroup_id); 
 			if(!$this->fieldgroup) throw new WireException("Invalid fieldgroup"); 
 			if(!$this->fieldgroup->has($this->field)) throw new WireException("Fieldgroup '{$this->fieldgroup->name}' does not have field '{$this->field->name}'"); 
-			$this->field = $this->fieldgroup->getField($this->field->id, true);  // get the field in context of the fieldgroup
+			$this->field = $this->fieldgroup->getFieldContext($this->field->id, $this->contextNamespace);  // get the field in context of the fieldgroup
 		}
 
 		$form->add($this->buildEditFormBasics());
@@ -748,7 +788,19 @@ class ProcessField extends Process implements ConfigurableModule {
 			$field = $this->modules->get('InputfieldHidden');
 			$field->attr('name', 'fieldgroup_id'); 
 			$field->attr('value', $this->fieldgroup->id); 
-			$form->add($field); 
+			$form->add($field);
+			if($this->contextNamespace) {
+				$field = $this->modules->get('InputfieldHidden');
+				$field->attr('name', '_context_namespace');
+				$field->attr('value', $this->contextNamespace);
+				$form->add($field);
+			}
+			if($this->contextLabel) {
+				$field = $this->modules->get('InputfieldHidden');
+				$field->attr('name', '_context_label');
+				$field->attr('value', $this->contextLabel);
+				$form->add($field);
+			}
 		}
 		
 		$field = $this->modules->get('InputfieldSubmit');
@@ -789,7 +841,7 @@ class ProcessField extends Process implements ConfigurableModule {
 			/** @var Field $field */
 			$field = $fieldgroup->getField($this->field->name); 
 			if(!$field) continue; 
-			if(!$fieldgroup->hasFieldContext($field->name)) continue; 	
+			if(!$fieldgroup->hasFieldContext($field->name, $this->contextNamespace)) continue; 	
 			$allChanges[$fieldgroup->name] = $this->getContextChanges($form, $field, $fieldgroup);
 		}
 		if(!count($allChanges)) return;
@@ -803,7 +855,11 @@ class ProcessField extends Process implements ConfigurableModule {
 		$f->description = $this->_('The following settings are overridden for this field by the indicated template(s). Check the box to the right of any row to remove the setting override (restoring the original value).');
 		$f->icon = 'exchange';
 		if($this->fieldgroup) {
-			$f->label = sprintf($this->_('Setting overrides for template: %s'), $this->fieldgroup->name);
+			if($this->contextNamespace) {
+				$f->label = sprintf($this->_('Setting overrides for field namespace: %s'), $this->contextNamespace);
+			} else {
+				$f->label = sprintf($this->_('Setting overrides for template: %s'), $this->fieldgroup->name);
+			}
 		} else {
 			$f->label = $this->_('Setting overrides by template'); 
 			$f->notes = $this->_('To edit an override setting or override other settings, edit any template and click the field name in the fields list.');
@@ -1502,12 +1558,17 @@ class ProcessField extends Process implements ConfigurableModule {
 		try { 
 			$this->form->processInput($this->input->post); 
 			$this->saveInputfields($this->form); 
-			$this->fields->saveFieldgroupContext($this->field, $this->fieldgroup); 
+			$this->fields->saveFieldgroupContext($this->field, $this->fieldgroup, $this->contextNamespace); 
 			$this->saveRemoveOverrides();
 		} catch(\Exception $e) {
 			$this->error($e->getMessage()); 
 		}
-		$this->session->redirect("edit?id={$this->field->id}&fieldgroup_id={$this->fieldgroup->id}"); 
+		$this->session->redirect("edit" . 
+			"?id={$this->field->id}" . 
+			"&fieldgroup_id={$this->fieldgroup->id}" . 
+			"&context_namespace=$this->contextNamespace" . 
+			"&context_label=$this->contextLabel"
+		); 
 	}
 
 	/**
@@ -1933,7 +1994,7 @@ class ProcessField extends Process implements ConfigurableModule {
 
 		if(!$fieldgroup) return array();
 
-		$contextArray = $fieldgroup->getFieldContextArray($field->id);
+		$contextArray = $fieldgroup->getFieldContextArray($field->id, $this->contextNamespace);
 		if(!count($contextArray)) return array();
 
 		$fieldOriginal = $this->wire('fields')->get($field->id);

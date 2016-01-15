@@ -20,9 +20,15 @@
 class Fieldgroup extends WireArray implements Saveable, Exportable, HasLookupItems {
 
 	/**
+	 * Prefix for namespaced field contexts
+	 * 
+	 */
+	const contextNamespacePrefix = 'NS_';
+
+	/**
 	 * Permanent/common settings for a Fieldgroup, fields in the database
 	 *
-'	 */
+	 */
 	protected $settings = array(
 		'id' => 0, 
 		'name' => '', 
@@ -177,12 +183,14 @@ class Fieldgroup extends WireArray implements Saveable, Exportable, HasLookupIte
 	 * Same as get() except that it only checks fields, not other properties of a fieldgroup
 	 *
 	 * @param string|int|Field $key
-	 * @param bool $useFieldgroupContext If set to true, the field will be a clone of the original with context data set. (default is false)
+	 * @param bool|string $useFieldgroupContext If set to true, the field will be a clone of the original with context data set. (default is false)
+	 *  Or specify a namespace to retrieve context within that namespace. 
 	 * @return Field|null
 	 *
 	 */
 	public function getField($key, $useFieldgroupContext = false) {
 		if(is_object($key) && $key instanceof Field) $key = $key->id;
+		if(is_string($key) && ctype_digit("$key")) $key = (int) $key;
 
 		if($this->isValidKey($key)) {
 			$value = parent::get($key); 
@@ -198,10 +206,14 @@ class Fieldgroup extends WireArray implements Saveable, Exportable, HasLookupIte
 			}
 		}
 
-		if($value && $useFieldgroupContext) { // && !empty($this->fieldContexts[$value->id])) {
+		if($value && $useFieldgroupContext) { 
 			$value = clone $value;	
 			if(isset($this->fieldContexts[$value->id])) {
-				foreach($this->fieldContexts[$value->id] as $k => $v) {
+				$context = $this->fieldContexts[$value->id];
+				$namespace = is_string($useFieldgroupContext) ? self::contextNamespacePrefix . $useFieldgroupContext : "";
+				if($namespace && isset($context[$namespace]) && is_array($context[$namespace])) $context = $context[$namespace];	
+				foreach($context as $k => $v) {
+					// if(strpos($k, self::contextNamespacePrefix) === 0) continue;
 					$value->set($k, $v); 
 				}
 			}
@@ -218,27 +230,33 @@ class Fieldgroup extends WireArray implements Saveable, Exportable, HasLookupIte
 	 * Does the given field have context available in this fieldgroup?
 	 * 
 	 * @param int|string|Field $field
+	 * @param string $namespace Optional namespace for context
 	 * @return bool
 	 * 
 	 */
-	public function hasFieldContext($field) {
+	public function hasFieldContext($field, $namespace = '') {
 		if(is_object($field) && $field instanceof Field) $field = $field->id;
 		if(is_string($field) && !ctype_digit($field)) {
 			$field = $this->wire('fields')->get($field);
 			$field = $field && $field->id ? $field->id : 0;
 		}
-		return isset($this->fieldContexts[(int) $field]) ? true : false;
+		if(isset($this->fieldContexts[(int) $field])) {
+			if($namespace) return isset($this->fieldContexts[(int) $field][self::contextNamespacePrefix . $namespace]);
+			return true;
+		}
+		return false;
 	}
 
 	/**
 	 * Get a field that is part of this fieldgroup, in the context of this fieldgroup. 
 	 *
 	 * @param string|int|Field $key
+	 * @param string $namespace Optional namespace for context
 	 * @return Field|null
 	 *
 	 */
-	public function getFieldContext($key) {
-		return $this->getField($key, true); 
+	public function getFieldContext($key, $namespace = '') {
+		return $this->getField($key, $namespace ? $namespace : true); 
 	}
 
 	/**
@@ -387,20 +405,48 @@ class Fieldgroup extends WireArray implements Saveable, Exportable, HasLookupIte
 	 *
 	 * @param Page $page
 	 * @param string $contextStr Optional context string to append to all the Inputfield's names (helper for things like repeaters)
-	 * @param string $fieldName Limit to a particular fieldName (may be a Fieldset too, which will include all fields in fieldset)
-	 * @return Inputfield acting as a container for multiple Inputfields
+	 * @param string|array $fieldName Limit to a particular fieldName(s) or field IDs.
+	 *  If specifying a single field (name or ID) and it refers to a fieldset, then all fields in that fieldset will be included. 
+	 *  If specifying an array of field names/IDs the returned InputfieldWrapper will maintain the requested order. 
+	 * @param string $namespace Additional namespace for the Inputfield context
+	 * @return InputfieldWrapper acting as a container for multiple Inputfields
 	 *
 	 */
-	public function getPageInputfields(Page $page, $contextStr = '', $fieldName = '') {
+	public function getPageInputfields(Page $page, $contextStr = '', $fieldName = '', $namespace = '') {
 
 		$container = $this->wire(new InputfieldWrapper());
 		$inFieldset = false;
 		$inModalGroup = '';
+	
+		// for multiple named fields
+		$multiMode = false;
+		$fieldInputfields = array();
+		if(is_array($fieldName)) {
+			// an array was specified for $fieldName
+			if(count($fieldName) == 1) {
+				// single field requested, revert to single field
+				$fieldName = reset($fieldName);
+			} else if(count($fieldName) == 0) {
+				// blank array, no field name requested
+				$fieldName = '';
+			} else {
+				// multiple field names asked for, setup for retaining requested order
+				$multiMode = true;
+				foreach($fieldName as $name) {
+					$field = $this->getField($name);
+					if($field) $fieldInputfields[$field->id] = false; // placeholder
+				}
+				$fieldName = '';
+			}
+		}
 
 		foreach($this as $field) {
+		
+			// for named multi-field retrieval
+			if($multiMode && !isset($fieldInputfields[$field->id])) continue;
 			
 			// get a clone in the context of this fieldgroup, if it has contextual settings
-			if(isset($this->fieldContexts[$field->id])) $field = $this->getField($field->id, true); 
+			if(isset($this->fieldContexts[$field->id])) $field = $this->getFieldContext($field->id, $namespace); 
 			
 			if($inModalGroup) {
 				// we are in a modal group that should be skipped since all the inputs require the modal
@@ -423,7 +469,7 @@ class Fieldgroup extends WireArray implements Saveable, Exportable, HasLookupIte
 					}
 					// allow
 					
-				} else if($field->name == $fieldName) {
+				} else if($field->name == $fieldName || (ctype_digit("$fieldName") && $field->id == $fieldName)) {
 					// start allow fields
 					if($field->type instanceof FieldtypeFieldsetOpen) {
 						$container = $field->getInputfield($page, $contextStr);
@@ -447,8 +493,20 @@ class Fieldgroup extends WireArray implements Saveable, Exportable, HasLookupIte
 			if($inputfield->collapsed == Inputfield::collapsedHidden) continue;
 
 			$inputfield->value = $page->get($field->name); 
-			$container->add($inputfield); 
+			
+			if($multiMode) {
+				$fieldInputfields[$field->id] = $inputfield;
+			} else {
+				$container->add($inputfield);
+			}
 		}		
+		
+		if($multiMode) {
+			// add to container in requested order
+			foreach($fieldInputfields as $fieldID => $inputfield) {
+				if($inputfield) $container->add($inputfield);
+			}
+		}
 
 		return $container; 
 	}
@@ -487,12 +545,23 @@ class Fieldgroup extends WireArray implements Saveable, Exportable, HasLookupIte
 	 * Return an array of context data for the given field ID
 	 *
 	 * @param int|null $field_id Field ID or omit to return all field contexts
+	 * @param string $namespace Optional namespace
 	 * @return array 
 	 *
 	 */
-	public function getFieldContextArray($field_id = null) {
+	public function getFieldContextArray($field_id = null, $namespace = '') {
 		if(is_null($field_id)) return $this->fieldContexts;
-		if(isset($this->fieldContexts[$field_id])) return $this->fieldContexts[$field_id];
+		if(isset($this->fieldContexts[$field_id])) {
+			if($namespace) {
+				$namespace = self::contextNamespacePrefix . $namespace;
+				if(isset($this->fieldContexts[$field_id][$namespace])) {
+					return $this->fieldContexts[$field_id][$namespace];
+				}
+				return array();
+			} else {
+				return $this->fieldContexts[$field_id];
+			}
+		}
 		return array();
 	}
 
@@ -500,11 +569,18 @@ class Fieldgroup extends WireArray implements Saveable, Exportable, HasLookupIte
 	 * Set an array of context data for the given field ID
 	 * 
 	 * @param int $field_id Field ID
+	 * @param string $namespace Optional namespace
 	 * @param array $data
 	 * 
 	 */
-	public function setFieldContextArray($field_id, $data) {
-		$this->fieldContexts[$field_id] = $data;
+	public function setFieldContextArray($field_id, $data, $namespace = '') {
+		if($namespace) {
+			if(!isset($this->fieldContexts[$field_id])) $this->fieldContexts[$field_id] = array();	
+			$namespace = self::contextNamespacePrefix . $namespace;
+			$this->fieldContexts[$field_id][$namespace] = $data;
+		} else {
+			$this->fieldContexts[$field_id] = $data;
+		}
 	}
 
 	/**

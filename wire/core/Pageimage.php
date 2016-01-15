@@ -77,7 +77,8 @@ class Pageimage extends Pagefile {
 	 */
 	public function __clone() {
 		$this->imageInfo['width'] = 0; 
-		$this->imageInfo['height'] = 0; 
+		$this->imageInfo['height'] = 0;
+		parent::__clone();
 	}
 
 	/**

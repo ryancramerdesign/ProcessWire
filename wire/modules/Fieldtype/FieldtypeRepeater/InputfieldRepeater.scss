@@ -50,6 +50,16 @@
 		}
 	}
 	
+	.InputfieldRepeaterItem.InputfieldRepeaterItemLoading {
+		// override the margin-bottom 1.25em from admin theme stylesheet, so margin isn't showing while item is loading
+		margin-bottom: 1em;
+	}
+	
+	.InputfieldRepeaterItem.InputfieldStateCollapsed > .InputfieldContent {
+		// for some reason .InputfieldContent still shows on ajax-loaded items after closing them, this fixes that 
+		display: none !important;
+	}
+	
 	.InputfieldRepeaterNewItem {
 		// used by non-ajax add mode
 		display: none;

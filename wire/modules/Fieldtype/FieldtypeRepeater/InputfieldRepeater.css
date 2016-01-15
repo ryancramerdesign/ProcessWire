@@ -23,6 +23,10 @@
   opacity: 0.5; }
   .Inputfields .InputfieldRepeater .InputfieldRepeaterItem:not(.InputfieldRepeaterDeletePending).InputfieldRepeaterOff > .InputfieldHeader:not(:hover) {
     text-decoration: line-through; }
+.Inputfields .InputfieldRepeater .InputfieldRepeaterItem.InputfieldRepeaterItemLoading {
+  margin-bottom: 1em; }
+.Inputfields .InputfieldRepeater .InputfieldRepeaterItem.InputfieldStateCollapsed > .InputfieldContent {
+  display: none !important; }
 .Inputfields .InputfieldRepeater .InputfieldRepeaterNewItem {
   display: none; }
 

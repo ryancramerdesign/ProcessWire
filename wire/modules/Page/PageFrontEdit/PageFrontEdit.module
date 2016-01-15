@@ -293,10 +293,19 @@ class PageFrontEdit extends WireData implements Module {
 		}
 
 		// if given field name doesn't map to a custom field, delegate the request to $page instead
+		$renderField = false;
 		$field = $this->wire('fields')->get($arg1);
 		if(!$field) {
-			$event->return = $page->get($arg1);
-			return;
+			if(strpos($arg1, '_') === 0 && substr($arg1, -1) === '_') {
+				$renderField = true;
+				$arg1 = substr($arg1, 1, -1);
+				$field = $this->wire('fields')->get($arg1);
+				if(!$field) $arg1 = "_{$arg1}_"; // restore if it didn't resolve to a field
+			}
+			if(!$field) {
+				$event->return = $page->get($arg1);
+				return;
+			}
 		}
 
 		if(is_string($arg2)) {
@@ -325,12 +334,12 @@ class PageFrontEdit extends WireData implements Module {
 			$editorActive = $this->inlineEditorActive;
 			$this->inlineEditorActive = true;
 			if(!in_array($field->id, $this->inlineEditFields)) $this->inlineEditField = $field->id; 
-			$event->return = $page->getFormatted($field->name);
+			$event->return = $renderField ? $page->renderField($field->name) : $page->getFormatted($field->name);
 			$this->inlineEditorActive = $editorActive;
 			$this->inlineEditField = 0;
 		} else {
 			// ...otherwise just return the formatted value
-			$event->return = $page->getFormatted($field->name);
+			$event->return = $renderField ? $page->renderField($field->name) : $page->getFormatted($field->name);
 		}
 	}
 	

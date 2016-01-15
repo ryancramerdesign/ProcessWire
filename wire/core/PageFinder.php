@@ -439,7 +439,7 @@ class PageFinder extends Wire {
 					$selector->fields = $fieldNames;
 					$selector->value = 0;
 				} else {
-					$selector->value = count($ids) > 1 ? $ids : reset($ids);
+					$selector->value = count($ids) > 1 ? implode(',', $ids) : reset($ids);
 				}
 				$selector->quote = '';
 

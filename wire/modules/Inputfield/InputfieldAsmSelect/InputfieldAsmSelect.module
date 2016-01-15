@@ -11,7 +11,7 @@ class InputfieldAsmSelect extends InputfieldSelectMultiple implements Inputfield
 	public static function getModuleInfo() {
 		return array(
 			'title' => __('asmSelect', __FILE__),
-			'version' => 119,
+			'version' => 120,
 			'summary' => __('Multiple selection, progressive enhancement to select multiple', __FILE__), // Module Summary
 			'permanent' => true, 
 			);
@@ -44,7 +44,7 @@ class InputfieldAsmSelect extends InputfieldSelectMultiple implements Inputfield
 			$this->setAsmSelectOption('removeLabel', "<i class='fa fa-trash'></i>");
 
 			// replace jquery ui icon default with a font-awesome icon
-			$this->setAsmSelectOption('sortLabel', "<i class='fa fa-fw fa-sort'></i>");
+			$this->setAsmSelectOption('sortLabel', "<i class='fa fa-fw fa-arrows'></i>");
 		}
 			
 		// cancel the 'size' attribute used by select multiple
