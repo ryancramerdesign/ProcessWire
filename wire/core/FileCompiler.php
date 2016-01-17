@@ -324,6 +324,7 @@ class FileCompiler extends Wire {
 			$argsMatch = '';
 
 			if(substr($fileMatch, -1) == ')') $fileMatch = substr($fileMatch, 0, -1);
+			if(empty($fileMatch)) continue;
 			
 			$commaPos = strpos($fileMatch, ',');
 			if($commaPos) {

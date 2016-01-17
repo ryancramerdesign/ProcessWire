@@ -196,6 +196,10 @@ class AdminThemeRenoHelpers extends AdminThemeDefaultHelpers {
 		$modules = $this->wire('modules'); 
 		$showItem = $isSuperuser;
 		$children = $p->numChildren() ? $p->children("check_access=0") : array();
+		if($p->name == 'page' && !$children->has("name=list")) {
+			// +PW27: ensure the "Tree" page is shown if it is hidden
+			$children->prepend($p->child("name=list, include=hidden"));
+		}
 		$out = '';
 		$iconName = $p->name;
 		$icon = $this->wire('adminTheme')->$iconName;
