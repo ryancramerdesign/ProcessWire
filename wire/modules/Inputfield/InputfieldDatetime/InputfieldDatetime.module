@@ -155,8 +155,8 @@ class InputfieldDatetime extends Inputfield {
 		$timeFormatJS = $useTime ? FieldtypeDatetime::convertDateFormat($timeFormat, 'js') : '';
 
 		if(strpos($timeFormatJS, 'h24') !== false) {
-			// 24 hour format. timepicker has no codes to represent it, so we identify and convert it to a variable
-			$timeFormatJS = str_replace('h24', 'h', $timeFormatJS);
+			// 24 hour format
+			$timeFormatJS = str_replace(array('hh24', 'h24'), array('HH', 'H'), $timeFormatJS);
 			$ampm = 0;
 		} else {
 			$ampm = 1;

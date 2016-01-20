@@ -134,8 +134,8 @@ abstract class ModuleJS extends WireData implements Module {
 			foreach($this->requested as $name) {
 				$url = $this->components[$name]; 
 				if(strpos($url, '/') === false) {
-					$url = $config->urls->$class . $url;
 					$mtime = filemtime($config->paths->$class . $url);
+					$url = $config->urls->$class . $url;
 				}
 				$url .= "?v=$mtime";
 				$this->wire('config')->scripts->add($url);
