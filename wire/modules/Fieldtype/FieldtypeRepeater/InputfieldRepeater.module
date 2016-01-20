@@ -119,9 +119,12 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 						$out = (string) $value;
 					}
 				}
-			} else {
+			} else if(strpos($repeaterTitle, '{') !== false) {
 				// formatted {label}
 				$out = $page->getMarkup($repeaterTitle);
+			} else {
+				// label, but with no page variables
+				$out = $repeaterTitle;
 			}
 			
 			$out = strip_tags(trim($out));
