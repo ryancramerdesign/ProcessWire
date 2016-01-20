@@ -227,7 +227,7 @@ class TemplateFile extends WireData {
 		ProcessWire::setCurrentInstance($this->savedInstance);
 		
 		$out = trim($out); 
-		if(!strlen($out) && !$this->halt && $returnValue && $returnValue !== "1") return $returnValue;
+		if(!strlen($out) && !$this->halt && $returnValue && $returnValue !== 1) return $returnValue;
 		return $out;
 	}
 
