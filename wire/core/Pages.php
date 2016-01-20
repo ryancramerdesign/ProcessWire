@@ -2111,6 +2111,14 @@ class Pages extends Wire {
 			$selector = str_replace(array("status<" . Page::statusUnpublished, "status<" . Page::statusMax, 'start=0', 'limit=1', ',', ' '), '', $selector); 
 			$selector = trim($selector, ", "); 
 		}
+	
+		// cache non-default languages separately
+		if($this->wire('languages')) {
+			$language = $this->wire('user')->language;
+			if(!$language->isDefault()) {
+				$selector .= ", _lang=$language->id"; // for caching purposes only, not recognized by PageFinder
+			}
+		}
 
 		if($returnSelector) return $selector; 
 		if(isset($this->pageSelectorCache[$selector])) return $this->pageSelectorCache[$selector]; 
