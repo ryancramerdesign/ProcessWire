@@ -112,6 +112,15 @@ function PageFrontEditInit($) {
 			return false;
 		});
 
+		if(t.hasClass('pw-edit-InputfieldText')) {
+			// via @canrau
+			copy.keydown(function(e) {
+				if(e.keyCode == 13){
+					e.preventDefault();
+				}
+			});
+		}
+
 		// check if orig has clickable links within it
 		// if so, differentiate between single and double clicks
 		// so that we can enable those links to still work while also supporting dblclick

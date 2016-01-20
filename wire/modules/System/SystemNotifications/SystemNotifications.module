@@ -644,8 +644,10 @@ class SystemNotifications extends WireData implements Module {
 		// $this->wire('modules')->saveModuleConfigData('ProcessProfile', $data); 
 
 		$notifications = $this->wire('user')->get(self::fieldName); 
-		$notifications->message('Hello World')->text('Thank you for installing the Notifications module. This is your first notification!');
-		$notifications->save();
+		if($notifications) {
+			$notifications->message('Hello World')->text('Thank you for installing the Notifications module. This is your first notification!');
+			$notifications->save();
+		}
 	}
 
 	/**

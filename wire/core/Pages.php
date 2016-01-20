@@ -2101,14 +2101,37 @@ class Pages extends Wire {
 				$optionsHash .= "[$key:$value]";
 			}
 			$selector .= "," . $optionsHash;
-		} else $selector .= ",";
+		} else {
+			$selector .= ",";
+		}
 
 		// optimization to use consistent conventions for commonly interchanged names
-		$selector = str_replace(array('path=/,', 'parent=/,'), array('id=1,', 'parent_id=1,'), $selector); 
+		$selector = str_replace(
+			array(
+				'path=/,', 
+				'parent=/,'
+			), 
+			array(
+				'id=1,', 
+				'parent_id=1,'
+			), 
+			$selector
+		); 
 
 		// optimization to filter out common status checks for pages that won't be cached anyway
 		if(!empty($options['findOne'])) {
-			$selector = str_replace(array("status<" . Page::statusUnpublished, "status<" . Page::statusMax, 'start=0', 'limit=1', ',', ' '), '', $selector); 
+			$selector = str_replace(
+				array(
+					'status<' . Page::statusUnpublished, 
+					'status<' . Page::statusMax, 
+					'start=0', 
+					'limit=1', 
+					',',
+					' '
+				), 
+				'', 
+				$selector
+			); 
 			$selector = trim($selector, ", "); 
 		}
 	
