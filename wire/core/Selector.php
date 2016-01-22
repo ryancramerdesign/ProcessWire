@@ -86,7 +86,62 @@ abstract class Selector extends WireData {
 		}
 		return parent::get($key); 
 	}
-	
+
+	/**
+	 * Returns the selector field(s), optionally forcing as string or array
+	 * 
+	 * @param string $type Omit for automatic, or specify 'string' or 'array' to force return in that type
+	 * @return string|array
+	 * @throws WireException if given invalid type
+	 * 
+	 */
+	public function getField($type = '') {
+		$field = $this->field;
+		if($type == 'string') {
+			if(is_array($field)) $field = implode('|', $field);
+		} else if($type == 'array') {
+			if(!is_array($field)) $field = array($field);
+		} else if($type) {
+			throw new WireException("Unknown type '$type' specified to getField()");
+		}
+		return $field;
+	}
+
+	/**
+	 * Returns the selector value(s) with additional processing and forced type options
+	 * 
+	 * When the $type argument is not specified, this method may return a string, array or Selectors object. 
+	 * A Selectors object is only returned if the value happens to contain an embedded selector. 
+	 * 
+	 * @param string $type Omit for automatic, or specify 'string' or 'array' to force return in that type
+	 * @return string|array|Selectors
+	 * @throws WireException if given invalid type
+	 * 
+	 */
+	public function getValue($type = '') {
+		$value = $this->value; 
+		if($type == 'string') {
+			if(is_array($value)) $value = implode('|', $value);
+		} else if($type == 'array') {
+			if(!is_array($value)) $value = array($value);
+		} else if($this->quote == '[') {
+			if(is_string($value) && Selectors::stringHasSelector($value)) {
+				$value = $this->wire(new Selectors($value));
+			}
+		} else if($type) {
+			throw new WireException("Unknown type '$type' specified to getValue()");
+		}
+		return $value;
+	}
+
+	/**
+	 * Set a property of the Selector
+	 * 
+	 * @param string $key
+	 * @param mixed $value
+	 * @return $this
+	 * 
+	 */
 	public function set($key, $value) {
 		if($key == 'fields') return parent::set('field', $value);
 		if($key == 'values') return parent::set('value', $value); 

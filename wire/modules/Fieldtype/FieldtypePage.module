@@ -562,15 +562,25 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 			);
 
 		$database = $this->wire('database');
+		
+		// when $idstr is true, indicates $value is a multi-value CSV ID string (converts to boolean once known)
+		$idstr = null; 
 
 		// if subfield is 'data' (meaning no subfield specified) and it's in the format of 'some-string', 
 		// then we assume this to be a page name
-		if($subfield == 'data' && !ctype_digit("$value") && strlen($value) && strpos($value, '/') === false) {
-			$subfield = 'name';
+		if($subfield == 'data' 
+			&& !ctype_digit("$value") 
+			&& strlen($value) 
+			&& strpos($value, '/') === false
+			&& strpos($value, 'page.') !== 0) {
+			
+			$idstr = strpos($value, ',') !== false && ctype_digit(str_replace(',', '', $value));
+			if(!$idstr) $subfield = 'name';
 		}
 
 		// let the FieldtypeMulti base class handle count queries
 		if($subfield == 'count') {
+			
 			return parent::getMatchQuery($query, $table, $subfield, $operator, $value);
 
 		} else if(in_array($subfield, $names)) { 
@@ -579,12 +589,12 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 			
 			if(in_array($subfield, array('id', 'path', 'url'))) $subfield = 'data';
 
-			// when $idstr is true, indicates $value is a multi-value CSV ID string
-			$idstr = false; 
-			
 			// if a page path rather than page ID was provided, then we translate the path to an ID for API syntax convenience
-			if(!ctype_digit("$value")) {
-				if($subfield == 'data' && strpos($value, ',') && ctype_digit(str_replace(',', '', $value))) {
+			if($idstr || !ctype_digit("$value")) {
+				if(is_null($idstr) && $subfield == 'data' && strpos($value, ',') !== false) {
+					$idstr = ctype_digit(str_replace(',', '', $value));
+				}
+				if($subfield == 'data' && $idstr) {
 					// CSV string of page IDs
 					$value = trim($value, ",");
 					$idstr = true; 
