@@ -344,8 +344,9 @@ class FileCompiler extends Wire {
 				$fileMatch = $fileMatch[0] . dirname($sourceFile) . '/' . substr($fileMatch, 1);
 			}
 		
-			$fileMatch = str_replace(array(' ', "\t"), '', $fileMatch);
-			$newFullMatch = $open . ' ' . $funcMatch . "(\\ProcessWire\\wire('files')->compile($fileMatch,$optionsStr)$argsMatch);";
+			$fileMatch = str_replace("\t", '', $fileMatch);
+			if(strlen($open)) $open .= ' ';
+			$newFullMatch = $open . $funcMatch . "(\\ProcessWire\\wire('files')->compile($fileMatch,$optionsStr)$argsMatch);";
 			$data = str_replace($fullMatch, $newFullMatch, $data);
 		}
 		
