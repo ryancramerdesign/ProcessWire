@@ -1004,7 +1004,73 @@ class Pages extends Wire {
 		}
 	}
 
+
 	/**
+	 * create a page name based on 'Name Format Children' in settings of parent page template
+	 * 
+	 * @param Page $page
+	 * @param string $format use dot syntax if value has subfields or is an object
+	 * @return string/ bool If a name was generated it is returned. false in case of error or warning
+	 *
+	 */
+	public function createFromFormat(Page $page, $format) {
+
+		$error = false;
+		$warning = false;
+		$pageName = '';
+
+		// case 1: multiple fields
+		if (strpos($format,' ')) {
+			// space not allowed in name so we can use it as separator
+			$formats = explode(' ',$format);
+			foreach ($formats as $_format) {
+				$_pageName = $this->createFromFormat($page, $_format); 
+				if ($_pageName == false) return false;
+				$pageName .= '-'.$_pageName;
+			}
+		}
+
+		// case 2: title default
+		else if ($format == 'title' && strlen($page->title)) $pageName .= '-'.$page->title;
+			
+		// case 3: date()
+		else if (strpos($format, 'date(') === 0 ) {
+			if (preg_match('/(date\()([^()]+)(\))/',$format,$matches)) $date = date($matches[2]);
+			if (!$date) {
+				$error = true;
+			} else $pageName .= '-'.$date;
+
+		// case 4: string could be determined with $page->get() we take this
+		} else if (strlen($page->get($format))) {
+			$value = $page->get($format);
+			if (is_int($value) && wire('fields')->get($format)->type instanceof FieldtypeDatetime) {
+				// for now we convert timestamp in a specific format, later we add this to module settings
+				$value = date('y-m-d',$value);
+			} 
+			$pageName .= '-'.$value;
+		}
+
+		// case 5: check if field exists, set flag for warning or error and return false
+		else {
+			$_format = strpos($format,'.')?strstr($format,'.',true):$format;
+			if($page->template->hasField($_format)) {
+				if (strpos($page->name, $this->untitledPageName) === 0) $warning = true;
+			} else $error = true;
+		}				
+
+		// output warning or error
+		$format_error = __("Syntax Error: 'Name Format Children' in settings of template '%s' (%s)");
+		if ($error === true) $this->error(sprintf($format_error, $page->parent->template->name, $format));
+		$format_warning = __("Pagename '%s' will switch if value of field '%s' is populated!");
+		if ($warning === true) $this->warning(sprintf($format_warning, $page->name, $format));
+
+		if (!$error && !$warning) return ltrim($pageName,'-');
+		return false;
+
+	}
+
+	/**
+	 *
 	 * Auto-assign a page name to this page
 	 * 
 	 * Typically this would be used only if page had no name or if it had a temporary untitled name.
@@ -1014,12 +1080,13 @@ class Pages extends Wire {
 	 * 
 	 * @param Page $page
 	 * @param array $options 
-	 * 	- format: Optionally specify the format to use, or leave blank to auto-determine.
-	 * @return string If a name was generated it is returned. If no name was generated blank is returned. 
+	 * 	- format: Optionally specify the format to use, or leave blank to auto-determine. Use title if set or datetime string
+	 * 
+	 * @return string If a name was generated it is returned. If no name was generated blank is returned.
 	 * 
 	 */
 	public function ___setupPageName(Page $page, array $options = array()) {
-		
+
 		$defaults = array(
 			'format' => '', 
 			);
@@ -1048,7 +1115,7 @@ class Pages extends Wire {
 			$parent = $page->parent();
 			if($parent && $parent->id) $format = $parent->template->childNameFormat;
 		}
-		
+
 		if(!strlen($format)) {
 			if(strlen($page->title)) {
 				// default format is title
@@ -1061,27 +1128,17 @@ class Pages extends Wire {
 		
 		$pageName = '';
 		
-		if(strlen($format)) {
-			// @todo add option to auto-gen name from any page property/field
+		// childNameFormat is set
+		if (strlen($format)) {
+			$pageName = $this->createFromFormat($page,$format);
+			if ($pageName == false) $pageName = $this->untitledPageName;
+		}
 
-			if($format == 'title') {
-				if(strlen($page->title)) $pageName = $page->title;
-					else $pageName = $this->untitledPageName;
-				
-			} else if(!ctype_alnum($format) && !preg_match('/^[-_a-zA-Z0-9]+$/', $format)) {
-				// it is a date format
-				$pageName = date($format);
-			} else {
-				
-				// predefined format
-				$pageName = $format;
-			}
+		else if (strlen($page->title)) $pageName = $page->title;
 
-		} else if(strlen($page->title)) {
-			$pageName = $page->title;
-
-		} else {
+		else {
 			// no name will be assigned
+			$pageName = '';
 		}
 		
 		if($pageName == $this->untitledPageName && strpos($page->name, $this->untitledPageName) === 0) {
@@ -1089,52 +1146,42 @@ class Pages extends Wire {
 			return '';
 		}
 
-		$name = '';
-		if(strlen($pageName)) {
-			// make the name unique
-
+		if (strlen($pageName)) {
 			$pageName = $this->wire('sanitizer')->pageName($pageName, Sanitizer::translate);
-			$numChildren = $page->parent->numChildren();
-			$n = 0;
-
-			do {
-				$name = $pageName;
-				if($n > 0) {
-					$nStr = "-" . ($numChildren + $n);
-					if(strlen($name) + strlen($nStr) > self::nameMaxLength) $name = substr($name, 0, self::nameMaxLength - strlen($nStr));
-					$name .= $nStr;
-				}
-				$n++;
-			} while($n < 100 && $this->count("parent=$page->parent, name=$name, include=all"));
-
-			$page->name = $name;
-			$page->set('_hasAutogenName', true); // for savePageQuery, provides adjustName behavior for new pages
+			$page->name = $this->makeUnique($page, $pageName);
+			$page->set('_hasAutogenName', true); // for savePageQuery, provides adjustName behavior for new pages		
+			return $page->name;
 		}
-		
-		return $name;
+		return '';
 	}
 	
 	/**
-	 * Save a page object and it's fields to database. 
-	 *
-	 * If the page is new, it will be inserted. If existing, it will be updated. 
-	 *
-	 * This is the same as calling $page->save()
-	 *
-	 * If you want to just save a particular field in a Page, use $page->save($fieldName) instead. 
-	 *
+	 * create a unique name with -n appendix
+	 * 
 	 * @param Page $page
-	 * @param array $options Optional array with the following optional elements:
-	 * 		'uncacheAll' => boolean - Whether the memory cache should be cleared (default=true)
-	 * 		'resetTrackChanges' => boolean - Whether the page's change tracking should be reset (default=true)
-	 * 		'quiet' => boolean - When true, modified date and modified_users_id won't be updated (default=false)
-	 *		'adjustName' => boolean - Adjust page name to ensure it is unique within its parent (default=false)
-	 * 		'forceID' => integer - use this ID instead of an auto-assigned on (new page) or current ID (existing page)
-	 * 		'ignoreFamily' => boolean - Bypass check of allowed family/parent settings when saving (default=false)
-	 * @return bool True on success, false on failure
-	 * @throws WireException
-	 *
+	 * @param string $pageName 
+	 * @return string $pageName-n
+	 * 
 	 */
+	public function makeUnique(Page $page, $pageName) {
+
+		$pageName = $this->wire('sanitizer')->pageName($pageName, Sanitizer::translate);
+		$numChildren = $page->parent->numChildren();
+		$n = 0;
+
+		do {
+			$name = $pageName;
+			if($n > 0) {
+				$nStr = "-" . ($numChildren + $n);
+				if(strlen($name) + strlen($nStr) > self::nameMaxLength) $name = substr($name, 0, self::nameMaxLength - strlen($nStr));
+				$name .= $nStr;
+			}
+			$n++;
+		} while($n < 100 && $this->count("parent=$page->parent, name=$name, include=all"));
+
+		return $name;
+	}
+
 	public function ___save(Page $page, $options = array()) {
 
 		$defaultOptions = array(
