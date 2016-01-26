@@ -83,7 +83,7 @@ class MarkupFieldtype extends WireData implements Module {
 	 * 
 	 */
 	public function render($property = '') {
-		
+	
 		$value = $this->getValue(); 
 		
 		if($property) {
@@ -108,6 +108,14 @@ class MarkupFieldtype extends WireData implements Module {
 				} else if($value instanceof WireArray) {
 					// WireArray object: get array of property value from each item
 					$value = $value->explode($property);
+					$valid = true;
+
+				} else if($value instanceof Page) {
+					// Page object
+					$page = $value;
+					$value = $page->getFormatted($property);
+					$field = $this->wire('fields')->get($property);
+					if($field) return $field->type->markupValue($page, $field, $value);
 					$valid = true;
 					
 				} else if($value instanceof WireData) {

@@ -279,7 +279,7 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		
 		$editable = (int) $this->useImageEditor;
 		if($this->renderValueMode) $editable = false;
-		if(strpos($this->name, '_repeater') && preg_match('/_repeater\d+$/', $this->name)) $editable = false;
+		//if(strpos($this->name, '_repeater') && preg_match('/_repeater\d+$/', $this->name)) $editable = false;
 		if($pagefile->ext == 'svg') $editable = false;
 
 		$variations = isset($this->variations[$pagefile->name]) ? $this->variations[$pagefile->name] : array();

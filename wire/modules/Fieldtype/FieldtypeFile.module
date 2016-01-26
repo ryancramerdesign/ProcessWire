@@ -470,7 +470,7 @@ class FieldtypeFile extends FieldtypeMulti {
 
 	public function ___deletePageField(Page $page, Field $field) {
 
-		if($this->config->debug) $this->message("deletePageField, Page:$page, Field:$field"); 
+		// if($this->config->debug) $this->message("deletePageField, Page:$page, Field:$field"); 
 
 		if($pagefiles = $page->get($field->name)) {
 
@@ -480,11 +480,11 @@ class FieldtypeFile extends FieldtypeMulti {
 			} else if($pagefiles instanceof Pagefile) {
 				$pagefiles->unlink();
 
-			} else if($this->config->debug) {
+			} else if($page->hasField($field) && $this->config->debug) {
 				$this->error("Not Pagefiles or Pagefile"); 
 			}
 
-		} else if($this->config->debug) {
+		} else if($page->hasField($field) && $this->config->debug) {
 			$this->error("Unable to retreive $page.{$field->name}"); 			
 		}
 

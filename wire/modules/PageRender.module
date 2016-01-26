@@ -20,7 +20,7 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 		return array(
 			'title' => __('Page Render', __FILE__), // Module Title
 			'summary' => __('Adds a render method to Page and caches page output.', __FILE__), // Module Summary
-			'version' => 103, 
+			'version' => 104, 
 			'permanent' => true, 
 			'singular' => true, 
 			'autoload' => true, 
@@ -48,28 +48,62 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 	protected $renderRecursionLevel = 0;
 
 	/**
+	 * Page that get() method should pull properties from for rendering fields
+	 * 
+	 * Note: every get() call sets this back to NULL after it has executed.
+	 * 
+	 * @var null|Page 
+	 * 
+	 */
+	protected $propertyPage = null;
+	
+	/**
 	 * Initialize the hooks
 	 *
 	 */
 	public function init() {
+		$this->useFuel(false);
 		$this->config = $this->wire('config'); 
 		$this->addHook('Page::render', $this, 'renderPage');
-		$this->pages->addHookAfter('save', $this, 'clearCacheFile'); 
-		$this->pages->addHookAfter('delete', $this, 'clearCacheFile'); 
+		$this->addHook('Page::renderField', $this, 'renderField');
+		$this->wire('pages')->addHookAfter('save', $this, 'clearCacheFile'); 
+		$this->wire('pages')->addHookAfter('delete', $this, 'clearCacheFile'); 
 		// $this->addHookAfter('Fieldtype::savePageField', $this, 'savePageField'); // removed, see note in commented function
 	}
 
 	/**
-	 * If $page->save($field) was called (which calls Fieldtype::savePageField), then clear out the Page's cache
-	 *
-	 * Removed because too much compromise in speed, but kept here for reference in case we determine a faster solution.
-	 *
-	public function savePageField($event) {
-		$page = $event->arguments[0]; 
-		if(!$page->template->cache_time) return;
-		$this->getCacheFile($page)->remove();
-	}
+	 * API ready
+	 * 
 	 */
+	public function ready() {
+		if($this->wire('page')->template != 'admin') {
+			$this->addHookBefore('Page::render', $this, 'beforeRenderPage', array('priority' => 1));
+		}
+	}
+
+	/**
+	 * Set page for get() properties / field rendering
+	 * 
+	 * @param Page $page
+	 * 
+	 */
+	public function setPropertyPage(Page $page) {
+		$this->propertyPage = $page;
+	}
+
+	/**
+	 * Handle page field renders like $page->render->title
+	 * 
+	 * @param string $key
+	 * @return string|mixed
+	 * 
+	 */
+	public function __get($key) {
+		if(!$this->propertyPage) return parent::__get($key);	
+		$out = $this->propertyPage->renderField($key);
+		$this->propertyPage = null;
+		return $out;
+	}
 
 	/**
 	 * Is the page render cache allowed for this request?
@@ -82,7 +116,7 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 
 		if(!$page->template || ((int) $page->template->cache_time) < 1) return false; 
 
-		if(!$this->user->isGuest()) {
+		if(!$this->wire('user')->isGuest()) {
 			if(!$page->template->useCacheForUsers) return false; 
 			if($page->editable()) return false;
 		}
@@ -109,7 +143,7 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 
 		// NOTE: other modules may set a session var of PageRenderNoCachePage containing a page ID to temporarily
 		// remove caching for some page, if necessary. 
-		if($this->session->PageRenderNoCachePage && $this->session->PageRenderNoCachePage == $page->id) $allowed = false;
+		if($this->wire('session')->PageRenderNoCachePage && $this->wire('session')->PageRenderNoCachePage == $page->id) $allowed = false;
 
 		return $allowed; 
 	}
@@ -127,7 +161,7 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 	 */
 	public function getCacheFile($page, array $options = array()) {
 
-		$config = $this->wire('config');
+		$config = $this->config;
 		$defaults = array(
 			'prependFile' => '',
 			'appendFile' => '', 
@@ -156,12 +190,12 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 		if($this->wire('page') === $page) {
 			// this part is skipped if arguments provided an id (int) rather than a Page object
 			$secondaryID = '';
-			$pageNum = $this->input->pageNum; 
-			$urlSegments = $this->input->urlSegments; 
+			$pageNum = $this->wire('input')->pageNum; 
+			$urlSegments = $this->wire('input')->urlSegments; 
 
 			if(count($urlSegments)) {
 				foreach($urlSegments as $urlSegment) {
-					$secondaryID .= $this->sanitizer->pageName($urlSegment) . '+';
+					$secondaryID .= $this->wire('sanitizer')->pageName($urlSegment) . '+';
 				}
 			}
 
@@ -283,6 +317,24 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 	}
 
 	/**
+	 * Hook called before any other hooks to Page::render
+	 * 
+	 * We use this to determine if Page::render() should be a render() or a renderField()
+	 * 
+	 * @param HookEvent $e
+	 * 
+	 */
+	public function beforeRenderPage(HookEvent $event) {
+		$fieldName = $event->arguments(0);
+		if($fieldName && is_string($fieldName) && $this->wire('sanitizer')->fieldName($fieldName) === $fieldName) {
+			// render field requested, cancel page render and hooks, and delegate to renderField
+			$event->cancelHooks = true;
+			$event->replace = true;
+			$event->return = $event->object->renderField($fieldName);
+		}
+	}
+
+	/**
 	 * Return a string with the rendered output of this Page (per it's Template)
 	 *
 	 * If the page's template has caching enabled, then this method will return a cached page render, when valid, 
@@ -309,10 +361,10 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 	 *
 	 */
 	public function ___renderPage($event) {
-
-		$this->wire('pages')->setOutputFormatting(true);
-
+		
 		$page = $event->object;
+		
+		$this->wire('pages')->setOutputFormatting(true);
 
 		if($page->status >= Page::statusUnpublished && !$page->viewable()) {
 			throw new WirePermissionException("Page '{$page->url}' is not currently viewable.");
@@ -455,6 +507,72 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 		}
 		if(count($this->pageStack)) array_pop($this->pageStack); 
 		$this->renderRecursionLevel--;
+	}
+
+	/**
+	 * Implements the Page::renderField($key, $value = null) method
+	 * 
+	 * hook method arguments: 
+	 * - arg0: field name
+	 * - arg1: optional $value to use (default=pull from page) 
+	 * - arg2: optional basename of file in /site/templates/fields/ to use for render (default=auto determine)
+	 * 
+	 * @param HookEvent $e
+	 *
+	 */
+	public function ___renderField(HookEvent $event) {
+		
+		$page = $event->object; 
+		
+		// arg0: field name
+		$arg0 = $event->arguments(0);
+		$key = $this->wire('sanitizer')->fieldName($arg0);
+		if(!$key || $key !== $arg0) {
+			$event->return = '';
+			return;
+		}
+	
+		// arg1: value, if not default from page
+		$value = $event->arguments(1);
+		if(is_null($value)) $value = $page->getFormatted($key);
+		if(is_null($value)) {
+			$event->return = '';
+			return;
+		}	
+		
+		$path = $this->wire('config')->paths->fieldTemplates;
+		$file = '';
+		
+		// arg2: filename to use for render, if not default
+		$basename = $event->arguments(2);
+		if($basename) {
+			$basename = $this->wire('sanitizer')->name($basename);
+			if(is_file($path . $basename)) $file = $path . $basename;
+		}
+		if(!$file) {
+			$file = $path . $key . '.' . $page->template->name . '.php';
+			if(!is_file($file)) {
+				$file = $path . $key . '.php';
+				if(!is_file($file)) {
+					$event->return = $page->getMarkup($key);
+					return;
+				}
+			}
+		}
+		
+		$field = $page->getField($key);
+		if(!$field) $field = $this->wire('fields')->get($key);
+	
+		if($this->wire('config')->templateCompile) {
+			$file = $this->wire('files')->compile($file);
+		}
+		
+		$tpl = $this->wire(new TemplateFile($file));
+		$tpl->set('page', $page);
+		$tpl->set('value', $value);
+		$tpl->set('field', $field);
+		
+		$event->return = $tpl->render();
 	}
 
 	/**

@@ -94,7 +94,7 @@ abstract class Inputfield extends WireData implements Module {
 	const collapsedLocked = 8; 	// for backwards compatibility
 	const collapsedNever = 9; // input may not be collapsed
 	const collapsedYesAjax = 10; // collapsed and dynamically loaded by ajax when opened
-	const collapsedBlankAjax = 11; // collapsed when blankn and dynamically loaded by ajax when opened
+	const collapsedBlankAjax = 11; // collapsed when blank and dynamically loaded by ajax when opened
 
 	/**
 	 * Constants for skipLabel setting

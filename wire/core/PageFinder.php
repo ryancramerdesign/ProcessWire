@@ -114,8 +114,9 @@ class PageFinder extends Wire {
 	protected $getQueryNumChildren = 0; // number of times the function has been called
 	protected $lastOptions = array(); 
 	protected $extraOrSelectors = array(); // one from each field must match
-	protected $extraSubSelectors = array(); // subselectors that are added in after getQuery()
-	//protected $nativeWheres = array(); // where statements for native fields, to be reused in subselects where appropriate.
+	// protected $extraSubSelectors = array(); // subselectors that are added in after getQuery()
+	// protected $extraJoins = array();
+	// protected $nativeWheres = array(); // where statements for native fields, to be reused in subselects where appropriate.
 
 	/**
 	 * Construct the PageFinder
@@ -364,11 +365,12 @@ class PageFinder extends Wire {
 		$options['returnVerbose'] = false; 
 		return $this->find($selectors, $options); 
 	}
-
+	
 	/**
 	 * Pre-process the given selector to perform any necessary replacements
 	 *
 	 * This is primarily used to handle sub-selections, i.e. "bar=foo, id=[this=that, foo=bar]"
+	 * and OR-groups, i.e. "(bar=foo), (foo=bar)"
 	 * 
 	 * @param Selector $selector
 	 * @return bool Returns false if selector should be skipped over by getQuery()
@@ -376,94 +378,149 @@ class PageFinder extends Wire {
 	 */
 	protected function preProcessSelector(Selector $selector) {
 		
-		if($selector->quote && !is_array($selector->value) && Selectors::stringHasSelector($selector->value)) {
-			
-			// selector contains an embedded quoted selector
-			if($selector->quote == '[') {
-				// i.e. field=[id>0, name=something, this=that]
-				// selector contains another embedded selector that we need to convert to page IDs
-				
-				$selectors = $this->wire(new Selectors($selector->value)); 
-				$hasTemplate = false; 
-				$hasParent = false; 
-				foreach($selectors as $s) {
-					if(is_array($s->field)) continue; 
-					if($s->field == 'template') $hasTemplate = true; 
-					if($s->field == 'parent' || $s->field == 'parent_id') $hasParent = true; 
-				}
-				// special handling for page references, detect if parent or template is defined, 
-				// and add it to the selector if available. This makes it faster. 
-				if(!$hasTemplate || !$hasParent) { 
-					$fields = is_array($selector->field) ? $selector->field : array($selector->field); 
-					$templates = array();
-					$parents = array();
-					$findSelector = '';
-					foreach($fields as $fieldName) {
-						if(strpos($fieldName, '.') !== false) {
-							/** @noinspection PhpUnusedLocalVariableInspection */
-							list($unused, $fieldName) = explode('.', $fieldName);
-						}
-						$field = $this->wire('fields')->get($fieldName); 	
-						if(!$field) continue;
-						if(!$hasTemplate && $field->template_id) {
-							if(is_array($field->template_id)) {
-								$templates = array_merge($templates, $field->template_id);
-							} else {
-								$templates[] = (int) $field->template_id;
-							}
-						}
-						if(!$hasParent && $field->parent_id) $parents[] = (int) $field->parent_id; 
-						if($field->findPagesSelector && count($fields) == 1) $findSelector = $field->findPagesSelector;	
-					}
-					if(count($templates)) $selectors->prepend(new SelectorEqual('template', $templates));
-					if(count($parents)) $selectors->prepend(new SelectorEqual('parent_id', $parents)); 
-					if($findSelector) foreach(new Selectors($findSelector) as $s) $selectors->append($s); 
-				}
-				
-				$pageFinder = $this->wire(new PageFinder());
-				$ids = $pageFinder->findIDs($selectors); 
-				// populate selector value with array of page IDs
-				if(count($ids) == 0) {
-					// subselector resulted in 0 matches
-					// force non-match for this subselector by populating 'id' subfield to field name(s)
-					$fieldNames = array();
-					foreach($selector->fields as $key => $fieldName) {
-						if(strpos($fieldName, '.') !== false) {
-							// reduce fieldName to just field name without subfield name
-							/** @noinspection PhpUnusedLocalVariableInspection */
-							list($fieldName, $subname) = explode('.', $fieldName); // subname intentionally unused
-						}
-						$fieldName .= '.id';
-						$fieldNames[$key] = $fieldName; 
-					}
-					$selector->fields = $fieldNames;
-					$selector->value = 0;
-				} else {
-					$selector->value = count($ids) > 1 ? $ids : reset($ids);
-				}
-				$selector->quote = '';
+		$quote = $selector->quote;
+		if(!$quote) return true;
+	
+		if($quote == '[') {
+			// selector contains another embedded selector that we need to convert to page IDs
+			// i.e. field=[id>0, name=something, this=that]
+			$this->preProcessSubSelector($selector);
 
-				/*
-				} else {
-					$fieldName = $selector->field ? $selector->field : 'none';
-					if(!isset($this->extraSubSelectors[$fieldName])) $this->extraSubSelectors[$fieldName] = array();
-					$this->extraSubSelectors[$fieldName][] = new Selectors($selector->value);
-					return false;
-				}
-				*/
-				
-			} else if($selector->quote == '(') {
-				// selector contains an quoted selector. At least one () quoted selector must match for each field specified in front of it
-				$fieldName = $selector->field ? $selector->field : 'none';
-				if(!isset($this->extraOrSelectors[$fieldName])) $this->extraOrSelectors[$fieldName] = array();
-				$this->extraOrSelectors[$fieldName][] = $this->wire(new Selectors($selector->value)); 
-				return false;
-			}
+		} else if($quote == '(') {
+			// selector contains an OR group (quoted selector)
+			// at least one (quoted selector) must match for each field specified in front of it
+			$groupName = $this->wire('sanitizer')->fieldName($selector->getField('string'));
+			if(!$groupName) $groupName = 'none';
+			if(!isset($this->extraOrSelectors[$groupName])) $this->extraOrSelectors[$groupName] = array();
+			$this->extraOrSelectors[$groupName][] = $this->wire(new Selectors($selector->value)); 
+			return false;
 		}
 		
 		return true;
 	}
 
+	/*
+	 * This turns out to be a lot slower than preProcessSubSelector(), but kept here for additional experiments
+	 * 
+	protected function preProcessSubquery(Selector $selector) {
+		$finder = $this->wire(new PageFinder());
+		$selectors = $selector->getValue();
+		if(!$selectors instanceof Selectors) return true; // not a sub-selector
+		$subfield = '';
+		$fieldName = $selector->field;
+		if(is_array($fieldName)) return true; // we don't allow OR conditions for field here
+		if(strpos($fieldName, '.')) list($fieldName, $subfield) = explode('.', $fieldName);
+		$field = $this->wire('fields')->get($fieldName);
+		if(!$field) return true; // does not resolve to a known field
+
+		$query = $finder->find($selectors, array(
+			'returnQuery' => true,
+			'returnVerbose' => false
+		));
+		$database = $this->wire('database');
+		$table = $database->escapeTable($field->getTable());
+		if($subfield == 'id' || !$subfield) {
+			$subfield = 'data';
+		} else {
+			$subfield = $database->escapeCol($this->wire('sanitizer')->fieldName($subfield));
+		}
+		if(!$table || !$subfield) return true;
+		static $n = 0;
+		$n++;
+		$tableAlias = "_subquery_{$n}_$table";
+		$join = "$table AS $tableAlias ON $tableAlias.pages_id=pages.id AND $tableAlias.$subfield IN (" . $query->getQuery() . ")";
+		echo $join . "<br />";
+		$this->extraJoins[] = $join;
+	}
+	*/
+
+	/**
+	 * Pre-process a Selector that has a [quoted selector] embedded within its value
+	 * 
+	 * @param Selector $selector
+	 * 
+	 */
+	protected function preProcessSubSelector(Selector $selector) {
+
+		// Selector contains another embedded selector that we need to convert to page IDs.
+		// Example: "field=[id>0, name=something, this=that]" converts to "field.id=123|456|789"
+
+		$selectors = $selector->getValue();
+		if(!$selectors instanceof Selectors) return;
+		
+		$hasTemplate = false;
+		$hasParent = false;
+		
+		foreach($selectors as $s) {
+			if(is_array($s->field)) continue;
+			if($s->field == 'template') $hasTemplate = true;
+			if($s->field == 'parent' || $s->field == 'parent_id') $hasParent = true;
+		}
+		
+		// special handling for page references, detect if parent or template is defined, 
+		// and add it to the selector if available. This makes it faster. 
+		if(!$hasTemplate || !$hasParent) {
+			
+			$fields = is_array($selector->field) ? $selector->field : array($selector->field);
+			$templates = array();
+			$parents = array();
+			$findSelector = '';
+			
+			foreach($fields as $fieldName) {
+				if(strpos($fieldName, '.') !== false) {
+					/** @noinspection PhpUnusedLocalVariableInspection */
+					list($unused, $fieldName) = explode('.', $fieldName);
+				}
+				$field = $this->wire('fields')->get($fieldName);
+				if(!$field) continue;
+				if(!$hasTemplate && $field->template_id) {
+					if(is_array($field->template_id)) {
+						$templates = array_merge($templates, $field->template_id);
+					} else {
+						$templates[] = (int) $field->template_id;
+					}
+				}
+				if(!$hasParent && $field->parent_id) $parents[] = (int) $field->parent_id;
+				if($field->findPagesSelector && count($fields) == 1) $findSelector = $field->findPagesSelector;
+			}
+			
+			if(count($templates)) $selectors->prepend(new SelectorEqual('template', $templates));
+			if(count($parents)) $selectors->prepend(new SelectorEqual('parent_id', $parents));
+			
+			if($findSelector) {
+				foreach(new Selectors($findSelector) as $s) {
+					// add everything from findSelector, except for dynamic/runtime 'page.[something]' vars
+					if(strpos($s->getField('string'), 'page.') === 0 || strpos($s->getValue('string'), 'page.') === 0) continue;
+					$selectors->append($s);
+				}
+			}
+		}
+
+		$pageFinder = $this->wire(new PageFinder());
+		$ids = $pageFinder->findIDs($selectors);
+		
+		// populate selector value with array of page IDs
+		if(count($ids) == 0) {
+			// subselector resulted in 0 matches
+			// force non-match for this subselector by populating 'id' subfield to field name(s)
+			$fieldNames = array();
+			foreach($selector->fields as $key => $fieldName) {
+				if(strpos($fieldName, '.') !== false) {
+					// reduce fieldName to just field name without subfield name
+					/** @noinspection PhpUnusedLocalVariableInspection */
+					list($fieldName, $subname) = explode('.', $fieldName); // subname intentionally unused
+				}
+				$fieldName .= '.id';
+				$fieldNames[$key] = $fieldName;
+			}
+			$selector->fields = $fieldNames;
+			$selector->value = 0;
+		} else {
+			$selector->value = count($ids) > 1 ? implode(',', $ids) : reset($ids);
+		}
+		
+		$selector->quote = '';
+	}
 
 	/**
 	 * Given one or more selectors, create the SQL query for finding pages.
@@ -485,6 +542,7 @@ class PageFinder extends Wire {
 		$lastSelector = null; 
 		$sortSelectors = array(); // selector containing 'sort=', which gets added last
 		$joins = array();
+		// $this->extraJoins = array();
 		$startLimit = false; // true when the start/limit part of the query generation is done
 		$database = $this->wire('database');
 
@@ -696,6 +754,12 @@ class PageFinder extends Wire {
 			$joinType = $j['joinType']; 
 			$query->$joinType("$j[table] AS $j[tableAlias] ON $j[tableAlias].pages_id=pages.id AND ($j[join])"); 
 		}
+	
+		/*
+		foreach($this->extraJoins as $j) {
+			$query->join($j);
+		}
+		*/
 
 		if(count($sortSelectors)) foreach(array_reverse($sortSelectors) as $s) $this->getQuerySortSelector($query, $s);
 		$this->postProcessQuery($query); 
@@ -1093,7 +1157,11 @@ class PageFinder extends Wire {
 				$subValue = $database->escapeCol($subValue);
 				$tableAlias = "_sort_$fieldName". ($subValue ? "_$subValue" : '');
 				$table = $database->escapeTable($field->table);
-				$blankValue = $field->type->getBlankValue($this->wire('pages')->newNullPage(), $field);
+				if($field->type instanceof FieldtypePage) {
+					$blankValue = new PageArray();
+				} else {
+					$blankValue = $field->type->getBlankValue($this->wire('pages')->newNullPage(), $field);
+				}
 
 				$query->leftjoin("$table AS $tableAlias ON $tableAlias.pages_id=pages.id");
 

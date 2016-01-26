@@ -884,7 +884,7 @@
 				else {
 					this.$timeObj.val($.datepicker.formatTime(pickerTimeFormat, this, o) + pickerTimeSuffix);
 				}
-				this.$timeObj[0].setSelectionRange(sPos, ePos);
+				//this.$timeObj[0].setSelectionRange(sPos, ePos);
 			}
 
 			this.timeDefined = true;

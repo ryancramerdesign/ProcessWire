@@ -28,7 +28,7 @@
  * @property Page $rootParent The parent page closest to the homepage (typically used for identifying a section)
  * @property Template|string $template The Template object this page is using. The template name (string) may also be used for assignment.
  * @property Template|null $templatePrevious Previous template, if template was changed. 
- * @property FieldsArray $fields All the Fields assigned to this page (via it's template, same as $page->template->fields). Returns a FieldsArray.
+ * @property Fieldgroup $fields All the Fields assigned to this page (via it's template, same as $page->template->fields). Returns a Fieldgroup.
  * @property int $numChildren The number of children (subpages) this page has, with no exclusions (fast).
  * @property int $numVisibleChildren The number of visible children (subpages) this page has. Excludes unpublished, no-access, hidden, etc.
  * @property PageArray $children All the children (subpages) of this page. Returns a PageArray. See also $page->children($selector).
@@ -54,6 +54,7 @@
  * @property Fieldgroup $fieldgroup Shorter alias for $page->template->fieldgroup
  * @property string $editUrl
  * @property string $editURL
+ * @property PageRender $render May be used for field markup rendering like $page->render->title.
  * 
  * @property bool|null $_hasAutogenName Internal runtime use, set by Pages class when page as auto-generated name.
  * @property bool|null $_forceSaveParents Internal runtime/debugging use, force a page to refresh its pages_parents DB entries on save().
@@ -61,6 +62,7 @@
  * Methods added by PageRender.module: 
  * -----------------------------------
  * @method string render() Returns rendered page markup. echo $page->render();
+ * @method string renderField($fieldName, $value = null) Returns rendered field markup. echo $page->renderField('title');
  * 
  * Methods added by PagePermissions.module: 
  * ----------------------------------------
@@ -295,15 +297,10 @@ class Page extends WireData implements \Countable, WireMatchable {
 	static public $loadingStack = array();
 
 	/**
-	 * Controls the behavior of Page::__isset function
-	 *
-	 * false = isset($page->var) returns true if 'var' is a valid field for page AND IS LOADED. (default behavior)
-	 * true = isset($page->var) returns true if 'var' is a valid field for page, same has $page->has('var'); 
-	 *
-	 * This is a static setting affecting all pages. It is provided for template engines that use isset() or empty() 
-	 * to verify the validity of a property name for an object (i.e. Twig).
+	 * Controls the behavior of Page::__isset function (no longer in use)
 	 * 
 	 * @var bool
+	 * @deprecated No longer in use
 	 * 
 	 */
 	static public $issetHas = false; 
@@ -368,7 +365,106 @@ class Page extends WireData implements \Countable, WireMatchable {
 		'created' => 0,
 		'modified' => 0,
 		'published' => 0,
-		); 
+		);
+
+	/**
+	 * Properties that can be accessed, mapped to method of access (excluding custom fields of course)
+	 * 
+	 * Keys are base property name, values are one of:
+	 *  - [methodName]: method name that it maps to ([methodName]=actual method name)
+	 *  - "s": property name is accessible in $this->settings using same key
+	 *  - "p": Property name maps to same property name in $this
+	 *  - "m": Property name maps to same method name in $this
+	 *  - [blank]: needs additional logic to be handled ([blank]='')
+	 * 
+	 * @var array
+	 * 
+	 */
+	static $baseProperties = array(
+		'accessTemplate' => 'getAccessTemplate',
+		'child' => 'm',
+		'children' => 'm',
+		'created' => 's', 
+		'createdStr' => '',
+		'createdUser' => '',
+		'created_users_id' => 's', 
+		'editUrl' => 'm',
+		'fieldgroup' => '',
+		'filesManager' => 'm',
+		'hasParent' => 'parents',
+		'hasChildren' => 'm',
+		'httpUrl' => 'm',
+		'id' => 's',
+		'instanceID' => 'p',
+		'isHidden' => 'm',
+		'isLoaded' => 'm',
+		'isLocked' => 'm',
+		'isNew' => 'm',
+		'isPublic' => 'm',
+		'isTrash' => 'm',
+		'isUnpublished' => 'm',
+		'modified' => 's',
+		'modifiedStr' => '',
+		'modifiedUser' => '',
+		'modified_users_id' => 's',
+		'name' => 's',
+		'namePrevious' => 'p',
+		'next' => 'm',
+		'numChildren' => 's',
+		'output' => 'm',
+		'outputFormatting' => 'p',
+		'parent' => 'm',
+		'parent_id' => '',
+		'parentPrevious' => 'p',
+		'parents' => 'm',
+		'path' => 'm',
+		'prev' => 'm',
+		'published' => 's',
+		'publishedStr' => '',
+		'render' => '',
+		'rootParent' => 'm',
+		'siblings' => 'm',
+		'sort' => 's',
+		'sortfield' => 's',
+		'status' => 's',
+		'statusPrevious' => 'p',
+		'statusStr' => '',
+		'template' => 'p',
+		'templates_id' => '',
+		'templatePrevious' => 'p',
+		'url' => 'm',
+	);
+
+	/**
+	 * Alternate names accepted for base properties
+	 * 
+	 * Keys are alternate property name and values are base property name
+	 * 
+	 * @var array
+	 * 
+	 */
+	static $basePropertiesAlternates = array(
+		'createdUserID' => 'created_users_id', 
+		'createdUsersID' => 'created_users_id',
+		'created_user_id' => 'created_users_id',
+		'editURL' => 'editUrl',
+		'fields' => 'fieldgroup',
+		'has_parent' => 'hasParent',
+		'httpURL' => 'httpUrl',
+		'modifiedUserID' => 'modified_users_id',
+		'modifiedUsersID' => 'modified_users_id',
+		'modified_user_id' => 'modified_users_id',
+		'num_children' => 'numChildren',
+		'numChildrenVisible' => 'hasChildren',
+		'numVisibleChildren' => 'hasChildren',
+		'of' => 'outputFormatting',
+		'out' => 'output',
+		'parentID' => 'parent_id',
+		'subpages' => 'children',
+		'template_id' => 'templates_id',
+		'templateID' => 'templates_id',
+		'templatesID' => 'templates_id',
+	);
 
 	/**
 	 * Create a new page in memory. 
@@ -425,6 +521,7 @@ class Page extends WireData implements \Countable, WireMatchable {
 		}
 		$this->instanceID .= ".clone";
 		if($track) $this->setTrackChanges(true); 
+		parent::__clone();
 	}
 
 	/**
@@ -438,6 +535,8 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 *
 	 */
 	public function set($key, $value) {
+		
+		if(isset(self::$basePropertiesAlternates[$key])) $key = self::$basePropertiesAlternates[$key];
 
 		if(($key == 'id' || $key == 'name') && $this->settings[$key] && $value != $this->settings[$key]) 
 			if(	($key == 'id' && (($this->settings['status'] & Page::statusSystem) || ($this->settings['status'] & Page::statusSystemID))) ||
@@ -452,9 +551,7 @@ class Page extends WireData implements \Countable, WireMatchable {
 				// no break is intentional
 			case 'sort': 
 			case 'numChildren': 
-			case 'num_children':
 				$value = (int) $value; 
-				if($key == 'num_children') $key = 'numChildren';
 				if($this->settings[$key] !== $value) $this->trackChange($key, $this->settings[$key], $value); 
 				$this->settings[$key] = $value; 
 				break;
@@ -529,9 +626,7 @@ class Page extends WireData implements \Countable, WireMatchable {
 				break;
 			default:
 				if($this->quietMode && !$this->template) return parent::set($key, $value); 
-
 				$this->setFieldValue($key, $value, $this->isLoaded); 
-
 		}
 		return $this; 
 	}
@@ -583,7 +678,9 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 */
 	public function setFieldValue($key, $value, $load = true) {
 
-		if(!$this->template) throw new WireException("You must assign a template to the page before setting custom field values."); 
+		if(!$this->template) {
+			throw new WireException("You must assign a template to the page before setting custom field values ($key)");
+		}
 
 		// if the page is not yet loaded and a '__' field was set, then we queue it so that the loaded() method can 
 		// instantiate all those fields knowing that all parts of them are present for wakeup. 
@@ -594,7 +691,7 @@ class Page extends WireData implements \Countable, WireMatchable {
 			return $this;
 		}
 
-		if(!$field = $this->template->fieldgroup->getField($key)) {
+		if(!$field = $this->getField($key)) {
 			// not a known/saveable field, let them use it for runtime storage
 			return parent::set($key, $value); 
 		}
@@ -652,80 +749,35 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 *
 	 */
 	public function get($key) {
-		if(is_array($key)) $key = implode('|', $key); 
-		$value = null;
+
+		if(is_array($key)) $key = implode('|', $key);
+		if(isset(self::$basePropertiesAlternates[$key])) $key = self::$basePropertiesAlternates[$key];
+		if(isset(self::$baseProperties[$key])) {
+			$type = self::$baseProperties[$key];
+			if($type == 'p') {
+				// local property
+				return $this->$key;
+			} else if($type == 'm') {
+				// local method
+				return $this->{$key}();
+			} else if($type == 's') {
+				// settings property
+				return $this->settings[$key];
+			} else if($type) {
+				// defined local method
+				return $this->{$type}();
+			}
+		}
+		
 		switch($key) {
 			case 'parent_id':
-			case 'parentID': 
 				$value = $this->parent ? $this->parent->id : 0; 
 				break;
-			case 'child':
-				$value = $this->child(); 
-				break;
-			case 'children':
-			case 'subpages': // PW1 
-				$value = $this->children();
-				break;
-			case 'has_parent':
-			case 'hasParent': 
-				$value = $this->parents();
-				break;
-			case 'parent':
-			case 'parents':
-			case 'rootParent':
-			case 'siblings':
-			case 'next':
-			case 'prev':
-			case 'url':
-			case 'path':
-			case 'outputFormatting': 
-			case 'isTrash': 
-				$value = $this->{$key}(); 
-				break;
-			case 'httpUrl': 
-			case 'httpURL': 
-				$value = $this->httpUrl();
-				break;
-			case 'fieldgroup': 
-			case 'fields':
-				$value = $this->template->fieldgroup; 
-				break;
-			case 'template_id':
 			case 'templates_id':
-			case 'templateID':
-			case 'templatesID':
-				$value = $this->template ? $this->template->id : 0; 
+				$value = $this->template ? $this->template->id : 0;
 				break;
-			case 'template':
-			case 'templatePrevious':
-			case 'parentPrevious':
-			case 'namePrevious':
-			case 'statusPrevious':
-			case 'isLoaded':
-			case 'isNew':
-			case 'pageNum':
-			case 'instanceID': 
-				$value = $this->$key; 
-				break;
-			case 'out':
-			case 'output':
-				$value = $this->output();
-				break;
-			case 'filesManager':
-				$value = $this->filesManager();
-				break;
-			case 'name':
-				$value = $this->settings['name'];
-				break;
-			case 'modified_users_id': 
-			case 'modifiedUsersID':
-			case 'modifiedUserID':
-				$value = (int) $this->settings['modified_users_id']; 
-				break;
-			case 'created_users_id':
-			case 'createdUsersID':
-			case 'createdUserID': 
-				$value = (int) $this->settings['created_users_id'];
+			case 'fieldgroup':
+				$value = $this->template->fieldgroup;
 				break;
 			case 'modifiedUser':
 			case 'createdUser':
@@ -743,23 +795,8 @@ class Page extends WireData implements \Countable, WireMatchable {
 				if($value) $value->of($this->of());
 				break;
 			case 'urlSegment':
-				$value = $this->wire('input')->urlSegment1; // deprecated, but kept for backwards compatibility
-				break;
-			case 'accessTemplate': 
-				$value = $this->getAccessTemplate();
-				break;
-			case 'num_children': 
-			case 'numChildren': 
-				$value = $this->settings['numChildren'];
-				break;
-			case 'numChildrenVisible':
-			case 'numVisibleChildren':
-			case 'hasChildren': 
-				$value = $this->numChildren(true);
-				break;
-			case 'editUrl':
-			case 'editURL':
-				$value = $this->editUrl();
+				// deprecated, but kept for backwards compatibility
+				$value = $this->wire('input')->urlSegment1; 
 				break;
 			case 'statusStr':
 				$value = implode(' ', $this->status(true)); 
@@ -770,11 +807,21 @@ class Page extends WireData implements \Countable, WireMatchable {
 				$value = $this->settings[str_replace('Str', '', $key)];
 				$value = $value ? wireDate($this->wire('config')->dateFormat, $value) : '';
 				break;
+			case 'render':
+				$value = $this->wire('modules')->get('PageRender');	
+				$value->setPropertyPage($this);
+				break;
+			
 			default:
 				if($key && isset($this->settings[(string)$key])) return $this->settings[$key];
 				
 				// populate a formatted string with {tag} vars
 				if(strpos($key, '{') !== false && strpos($key, '}')) return $this->getMarkup($key);
+			
+				// populate a markup requested field like '_fieldName_'
+				if(strpos($key, '_') === 0 && substr($key, -1) == '_' && !$this->wire('fields')->get($key)) {
+					if($this->wire('sanitizer')->fieldName($key) == $key) return $this->renderField(substr($key, 1, -1));
+				}
 
 				if(($value = $this->getFieldFirstValue($key)) !== null) return $value; 
 				if(($value = $this->getFieldValue($key)) !== null) return $value;
@@ -793,6 +840,66 @@ class Page extends WireData implements \Countable, WireMatchable {
 	}
 
 	/**
+	 * Get a Field object in context or NULL if not valid for this page
+	 * 
+	 * Field in context is only returned when output formatting is on.
+	 * @todo determine if we can always retrieve in context regardless of output formatting.
+	 * 
+	 * @param string|int|Field $field
+	 * @return Field|null
+	 * @throws WireException if given invalid argument
+	 * 
+	 */
+	public function getField($field) {
+		$template = $this->template;
+		$fieldgroup = $template ? $this->template->fieldgroup : null;
+		if(!$fieldgroup) return null;
+		if($this->outputFormatting && $fieldgroup->hasFieldContext($field)) {
+			$value = $fieldgroup->getFieldContext($field);
+		} else {
+			$value = $fieldgroup->getField($field);
+		}
+		return $value;
+	}
+
+	/**
+	 * Returns a FieldsArray of all Field objects in the context of this Page
+	 * 
+	 * Unlike $page->fieldgroup (or its alias $page->fields), the fields returned from
+	 * this method are in the context of this page/template. Meaning returned Field 
+	 * objects may have some properties that are different from the Field outside of 
+	 * the context of this page. 
+	 * 
+	 * @return FieldsArray of Field objects
+	 * 
+	 */
+	public function getFields() {
+		if(!$this->template) return new FieldsArray();
+		$fields = new FieldsArray();
+		$fieldgroup = $this->template->fieldgroup;
+		foreach($fieldgroup as $field) {
+			if($fieldgroup->hasFieldContext($field)) {
+				$field = $fieldgroup->getFieldContext($field);
+			}
+			if($field) $fields->add($field);
+		}
+		return $fields;
+	}
+
+	/**
+	 * Returns whether or not $field is valid for this Page
+	 * 
+	 * Note that this only indicates validity, not whether the field is populated.
+	 * 
+	 * @param int|string|Field $field
+	 * @return bool
+	 * 
+	 */
+	public function hasField($field) {
+		return $this->template ? $this->template->fieldgroup->hasField($field) : false;
+	}
+
+	/**
 	 * If given a field.subfield string, returns the associated value
 	 * 
 	 * This is like the getDot() method, but with additional protection during output formatting. 
@@ -808,7 +915,7 @@ class Page extends WireData implements \Countable, WireMatchable {
 			// allow limited access to field.subfield properties when output formatting is on
 			// we only allow known custom fields, and only 1 level of subfield
 			list($key1, $key2) = explode('.', $key);
-			$field = $this->template->fieldgroup->getField($key1); 
+			$field = $this->getField($key1); 
 			if($field && !($field->flags & Field::flagSystem)) {
 				// known custom field, non-system
 				// if neither is an API var, then we'll allow it
@@ -912,12 +1019,7 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 */
 	protected function getFieldValue($key) {
 		if(!$this->template) return parent::get($key); 
-		$field = $this->template->fieldgroup->getField($key);
-		if($field && $this->outputFormatting && $this->template->fieldgroup->hasFieldContext($field)) {
-			// if field has context available and output formatting is on, get the field in context
-			// @todo determine if we can retrieve it in context even when output formatting is off
-			$field = $this->template->fieldgroup->getFieldContext($field->name);
-		}
+		$field = $this->getField($key);
 		$value = parent::get($key); 
 		if(!$field) return $value;  // likely a runtime field, not part of our data
 		
@@ -996,8 +1098,7 @@ class Page extends WireData implements \Countable, WireMatchable {
 		do {
 			
 			$name = array_shift($parts);
-			$field = null;
-			if($this->template && $this->template->fieldgroup) $field = $this->template->fieldgroup->getField($name);
+			$field = $this->getField($name);
 			
 			if(!$field && $this->wire($name)) {
 				// disallow API vars
@@ -1484,8 +1585,12 @@ class Page extends WireData implements \Countable, WireMatchable {
 			$options = $field;
 			$field = null;
 		}
-		if(!is_null($field) && $this->template->fieldgroup->hasField($field)) {
-			return $this->wire('pages')->saveField($this, $field, $options);
+		if(!is_null($field)) {
+			if($this->hasField($field)) {
+				return $this->wire('pages')->saveField($this, $field, $options);
+			} else {
+				return false;
+			}
 		}
 		return $this->wire('pages')->save($this, $options);
 	}
@@ -1842,6 +1947,8 @@ class Page extends WireData implements \Countable, WireMatchable {
 	
 	/**
 	 * Is this Page new? (i.e. doesn't yet exist in DB)
+	 * 
+	 * @return bool
 	 *
 	 */
 	public function isNew() {
@@ -1849,10 +1956,14 @@ class Page extends WireData implements \Countable, WireMatchable {
 	}
 
 	/**
-	 * Is the page fully loaded?
+	 * Is the page fully loaded? (or optionally a field)
+	 * 
+	 * @param string|null $fieldName Optionally request if a specified field is already loaded in the page
+	 * @return bool
 	 *
 	 */
-	public function isLoaded() {
+	public function isLoaded($fieldName = null) {
+		if($fieldName) return parent::get($fieldName) !== null;
 		return $this->isLoaded; 
 	}
 
@@ -2071,18 +2182,19 @@ class Page extends WireData implements \Countable, WireMatchable {
 	/**
 	 * Ensures that isset() and empty() work for this classes properties. 
 	 *
-	 * See the Page::issetHas property which can be set to adjust the behavior of this function.
-	 * 
 	 * @param string $key
 	 * @return bool
 	 *
 	 */
 	public function __isset($key) {
-		if(isset($this->settings[$key])) return true;
-		$natives = array('template', 'parent', 'createdUser', 'modifiedUser');
-		if(in_array($key, $natives)) return $this->$key ? true : false;
-		if(self::$issetHas && $this->template && $this->template->fieldgroup->hasField($key)) return true;
-		return parent::__isset($key); 
+		if($this->isLoaded) {
+			return $this->get($key) !== null;
+		} else {
+			if(isset(self::$baseProperties[$key])) return true;
+			if(isset(self::$basePropertiesAlternates[$key])) return true;
+			if($this->hasField($key)) return true;
+			return false;
+		}
 	}
 
 	/**
@@ -2194,7 +2306,7 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 */
 	protected function getHelperInstance($className) {
 		static $helpers = array();
-		$instanceID = $this->wire()->getInstanceID();
+		$instanceID = $this->wire()->getProcessWireInstanceID();
 		if(!isset($helpers[$instanceID])) {
 			$helpers[$instanceID] = array();
 		}
@@ -2265,7 +2377,7 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 */
 	public function ___getIcon() {
 		if(!$this->template) return '';
-		if($this->template->fieldgroup->hasField('process')) {
+		if($this->hasField('process')) {
 			$process = $this->getUnformatted('process'); 
 			if($process) {
 				$info = $this->wire('modules')->getModuleInfoVerbose($process);

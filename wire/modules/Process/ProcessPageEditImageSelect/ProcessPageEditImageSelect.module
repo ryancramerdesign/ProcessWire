@@ -42,6 +42,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 	protected $labels = array();
 	protected $rte = true; // in RTE mode?
 	protected $field = null;
+	protected $fieldName = '';
 	protected $original = '';
 	protected $caption = '';
 
@@ -127,6 +128,10 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 	
 		$fieldName = $this->wire('sanitizer')->fieldName($this->wire('input')->get('field')); 
 		if($fieldName) {
+			$this->fieldName = $fieldName; // original
+			if(strpos($fieldName, '_repeater') && preg_match('/_repeater\d+$/', $fieldName, $matches)) {
+				$fieldName = str_replace($matches[0], '', $fieldName);
+			}
 			$this->field = $this->wire('fields')->get($fieldName); 
 			if(!$this->field) throw new WireException("Unknown field $fieldName"); 
 			if(!$this->field->type instanceof FieldtypeImage) throw new WireException("Field $fieldName is not an instance of FieldtypeImage"); 
@@ -503,7 +508,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 			}
 		}
 		if(!$this->rte) $parts['rte'] = '0';
-		if($this->field) $parts['field'] = $this->field->name; 
+		if($this->field) $parts['field'] = $this->fieldName; 
 		
 		if(!isset($parts['winwidth'])) {
 			$winwidth = (int) $this->wire('input')->get('winwidth'); 
@@ -1046,7 +1051,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 			<h2><i class='fa fa-spin fa-spinner fa-2x fa-fw ui-priority-secondary'></i> $headline</h2>
 			$body
 			<script>
-			$(document).ready(function() { setupProcessSave('{$this->field->name}', '$fileID', $isNew); });	
+			$(document).ready(function() { setupProcessSave('$this->fieldName', '$fileID', $isNew); });	
 			</script>
 			";
 		

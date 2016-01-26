@@ -23,6 +23,7 @@
  * @property array $options An optional array of user-specified data that gets sent to the hooked function. The hook handling method may access it from $event->data. This array also includes all of the Wire:defaultHookOptions
  * @property string $id A unique identifier string that may be used with a call to Wire::removeHook()
  * @property string $when In an active hook, contains either the string 'before' or 'after', indicating whether it is executing before or after the hooked method. 
+ * @property bool $cancelHooks When true, all remaining hooks will be cancelled, making this HookEvent the last one (be careful with this)
  *
  */
 class HookEvent extends WireData {
@@ -45,6 +46,7 @@ class HookEvent extends WireData {
 		$this->set('replace', false); 
 		$this->set('options', array()); 
 		$this->set('id', ''); 
+		$this->set('cancelHooks', false);
 	}
 
 	/**

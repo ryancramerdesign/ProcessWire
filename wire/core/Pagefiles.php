@@ -127,6 +127,7 @@ class Pagefiles extends WireArray {
 			$pagefile->setPagefilesParent($this);
 			$this->set($key, $pagefile); 
 		}
+		parent::__clone();
 	}
 
 	/**

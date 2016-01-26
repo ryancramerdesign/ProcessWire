@@ -77,7 +77,8 @@ class Pageimage extends Pagefile {
 	 */
 	public function __clone() {
 		$this->imageInfo['width'] = 0; 
-		$this->imageInfo['height'] = 0; 
+		$this->imageInfo['height'] = 0;
+		parent::__clone();
 	}
 
 	/**
@@ -299,6 +300,7 @@ class Pageimage extends Pagefile {
 			);
 
 		$this->error = '';
+		$debug = $this->wire('config')->debug;
 		$configOptions = $this->wire('config')->imageSizerOptions; 
 		if(!is_array($configOptions)) $configOptions = array();
 		$options = array_merge($defaultOptions, $configOptions, $options); 
@@ -345,6 +347,8 @@ class Pageimage extends Pagefile {
 		//$basename = $this->pagefiles->cleanBasename($this->basename(), false, false, false);
 		// cleanBasename($basename, $originalize = false, $allowDots = true, $translate = false) 
 		$basename = basename($this->basename(), "." . $this->ext());        // i.e. myfile
+		$originalName = $basename;
+		$originalSize = $debug ? filesize($this->filename) : 0;
 		if($options['cleanFilename'] && strpos($basename, '.') !== false) {
 			$basename = substr($basename, 0, strpos($basename, '.')); 
 		}
@@ -359,19 +363,30 @@ class Pageimage extends Pagefile {
 			if(file_exists($filenameUnvalidated)) @unlink($filenameUnvalidated);
 			if(@copy($this->filename(), $filenameUnvalidated)) {
 				try { 
+					$timer = $debug ? Debug::timer() : null;
 					$sizer = $this->wire(new ImageSizer($filenameUnvalidated));
 					$sizer->setOptions($options);
 					if($sizer->resize($width, $height) && @rename($filenameUnvalidated, $filenameFinal)) {
-						$this->wire('files')->chmod($filenameFinal); 
+						$this->wire('files')->chmod($filenameFinal);
 					} else {
 						$this->error = "ImageSizer::resize($width, $height) failed for $filenameUnvalidated";
 					}
+
+					$timer = $debug ? Debug::timer($timer) : null;
+					if($debug) $this->wire('log')->save('image-sizer', 
+						($this->error ? "FAILED Resize: " : "Resized: ") . 
+						"$originalName => " . 
+						basename($filenameFinal) . " " .
+						"({$width}x{$height}) $timer secs " . 
+						"$originalSize => " . filesize($filenameFinal) . " bytes"
+					);
+					
 				} catch(\Exception $e) {
 					$this->trackException($e, false); 
 					$this->error = $e->getMessage(); 
 				}
 			} else {
-				$this->error("Unable to copy $this->filename => $filenameUnvalidated"); 
+				$this->error = "Unable to copy $this->filename => $filenameUnvalidated"; 
 			}
 		}
 
@@ -386,11 +401,12 @@ class Pageimage extends Pagefile {
 
 			// write an invalid image so it's clear something failed
 			// todo: maybe return a 1-pixel blank image instead?
-			$data = "This is intentionally invalid image data.\n$this->error";
+			$data = "This is intentionally invalid image data.\n";
 			if(file_put_contents($filenameFinal, $data) !== false) $this->wire('files')->chmod($filenameFinal);
 
 			// we also tell PW about it for logging and/or admin purposes
 			$this->error($this->error); 
+			if($debug) $this->wire('log')->save('image-sizer', "$filenameFinal - $this->error");
 		}
 
 		$pageimage->setFilename($filenameFinal); 	

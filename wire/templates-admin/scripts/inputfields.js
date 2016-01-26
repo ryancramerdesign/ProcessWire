@@ -1224,7 +1224,13 @@ jQuery(document).ready(function($) {
 		var $t = $(this);
 		var $form = $t.closest('form');
 		var fieldName = $t.attr('id').replace('wrap_Inputfield_', ''); 
-		var url = $form.attr('action') + '&field=' + fieldName + '&reloadInputfieldAjax=' + fieldName;
+		var url = $form.attr('action');
+		if(fieldName.indexOf('_repeater') > 0) {
+			var pageID = $t.closest('.InputfieldRepeaterItem').attr('data-page');
+			url = url.replace(/\?id=\d+/, '?id=' + pageID);
+			fieldName = fieldName.replace(/_repeater\d+$/, '');
+		}
+		url += '&field=' + fieldName + '&reloadInputfieldAjax=' + fieldName;
 		consoleLog('Inputfield reload: ' + fieldName); 
 		$.get(url, function(data) {
 			var $content = $(data).find("#" + $t.attr('id')).children(".InputfieldContent");

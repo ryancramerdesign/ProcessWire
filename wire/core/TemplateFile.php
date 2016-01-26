@@ -215,7 +215,7 @@ class TemplateFile extends WireData {
 			if($this->halt) break;
 			require($_filename);
 		}
-		if(!$this->halt) require($this->filename); 
+		if(!$this->halt) $returnValue = require($this->filename); 
 		foreach($this->appendFilename as $_filename) {
 			if($this->halt) break;
 			require($_filename);
@@ -225,8 +225,10 @@ class TemplateFile extends WireData {
 
 		if($this->savedDir) chdir($this->savedDir); 
 		ProcessWire::setCurrentInstance($this->savedInstance);
-
-		return trim($out); 
+		
+		$out = trim($out); 
+		if(!strlen($out) && !$this->halt && $returnValue && $returnValue !== 1) return $returnValue;
+		return $out;
 	}
 
 	/**

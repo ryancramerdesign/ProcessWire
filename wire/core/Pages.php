@@ -987,7 +987,8 @@ class Pages extends Wire {
 		}
 
 		foreach($page->template->fieldgroup as $field) {
-			if($page->__isset($field->name)) continue; // value already set
+			if($page->isLoaded($field->name)) continue; // value already set
+			if(!$page->hasField($field)) continue; // field not valid for page
 			if(!strlen($field->defaultValue)) continue; // no defaultValue property defined with Fieldtype config inputfields
 			try {
 				$blankValue = $field->type->getBlankValue($page, $field);
@@ -1368,6 +1369,7 @@ class Pages extends Wire {
 		foreach($page->fieldgroup as $field) {
 			if(isset($corruptedFields[$field->name])) continue; // don't even attempt save of corrupted field
 			if(!$field->type) continue;
+			if(!$page->hasField($field)) continue; // field not valid for page
 			try {
 				$field->type->savePageField($page, $field);
 			} catch(\Exception $e) {
@@ -1393,7 +1395,7 @@ class Pages extends Wire {
 			// the template was changed, so we may have data in the DB that is no longer applicable
 			// find unused data and delete it
 			foreach($page->templatePrevious->fieldgroup as $field) {
-				if($page->template->fieldgroup->has($field)) continue;
+				if($page->hasField($field)) continue;
 				$field->type->deletePageField($page, $field);
 				$this->message("Deleted field '$field' on page {$page->url}", Notice::debug);
 			}
@@ -1459,7 +1461,7 @@ class Pages extends Wire {
 		if(!$this->isSaveable($page, $reason, $field, $options)) throw new WireException("Can't save field from page {$page->id}: {$page->path}: $reason"); 
 		if($field && (is_string($field) || is_int($field))) $field = $this->wire('fields')->get($field);
 		if(!$field instanceof Field) throw new WireException("Unknown field supplied to saveField for page {$page->id}");
-		if(!$page->fields->has($field)) throw new WireException("Page {$page->id} does not have field {$field->name}"); 
+		if(!$page->fieldgroup->hasField($field)) throw new WireException("Page {$page->id} does not have field {$field->name}"); 
 
 		$value = $page->get($field->name); 
 		if($value instanceof Pagefiles || $value instanceof Pagefile) $page->filesManager()->save();
@@ -1885,8 +1887,8 @@ class Pages extends Wire {
 		}
 		
 		// Ensure all data is loaded for the page
-		foreach($page->template->fieldgroup as $field) {
-			$page->get($field->name); 
+		foreach($page->fieldgroup as $field) {
+			if($page->hasField($field->name)) $page->get($field->name); 
 		}
 
 		// clone in memory
@@ -1920,8 +1922,8 @@ class Pages extends Wire {
 		}
 
 		// tell PW that all the data needs to be saved
-		foreach($copy->template->fieldgroup as $field) {
-			$copy->trackChange($field->name); 
+		foreach($copy->fieldgroup as $field) {
+			if($copy->hasField($field)) $copy->trackChange($field->name); 
 		}
 
 		$o = $copy->outputFormatting; 
@@ -2099,15 +2101,46 @@ class Pages extends Wire {
 				$optionsHash .= "[$key:$value]";
 			}
 			$selector .= "," . $optionsHash;
-		} else $selector .= ",";
+		} else {
+			$selector .= ",";
+		}
 
 		// optimization to use consistent conventions for commonly interchanged names
-		$selector = str_replace(array('path=/,', 'parent=/,'), array('id=1,', 'parent_id=1,'), $selector); 
+		$selector = str_replace(
+			array(
+				'path=/,', 
+				'parent=/,'
+			), 
+			array(
+				'id=1,', 
+				'parent_id=1,'
+			), 
+			$selector
+		); 
 
 		// optimization to filter out common status checks for pages that won't be cached anyway
 		if(!empty($options['findOne'])) {
-			$selector = str_replace(array("status<" . Page::statusUnpublished, "status<" . Page::statusMax, 'start=0', 'limit=1', ',', ' '), '', $selector); 
+			$selector = str_replace(
+				array(
+					'status<' . Page::statusUnpublished, 
+					'status<' . Page::statusMax, 
+					'start=0', 
+					'limit=1', 
+					',',
+					' '
+				), 
+				'', 
+				$selector
+			); 
 			$selector = trim($selector, ", "); 
+		}
+	
+		// cache non-default languages separately
+		if($this->wire('languages')) {
+			$language = $this->wire('user')->language;
+			if(!$language->isDefault()) {
+				$selector .= ", _lang=$language->id"; // for caching purposes only, not recognized by PageFinder
+			}
 		}
 
 		if($returnSelector) return $selector; 

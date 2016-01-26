@@ -562,26 +562,43 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 			);
 
 		$database = $this->wire('database');
+		
+		// when $idstr is true, indicates $value is a multi-value CSV ID string (converts to boolean once known)
+		$idstr = null; 
 
 		// if subfield is 'data' (meaning no subfield specified) and it's in the format of 'some-string', 
 		// then we assume this to be a page name
-		if($subfield == 'data' && !ctype_digit("$value") && strlen($value) && strpos($value, '/') === false) {
-			$subfield = 'name';
+		if($subfield == 'data' 
+			&& !ctype_digit("$value") 
+			&& strlen($value) 
+			&& strpos($value, '/') === false
+			&& strpos($value, 'page.') !== 0) {
+			
+			$idstr = strpos($value, ',') !== false && ctype_digit(str_replace(',', '', $value));
+			if(!$idstr) $subfield = 'name';
 		}
 
 		// let the FieldtypeMulti base class handle count queries
 		if($subfield == 'count') {
+			
 			return parent::getMatchQuery($query, $table, $subfield, $operator, $value);
 
 		} else if(in_array($subfield, $names)) { 
 
 			if(!$database->isOperator($operator)) throw new WireException("Operator '$operator' is not implemented in {$this->classname}"); 
 			
-			if(in_array($subfield, array('id', 'path', 'url'))) $subfield = 'data'; 
+			if(in_array($subfield, array('id', 'path', 'url'))) $subfield = 'data';
 
 			// if a page path rather than page ID was provided, then we translate the path to an ID for API syntax convenience
-			if(!ctype_digit("$value")) {
-				if(substr(trim($value), 0, 1) == '/') {
+			if($idstr || !ctype_digit("$value")) {
+				if(is_null($idstr) && $subfield == 'data' && strpos($value, ',') !== false) {
+					$idstr = ctype_digit(str_replace(',', '', $value));
+				}
+				if($subfield == 'data' && $idstr) {
+					// CSV string of page IDs
+					$value = trim($value, ",");
+					$idstr = true; 
+				} else if(substr(trim($value), 0, 1) == '/') {
 					// path from root
 					$v = $this->pages->get($value); 
 					if($v && $v->id) $value = $v->id; 
@@ -593,9 +610,15 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 
 			if($operator == '!=') {
 				$t = $database->escapeTable($query->field->getTable());
-				$query->where("(SELECT COUNT(*) FROM $t WHERE $t.pages_id=pages.id AND $t.$subfield='$value')=0"); 
+				$where = 
+					"SELECT COUNT(*) FROM $t " . 
+					"WHERE $t.pages_id=pages.id " . 
+					"AND " . ($idstr ? "$t.$subfield IN($value)" : "$t.$subfield='$value'");
+				$query->where("($where)=0");
+			} else if($operator == '=' && $idstr) {
+				$query->where("($table.{$subfield} IN($value))"); 
 			} else {
-				$query->where("($table.{$subfield}{$operator}'$value')"); // pages.id AND $table.pages_id{$operator}'$value')");
+				$query->where("($table.{$subfield}{$operator}'$value')"); 
 			}
 
 		} else if($this->getMatchQueryNative($query, $table, $subfield, $operator, $value)) {

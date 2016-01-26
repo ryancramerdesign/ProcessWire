@@ -101,6 +101,7 @@ class WireMailTools extends Wire {
 		$defaults = array(
 			'body' => $body,
 			'bodyHTML' => '',
+			'replyTo' => '', // email address
 			'headers' => array(),
 		);
 
@@ -115,6 +116,12 @@ class WireMailTools extends Wire {
 		}
 
 		$options = array_merge($defaults, $options);
+		
+		if(!empty($options['replyTo'])) {
+			$replyTo = $this->wire('sanitizer')->email($options['replyTo']);
+			if($replyTo) $options['headers']['Reply-to'] = $replyTo;
+			unset($options['replyTo']);
+		}
 
 		try {
 			// configure the mail

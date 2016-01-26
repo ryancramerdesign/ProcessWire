@@ -845,8 +845,15 @@ class ProcessTemplate extends Process {
 	
 		return $select; 
 	}
-	
-	protected function getAsmListAttrs(Field $field) {
+
+	/**
+	 * Get attributes for the asmSelect fields selection
+	 * 
+	 * @param Field $field
+	 * @return array
+	 * 
+	 */
+	public function getAsmListAttrs(Field $field) {
 		
 		$status = '';
 		$desc = '';

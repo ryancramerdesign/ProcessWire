@@ -1,10 +1,10 @@
 
 function initInputfieldAsmSelect($select) {
 	var id = $select.attr('id');
-	if(typeof config === 'undefined' || typeof config[id] === "undefined") {
+	if(typeof ProcessWire.config === 'undefined' || typeof ProcessWire.config[id] === "undefined") {
 		var options = { sortable: true };
 	} else {
-		var options = config[id];
+		var options = ProcessWire.config[id];
 	}
 	$select.asmSelect(options); 
 }

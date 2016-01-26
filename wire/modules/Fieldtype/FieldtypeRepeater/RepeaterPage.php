@@ -93,7 +93,7 @@ class RepeaterPage extends Page {
 			$this->forField = $this->wire('fields')->get($forID); 
 		}
 
-		return $this->forPage;
+		return $this->forField;
 	}
 
 	/**
@@ -105,8 +105,18 @@ class RepeaterPage extends Page {
 	 *
 	 */
 	public function isPublic() {
-		if($this->hasStatus(Page::statusUnpublished)) return false;
+		if($this->isUnpublished()) return false;
 		return $this->getForPage()->isPublic();
+	}
+
+	/**
+	 * Is this a ready page?
+	 * 
+	 * @return bool
+	 * 
+	 */
+	public function isReady() {
+		return $this->isUnpublished() && $this->isHidden();
 	}
 }
 

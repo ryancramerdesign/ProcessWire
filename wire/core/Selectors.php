@@ -360,6 +360,9 @@ class Selectors extends WireArray {
 
 	/**
 	 * Given a string starting with a field, return that field, and remove it from $str. 
+	 * 
+	 * @param string $str
+	 * @return string
 	 *
 	 */
 	protected function extractField(&$str) {
@@ -387,6 +390,10 @@ class Selectors extends WireArray {
 
 	/**
 	 * Given a string starting with an operator, return that operator, and remove it from $str. 
+	 * 
+	 * @param string $str
+	 * @param array $operatorChars
+	 * @return string
 	 *
 	 */
 	protected function extractOperator(&$str, array $operatorChars) {
@@ -500,6 +507,7 @@ class Selectors extends WireArray {
 
 		$value = '';
 		$lastc = '';
+		$quoteDepth = 0;
 
 		do {
 			if(!isset($str[$n])) break;
@@ -510,20 +518,29 @@ class Selectors extends WireArray {
 				// we are in a quoted value string
 
 				if($c == $closingQuote) { // reference closing quote
-
+					
 					if($lastc != '\\') {
 						// same quote that opened, and not escaped
 						// means the end of the value
-
-						$n++; // skip over quote 
-						$quote = $openingQuote; 
-						break;
+						
+						if($quoteDepth > 0) {
+							// closing of an embedded quote
+							$quoteDepth--;
+						} else {
+							$n++; // skip over quote 
+							$quote = $openingQuote;
+							break;
+						}
 
 					} else {
 						// this is an intentionally escaped quote
 						// so remove the escape
 						$value = rtrim($value, '\\'); 
 					}
+					
+				} else if($c == $openingQuote && $openingQuote != $closingQuote) {
+					// another opening quote of the same type encountered while already in a quote
+					$quoteDepth++;
 				}
 
 			} else {
@@ -742,7 +759,7 @@ class Selectors extends WireArray {
 					// value is single value
 					$value = trim($value); 
 					$quotes = substr($value, 0, 1) . substr($value, -1);
-					if($quotes == '""' || $quotes == "''" || $quotes == '[]' || $quotes == '()') {
+					if($quotes == '""' || $quotes == "''" || $quotes == '[]' || $quotes == '()' || $quotes == '{}') {
 						// value is already quoted so we leave it 
 					} else {
 						// value may need quotes, let sanitizer decide

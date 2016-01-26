@@ -72,7 +72,47 @@ abstract class Wire implements WireTranslatable, WireFuelable, WireTrackable {
 	 */
 	protected $useFuel = true;
 	
+	/**
+	 * Total number of Wire class instances
+	 *
+	 * @var int
+	 *
+	 */
+	static private $_instanceTotal = 0;
+
+	/**
+	 * ID of this Wire class instance
+	 *
+	 * @var int
+	 *
+	 */
+	private $_instanceNum = 0;
+
 	public function __construct() {}
+	
+	public function __clone() {
+		$this->_instanceNum = 0;
+		$this->getInstanceNum();
+	}
+	
+	/**
+	 * Get this Wire object's instance number
+	 * 
+	 * If this instance ID has not yet been set, this will set it. 
+	 * Note: this is different from the ProcessWire instance ID. 
+	 *
+	 * @param bool $getTotal Specify true to get the total quantity of Wire instances rather than this instance num
+	 * @return int
+	 *
+	 */
+	public function getInstanceNum($getTotal = false) {
+		if(!$this->_instanceNum) {
+			self::$_instanceTotal++;
+			$this->_instanceNum = self::$_instanceTotal;
+		}
+		if($getTotal) return self::$_instanceTotal;
+		return $this->_instanceNum;
+	}
 
 	/**
 	 * Add fuel to all classes descending from Wire
@@ -763,13 +803,13 @@ abstract class Wire implements WireTranslatable, WireFuelable, WireTrackable {
 	 * It will re-throw Exception if $config->allowExceptions == true. 
 	 * If additioanl $text is provided, it will be sent to $this->error when $fatal or $this->warning otherwise. 
 	 * 
-	 * @param Exception $e Exception object that was thrown
+	 * @param \Exception $e Exception object that was thrown
 	 * @param bool|int $severe Whether or not it should be considered severe (default=true)
 	 * @param string|array|object|true $text Additional details (optional). 
 	 * 	When provided, it will be sent to $this->error($text) if $severe==true, or $this->warning($text) if $severe==false.
 	 * 	Specify boolean true to just sent the $e->getMessage() to $this->error() or $this->warning(). 
 	 * @return Wire (this)
-	 * @throws Exception If $severe==true and $config->allowExceptions==true
+	 * @throws \Exception If $severe==true and $config->allowExceptions==true
 	 * 
 	 */
 	public function ___trackException(\Exception $e, $severe = true, $text = null) {
@@ -982,6 +1022,7 @@ abstract class Wire implements WireTranslatable, WireFuelable, WireTrackable {
 	 */
 	public function setWire(ProcessWire $wire) {
 		$this->_wire = $wire;
+		$this->getInstanceNum();
 	}
 
 	/**
