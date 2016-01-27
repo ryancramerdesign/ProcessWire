@@ -133,6 +133,14 @@ class ImageSizer extends Wire {
 	protected $flip = '';
 
 	/**
+	 * Indicates which sharpening algorythm should be used
+	 * 
+	 * @var bool
+	 * 
+	 */
+	protected $useUSM = true; 
+
+	/**
 	 * default gamma correction: 0.5 - 4.0 | -1 to disable gammacorrection, default = 2.0
 	 * 
 	 * can be overridden by setting it to $config->imageSizerOptions['defaultGamma']
