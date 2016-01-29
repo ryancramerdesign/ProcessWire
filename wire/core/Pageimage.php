@@ -8,10 +8,14 @@
  * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
  * https://processwire.com
  *
- * 
  * @property int $width Width of image, in pixels
  * @property int $height Height of image, in pixels
  * @property Pageimage $original Reference to original $image, if this is a resized version.
+ * 
+ * @method bool|array isVariation($basename, $allowSelf = false)
+ * @method Pageimage crop($x, $y, $width, $height, $options = array())
+ * @method array rebuildVariations($mode = 0, array $suffix = array(), array $options = array())
+ * @method install($filename)
  *
  */
 
@@ -167,6 +171,9 @@ class Pageimage extends Pagefile {
 	/**
 	 * Gets the image information with PHP's getimagesize function and caches the result
 	 * 
+	 * @param bool $reset
+	 * @return array
+	 * 
 	 */
 	public function getImageInfo($reset = false) {
 
@@ -176,14 +183,18 @@ class Pageimage extends Pagefile {
 
 		if($checkImage) { 
 			if($this->ext == 'svg') {
-				if($xml = @file_get_contents($this->filename)) {
+				$xml = @file_get_contents($this->filename);
+				if($xml) {
 					$a = @simplexml_load_string($xml)->attributes();
 					$this->imageInfo['width'] = (int) $a->width > 0 ? (int) $a->width : '100%';
 					$this->imageInfo['height'] = (int) $a->height > 0 ? (int) $a->height : '100%';
 				}
-			} else if($info = @getimagesize($this->filename)) {
-				$this->imageInfo['width'] = $info[0]; 
-				$this->imageInfo['height'] = $info[1]; 
+			} else {
+				$info = @getimagesize($this->filename);
+				if($info) {
+					$this->imageInfo['width'] = $info[0];
+					$this->imageInfo['height'] = $info[1];
+				}
 			}
 		}
 
@@ -519,6 +530,7 @@ class Pageimage extends Pagefile {
 			if(!is_array($options)) $options = array();
 			return $this->hidpiSize((int) $width, 0, $options);
 		}
+		return 0; // not possible to reach, but pleases the inspection
 	}
 
 	/**
@@ -546,6 +558,7 @@ class Pageimage extends Pagefile {
 			if(!is_array($options)) $options = array();
 			return $this->hidpiSize(0, (int) $height, $options);
 		}
+		return 0; // not possible to reach but pleases the inspection
 	}
 
 	/**

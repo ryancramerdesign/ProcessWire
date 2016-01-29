@@ -16,6 +16,7 @@
  * @todo Move all module information methods to a ModulesInfo class
  * @todo Move all module loading methods to a ModulesLoad class
  * 
+ * @method void refresh() Refresh the cache that stores module files by recreating it
  * @method null|Module install($class, $options = array())
  * @method bool|int delete($class)
  * @method bool uninstall($class)

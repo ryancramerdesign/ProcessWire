@@ -488,6 +488,19 @@ class Pages extends Wire {
 	public function ___setupPageName(Page $page, array $options = array()) {
 		return $this->editor()->setupPageName($page, $options);
 	}
+
+	/**
+	 * Update page modification time to now (or the given modification time)
+	 *
+	 * @param Page|PageArray|array $pages May be Page, PageArray or array of page IDs (integers)
+	 * @param null|int|string $modified Omit to update to now, or specify unix timestamp or strtotime() recognized time string
+	 * @throws WireException if given invalid format for $modified argument or failed database query
+	 * @return bool True on success, false on fail
+	 *
+	 */
+	public function ___touch($pages, $modified = null) {
+		return $this->editor()->touch($pages, $modified);
+	}
 	
 	/**
 	 * Is the given page in a state where it can be saved from the API?

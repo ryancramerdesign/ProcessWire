@@ -41,6 +41,14 @@ class ProcessPageEditLink extends Process implements ConfigurableModule {
 	const urlTypeRelativeAll = 2; 
 	
 	protected $startLabel = '';
+
+	/**
+	 * Language ID
+	 * 
+	 * @var int
+	 * 
+	 */
+	protected $langID = 0;
 	
 	public static function getDefaultSettings() {
 		return array(
@@ -62,9 +70,11 @@ class ProcessPageEditLink extends Process implements ConfigurableModule {
 	}
 
 	public function init() {
+		
 		$this->startLabel = $this->_('Choose page'); 
 		$this->modules->get("ProcessPageList"); 	
 		$id = (int) $this->input->get->id; 
+		$this->langID = (int) $this->input->get->lang;
 		if($id) $this->page = $this->pages->get($id); 
 		if($this->page && $this->page->id && !$this->user->hasPermission("page-view", $this->page)) throw new WireException("You don't have access to this page"); 
 		if(!$this->page) $this->page = $this->wire('pages')->newNullPage();
@@ -74,7 +84,7 @@ class ProcessPageEditLink extends Process implements ConfigurableModule {
 
 		$this->config->js('ProcessPageEditLink', array(
 			'selectStartLabel' => $this->startLabel, 
-			'langID' => ($this->input->get->lang ? (int) $this->input->get->lang : 0),
+			'langID' => $this->langID, 
 			'pageID' => $id,
 			'pageUrl' => $this->page->url,
 			'pageName' => $this->page->name, 
@@ -122,6 +132,7 @@ class ProcessPageEditLink extends Process implements ConfigurableModule {
 		} else {
 			$field->searchFields = 'name title';
 		}
+		if($this->langID) $field->lang_id = $this->langID;
 		$field->maxSelectedItems = 1; 
 		$field->useList = false; 
 		$field->allowAnyValue = true; 

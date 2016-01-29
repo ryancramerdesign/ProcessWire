@@ -40,14 +40,26 @@ class Languages extends PagesType {
 	/**
 	 * Saved reference to default language
 	 * 
+	 * @var Language|null
+	 * 
 	 */
 	protected $defaultLanguage = null;
 
 	/**
 	 * Saved language from a setDefault() call
 	 * 
+	 * @var Language|null
+	 * 
 	 */
 	protected $savedLanguage = null;
+
+	/**
+	 * Saved language from a setLanguage() call
+	 * 
+	 * @var Language|null
+	 * 
+	 */
+	protected $savedLanguage2 = null;
 
 	/**
 	 * Language-specific page-edit permissions, if installed (i.e. page-edit-lang-es, page-edit-lang-default, etc.)
@@ -174,6 +186,45 @@ class Languages extends PagesType {
 	public function unsetDefault() { 
 		if(!$this->savedLanguage || !$this->defaultLanguage) return;
 		$this->wire('user')->language = $this->savedLanguage; 
+	}
+
+	/**
+	 * Set the current user language, remembering the previous setting for a later unsetLanguage() call
+	 * 
+	 * @param int|string|Language $language Language id, name or Language object
+	 * @return bool Returns false if no change necessary, true if language was changed
+	 * @throws WireException if given $language argument doesn't resolve
+	 * 
+	 */
+	public function setLanguage($language) {
+		if(is_int($language)) {
+			$language = $this->get($language);
+		} else if(is_string($language)) {
+			$language = $this->get($this->wire('sanitizer')->pageName($language));	
+		} 
+		if(!$language instanceof Language || !$language->id) throw new WireException("Unknown language");
+		$user = $this->wire('user');
+		$this->savedLanguage2 = null;
+		if($user->language && $user->language->id) {
+			if($language->id == $user->language->id) return false; // no change necessary
+			$this->savedLanguage2 = $user->language;
+		}
+		$user->language = $language;
+		return true;
+	}
+
+	/**
+	 * Undo a previous setLanguage() call, restoring the previous user language
+	 * 
+	 * @return bool Returns true if language restored, false if no restore necessary
+	 * 
+	 */
+	public function unsetLanguage() {
+		$user = $this->wire('user');
+		if(!$this->savedLanguage2) return false;
+		if($user->language && $user->language->id == $this->savedLanguage2->id) return false;
+		$user->language = $this->savedLanguage2;
+		return true;
 	}
 
 	/**

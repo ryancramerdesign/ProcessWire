@@ -20,6 +20,7 @@
  * @property bool $allowAnyValue Allow any value to stay in the input, even if not selectable? (default=false)
  * @property string $disableChars Autocomplete won't be triggered if input contains any of the characters in this string. (default=blank)
  * @property bool $useAndWords When true, each word will be isolated to a separate searchFields=searchValue, which enables it to duplicate ~= operator behavior while using a %= operator (default=false).
+ * @property int $lang_id Force use of this language for results
  *
  */
 class InputfieldPageAutocomplete extends Inputfield implements InputfieldHasArrayValue {
@@ -79,6 +80,9 @@ class InputfieldPageAutocomplete extends Inputfield implements InputfieldHasArra
 		// when true, each word will be isolated to a separate searchFields=searchValue, which 
 		// enables it to duplicate ~= operator behavior while using a %= operator. 
 		$this->set('useAndWords', false); 
+	
+		// Force Language when applicable
+		$this->set('lang_id', 0);
 	}
 
 	/**
@@ -269,6 +273,10 @@ _OUT;
 		if($this->template_id) {
 			$selector .= ",templates_id={$this->template_id}";
 		}
+		
+		if($this->lang_id) {
+			$selector .= ",lang_id=" . (int) $this->lang_id;
+		}
 
 		// allow for full site matches
 		if(!strlen($selector)) $selector = "id>0";
@@ -291,7 +299,7 @@ _OUT;
 			$selector .= "&format_name=$name";
 		}
 		$selector .= "&get=" . $this->labelFieldName;
-
+		
 		return $this->config->urls->admin . "page/search/for?" . $selector;
 	}
 

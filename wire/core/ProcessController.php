@@ -204,6 +204,8 @@ class ProcessController extends Wire {
 				}
 			}
 		}
+		
+		if($method === 'executed') return '';
 
 		$hookedMethod = "___$method";
 		
@@ -242,6 +244,7 @@ class ProcessController extends Wire {
 						$process->breadcrumb($href, $moduleInfo['title']); 
 					}
 				}
+				$this->process->executed($method);
 			} else {
 				throw new ProcessController404Exception("Unrecognized path");
 			}

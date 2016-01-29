@@ -630,9 +630,9 @@ class PagesLoader extends Wire {
 		// if page is already loaded and cache allowed, then get the path from it
 		if($options['useCache'] && $page = $this->pages->getCache($id)) {
 			/** @var Page $page */
-			if($languageID) $languages->setDefault($language);
+			if($languages) $languages->setLanguage($language);
 			$path = $page->path();
-			if($languageID) $languages->unsetDefault();
+			if($languages) $languages->unsetLanguage();
 			return $path;
 
 		} else if($id == $homepageID && $languages && !$languageID) {

@@ -1089,4 +1089,52 @@ class PagesEditor extends Wire {
 
 		return $copy;
 	}
+
+	/**
+	 * Update page modification time to now (or the given modification time)
+	 * 
+	 * @param Page|PageArray|array $pages May be Page, PageArray or array of page IDs (integers)
+	 * @param null|int|string $modified Omit to update to now, or specify unix timestamp or strtotime() recognized time string
+	 * @throws WireException if given invalid format for $modified argument or failed database query
+	 * @return bool True on success, false on fail
+	 * 
+	 */
+	public function touch($pages, $modified = null) {
+		
+		$ids = array();
+		
+		if($pages instanceof Page) {
+			$ids[] = (int) $page->id;
+		} else {
+			foreach($pages as $page) {
+				if(is_int($page)) {
+					$ids[] = (int) $page;
+				} else if($page instanceof Page) {
+					$ids[] = (int) $page->id;
+				} else {
+					// invalid
+				}
+			}
+		}
+		
+		if(!count($ids)) return false;
+		
+		$sql = 'UPDATE pages SET modified=';
+		if(is_null($modified)) {
+			$sql .= 'NOW() ';
+		} else if(is_int($modified) || ctype_digit($modified)) {
+			$modified = (int) $modified;
+			$sql .= ':modified ';
+		} else if(is_string($modified)) {
+			$modified = strtotime($modified);
+			if(!$modified) throw new WireException("Unrecognized time format provided to Pages::touch()");
+			$sql .= ':modified ';
+		}
+		
+		$sql .= 'WHERE id IN(' . implode(',', $ids) . ')';
+		$query = $this->wire('database')->prepare($sql);
+		if(strpos($sql, ':modified')) $query->bindValue(':modified', date('Y-m-d H:i:s', $modified));
+		
+		return $this->wire('database')->execute($query);
+	}
 }
