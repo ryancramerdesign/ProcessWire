@@ -150,12 +150,6 @@ class ImageSizer extends Wire {
 	protected $defaultGamma = 2.0;
 
 	/**
-	 * Factor to use when determining if enough memory available for resize. 
-	 *
-	 */
-	protected $memoryCheckFactor = 2.2; 
-
-	/**
 	 * Other options for 3rd party use
 	 *
 	 */
@@ -460,14 +454,18 @@ class ImageSizer extends Wire {
 		// optionally apply sharpening to the final thumb
 		if($this->sharpening && $this->sharpening != 'none') { // @horst
 			if(IMAGETYPE_PNG != $this->imageType || ! $this->hasAlphaChannel()) {
-				// calculate if there is enough memory available to apply the USM algorithm, if enabled
-				$this->useUSM = self::checkMemoryForImage(array(imagesx($thumb), imagesy($thumb), 3), array(imagesx($thumb), imagesy($thumb), 3)) === false ? false : $this->useUSM;
+				$w = imagesx($thumb);
+				$h = imagesy($thumb);
 				if($this->useUSM) {
-					// is needed for the USM sharpening function to calculate the best sharpening params
-					$this->usmValue = $this->calculateUSMfactor($targetWidth, $targetHeight);
-					$thumb = $this->imSharpen($thumb, $this->sharpening);
-				} else {
-					if(self::checkMemoryForImage(array(imagesx($thumb), imagesy($thumb), 3)) !== false) {
+					// calculate if there is enough memory available to apply the USM algorithm, if enabled
+					if(true === ($this->useUSM = self::checkMemoryForImage(array($w, $h, 3), array($w, $h, 3)))) {
+						// is needed for the USM sharpening function to calculate the best sharpening params
+						$this->usmValue = $this->calculateUSMfactor($targetWidth, $targetHeight);
+						$thumb = $this->imSharpen($thumb, $this->sharpening);
+					}
+				}
+				if(!$this->useUSM) {
+					if(false !== self::checkMemoryForImage(array($w, $h, 3))) {
 						$thumb = $this->imSharpen($thumb, $this->sharpening);
 					}
 				}
