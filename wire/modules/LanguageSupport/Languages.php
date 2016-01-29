@@ -64,6 +64,11 @@ class Languages extends PagesType {
 	 * 
 	 */
 	protected $editableCache = array();
+	
+	public function __construct(ProcessWire $wire, $templates = array(), $parents = array()) {
+		parent::__construct($wire, $templates, $parents);
+		$this->wire('database')->addHookAfter('unknownColumnError', $this, 'hookUnknownColumnError');
+	}
 
 	/**
 	 * Return the LanguageTranslator instance for the given language
@@ -362,7 +367,7 @@ class Languages extends PagesType {
 	}
 
 	/**
-	 * Pages calls this when it catches an unknown column exception
+	 * Hook to WireDatabasePDO::unknownColumnError
 	 *
 	 * Provides QA to make sure any language-related columns are property setup in case
 	 * something failed during the initial setup process.
@@ -373,8 +378,9 @@ class Languages extends PagesType {
 	 * @param $column
 	 *
 	 */
-	public function ___unknownColumnError($column) {
-
+	public function hookUnknownColumnError(HookEvent $event) {
+		
+		$column = $event->arguments(0);
 		if(!preg_match('/^([^.]+)\.([^.\d]+)(\d+)$/', $column, $matches)) {
 			return;
 		}

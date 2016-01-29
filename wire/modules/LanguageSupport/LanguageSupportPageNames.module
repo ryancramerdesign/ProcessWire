@@ -30,12 +30,6 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 	}
 
 	/**
-	 * Default/assumed name for homepage
-	 *
-	 */
-	const HOME_NAME_DEFAULT = 'home';
-
-	/**
 	 * The path that was requested, before processing
 	 *
 	 */
@@ -193,7 +187,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 		$home = $this->wire('pages')->get(1);
 		foreach($this->wire('languages') as $language) {
 			$name = $language->isDefault() ? $home->get("name") : $home->get("name$language"); 
-			if($name == self::HOME_NAME_DEFAULT) continue;
+			if($name == Pages::defaultRootName) continue;
 			if(!strlen($name)) continue; 
 			$name = "$name/"; 
 			if(strpos($testPath, $name) === 0) {
@@ -334,7 +328,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 			// special case: homepage
 			$name = $isDefault ? '' : $page->get("name$language"); 
 			if($isDefault && $this->useHomeSegment) $name = $page->name;
-			if($name == self::HOME_NAME_DEFAULT || !strlen($name)) return '/';
+			if($name == Pages::defaultRootName || !strlen($name)) return '/';
 			return $page->template->slashUrls ? "/$name/" : "/$name";
 		}
 
@@ -344,7 +338,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 			$name = $isDefault ? $parent->get("name") : $parent->get("name$language|name"); 
 			if($parent->id == 1) { 
 				// bypass ProcessWire's default homepage name of 'home', as we don't want it in URLs
-				if($name == self::HOME_NAME_DEFAULT) continue; 
+				if($name == Pages::defaultRootName) continue; 
 				// avoid having default language name inherited at homepage level
 				// if($isDefault && $name === $parent->get("name")) continue; 
 			}
@@ -414,7 +408,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 	public function hookWirePageEditorExecute(HookEvent $event) {
 		$page = $event->object->getPage();
 		if($page->id == 1) {
-			if($page->name == self::HOME_NAME_DEFAULT) $page->name = '';
+			if($page->name == Pages::defaultRootName) $page->name = '';
 		}
 	}
 

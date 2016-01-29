@@ -128,7 +128,7 @@ class ProcessPageView extends Process {
 	/**
 	 * Retrieve a page, check access, and render
 	 * 
-	 * @param bool $internal True if request should be interanally processed. False if PW is bootstrapped externally. 
+	 * @param bool $internal True if request should be internally processed. False if PW is bootstrapped externally. 
 	 * @return string Output of request
  	 *
 	 */
@@ -139,6 +139,7 @@ class ProcessPageView extends Process {
 		$this->responseType = self::responseTypeNormal;
 		$config = $this->config; 
 		$debug = $config->debug; 
+		if($config->usePoweredBy !== null) header('X-Powered-By:' . ($config->usePoweredBy ? ' ProcessWire CMS' : ''));
 		if(is_array($config->pageNumUrlPrefixes)) foreach($config->pageNumUrlPrefixes as $prefix) {
 			$this->pageNumUrlPrefixes[$prefix] = $prefix;
 		}

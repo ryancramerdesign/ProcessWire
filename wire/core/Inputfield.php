@@ -1035,10 +1035,10 @@ abstract class Inputfield extends WireData implements Module {
 			if(!$textFormat) $textFormat = self::textFormatBasic;
 			if($textFormat & self::textFormatBasic) {
 				// only basic markdown allowed (default behavior)
-				$str = $this->wire('sanitizer')->entitiesMarkdown($str);
+				$str = $this->wire('sanitizer')->entitiesMarkdown($str, array('allowBrackets' => true));
 			} else if($textFormat & self::textFormatMarkdown) {
 				// full markdown, plus HTML is also allowed
-				$str = $this->wire('sanitizer')->entitiesMarkdown($str, true);
+				$str = $this->wire('sanitizer')->entitiesMarkdown($str, array('fullMarkdown' => true));
 			} else {
 				// nothing allowed, text fully entity encoded regardless of $markdown request
 				$str = $this->wire('sanitizer')->entities($str);

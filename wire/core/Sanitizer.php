@@ -925,6 +925,8 @@ class Sanitizer extends Wire {
 	 *
 	 * @param string $str
 	 * @param array|bool|int $options Options include the following, or specify boolean TRUE to apply full markdown.
+	 *  - fullMarkdown (bool): Use full markdown rather than basic? (default=false) when true, most options no longer apply.
+	 *      Note: A markdown flavor integer may also be supplied for the fullMarkdown option.
 	 * 	- flags (int): See htmlentities() flags. Default is ENT_QUOTES. 
 	 * 	- encoding (string): PHP encoding type. Default is 'UTF-8'. 
 	 * 	- doubleEncode (bool): Whether to double encode (if already encoded). Default is true. 
@@ -932,60 +934,91 @@ class Sanitizer extends Wire {
 	 * 	- disallow (array): Specified tags (in the default allow list) won't be allowed. Default=array(). 
 	 * 		Note: The 'disallow' is an alternative to the default 'allow'. No point in using them both. 
 	 * 	- linkMarkup (string): Markup to use for links. Default='<a href="{url}" rel="nofollow" target="_blank">{text}</a>'
+	 *  - allowBrackets (bool): Allow some inline-level bracket tags, i.e. [span.detail]text[/span]? (default=false)
 	 * @return string
 	 *
 	 */
 	public function entitiesMarkdown($str, $options = array()) {
+		
+		$defaults = array(
+			'fullMarkdown' => false, 
+			'flags' => ENT_QUOTES,
+			'encoding' => 'UTF-8',
+			'doubleEncode' => true,
+			'allowBrackets' => false, // allow [bracket] tags?
+			'allow' => array('a', 'strong', 'em', 'code', 's', 'span', 'u', 'small'),
+			'disallow' => array(),
+			'linkMarkup' => '<a href="{url}" rel="nofollow" target="_blank">{text}</a>',
+		);
 
-		if($options === true || (is_int($options) && $options > 0)) {
+		if($options === true || (is_int($options) && $options > 0)) $defaults['fullMarkdown'] = $options;
+		if(!is_array($options)) $options = array();
+		$options = array_merge($defaults, $options); 
+
+		if($options['fullMarkdown']) {
+			
 			$markdown = $this->wire('modules')->get('TextformatterMarkdownExtra');
-			if(is_int($options)) {
-				$markdown->flavor = $options;
+			if(is_int($options['fullMarkdown'])) {
+				$markdown->flavor = $options['fullMarkdown'];
 			} else {
 				$markdown->flavor = TextformatterMarkdownExtra::flavorParsedown;
 			}
 			$markdown->format($str);
-			return $str;
+			
+		} else {
+
+			$str = $this->entities($str, $options['flags'], $options['encoding'], $options['doubleEncode']);
+
+			if(strpos($str, '](') && in_array('a', $options['allow']) && !in_array('a', $options['disallow'])) {
+				// link
+				$linkMarkup = str_replace(array('{url}', '{text}'), array('$2', '$1'), $options['linkMarkup']);
+				$str = preg_replace('/\[(.+?)\]\(([^)]+)\)/', $linkMarkup, $str);
+			}
+
+			if(strpos($str, '**') !== false && in_array('strong', $options['allow']) && !in_array('strong', $options['disallow'])) {
+				// strong
+				$str = preg_replace('/\*\*(.*?)\*\*/', '<strong>$1</strong>', $str);
+			}
+
+			if(strpos($str, '*') !== false && in_array('em', $options['allow']) && !in_array('em', $options['disallow'])) {
+				// em
+				$str = preg_replace('/\*([^*\n]+)\*/', '<em>$1</em>', $str);
+			}
+
+			if(strpos($str, "`") !== false && in_array('code', $options['allow']) && !in_array('code', $options['disallow'])) {
+				// code
+				$str = preg_replace('/`+([^`]+)`+/', '<code>$1</code>', $str);
+			}
+
+			if(strpos($str, '~~') !== false && in_array('s', $options['allow']) && !in_array('s', $options['disallow'])) {
+				// strikethrough
+				$str = preg_replace('/~~(.+?)~~/', '<s>$1</s>', $str);
+			}
 		}
-		
-		if(!is_array($options)) $options = array();
-		
-		$defaults = array(
-			'flags' => ENT_QUOTES, 
-			'encoding' => 'UTF-8', 
-			'doubleEncode' => true, 
-			'allow' => array('a', 'strong', 'em', 'code', 's'), 
-			'disallow' => array(), 
-			'linkMarkup' => '<a href="{url}" rel="nofollow" target="_blank">{text}</a>', 
-		);
-		
-		$options = array_merge($defaults, $options); 
-		$str = $this->entities($str, $options['flags'], $options['encoding'], $options['doubleEncode']);
-		
-		if(strpos($str, '](') && in_array('a', $options['allow']) && !in_array('a', $options['disallow'])) {
-			// link
-			$linkMarkup = str_replace(array('{url}', '{text}'), array('$2', '$1'), $options['linkMarkup']); 
-			$str = preg_replace('/\[(.+?)\]\(([^)]+)\)/', $linkMarkup, $str);
-		}
-		
-		if(strpos($str, '**') !== false && in_array('strong', $options['allow']) && !in_array('strong', $options['disallow'])) {
-			// strong
-			$str = preg_replace('/\*\*(.*?)\*\*/', '<strong>$1</strong>', $str);
-		}
-		
-		if(strpos($str, '*') !== false && in_array('em', $options['allow']) && !in_array('em', $options['disallow'])) {
-			// em
-			$str = preg_replace('/\*([^*\n]+)\*/', '<em>$1</em>', $str);
-		}
-		
-		if(strpos($str, "`") !== false && in_array('code', $options['allow']) && !in_array('code', $options['disallow'])) {
-			// code
-			$str = preg_replace('/`+([^`]+)`+/', '<code>$1</code>', $str);
-		}
-		
-		if(strpos($str, '~~') !== false && in_array('s', $options['allow']) && !in_array('s', $options['disallow'])) {
-			// strikethrough
-			$str = preg_replace('/~~(.+?)~~/', '<s>$1</s>', $str);
+
+		if($options['allowBrackets'] && strpos($str, '[/')) {
+			// support [bracketed] inline-level tags, optionally with id "#" or class "." attributes (ascii-only)
+			// example: [span.detail]some text[/span] or [strong#someid.someclass]text[/strong] or [em.class1.class2]text[/em]
+			$tags = implode('|', $options['allow']);
+			$reps = array();
+			if(preg_match_all('!\[(' . $tags . ')((?:[.#][-_a-zA-Z0-9]+)*)\](.*?)\[/\\1\]!', $str, $matches)) {
+				foreach($matches[0] as $key => $full) {
+					$tag = $matches[1][$key];
+					$attr = $matches[2][$key];
+					$text = $matches[3][$key];
+					if(in_array($tag, $options['disallow']) || $tag == 'a') continue;
+					$class = '';
+					$id = '';
+					if(strlen($attr)) {
+						foreach(explode('.', $attr) as $c) {
+							if(strpos($c, '#') !== false) list($c, $id) = explode('#', $c, 2);
+							if(!empty($c)) $class .= "$c ";
+						}
+					}
+					$reps[$full] = "<$tag" . ($id ? " id='$id'" : '') . ($class ? " class='$class'" : '') . ">$text</$tag>";
+				}
+			}
+			if(count($reps)) $str = str_replace(array_keys($reps), array_values($reps), $str);
 		}
 		
 		return $str;

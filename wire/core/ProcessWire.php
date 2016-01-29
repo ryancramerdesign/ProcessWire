@@ -24,7 +24,7 @@ class ProcessWire extends Wire {
 
 	const versionMajor = 3; 
 	const versionMinor = 0; 
-	const versionRevision = 5; 
+	const versionRevision = 6; 
 	const versionSuffix = 'devns';
 	
 	const indexVersion = 300; // required version for index.php file (represented by PROCESSWIRE define)
@@ -310,7 +310,7 @@ class ProcessWire extends Wire {
 		$this->wire('input', new WireInput(), true); 
 
 		// populate admin URL before modules init()
-		$config->urls->admin = $config->urls->root . ltrim($pages->_path($config->adminRootPageID), '/');
+		$config->urls->admin = $config->urls->root . ltrim($pages->getPath($config->adminRootPageID), '/');
 
 		if($this->debug) Debug::saveTimer('boot.load', 'includes all boot.load timers');
 		$this->setStatus(self::statusInit);

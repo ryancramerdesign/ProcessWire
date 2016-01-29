@@ -193,11 +193,100 @@ class WireDatabasePDO extends Wire implements WireDatabase {
 		if($this->debugMode) $this->queryLog($statement, $note); 
 		return $this->pdo()->prepare($statement, $driver_options);
 	}
-	
+
+	/**
+	 * Execute an SQL statement string
+	 * 
+	 * If given a PDOStatement, this method behaves the same as the execute() method. 
+	 * 
+	 * @param string|\PDOStatement $statement
+	 * @param string $note
+	 * @return bool|int
+	 * @throws \PDOException
+	 * 
+	 */
 	public function exec($statement, $note = '') {
+		if(is_object($statement) && $statement instanceof \PDOStatement) {
+			return $this->execute($statement);
+		}
 		$this->queryLog($statement, $note); 
 		return $this->pdo()->exec($statement);
 	}
+	
+	/**
+	 * Execute a PDO statement, with retry and error handling
+	 *
+	 * @param \PDOStatement $query
+	 * @param bool $throw Whether or not to throw exception on query error (default=true)
+	 * @param int $maxTries Max number of times it will attempt to retry query on error
+	 * @return bool
+	 * @throws \PDOException
+	 *
+	 */
+	public function execute(\PDOStatement $query, $throw = true, $maxTries = 3) {
+
+		$tryAgain = 0;
+		$_throw = $throw;
+
+		do {
+			try {
+				$result = $query->execute();
+
+			} catch(\PDOException $e) {
+
+				$result = false;
+				$error = $e->getMessage();
+				$throw = false; // temporarily disable while we try more
+
+				if($tryAgain === 0) {
+					// setup retry loop
+					$tryAgain = $maxTries;
+				} else {
+					// decrement retry loop
+					$tryAgain--;
+				}
+
+				if(stripos($error, 'MySQL server has gone away') !== false) {
+					// forces reconection on next query
+					$this->wire('database')->closeConnection();
+
+				} else if($query->errorCode() == '42S22') {
+					// unknown column error
+					$errorInfo = $query->errorInfo();
+					if(preg_match('/[\'"]([_a-z0-9]+\.[_a-z0-9]+)[\'"]/i', $errorInfo[2], $matches)) {
+						$this->unknownColumnError($matches[1]);
+					}
+
+				} else {
+					// some other error that we don't have retry plans for
+					// tryAgain=0 will force the loop to stop
+					$tryAgain = 0;
+				}
+
+				if($tryAgain < 1) {
+					// if at end of retry loop, restore original throw state
+					$throw = $_throw;
+				}
+
+				if($throw) {
+					throw $e;
+				} else {
+					$this->error($error);
+				}
+			}
+
+		} while($tryAgain && !$result);
+
+		return $result;
+	}
+
+	/**
+	 * Hookable method called by execute() method when query encounters an unknown column
+	 *
+	 * @param string $column Column format tableName.columnName
+	 *
+	 */
+	protected function ___unknownColumnError($column) { }
 	
 	public function queryLog($sql = '', $note = '') {
 		if(empty($sql)) return $this->queryLog;
