@@ -851,9 +851,6 @@ class Sanitizer extends Wire {
 			// See: http://www.regular-expressions.info/unicode.html
 			$value = preg_replace('/[^[:alnum:]\pL\pN\pP\pM\p{Sm}\p{Sc}\p{Sk} \'\/]/u', ' ', $value); 
 
-			// disallow ampersands from beginning entity sequences
-			if(strpos($value, '&') !== false) $value = str_replace('&', '& ', $value); 
-
 			// replace multiple space characters in sequence with just 1
 			$value = preg_replace('/\s\s+/u', ' ', $value); 
 		}
