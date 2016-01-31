@@ -1068,7 +1068,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 			$value[] = $template->id;
 		}
 		
-		if(!count($f->getOptions)) {
+		if(!count($f->getOptions())) {
 			$f = $this->wire('modules')->get('InputfieldHidden');
 			$f->attr('name', $name);
 			return $f;
