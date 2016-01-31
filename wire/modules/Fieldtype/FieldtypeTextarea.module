@@ -479,7 +479,7 @@ class FieldtypeTextarea extends FieldtypeText {
 		if($total > 300) {
 			// more than 300 pages to update, only update those that haven't been modified in the last hour
 			$modified = time() - 3600;
-			$selector .= "limit=300, modified<=$modified";
+			$selector .= ", limit=300, modified<=$modified";
 		}
 		$items = $this->wire('pages')->find($selector);
 		$totals = array();
