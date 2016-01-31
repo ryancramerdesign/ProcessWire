@@ -821,8 +821,7 @@ class PagesLoader extends Wire {
 
 			$wheres = array();
 			foreach($langKeys as $bindKey => $colName) {
-				if($colName === 'name') $colName = 'pages.name';
-				$wheres[] = "$colName=$bindKey";
+				$wheres[] = "pages.$colName=$bindKey";
 				$binds[$bindKey] = $lastPart;
 			}
 

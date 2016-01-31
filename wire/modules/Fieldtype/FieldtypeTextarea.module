@@ -449,7 +449,7 @@ class FieldtypeTextarea extends FieldtypeText {
 		$f->label = $this->_('Apply HTML Options Now');
 		$f->description = $this->_('To apply the above options to all existing pages right now, check this box. This primarily focuses on the link abstraction option.');
 		$f->notes = $this->_('Warning, this performs an update across potentially hundreds of pages (max 300 per run) and updates page modification times. If your site has a lot of pages, you may have to run this multiple times.'); 
-		$f->notes .= ' ' . $this->_('**As an extra precaution is recommended that you backup your database before running this.**');
+		$f->notes .= ' ' . $this->_('**As an extra precaution it is recommended that you backup your database before running this.**');
 		$f->icon = 'bolt';
 		$f->collapsed = Inputfield::collapsedYes;
 		$f->showIf = 'htmlOptions=' . self::htmlLinkAbstract;

@@ -328,9 +328,11 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 		$fieldName = $event->arguments(0);
 		if($fieldName && is_string($fieldName) && $this->wire('sanitizer')->fieldName($fieldName) === $fieldName) {
 			// render field requested, cancel page render and hooks, and delegate to renderField
+			$basename = $event->arguments(1); // optional basename of file to use for render
+			if(!is_string($basename)) $basename = null;
 			$event->cancelHooks = true;
 			$event->replace = true;
-			$event->return = $event->object->renderField($fieldName);
+			$event->return = $event->object->renderField($fieldName, null, $basename);
 		}
 	}
 
@@ -542,22 +544,46 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 		
 		$path = $this->wire('config')->paths->fieldTemplates;
 		$file = '';
+		$files = array();
 		
 		// arg2: filename to use for render, if not default
 		$basename = $event->arguments(2);
 		if($basename) {
-			$basename = $this->wire('sanitizer')->name($basename);
-			if(is_file($path . $basename)) $file = $path . $basename;
-		}
-		if(!$file) {
-			$file = $path . $key . '.' . $page->template->name . '.php';
-			if(!is_file($file)) {
-				$file = $path . $key . '.php';
-				if(!is_file($file)) {
-					$event->return = $page->getMarkup($key);
-					return;
+			if(substr($basename, -4) != '.php') $basename .= '.php';
+			if(strpos($basename, '\\') !== false) $basename = str_replace('\\', '/', $basename);
+			if(strpos($basename, '/') !== false) {
+				// i.e. custom_dir/custom_name.php
+				$basename = trim($basename, '/');
+				$parts = explode('/', $basename);
+				foreach($parts as $key => $part) {
+					$parts[$key] = $this->wire('sanitizer')->name($part);
 				}
+				$basename = implode('/', $parts);
+				$basename = str_replace('..', '', $basename);
+				// i.e. site/templates/fields/custom_dir/custom_name.php
+				$files[] = "$path$basename";
+			} else {
+				// i.e. site/templates/fields/field_name.custom_name.php
+				$files[] = "$path$key.$basename";
 			}
+			// i.e. site/templates/fields/custom_name.php
+			$files[] = "$path$basename";
+		}
+	
+		// i.e. site/templates/fields/field_name.template_name.php
+		$files[] = "$path$key.{$page->template->name}.php";
+		// i.e. site/templates/fields/field_name.php
+		$files[] = "$path$key.php";
+	
+		foreach($files as $f) {
+			if(!is_file($f)) continue;
+			$file = $f;
+			break;
+		}
+		
+		if(!$file) {
+			$event->return = $page->getMarkup($key);
+			return;
 		}
 		
 		$field = $page->getField($key);
