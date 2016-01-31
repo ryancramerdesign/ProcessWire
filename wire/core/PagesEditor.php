@@ -295,6 +295,7 @@ class PagesEditor extends Wire {
 	 * @param array $options
 	 * 	- format: Optionally specify the format to use, or leave blank to auto-determine.
 	 * @return string If a name was generated it is returned. If no name was generated blank is returned.
+	 * @throws WireException if unique name can't be generated (highly unlikely)
 	 *
 	 */
 	public function setupPageName(Page $page, array $options = array()) {
@@ -380,11 +381,22 @@ class PagesEditor extends Wire {
 				$name = $pageName;
 				if($n > 0) {
 					$nStr = "-" . ($numChildren + $n);
-					if(strlen($name) + strlen($nStr) > Pages::nameMaxLength) $name = substr($name, 0, Pages::nameMaxLength - strlen($nStr));
+					if($n > 100) {
+						// if we've reached this many dups, start adding a random element to it
+						$nStr = '_' . mt_rand() . $nStr;
+					}
+					if(strlen($name) + strlen($nStr) > Pages::nameMaxLength) {
+						$name = substr($name, 0, Pages::nameMaxLength - strlen($nStr));
+					}
 					$name .= $nStr;
 				}
 				$n++;
-			} while($n < 100 && $this->pages->count("parent=$page->parent, name=$name, include=all"));
+			} while($n < 200 && $this->pages->count("parent=$page->parent, name=$name, include=all"));
+			
+			if($this->pages->count("parent=$page->parent, name=$name, include=all") > 0) {
+				// this is now extremely unlikely
+				throw new WireException("Unable to generate unique name for page $page->id");
+			}
 
 			$page->name = $name;
 			$page->set('_hasAutogenName', true); // for savePageQuery, provides adjustName behavior for new pages
