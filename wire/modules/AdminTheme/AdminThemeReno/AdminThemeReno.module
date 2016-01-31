@@ -54,7 +54,7 @@ class AdminThemeReno extends AdminTheme implements Module, ConfigurableModule {
 		// Thanks Pete @notanotherdev
 		$dirs = array(
 			dirname(__FILE__) . '/styles/', 
-			$this->wire('config')->paths->siteModules . 'AdminTheme/' . __CLASS__ . '/styles/',
+			$this->wire('config')->paths->siteModules . 'AdminTheme/' . $this->className() . '/styles/',
 		);	
 		foreach($dirs as $customDir) {
 			if(is_dir($customDir)) {
