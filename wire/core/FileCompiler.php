@@ -308,13 +308,14 @@ class FileCompiler extends Wire {
 			$open = $matches[1][$key];
 			
 			if(strlen($open)) {
+				
 				if(strpos($open, '"') !== false || strpos($open, "'") !== false) {
 					// skip when words like "require" are in a string
 					continue;
 				}
 
-				if(preg_match('/^[_a-zA-Z0-9]+$/', substr($open, -1))) {
-					// skip things like: something_include(...
+				if(preg_match('/^[$_a-zA-Z0-9]+$/', substr($open, -1))) {
+					// skip things like: something_include(... and $include
 					continue;
 				}
 			}
