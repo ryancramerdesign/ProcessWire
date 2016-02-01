@@ -46,16 +46,36 @@ class MarkupQA extends Wire {
 	protected $field;
 
 	/**
+	 * Whether or not to track verbose info to $page
+	 * 
+	 * $page->_markupQA = array('field_name' => array(counts)))
+	 * 
+	 * @var bool
+	 * 
+	 */
+	protected $verbose = false;
+
+	/**
 	 * Construct
 	 * 
 	 * @param Page $page
 	 * @param Field $field
 	 *
 	 */
-	public function __construct(Page $page, Field $field) {
-		$this->setPage($page);
-		$this->setField($field);
+	public function __construct(Page $page = null, Field $field = null) {
+		if($page) $this->setPage($page);
+		if($field) $this->setField($field);
 		$this->assetsURL = $this->wire('config')->urls->assets;
+	}
+
+	/**
+	 * Enable or disable verbose mode
+	 * 
+	 * @param bool $verbose
+	 * 
+	 */
+	public function setVerbose($verbose) {
+		$this->verbose = $verbose ? true : false;
 	}
 
 	/**
@@ -122,6 +142,15 @@ class MarkupQA extends Wire {
 		if($sleep) {
 			// sleep 
 			$value = str_ireplace(array_keys($replacements), array_values($replacements), $value);
+			
+			if($this->verbose && $this->page && $this->field) {
+				$info = $this->page->get('_markupQA');	
+				if(!is_array($info)) $info = array();
+				if(!is_array($info[$this->field->name])) $info[$this->field->name] = array();
+				$info[$this->field->name]['href'] = substr_count($value, "\thref=");
+				$info[$this->field->name]['src'] = substr_count($value, "\tsrc=");
+				$this->page->setQuietly('_markupQA', $info);
+			}
 
 		} else if(strpos($value, "\t") === false) {
 			// no wakeup necessary (quick exit)
@@ -178,8 +207,8 @@ class MarkupQA extends Wire {
 			$path = $page->path;
 		}
 		
-		if(self::debug && $path && $path != $_path) {
-			$this->message("MarkupQA absoluteToRelative converted: $_path => $path");
+		if($path && $path != $_path) {
+			if(self::debug) $this->message("MarkupQA absoluteToRelative converted: $_path => $path");
 		}
 
 		return $path;
@@ -200,7 +229,7 @@ class MarkupQA extends Wire {
 		// if there is already a data-pwid attribute present, then links are already asleep
 		if(strpos($value, 'href=') === false || strpos($value, 'data-pwid=')) return;
 	
-		$info = $this->page->get('_markupQA_sleepLinks');
+		$info = $this->verbose ? $this->page->get('_markupQA') : array();
 		if(!is_array($info)) $info = array();
 		if(isset($info[$this->field->name])) {
 			$counts = $info[$this->field->name];	
@@ -208,9 +237,11 @@ class MarkupQA extends Wire {
 			$counts = array(
 				'external' => 0,
 				'internal' => 0,
-				'unresolved' => 0,
+				'relative' => 0,
 				'files' => 0,
 				'other' => 0,
+				'unresolved' => 0,
+				'nohttp' => 0, 
 			);
 		}
 		
@@ -246,12 +277,17 @@ class MarkupQA extends Wire {
 					// external hostname, which we will skip over
 					continue;
 				}
+			} else if(strpos($href, ':') !== false || strpos($end, ':') === 0) {
+				// non http link like mailto: or tel: 
+				$counts['nohttp']++;	
+				continue;
 			}
 		
 			if(strpos($path, '/') !== 0) {
 				// convert relative path to absolute
 				$path = $this->relativeToAbsolutePath($path);
 				if(!strlen($path)) continue;
+				if($path != $_path) $counts['relative']++;
 				
 			} else if(strrpos($path, '.') > strrpos($path, '/')) {
 				// not relative and possibly a filename
@@ -313,7 +349,7 @@ class MarkupQA extends Wire {
 		}
 		
 		$info[$this->field->name] = $counts;
-		$this->page->setQuietly('_markupQA_sleepLinks', $info);
+		if($this->verbose) $this->page->setQuietly('_markupQA', $info);
 	}
 
 	/**
@@ -386,7 +422,7 @@ class MarkupQA extends Wire {
 				}
 			} else {
 				// did not resolve to a PW page
-				$this->linkWarning($path);
+				$this->linkWarning("wakeup: $path");
 			}
 			
 			$replacements[$full] = "$start$href$path$end";
@@ -458,7 +494,7 @@ class MarkupQA extends Wire {
 				$path
 			));
 		}
-		if($logWarning) {
+		if($this->verbose || $logWarning) {
 			$this->error("Unable to resolve link: $path");
 		}
 	}
@@ -506,6 +542,20 @@ class MarkupQA extends Wire {
 		$user = $this->wire('user');
 		$attrStrings = explode(' ', $img); // array of strings like "key=value"
 
+		if($this->verbose) {
+			$markupQA = $this->page->get('_markupQA');
+			if(!is_array($markupQA)) $markupQA = array();
+			if(!isset($markupQA[$this->field->name])) $markupQA[$this->field->name] = array();
+			$info =& $markupQA[$this->field->name];
+		} else {
+			$markupQA = null;
+			$info = array();
+		}
+
+		if(!isset($info['img_unresolved'])) $info['img_unresolved'] = 0;
+		if(!isset($info['img_fixed'])) $info['img_fixed'] = 0;
+		if(!isset($info['img_noalt'])) $info['img_noalt'] = 0; // blank alt
+
 		// determine current 'alt' and 'src' attributes
 		foreach($attrStrings as $n => $attr) {
 
@@ -538,6 +588,7 @@ class MarkupQA extends Wire {
 				} else {
 					$this->error("Image file no longer exists: " . basename($src) . ")");
 					if($this->page->of()) $value = str_replace($img, '', $value);
+					$info['img_unresolved']++;
 				}
 			}
 			return;
@@ -555,20 +606,27 @@ class MarkupQA extends Wire {
 			}
 		}
 
-		if($options['replaceBlankAlt'] && $replaceAlt && $this->page->of()) {
+		if($options['replaceBlankAlt'] && $replaceAlt) {
 			// image has a blank alt tag, meaning, we will auto-populate it with current file description, 
 			// if output formatting is on
-			$alt = $pagefile->description;
-			if(strlen($alt)) {
-				$alt = $this->wire('sanitizer')->entities1($alt);
-				$_img = str_replace(" $replaceAlt", " alt=\"$alt\"", $img);
-				$value = str_replace($img, $_img, $value);
+			if($this->page->of()) {
+				$alt = $pagefile->description;
+				if(strlen($alt)) {
+					$alt = $this->wire('sanitizer')->entities1($alt);
+					$_img = str_replace(" $replaceAlt", " alt=\"$alt\"", $img);
+					$value = str_replace($img, $_img, $value);
+				}
 			}
+			$info['img_noalt']++;
 		}
 
 		if($options['removeNoExists'] && $pagefile instanceof Pageimage) {
-			$this->checkImgExists($pagefile, $img, $src, $value);
+			$result = $this->checkImgExists($pagefile, $img, $src, $value);
+			if($result < 0) $info['img_unresolved'] += abs($result);
+			if($result > 0) $info['img_fixed'] += $result;
 		}
+		
+		if($markupQA) $this->page->setQuietly('_markupQA', $markupQA);
 	}
 
 	/**
@@ -578,6 +636,7 @@ class MarkupQA extends Wire {
 	 * @param $img
 	 * @param $src
 	 * @param $value
+	 * @return int Returns 0 on no change, negative count on broken, positive count on fixed
 	 *
 	 */
 	protected function checkImgExists(Pageimage $pagefile, $img, $src, &$value) {
@@ -585,14 +644,14 @@ class MarkupQA extends Wire {
 		$basename = basename($src);
 		$pathname = $pagefile->pagefiles->path() . $basename;
 
-		if(file_exists($pathname)) return; // no action necessary
+		if(file_exists($pathname)) return 0; // no action necessary
 
 		// file referenced in <img> tag does not exist, and it is not a variation we can re-create
 		if($pagefile->basename == $basename) {
 			// original file no longer exists
 			$this->error("Original image file no longer exists, unable to create new variation ($basename)");
 			if($this->page->of()) $value = str_replace($img, '', $value); // remove reference to image, when output formatting is on
-			return;
+			return -1;
 		}
 
 		// check if this is a variation that we might be able to re-create
@@ -601,7 +660,7 @@ class MarkupQA extends Wire {
 			// file is not a variation, so we apparently have no source to pull info from
 			$this->error("Unrecognized image that does not exist ($basename)");
 			if($this->page->of()) $value = str_replace($img, '', $value); // remove reference to image, when output formatting is on
-			return;
+			return -1;
 		}
 
 		$info['targetName'] = $basename; 
@@ -610,6 +669,9 @@ class MarkupQA extends Wire {
 			$variations[] = $info['parent'];
 			$info = $info['parent'];
 		}
+		
+		$good = 0;
+		$bad = 0;
 		
 		foreach(array_reverse($variations) as $info) {
 			// definitely a variation, attempt to re-create it
@@ -626,12 +688,21 @@ class MarkupQA extends Wire {
 					// new name differs from what is in text. Rename file to be consistent with text.
 					rename($newPagefile->filename(), $pathname);
 				}
-				if(self::debug) $this->message("Re-created image variation: $newPagefile->name");
+				if(self::debug || $this->wire('config')->debug) {
+					$this->message($this->_('Re-created image variation') . " - $newPagefile->name");
+				}
 				$pagefile = $newPagefile; // for next iteration
+				$good++;
 			} else {
-				$this->error("Unable to re-create image variation ($newPagefile->name)");
+				$this->error($this->_('Unable to re-create image variation') . " - $newPagefile->name");
+				$bad++;
 			}
 		}
+		
+		if($good) return $good;
+		if($bad) return -1 * $bad;
+		
+		return 0;
 	}
 
 	/**
@@ -645,6 +716,7 @@ class MarkupQA extends Wire {
 	public function error($text, $flags = 0) {
 		$logText = "$text (page={$this->page->path}, field={$this->field->name})";
 		$this->wire('log')->save(self::errorLogName, $logText);
+		/*
 		if($this->wire('modules')->isInstalled('SystemNotifications')) {
 			$user = $this->wire('modules')->get('SystemNotifications')->getSystemUser();
 			if($user && !$user->notifications->getBy('title', $text)) {
@@ -654,6 +726,7 @@ class MarkupQA extends Wire {
 				$user->notifications->save(); 
 			}
 		}
+		*/
 		return $this;
 	}
 }
