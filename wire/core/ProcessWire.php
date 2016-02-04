@@ -18,6 +18,10 @@ require_once(__DIR__ . '/boot.php');
  * ProcessWire API bootstrap class
  *
  * Gets ProcessWire's API ready for use
+ * 
+ * @method init()
+ * @method ready()
+ * @method finished()
  *
  */ 
 class ProcessWire extends Wire {
@@ -121,7 +125,7 @@ class ProcessWire extends Wire {
 	/**
 	 * Populate ProcessWire's configuration with runtime and optional variables
  	 *
-	 * $param Config $config
+	 * @param Config $config
  	 *
 	 */
 	protected function config(Config $config) {
@@ -246,7 +250,9 @@ class ProcessWire extends Wire {
 		$this->wire('mail', new WireMailTools());
 
 		try {
+			/** @noinspection PhpUnusedLocalVariableInspection */
 			$database = $this->wire('database', WireDatabasePDO::getInstance($config), true);
+			/** @noinspection PhpUnusedLocalVariableInspection */
 			$db = $this->wire('db', new DatabaseMysqli($config), true);
 		} catch(\Exception $e) {
 			// catch and re-throw to prevent DB connect info from ever appearing in debug backtrace
@@ -257,8 +263,9 @@ class ProcessWire extends Wire {
 		$cache = $this->wire('cache', new WireCache(), true); 
 		$cache->preload($config->preloadCacheNames); 
 		
-		if($config->compat2x) $this->loadCompat2x($config);
+		if($config->compat2x) $this->loadCompat2x();
 
+		$modules = null;
 		try { 		
 			if($this->debug) Debug::timer('boot.load.modules');
 			$modules = $this->wire('modules', new Modules($config->paths->modules), true);
@@ -290,12 +297,14 @@ class ProcessWire extends Wire {
 		$this->initVar('pages', $pages); 
 	
 		if($this->debug) Debug::timer('boot.load.permissions'); 
-		if(!$t = $templates->get('permission')) throw new WireException("Missing system template: 'permission'"); 
+		if(!$t = $templates->get('permission')) throw new WireException("Missing system template: 'permission'");
+		/** @noinspection PhpUnusedLocalVariableInspection */
 		$permissions = $this->wire('permissions', new Permissions($this, $t, $config->permissionsPageID), true); 
 		if($this->debug) Debug::saveTimer('boot.load.permissions');
 
 		if($this->debug) Debug::timer('boot.load.roles'); 
-		if(!$t = $templates->get('role')) throw new WireException("Missing system template: 'role'"); 
+		if(!$t = $templates->get('role')) throw new WireException("Missing system template: 'role'");
+		/** @noinspection PhpUnusedLocalVariableInspection */
 		$roles = $this->wire('roles', new Roles($this, $t, $config->rolesPageID), true); 
 		if($this->debug) Debug::saveTimer('boot.load.roles');
 
@@ -319,19 +328,17 @@ class ProcessWire extends Wire {
 	/**
 	 * Load ProcessWire 2.x compatibility mode
 	 * 
-	 * @param Config $config
-	 * 
 	 */
-	protected function loadCompat2x(Config $config) {
-		include_once($config->paths->core . 'compat2x/Classes.php');
-		include_once($config->paths->core . 'compat2x/Functions.php');
+	protected function loadCompat2x() {
+		include_once(__DIR__ . '/compat2x/Classes.php');
+		include_once(__DIR__ . '/compat2x/Functions.php');
 	}
 	
 	/**
 	 * Initialize the given API var
 	 * 
 	 * @param string $name
-	 * @param Wire $value
+	 * @param Fieldtypes|Fields|Fieldgroups|Templates|Pages|Session $value
 	 * 
 	 */
 	protected function initVar($name, $value) {
@@ -422,8 +429,8 @@ class ProcessWire extends Wire {
 	 * Alias of $this->wire(), but for setting only, for syntactic convenience.
 	 * i.e. $this->wire()->set($key, $value); 
 	 * 
-	 * @param $key API variable name to set
-	 * @param $value Value of API variable
+	 * @param string $key API variable name to set
+	 * @param Wire|mixed $value Value of API variable
 	 * @param bool $lock Whether to lock the value from being overwritten
 	 * @return $this
 	 */
@@ -443,7 +450,7 @@ class ProcessWire extends Wire {
 	 * 
 	 * File is executed in the directory where it exists.
 	 * 
-	 * @param $file Full path and filename
+	 * @param string $file Full path and filename
 	 * @return bool True if file existed and was included, false if not.
 	 * 
 	 */
@@ -454,6 +461,7 @@ class ProcessWire extends Wire {
 		chdir(dirname($file));
 		$fuel = $this->fuel->getArray();
 		extract($fuel);
+		/** @noinspection PhpIncludeInspection */
 		include($file);
 		chdir($this->pathSave);
 		return true; 
@@ -578,7 +586,7 @@ class ProcessWire extends Wire {
 	/**
 	 * Build a Config object for booting ProcessWire
 	 * 
-	 * @param $rootPath Path to root of installation where ProcessWire's index.php file is located.
+	 * @param string $rootPath Path to root of installation where ProcessWire's index.php file is located.
 	 * @param string $rootURL Should be specified only for secondary ProcessWire instances.
 	 * @return Config
 	 * 
@@ -627,6 +635,7 @@ class ProcessWire extends Wire {
 
 		if(is_file($indexConfigFile) && !function_exists("ProcessWireHostSiteConfig")) {
 			// optional config file is present in root
+			/** @noinspection PhpIncludeInspection */
 			@include($indexConfigFile);
 			$hostConfig = function_exists("ProcessWireHostSiteConfig") ? ProcessWireHostSiteConfig() : array();
 			if($httpHost && isset($hostConfig[$httpHost])) {
@@ -667,15 +676,25 @@ class ProcessWire extends Wire {
 		$config->scripts = new FilenameArray();
 
 		// Include system config defaults
+		/** @noinspection PhpIncludeInspection */
 		include("$rootPath/$wireDir/config.php");
 
 		// Include site-specific config settings
 		$configFile = $config->paths->site . "config.php";
 		$configFileDev = $config->paths->site . "config-dev.php";
 		if(is_file($configFileDev)) {
+			/** @noinspection PhpIncludeInspection */
 			@include($configFileDev);
 		} else if(is_file($configFile)) {
+			/** @noinspection PhpIncludeInspection */
 			@include($configFile);
+		}
+
+		// Include composer autoloader if present
+		$composerAutoloader = $rootPath . '/vendor/autoload.php';
+		if(file_exists($composerAutoloader)) {
+			/** @noinspection PhpIncludeInspection */
+			require_once($composerAutoloader);
 		}
 
 		return $config;

@@ -109,11 +109,12 @@
  * @property string $userAuthSalt Salt generated at install time to be used as a secondary/non-database salt for the password system.
  * @property string $userAuthHashType Default is 'sha1' - used only if Blowfish is not supported by the system.
  * 
- * @property bool $external This is automatically set to TRUE when PW is externally bootstrapped.
+ * @property bool $internal This is automatically set to FALSE when PW is externally bootstrapped.
  * @property bool $cli This is automatically set to TRUE when PW is booted as a command line (non HTTP) script.
  * @property string $versionName This is automatically populated with the current PW version name (i.e. 2.5.0 dev)
  * @property int $inputfieldColumnWidthSpacing Used by some admin themes to commmunicate to InputfieldWrapper at runtime.
  * @property bool $debugMarkupQA Set to true to make the MarkupQA class report verbose debugging messages (to superusers).
+ * @property bool $compat2x Set to true to enable PW 2.x class compatibility mode (deprecated)
  * 
  * @property int $rootPageID ID of homepage (usually 1)
  * @property int $adminRootPageID ID of admin root page
