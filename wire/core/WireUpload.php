@@ -375,7 +375,7 @@ class WireUpload extends Wire {
 	public function validateFilename($value, $extensions = array()) {
 		$value = basename($value);
 		if($value[0] == '.') return false; // no hidden files
-		if($this->lowercase) $value = mb_strtolower($value); 
+		if($this->lowercase) $value = function_exists('mb_strtolower') ? mb_strtolower($value) : strtolower($value);
 		$value = $this->wire('sanitizer')->filename($value, Sanitizer::translate); 
 		$value = trim($value, "_");
 

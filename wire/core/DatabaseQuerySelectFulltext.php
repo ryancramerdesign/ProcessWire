@@ -105,7 +105,8 @@ class DatabaseQuerySelectFulltext extends Wire {
 			case '~=':
 				$words = preg_split('/[-\s,]/', $value, -1, PREG_SPLIT_NO_EMPTY); 
 				foreach($words as $word) {
-					if(DatabaseStopwords::has($word) || mb_strlen($word) < $database->getVariable('ft_min_word_len')) {
+					$len = function_exists('mb_strlen') ? mb_strlen($word) : strlen($word);
+					if(DatabaseStopwords::has($word) || $len < $database->getVariable('ft_min_word_len')) {
 						$this->matchWordLIKE($tableName, $fieldName, $word);
 					} else {
 						$this->matchContains($tableName, $fieldName, $operator, $word);

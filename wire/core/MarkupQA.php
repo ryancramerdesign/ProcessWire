@@ -130,19 +130,31 @@ class MarkupQA extends Wire {
 		// see if quick exit possible
 		if(stripos($value, 'href=') === false && stripos($value, 'src=') === false) return;
 
-		$rootURL = $this->wire('config')->urls->root;
+		$config = $this->wire('config');
+		$httpHost = $config->httpHost;
+		$rootURL = $config->urls->root;
+		$rootHostURL = $httpHost . $rootURL;
 
 		$replacements = array(
+			// wakeup => sleep
 			" href=\"$rootURL" => "\thref=\"/",
 			" href='$rootURL" => "\thref='/",
 			" src=\"$rootURL" => "\tsrc=\"/",
 			" src='$rootURL" => "\tsrc='/",
 		);
-
+		
+		if(strpos($value, "//$rootHostURL")) $replacements = array_merge($replacements, array(
+			// wakeup => sleep
+			" href='http://$rootHostURL" => "\thref='http://$httpHost/",
+			" href='https://$rootHostURL" => "\thref='https://$httpHost/",
+			" href=\"http://$rootHostURL" => "\thref=\"http://$httpHost/",
+			" href=\"https://$rootHostURL" => "\thref=\"https://$httpHost/",
+		));
+		
 		if($sleep) {
 			// sleep 
 			$value = str_ireplace(array_keys($replacements), array_values($replacements), $value);
-			
+
 			if($this->verbose && $this->page && $this->field) {
 				$info = $this->page->get('_markupQA');	
 				if(!is_array($info)) $info = array();
@@ -153,7 +165,7 @@ class MarkupQA extends Wire {
 			}
 
 		} else if(strpos($value, "\t") === false) {
-			// no wakeup necessary (quick exit)
+			// wakeup, but nothing necessary (quick exit)
 			return;
 
 		} else {
@@ -362,7 +374,7 @@ class MarkupQA extends Wire {
 	 * 
 	 */
 	public function wakeupLinks(&$value) {
-	
+
 		// if there's no data-pwid attribute present, then there's nothing to do here
 		if(strpos($value, 'data-pwid=') === false) return;
 		
@@ -378,6 +390,7 @@ class MarkupQA extends Wire {
 		
 		$replacements = array();
 		$languages = $this->wire('languages');
+		$rootURL = $this->wire('config')->urls->root;
 		
 		foreach($matches[2] as $key => $pwid) {
 			
@@ -404,6 +417,11 @@ class MarkupQA extends Wire {
 				'language' => $language
 			));
 			
+			if(strlen($rootURL) > 1) {
+				$livePath = rtrim($rootURL, '/') . $livePath;
+				$href = ' ' . ltrim($href); // immunity to wakeupUrls(), replacing tab with space
+			}
+			
 			$langName = self::debug && $language ? $language->name : '';
 			
 			if($livePath) {
@@ -418,7 +436,7 @@ class MarkupQA extends Wire {
 					);
 					$path = $livePath;
 				} else if(self::debug) {
-					// $this->message("MarkupQA wakeupLinks no changes (field=$this->field, language=$langName): $path => $livePath");
+					$this->message("MarkupQA wakeupLinks no changes (field=$this->field, language=$langName): $path => $livePath");
 				}
 			} else {
 				// did not resolve to a PW page

@@ -205,6 +205,7 @@ class Notices extends WireArray {
 	 */
 	public function sanitizeArray(array $a) {
 		$sanitizer = $this->wire('sanitizer'); 
+		$b = array();
 		foreach($a as $key => $value) {
 			if(is_array($value)) {
 				$value = $this->sanitizeArray($value);
@@ -212,8 +213,9 @@ class Notices extends WireArray {
 				if(is_object($value)) $value = (string) $value;
 				$value = $sanitizer->entities($value); 
 			} 
-			$a[$key] = $value;	
+			$key = $this->wire('sanitizer')->entities($key);
+			$b[$key] = $value;
 		}
-		return $a; 
+		return $b; 
 	}
 }
