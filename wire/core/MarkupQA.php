@@ -328,8 +328,9 @@ class MarkupQA extends Wire {
 			if($pageID) {
 				// resolved to a page
 				if($languages) {
-					$language = $this->getPathLanguage($path);
-					$pwid = $language->isDefault() ? $pageID : "$pageID-$language";
+					$page = $this->wire('pages')->get($pageID);
+					$language = $this->wire('modules')->get('LanguageSupportPageNames')->getPagePathLanguage($path, $page);
+					$pwid = !$language || $language->isDefault() ? $pageID : "$pageID-$language";
 				} else {
 					$language = null;
 					$pwid = $pageID;
@@ -457,51 +458,6 @@ class MarkupQA extends Wire {
 		if(count($replacements)) {
 			$value = str_replace(array_keys($replacements), array_values($replacements), $value);
 		}
-	}
-
-	/**
-	 * Determine what language a given path is in and return it
-	 * 
-	 * @param string $path
-	 * @return Language|bool Returns Language, or false if language support not active
-	 * 
-	 */
-	public function getPathLanguage($path) {
-		
-		$languages = $this->wire('languages');
-		if(!$languages || !$this->wire('modules')->isInstalled('LanguageSupportPageNames')) return false;
-	
-		$page = $this->wire('pages')->getByPath($path, array(
-			'useLanguages' => true,
-			'useHistory' => true
-		));
-		if(!$page->id) return false;
-
-		$homepage = $this->wire('pages')->get('/');
-		$user = $this->wire('user');
-		$userLanguage = $user->language;
-		$pathLanguage = false;
-		$path = trim($path, '/');
-		$parts = explode('/', $path);
-		$firstPart = array_shift($parts);
-		
-		foreach($this->wire('languages') as $language) {
-			$name = $homepage->get("name" . ($language->isDefault() ? '' : $language->id));
-			if($firstPart && $name && $firstPart === $name) {
-				$pathLanguage = $language;
-				break;
-			}
-			$user->language = $language;
-			if(trim($page->path, '/') == $path) {
-				$pathLanguage = $language;			
-				break;
-			}
-		}
-		
-		$user->language = $userLanguage; 
-		if(!$pathLanguage) $pathLanguage = $languages->getDefault();
-		
-		return $pathLanguage;	
 	}
 
 	/**

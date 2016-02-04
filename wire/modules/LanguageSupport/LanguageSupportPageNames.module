@@ -802,13 +802,106 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 	/**
 	 * Hook called immediately after a page is saved
 	 * 
-	 * Restore saved language setting when a User is saved
-	 *
 	 */
 	public function hookPageSaved(HookEvent $event) {
 		// The setLanguage may get lost upon some page save events, so this restores that
 		// $this->user->language = $this->setLanguage;
+		$page = $event->arguments(0);
+		if(!$page->namePrevious) {
+			// go into this only if we know the renamed hook hasn't already been called
+			$renamed = false;
+			foreach($this->wire('languages') as $language) {
+				if($language->isDefault()) continue;
+				$namePrevious = $page->get("-name$language");
+				if(!$namePrevious) continue;
+				$name = $page->get("name$language");
+				if($namePrevious != $name) {
+					$renamed = true;
+					break;
+				}
+			}
+			// trigger renamed hook if one of the language names changed
+			if($renamed) $this->wire('pages')->renamed($page);
+		}
 	}
+
+	/**
+	 * Return the unsanitized/original requested path
+	 * 
+	 * @return string
+	 * 
+	 */	
+	public function getRequestPath() {
+		return $this->requestPath;	
+	}
+	
+	/**
+	 * Return the Language that the given path is in or null if can't determine
+	 *
+	 * @param string $path Page path without without installation subdir or URL segments or page numbers
+	 * @param Page $page If you already know the $page that resulted from the path, provide it here for faster performance
+	 * @return Language|null
+	 *
+	 */
+	public function getPagePathLanguage($path, Page $page = null) {
+
+		$languages = $this->wire('languages');
+
+		if(!$page || !$page->id) $page = $this->wire('pages')->getByPath($path, array(
+			'useLanguages' => true,
+			'useHistory' => true
+		));
+
+		$foundLanguage = null;
+		$path = trim($path, '/');
+	
+		// a blank path can only be homepage in default language
+		if(!strlen($path)) return $languages->getDefault();
+
+		// first check entire path for a match
+		if($page->id) foreach($languages as $language) {
+			$languages->setLanguage($language);
+			if($path === trim($page->path(), '/')) $foundLanguage = $language;
+			$languages->unsetLanguage();
+			if($foundLanguage) break;
+		}
+
+		if($foundLanguage) return $foundLanguage;
+
+		// if we get to this point, then we'll be checking the first segment and last segment
+		$parts = explode('/', $path);
+		$homepageID = $this->wire('config')->rootPageID;
+		$homepage = $this->wire('pages')->get($homepageID);
+		$firstPart = reset($parts);
+		$lastPart = end($parts);
+		
+		$tests = array($firstPart => $homepage);
+		if($homepage->id != $page->id && $firstPart != $lastPart) $tests[$lastPart] = $page; 
+
+		foreach($tests as $part => $p) {
+			if(!$p->id) continue;
+			$duplicates = 0; // count duplicate names, which would invalidate any $foundLanguage
+			foreach($languages as $language) {
+				$key = 'name' . ($language->isDefault() ? '' : $language->id);
+				$name = $p->get($key);
+				if($name === $part) {
+					$foundLanguage = $language;
+					$duplicates++;
+				}
+			}
+			if($foundLanguage && $duplicates > 1) $foundLanguage = null;
+			if($foundLanguage) break;
+		}
+		
+		if(!$foundLanguage && $page->parent_id > $homepageID && count($parts) > 1) {
+			// if language not yet found, go recursive on the parent path before we throw in the towel
+			array_pop($parts);
+			$foundLanguage = $this->getPagePathLanguage(implode('/', $parts), $page->parent());
+		}
+
+		return $foundLanguage;
+	}
+
 
 	/**
 	 * Check to make sure that the status table exists and creates it if not
