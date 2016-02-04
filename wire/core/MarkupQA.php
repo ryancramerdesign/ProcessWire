@@ -25,7 +25,6 @@
 class MarkupQA extends Wire {
 	
 	const errorLogName = 'markup-qa-errors';
-	const debug = false;
 
 	/**
 	 * @var string
@@ -56,6 +55,14 @@ class MarkupQA extends Wire {
 	protected $verbose = false;
 
 	/**
+	 * Whether verbose debug mode is active
+	 * 
+	 * @var bool
+	 * 
+	 */
+	protected $debug = false;
+
+	/**
 	 * Construct
 	 * 
 	 * @param Page $page
@@ -66,6 +73,7 @@ class MarkupQA extends Wire {
 		if($page) $this->setPage($page);
 		if($field) $this->setField($field);
 		$this->assetsURL = $this->wire('config')->urls->assets;
+		$this->debug = (bool) $this->wire('config')->debugMarkupQA && $this->wire('user')->isSuperuser(); 
 	}
 
 	/**
@@ -220,7 +228,7 @@ class MarkupQA extends Wire {
 		}
 		
 		if($path && $path != $_path) {
-			if(self::debug) $this->message("MarkupQA absoluteToRelative converted: $_path => $path");
+			if($this->debug) $this->message("MarkupQA absoluteToRelative converted: $_path => $path");
 		}
 
 		return $path;
@@ -285,7 +293,7 @@ class MarkupQA extends Wire {
 				list($x, $host) = explode('//', $href);
 				if($host != $this->wire('config')->httpHost && !in_array($host, $this->wire('config')->httpHosts)) {
 					$counts['external']++;
-					if(self::debug) $this->message("MarkupQA sleepLinks skipping because hostname: $host");
+					if($this->debug) $this->message("MarkupQA sleepLinks skipping because hostname: $host");
 					// external hostname, which we will skip over
 					continue;
 				}
@@ -328,7 +336,7 @@ class MarkupQA extends Wire {
 				}
 				$replacements[$full] = "$start\tdata-pwid=$pwid$href$path$end";
 				$counts['internal']++;
-				if(self::debug) {
+				if($this->debug) {
 					$langName = $language ? $language->name : 'n/a';
 					$this->message(
 						"MarkupQA sleepLinks (field=$this->field, page={$this->page->path}, lang=$langName): " . 
@@ -339,7 +347,7 @@ class MarkupQA extends Wire {
 				// did not resolve to a page, see if it resolves to a file or directory
 				$file = $this->wire('config')->paths->root . ltrim($path, '/');
 				if(file_exists($file)) {
-					if(self::debug) $this->message("MarkupQA sleepLinks link resolved to a file: $path");
+					if($this->debug) $this->message("MarkupQA sleepLinks link resolved to a file: $path");
 					$counts['files']++;
 				} else {
 					$parts = explode('/', trim($path, '/'));
@@ -422,7 +430,7 @@ class MarkupQA extends Wire {
 				$href = ' ' . ltrim($href); // immunity to wakeupUrls(), replacing tab with space
 			}
 			
-			$langName = self::debug && $language ? $language->name : '';
+			$langName = $this->debug && $language ? $language->name : '';
 			
 			if($livePath) {
 				if(strpos($livePath, '/trash/') !== false) {
@@ -430,12 +438,12 @@ class MarkupQA extends Wire {
 					$this->linkWarning("$path => $livePath (" . $this->_('it is in the trash') . ')');
 				} else if($livePath != $path) {
 					// path differs from what's in the markup and should be updated
-					if(self::debug) $this->warning(
+					if($this->debug) $this->warning(
 						"MarkupQA wakeupLinks PATH UPDATED (field=$this->field, page={$this->page->path}, " . 
 						"language=$langName): $path => $livePath"
 					);
 					$path = $livePath;
-				} else if(self::debug) {
+				} else if($this->debug) {
 					$this->message("MarkupQA wakeupLinks no changes (field=$this->field, language=$langName): $path => $livePath");
 				}
 			} else {
@@ -706,7 +714,7 @@ class MarkupQA extends Wire {
 					// new name differs from what is in text. Rename file to be consistent with text.
 					rename($newPagefile->filename(), $pathname);
 				}
-				if(self::debug || $this->wire('config')->debug) {
+				if($this->debug || $this->wire('config')->debug) {
 					$this->message($this->_('Re-created image variation') . " - $newPagefile->name");
 				}
 				$pagefile = $newPagefile; // for next iteration

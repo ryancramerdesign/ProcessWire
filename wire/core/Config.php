@@ -113,6 +113,7 @@
  * @property bool $cli This is automatically set to TRUE when PW is booted as a command line (non HTTP) script.
  * @property string $versionName This is automatically populated with the current PW version name (i.e. 2.5.0 dev)
  * @property int $inputfieldColumnWidthSpacing Used by some admin themes to commmunicate to InputfieldWrapper at runtime.
+ * @property bool $debugMarkupQA Set to true to make the MarkupQA class report verbose debugging messages.
  * 
  * @property int $rootPageID ID of homepage (usually 1)
  * @property int $adminRootPageID ID of admin root page
