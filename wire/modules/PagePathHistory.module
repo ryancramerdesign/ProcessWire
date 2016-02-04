@@ -18,7 +18,7 @@ class PagePathHistory extends WireData implements Module {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Page Path History', 
-			'version' => 1, 
+			'version' => 2, 
 			'summary' => "Keeps track of past URLs where pages have lived and automatically redirects (301 permament) to the new location whenever the past URL is accessed.",
 			'singular' => true, 
 			'autoload' => true, 
@@ -32,7 +32,7 @@ class PagePathHistory extends WireData implements Module {
 	const dbTableName = 'page_path_history';
 
 	/**
-	 * Minimum age in seconds that a page must be before we'll bother remembering it's previous path
+	 * Minimum age in seconds that a page must be before we'll bother remembering its previous path
 	 *
 	 */
 	const minimumAge = 120; 
@@ -43,8 +43,15 @@ class PagePathHistory extends WireData implements Module {
 	 * Used to place a limit on recursion and paths
 	 *
 	 */
-	const maxSegments = 10; 
+	const maxSegments = 10;
 
+	/**
+	 * PagePageHistory module/schema version
+	 * 
+	 * @var int
+	 * 
+	 */
+	protected $version = 0;
 
 	/**
 	 * Initialize the hooks
@@ -58,6 +65,124 @@ class PagePathHistory extends WireData implements Module {
 	}
 
 	/**
+	 * Get version of this module/schema
+	 * 
+	 * @return int
+	 * 
+	 */
+	protected function getVersion() {
+		if($this->version) return $this->version;
+		$info = $this->wire('modules')->getModuleInfo($this);
+		$this->version = $info['version'];
+		return $this->version;
+	}
+
+	/**
+	 * Whether or not to consider language_id in page_path_history module table
+	 * 
+	 * @return Languages|bool Returns Languages object if yes, or boolean false if not
+	 * 
+	 */
+	protected function getLanguages() {
+		if($this->getVersion() < 2) return false;
+		if(!$this->wire('modules')->isInstalled('LanguageSupportPageNames')) return false;
+		return $this->wire('languages');
+	}
+
+	/**
+	 * Given a language ID, name or Language object, return Language object or NULL if not found
+	 * 
+	 * @param int|string|Language $language
+	 * @return Language|null
+	 * 
+	 */
+	protected function getLanguage($language) {
+		$languages = $this->getLanguages();
+		if(!$languages) return null;
+		if($language instanceof Page) {
+			// ok
+		} else if(is_int($language) || ctype_digit($language)) {
+			$language = $languages->get((int) $language);
+		} else if(is_string($language) && $language) {
+			$language = $languages->get($this->wire('sanitizer')->pageName($language));
+		}
+		if($language && !$language->id) $language = null;
+		return $language;
+	}
+
+	/**
+	 * Set a history path for a page
+	 * 
+	 * @param Page $page
+	 * @param string $path
+	 * @param Language|int $language
+	 *
+	 */
+	public function setPathHistory(Page $page, $path, $language = null) {
+		
+		$database = $this->wire('database');
+		$table = self::dbTableName;
+		$path = '/' . trim($path, '/');
+		$language = $this->getLanguage($language);
+
+		$sql = "INSERT INTO $table SET path=:path, pages_id=:pages_id, created=NOW()";
+		if($language) $sql .= ', language_id=:language_id'; 
+		
+		$query = $database->prepare($sql);
+		$query->bindValue(":path", $path);
+		$query->bindValue(":pages_id", $page->id, \PDO::PARAM_INT);
+		if($language) $query->bindValue(':language_id', $language->id, \PDO::PARAM_INT);
+
+		try {
+			$query->execute();
+		} catch(\Exception $e) {
+			// ignore the exception because it means there is already a past URL (duplicate)
+		}
+
+		// delete any possible entries that overlap with the $page since are no longer applicable
+		$query = $database->prepare("DELETE FROM $table WHERE path=:path LIMIT 1");
+		$query->bindValue(":path", rtrim($page->path, '/'));
+		$query->execute();
+	}
+
+	/**
+	 * Get an array of all paths the given page has previously had, oldest to newest
+	 *
+	 * Optionally specify a Language object to isolate results to a specific language 
+	 * 
+	 * @param Page $page
+	 * @param Language|null $language If none specified, then all languages are included
+	 * @return array of paths
+	 * 
+	 */
+	public function getPathHistory(Page $page, $language = null) {
+		
+		$database = $this->wire('database');
+		$table = self::dbTableName;
+		$paths = array();
+		$language = $this->getLanguage($language);
+	
+		$sql = "SELECT path FROM $table WHERE pages_id=:pages_id ";
+		if($language) $sql .= "AND language_id=:language_id ";
+		$sql .= "ORDER BY created";
+		
+		$query = $database->prepare($sql);
+		$query->bindValue(':pages_id', $page->id, \PDO::PARAM_INT);
+		if($language) $query->bindValue(':language_id', $language->isDefault() ? 0 : $language->id, \PDO::PARAM_INT);
+		
+		try {
+			$query->execute();
+			while($row = $query->fetch(\PDO::FETCH_NUM)) {
+				$paths[] = $row[0];
+			}
+		} catch(\Exception $e) {
+			// intentionally blank
+		}
+		
+		return $paths;
+	}
+
+	/**
 	 * Hook called when a page is moved or renamed
 	 *
 	 */
@@ -67,8 +192,25 @@ class PagePathHistory extends WireData implements Module {
 		if($page->template == 'admin') return;
 		$age = time() - $page->created; 
 		if($age < self::minimumAge) return;
+		$languages = $this->getLanguages();
 
 		// note that the paths we store have no trailing slash
+		
+		if($languages) {
+			$parentPrevious = $page->parentPrevious;
+			if($parentPrevious && $parentPrevious->id == $page->parent()->id) $parentPrevious = null;
+			foreach($languages as $language) {
+				if($language->isDefault()) continue;
+				$namePrevious = $page->get("-name$language");
+				if(!$namePrevious && !$parentPrevious) continue;
+				if(!$namePrevious) $namePrevious = $page->name;
+				$languages->setLanguage($language);
+				$pathPrevious = $parentPrevious ? $parentPrevious->path() : $page->parent()->path;
+				$pathPrevious = rtrim($pathPrevious, '/') . "/$namePrevious";
+				$this->setPathHistory($page, $pathPrevious, $language->id);
+				$languages->unsetLanguage();
+			}
+		}
 
 		if(!$page->namePrevious) {
 			// abort saving a former URL if it looks like there isn't going to be one
@@ -88,27 +230,15 @@ class PagePathHistory extends WireData implements Module {
 			$path = $page->parent->path;
 		}
 
-		if($page->namePrevious) $path .= $page->namePrevious; 
-			else $path .= $page->name; 
-
-
-		$database = $this->wire('database');	
-	
-		$query = $database->prepare("INSERT INTO " . self::dbTableName . " SET path=:path, pages_id=:pages_id, created=NOW()");
-		$query->bindValue(":path", $path); 
-		$query->bindValue(":pages_id", $page->id, \PDO::PARAM_INT);
-
-		try {
-			$query->execute();
-
-		} catch(\Exception $e) {
-			// catch the exception because it means there is already a past URL (duplicate)
+		if($page->namePrevious) {
+			$path = rtrim($path, '/') . '/' . $page->namePrevious;
+		} else {
+			$path = rtrim($path, '/') . '/' . $page->name;
 		}
-
-		// delete any possible entries that overlap with the $page since are no longer applicable
-		$query = $database->prepare("DELETE FROM " . self::dbTableName . " WHERE path=:path LIMIT 1");
-		$query->bindValue(":path", rtrim($page->path, '/'));
-		$query->execute();
+		
+		if($languages) $languages->setDefault();
+		$this->setPathHistory($page, $path);
+		if($languages) $languages->unsetDefault();
 	}
 
 	/**
@@ -116,27 +246,45 @@ class PagePathHistory extends WireData implements Module {
 	 *
 	 */
 	public function hookPageNotFound(HookEvent $event) {
+	
 		
-		$page = $event->arguments[0]; 
+		$page = $event->arguments(0); 
 
 		// If there is a page object set, then it means the 404 was triggered
 		// by the user not having access to it, or by the $page's template 
 		// throwing a 404 exception. In either case, we don't want to do a 
 		// redirect if there is a $page since any 404 is intentional there.
 		if($page && $page->id) return; 
-
-		$path = $event->arguments[1];
-		$page = $this->getPage($path);
-
-		if($page->id && $page->viewable()) {
-			// if a page was found, redirect to it
-			$this->session->redirect($page->url);
+		
+		$languages = $this->getLanguages();
+		if($languages) {
+			// the LanguageSupportPageNames may change the original requested path, so we ask it for the original
+			$path = $this->wire('modules')->get('LanguageSupportPageNames')->getRequestPath();
+			$path = $path ? $this->wire('sanitizer')->pagePathName($path) : $event->arguments(1);
+		} else {
+			$path = $event->arguments(1);
 		}
 		
+		$page = $this->getPage($path);
+		
+		if($page->id && $page->viewable()) {
+			// if a page was found, redirect to it...
+			$language = $page->get('_language');
+			if($language && $languages) {
+				// ...optionally for a specific language
+				if($page->get("status$language")) {
+					$languages->setLanguage($language);
+				}
+			}
+			$this->session->redirect($page->url);
+		}
 	}
 
 	/**
 	 * Given a previously existing path, return the matching Page object or NullPage if not found.
+	 * 
+	 * If the path is for a specific language, this method also sets a $page->_language property
+	 * containing the Language object the path is for. 
 	 *
 	 * @param string $path Historical path of page you want to retrieve
 	 * @param int $level Recursion level for internal recursive use only
@@ -144,28 +292,48 @@ class PagePathHistory extends WireData implements Module {
 	 *
 	 */
 	public function getPage($path, $level = 0) {
-
+		
 		$page = $this->wire('pages')->newNullPage();
 		$pathRemoved = '';
-		$path = rtrim($path, '/');
+		$path = '/' . trim($path, '/');
 		$cnt = 0;
 		$database = $this->wire('database');
+		$table = self::dbTableName;
+		$languages = $this->getLanguages();
 
 		while(strlen($path) && !$page->id && $cnt < self::maxSegments) {
 
-			$query = $database->prepare("SELECT pages_id FROM " . self::dbTableName . " WHERE path=:path");
+			$sql = "SELECT pages_id ";
+			if($languages) $sql .= ", language_id ";
+			$sql .= "FROM $table WHERE path=:path";
+			$query = $database->prepare($sql);
 			$query->bindValue(":path", $path); 
-			$query->execute();
+			$error = false;
+			
+			try {
+				$query->execute();
+			} catch(\Exception $e) {
+				$this->wire('log')->error('PagePathHistory::getPage() - ' . $e->getMessage());
+				$error = true;
+			}
+			
+			if($error) break;
+			
 			if($query->rowCount() > 0) {
-				$pages_id = $query->fetchColumn();
+				// found a match
+				$row = $query->fetch(\PDO::FETCH_NUM);
+				$pages_id = (int) $row[0];
+				$language_id = $languages && isset($row[1]) ? $row[1] : 0;
 				$page = $this->pages->get((int) $pages_id);
+				if($language_id) $page->setQuietly("_language", $this->getLanguage($language_id));
 			} else {
+				// didn't find a match, we'll pop the last segment off and try again for the parent
 				$pos = strrpos($path, '/');
 				$pathRemoved = substr($path, $pos) . $pathRemoved;
 				$path = substr($path, 0, $pos);
 			}
+			
 			$query->closeCursor();
-				
 			$cnt++;
 		} 
 
@@ -178,11 +346,22 @@ class PagePathHistory extends WireData implements Module {
 			// use the new parent path and add the removed components back on to it
 			$path = rtrim($parent->path, '/') . $pathRemoved; 
 			// see if it might exist at the new parent's URL
-			$page = $this->pages->get($path); 
-			// if not, then go recursive, trying again
-			if(!$page->id && $level < self::maxSegments) $page = $this->getPage($path, $level+1); 
+			$page = $this->wire('pages')->getByPath($path, array(
+				'useHistory' => false,
+				'useLanguages' => $languages ? true : false
+			)); 
+			if($page->id) {
+				// found a page
+				if($languages) {
+					$language = $this->wire('modules')->get('LanguageSupportPageNames')->getPagePathLanguage($path, $page);
+					if($language) $page->setQuietly('_language', $language);
+				}
+			} else if($level < self::maxSegments) {
+				// if not, then go recursive, trying again
+				$page = $this->getPage($path, $level + 1);
+			}
 		}
-	
+		
 		return $page; 	
 	}
 
@@ -202,7 +381,8 @@ class PagePathHistory extends WireData implements Module {
 
 		$sql = 	"CREATE TABLE " . self::dbTableName . " (" . 
 				"path VARCHAR(255) NOT NULL, " . 
-				"pages_id INT UNSIGNED NOT NULL, " . 
+				"pages_id INT UNSIGNED NOT NULL, " .
+				"language_id INT UNSIGNED DEFAULT 0, " . // v2
 				"created TIMESTAMP NOT NULL, " . 
 				"PRIMARY KEY path (path), " . 
 				"INDEX pages_id (pages_id), " . 
@@ -215,6 +395,35 @@ class PagePathHistory extends WireData implements Module {
 
 	public function ___uninstall() {
 		$this->wire('database')->query("DROP TABLE " . self::dbTableName); 
+	}
+
+	/**
+	 * Upgrade PagePathHistory module schema
+	 * 
+	 * @param int $fromVersion
+	 * @param int $toVersion
+	 * 
+	 */
+	public function ___upgrade($fromVersion, $toVersion) {
+		
+		if($fromVersion == 1) {
+		
+			$messagePrefix = "PagePathHistory v$fromVersion => v$toVersion: ";
+			$database = $this->wire('database');
+			$table = self::dbTableName;
+			
+			try {
+				$database->exec("ALTER TABLE $table ADD language_id INT UNSIGNED DEFAULT 0");
+				$message = "Added 'language_id' column";
+				$error = false;
+			} catch(\Exception $e) {
+				$error = true;
+				$message = $e->getMessage();
+			}
+			
+			$message = $messagePrefix . $message;
+			$error ? $this->error($message) : $this->message($message);
+		}
 	}
 
 }
