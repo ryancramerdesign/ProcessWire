@@ -71,6 +71,7 @@ class FileCompiler extends Wire {
 	public function __construct($sourcePath, array $options = array()) {
 		$this->options = array_merge($this->options, $options);
 		if(strpos($sourcePath, '..') !== false) $sourcePath = realpath($sourcePath);
+		if(DIRECTORY_SEPARATOR != '/') $sourcePath = str_replace(DIRECTORY_SEPARATOR, '/', $sourcePath);
 		$this->sourcePath = rtrim($sourcePath, '/') . '/';
 	}
 
