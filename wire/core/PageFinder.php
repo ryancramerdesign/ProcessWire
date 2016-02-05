@@ -1116,13 +1116,18 @@ class PageFinder extends Wire {
 				$subValue = $this->wire('sanitizer')->fieldName($subValue);
 			}
 			$value = $this->wire('sanitizer')->fieldName($value);
+			
+			if($value == 'parent' && $subValue == 'path') $subValue = 'name'; // path not supported, substitute name
 
 			if($value == 'random') { 
 				$value = 'RAND()';
 
-			} else if($value == 'num_children' || $value == 'numChildren' || ($value == 'children' && $subValue == 'count')) { 
+			} else if($value == 'num_children' || $value == 'numChildren' || ($value == 'children' && $subValue == 'count')) {
 				// sort by quantity of children
-				$value = $this->getQueryNumChildren($query, $this->wire(new SelectorGreaterThan('num_children', "-1"))); 
+				$value = $this->getQueryNumChildren($query, $this->wire(new SelectorGreaterThan('num_children', "-1")));
+
+			} else if($value == 'parent' && ($subValue == 'num_children' || $subValue == 'numChildren' || $subValue == 'children')) {
+				throw new WireException("Sort by parent.num_children is not currently supported");
 
 			} else if($value == 'parent' && (empty($subValue) || $pages->loader()->isNativeColumn($subValue))) {
 				// sort by parent native field only
