@@ -118,12 +118,6 @@ class PageFinder extends Wire {
 	// protected $extraJoins = array();
 	// protected $nativeWheres = array(); // where statements for native fields, to be reused in subselects where appropriate.
 
-	/**
-	 * Construct the PageFinder
-	 *
-	 */
-	public function __construct() {
-	}
 
 	/**
 	 * Pre-process the selectors to add Page status checks
@@ -1096,9 +1090,10 @@ class PageFinder extends Wire {
 
 	protected function getQuerySortSelector(DatabaseQuerySelect $query, Selector $selector) {
 
-		$field = is_array($selector->field) ? reset($selector->field) : $selector->field; 
+		// $field = is_array($selector->field) ? reset($selector->field) : $selector->field; 
 		$values = is_array($selector->value) ? $selector->value : array($selector->value); 	
 		$fields = $this->wire('fields'); 
+		$pages = $this->wire('pages');
 		$database = $this->wire('database');
 		$user = $this->wire('user'); 
 		$language = $this->wire('languages') && $user->language ? $user->language : null;
@@ -1108,12 +1103,19 @@ class PageFinder extends Wire {
 			$fc = substr($value, 0, 1); 
 			$lc = substr($value, -1); 
 			$value = trim($value, "-+"); 
+			$subValue = '';
+			$terValue = ''; // not currently used, here for future use
 
 			if(strpos($value, ".")) {
-				list($value, $subValue) = explode(".", $value); // i.e. some_field.title
-			} else {
-				$subValue = '';
+				list($value, $subValue) = explode(".", $value, 2); // i.e. some_field.title
+				if(strpos($subValue, ".")) {
+					list($subValue, $terValue) = explode(".", $subValue, 2);
+					if(strpos($terValue, ".")) throw new PageFinderSyntaxException("$value.$subValue.$terValue not supported");
+					$terValue = $this->wire('sanitizer')->fieldName($terValue);
+				}
+				$subValue = $this->wire('sanitizer')->fieldName($subValue);
 			}
+			$value = $this->wire('sanitizer')->fieldName($value);
 
 			if($value == 'random') { 
 				$value = 'RAND()';
@@ -1122,12 +1124,13 @@ class PageFinder extends Wire {
 				// sort by quantity of children
 				$value = $this->getQueryNumChildren($query, $this->wire(new SelectorGreaterThan('num_children', "-1"))); 
 
-			} else if($value == 'parent') {
-				// sort by parent native field. does not work with non-native parent fields. 
+			} else if($value == 'parent' && (empty($subValue) || $pages->loader()->isNativeColumn($subValue))) {
+				// sort by parent native field only
+				if(empty($subValue)) $subValue = 'name';
 				$subValue = $database->escapeCol($subValue);
-				$tableAlias = "_sort_parent" . ($subValue ? "_$subValue" : ''); 
-				$query->join("pages AS $tableAlias ON $tableAlias.id=pages.parent_id"); 
-				$value = "$tableAlias." . ($subValue ? $subValue : "name"); 
+				$tableAlias = "_sort_parent_$subValue";
+				$query->join("pages AS $tableAlias ON $tableAlias.id=pages.parent_id");
+				$value = "$tableAlias.$subValue";
 
 			} else if($value == 'template') { 
 				// sort by template
@@ -1135,27 +1138,38 @@ class PageFinder extends Wire {
 				$query->join("templates AS $tableAlias ON $tableAlias.id=pages.templates_id"); 
 				$value = "$tableAlias." . ($subValue ? $database->escapeCol($subValue) : "name"); 
 
-			} else if($fields->isNative($value)) {
-				// sort by a native field
-				
-				if(!strpos($value, ".")) {
-					// native field with no subfield
-					if($value == 'name' && $language && !$language->isDefault()  && $this->wire('modules')->isInstalled('LanguageSupportPageNames')) {
-						// substitute language-specific name field when LanguageSupportPageNames is active and language is not default
-						$value = "if(pages.name$language!='', pages.name$language, pages.name)";
-					} else {
-						$value = "pages." . $database->escapeCol($value);
-					}
+			} else if($fields->isNative($value) && !$subValue && $pages->loader()->isNativeColumn($value)) {
+				// sort by a native field (with no subfield)
+				if($value == 'name' && $language && !$language->isDefault()  && $this->wire('modules')->isInstalled('LanguageSupportPageNames')) {
+					// substitute language-specific name field when LanguageSupportPageNames is active and language is not default
+					$value = "if(pages.name$language!='', pages.name$language, pages.name)";
+				} else {
+					$value = "pages." . $database->escapeCol($value);
 				}
 
 			} else {
+				// sort by custom field, or parent w/custom field
+				
+				if($value == 'parent') {
+					$useParent = true;
+					$value = $subValue ? $subValue : 'title'; // needs a custom field, not "name"
+					$subValue = 'data';
+					$idColumn = 'parent_id';
+				} else {
+					$useParent = false;
+					$idColumn = 'id';
+				}
 				
 				$field = $fields->get($value);
-				if(!$field) continue; 
+				if(!$field) {
+					// unknown field
+					continue;
+				}
 				
 				$fieldName = $database->escapeCol($field->name); 
 				$subValue = $database->escapeCol($subValue);
-				$tableAlias = "_sort_$fieldName". ($subValue ? "_$subValue" : '');
+				$tableAlias = $useParent ? "_sort_parent_$fieldName" : "_sort_$fieldName";
+				if($subValue) $tableAlias .= "_$subValue";
 				$table = $database->escapeTable($field->table);
 				if($field->type instanceof FieldtypePage) {
 					$blankValue = new PageArray();
@@ -1163,7 +1177,7 @@ class PageFinder extends Wire {
 					$blankValue = $field->type->getBlankValue($this->wire('pages')->newNullPage(), $field);
 				}
 
-				$query->leftjoin("$table AS $tableAlias ON $tableAlias.pages_id=pages.id");
+				$query->leftjoin("$table AS $tableAlias ON $tableAlias.pages_id=pages.$idColumn");
 
 				if($subValue === 'count') {
 					// sort by quantity of items
@@ -1173,26 +1187,34 @@ class PageFinder extends Wire {
 					// If it's a FieldtypePage, then data isn't worth sorting on because it just contains an ID to the page
 					// so we also join the page and sort on it's name instead of the field's "data" field.
 					if(!$subValue) $subValue = 'name';
-					$tableAlias2 = "_sort_page_$fieldName" . ($subValue ? "_$subValue" : '');
+					$tableAlias2 = "_sort_" . ($useParent ? 'parent' : 'page') . "_$fieldName" . ($subValue ? "_$subValue" : '');
 				
-					if($this->wire('fields')->isNative($subValue)) {
-						$query->leftjoin("pages AS $tableAlias2 ON $tableAlias.data=$tableAlias2.id");
+					if($this->wire('fields')->isNative($subValue) && $pages->loader()->isNativeColumn($subValue)) {
+						$query->leftjoin("pages AS $tableAlias2 ON $tableAlias.data=$tableAlias2.$idColumn");
 						$value = "$tableAlias2.$subValue";
-						if($subValue == 'name' && $language && !$language->isDefault() 
-							&& $this->wire('modules')->isInstalled('LanguageSupportPageNames')) {
+						if($subValue == 'name' && $language && !$language->isDefault()
+							&& $this->wire('modules')->isInstalled('LanguageSupportPageNames')
+						) {
 							// append language ID to 'name' when performing sorts within another language and LanguageSupportPageNames in place
 							$value = "if($value$language!='', $value$language, $value)";
 						}
-					} else if($subValueField = $this->wire('fields')->get($subValue)) {
-						$subValueTable = $database->escapeTable($subValueField->getTable());
-						$query->leftjoin("$subValueTable AS $tableAlias2 ON $tableAlias.data=$tableAlias2.pages_id");
-						$value = "$tableAlias2.data";
-						if($language && !$language->isDefault() && $subValueField->type instanceof FieldtypeLanguageInterface) {
-							// append language id to data, i.e. "data1234"
-							$value .= $language;
-						}
+					} else if($subValue == 'parent') {
+						$query->leftjoin("pages AS $tableAlias2 ON $tableAlias.data=$tableAlias2.$idColumn");
+						$value = "$tableAlias2.name";
+						
 					} else {
-						// error: unknown field
+						$subValueField = $this->wire('fields')->get($subValue);
+						if($subValueField) {
+							$subValueTable = $database->escapeTable($subValueField->getTable());
+							$query->leftjoin("$subValueTable AS $tableAlias2 ON $tableAlias.data=$tableAlias2.pages_id");
+							$value = "$tableAlias2.data";
+							if($language && !$language->isDefault() && $subValueField->type instanceof FieldtypeLanguageInterface) {
+								// append language id to data, i.e. "data1234"
+								$value .= $language;
+							}
+						} else {
+							// error: unknown field
+						}
 					}
 					
 				} else if(!$subValue && $language && !$language->isDefault() && $field->type instanceof FieldtypeLanguageInterface) {
@@ -1200,13 +1222,16 @@ class PageFinder extends Wire {
 					$value = "if($tableAlias.data$language != '', $tableAlias.data$language, $tableAlias.data)";
 					
 				} else {
-					
+					// regular field, just sort by data column
 					$value = "$tableAlias." . ($subValue ? $subValue : "data"); ; 
 				}
 			}
 
-			if($fc == '-' || $lc == '-') $query->orderby("$value DESC", true);
-				else $query->orderby("$value", true); 
+			if($fc == '-' || $lc == '-') {
+				$query->orderby("$value DESC", true);
+			} else {
+				$query->orderby("$value", true);
+			}
 
 		}
 	}
@@ -1690,6 +1715,5 @@ class PageFinder extends Wire {
 	public function getOptions() {
 		return $this->lastOptions; 
 	}
-
 }
 
