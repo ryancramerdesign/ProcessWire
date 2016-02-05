@@ -15,10 +15,12 @@
  * 
  * @property string $root Site root: /
  * @property string $templates Site templates: /site/templates/
+ * @property string $fieldTemplates Site field templates /site/templates/fields/
  * @property string $adminTemplates Admin theme template files: /wire/templates-admin/ or /site/templates-admin/
  * @property string $modules Core modules: /wire/modules/
  * @property string $siteModules Site-specific modules: /site/modules/
  * @property string $core ProcessWire core files: /wire/core/
+ * @property string $site ProcessWire site files /site/
  * @property string $assets Site-specific assets: /site/assets/
  * @property string $cache Site-specific cache: /site/assets/cache/
  * @property string $logs Site-specific logs: /site/assets/logs/

@@ -666,7 +666,7 @@ abstract class Fieldtype extends WireData implements Module {
 		$value = null;
 		try {
 			$stmt = $query->prepare();
-			$result = $this->wire('pages')->executeQuery($stmt);
+			$result = $database->execute($stmt);
 		} catch(\Exception $e) {
 			$result = false;
 			$this->trackException($e, false, true);

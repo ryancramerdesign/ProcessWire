@@ -409,7 +409,7 @@ class WireFileTools extends Wire {
 		if($options['defaultPath'] && strpos($filename, './') === 0) {
 			$filename = rtrim($options['defaultPath'], '/') . '/' . substr($filename, 2);
 
-		} else if($options['defaultPath'] && strpos($filename, '/') !== 0) {
+		} else if($options['defaultPath'] && strpos($filename, '/') !== 0 && strpos($filename, ':') !== 1) {
 			// filename is relative to defaultPath (typically /site/templates/)
 			$filename = rtrim($options['defaultPath'], '/') . '/' . $filename;
 

@@ -227,7 +227,7 @@ function PageFrontEditInit($) {
 			language: langID,
 			fields: {}
 		};
-	
+
 		var postToken = $('input._post_token');
 		var csrfName = postToken.attr('name');
 		var csrfValue = postToken.val();
@@ -264,7 +264,7 @@ function PageFrontEditInit($) {
 		btnSaving.show();
 
 		// post save data to server
-		$.post('./', postData, function(data) {
+		$.post(ProcessWire.config.PageFrontEdit.pageURL, postData, function(data) {
 			btnSaving.hide();
 
 			if(data.status > 0) {

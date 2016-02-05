@@ -672,7 +672,8 @@ class PageFrontEdit extends WireData implements Module {
 				'css' => ($config->urls->$className) . "$className.css?nocache" . mt_rand(),	
 				'fa' => $config->urls->adminTemplates . "styles/font-awesome/css/font-awesome.min.css", 
 			),
-			'adminTheme' => $adminTheme ? $adminTheme : 'AdminThemeDefault'
+			'adminTheme' => $adminTheme ? $adminTheme : 'AdminThemeDefault',
+			'pageURL' => $this->wire('page')->url
 		);
 		
 		$scripts[] = "window.CKEDITOR_BASEPATH = '$ckeditor';";

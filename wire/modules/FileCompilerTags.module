@@ -24,17 +24,21 @@ class FileCompilerTags extends FileCompilerModule implements ConfigurableModule 
 	 *
 	 */
 	public function compileMarkup($data) {
-	
+
 		$markup =& $data;
 		if(strpos($markup, '{') === false || strpos($markup, '}') === false) return $markup;
 
+		$replacements = array();
 		$openTag = preg_quote($this->openTag, '#');
 		$closeTag = preg_quote($this->closeTag, '#');
 		$regex = '#' . $openTag . '([_a-zA-Z](?:[_.|a-zA-Z0-9]|->)+)' . $closeTag . '#';
 
 		if(!preg_match_all($regex, $markup, $matches)) return $markup;
-
+		
 		foreach($matches[1] as $key => $tag) {
+			
+			$full = $matches[0][$key];
+			if(isset($replacements[$full])) continue;
 
 			if(strpos($tag, '->') !== false) {
 				$tag = str_replace('->', '.', $tag);
@@ -71,8 +75,9 @@ class FileCompilerTags extends FileCompilerModule implements ConfigurableModule 
 					"echo '" . $matches[0][$key] . "';" .
 				"} ?" . ">";
 
-			$markup = str_replace($matches[0][$key], $replacement, $markup);
+			$replacements[$full] = $replacement;
 		}
+		$markup = str_replace(array_keys($replacements), array_values($replacements), $markup);
 
 		return $markup;
 	}

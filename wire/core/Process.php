@@ -119,6 +119,14 @@ abstract class Process extends WireData implements Module {
 	public function ___execute() { }
 
 	/**
+	 * Hookable method automatically called after execute() method has finished 
+	 * 
+	 * @param string $method Name of method that was executed
+	 * 
+	 */
+	public function ___executed($method) { }
+
+	/**
 	 * Get a value stored in this Process
 	 * 
 	 * @param string $key

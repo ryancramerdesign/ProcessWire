@@ -27,10 +27,6 @@
 	<link rel="stylesheet" type="text/css" href="<?php echo $config->urls->templates?>styles/ie.css" />
 	<![endif]-->	
 
-	<script type="text/javascript" src="<?php echo $config->urls->templates?>scripts/jquery-1.4.2.min.js"></script>
-
-	<script type="text/javascript" src="<?php echo $config->urls->templates?>scripts/main.js"></script>
-
 	<!-- This website is powered by ProcessWire CMF/CMS - https://processwire.com -->
 
 </head>

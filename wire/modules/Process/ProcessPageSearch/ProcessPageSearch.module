@@ -161,10 +161,25 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 		$status = 0;
 		$names = array();
 		$adminSearchStr = '';
+		$languages = $this->wire('languages');
+		$userLanguage = null;
+		$user = $this->wire('user');
 		
 		foreach($this->input->get as $name => $value) {
 			
 			if($name == 'get' || $name == 'display' || $name == 'format_name') continue; 
+			if($name == 'lang_id') {
+				if($languages) {
+					// force results for specific language
+					$language = $languages->get((int) $value);
+					if(!$language->id) continue;
+					if($user->language->id != $language->id) {
+						$userLanguage = $user->language;
+						$user->language = $language;
+					}
+				}
+				continue;
+			}
 
 			// operator has no '=', so we'll get the value from the name
 			// so that you can do something like: bedrooms>5 rather than bedrooms>=5
@@ -206,14 +221,14 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 			}
 
 			// if dealing with a user other than superuser, only allow include=hidden
-			if($name == 'include' && $value != 'hidden' && !$this->user->isSuperuser()) $value = 'hidden';
+			if($name == 'include' && $value != 'hidden' && !$user->isSuperuser()) $value = 'hidden';
 		
 			// don't allow setting of check_access property, except for superuser
-			if($name == 'check_access' && !$this->user->isSuperuser()) continue; 
+			if($name == 'check_access' && !$user->isSuperuser()) continue; 
 			
 			// don't allow setting of the 'status' property, except for superuser
 			if($name == 'status') {
-				if(!$this->user->isSuperuser()) continue; 
+				if(!$user->isSuperuser()) continue; 
 				$status = (int) $value;
 			}
 			
@@ -277,11 +292,13 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 			if(count($repeaters)) $selector .= ", has_parent!=" . $repeaters->first()->id; 
 		}
 
-		if($this->user->isSuperuser() && !$status && !preg_match('/\binclude=/', $selector)) {
+		if($user->isSuperuser() && !$status && !preg_match('/\binclude=/', $selector)) {
 			$selector .= ", include=all, status<" . Page::statusTrash; 
 		}
-
-		return $this->render($this->pages->find($selector), $displaySelector); 
+		
+		$out = $this->render($this->pages->find($selector), $displaySelector);
+		if($userLanguage) $user->language = $userLanguage;
+		return $out; 
 	}
 
 	/**

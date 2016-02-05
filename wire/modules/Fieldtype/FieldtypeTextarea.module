@@ -8,8 +8,14 @@
  * For documentation about the fields used in this class, please see:  
  * /wire/core/Fieldtype.php
  * 
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * ProcessWire 3.x (development), Copyright 2016 by Ryan Cramer
  * https://processwire.com
+ * 
+ * Properties set to $field that is using this type, acceessed by $field->get('property'):
+ *
+ * - contentType (int): Content type of field output using a self::contentType* constant (default=self::contentTypeUnknown)
+ * - htmlOptions (array): Options for content-type Markup/HTML using self::html* constants (default=null or blank array)
+ * - inputfieldClass (string): Inputfield class/module name to use for this field (default=InputfieldTextarea)
  *
  */
 
@@ -18,7 +24,7 @@ class FieldtypeTextarea extends FieldtypeText {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Textarea',
-			'version' => 104,
+			'version' => 106,
 			'summary' => 'Field that stores multiple lines of text',
 			'permanent' => true,
 		);
@@ -37,16 +43,40 @@ class FieldtypeTextarea extends FieldtypeText {
 	const contentTypeUnknown = 0;
 
 	/**
-	 * Indicates a Markup/HTML content type
+	 * Indicates a Markup/HTML content type with basic root path QA
 	 *
 	 */
 	const contentTypeHTML = 1;
 
 	/**
-	 * Indicates a Markup/HTML content type with image QA
+	 * Indicates a Markup/HTML content type with all htmlImage* options enabled
+	 * 
+	 */
+	const contentTypeImageHTML = 2;
+
+	/**
+	 * HTML options: <a> tag management to abstract page URLs in href attributes so they can be dynamically updated
 	 *
 	 */
-	const contentTypeImageHTML = 2; 
+	const htmlLinkAbstract = 2; 
+	
+	/**
+	 * HTML options: <img> tag management to replace blank alt attributes with file description
+	 * 
+	 */
+	const htmlImageReplaceBlankAlt = 4;
+	
+	/**
+	 * HTML options: <img> tag management to remove or re-create images that don't exist
+	 *
+	 */
+	const htmlImageRemoveNoExists = 8;
+	
+	/**
+	 * HTML options: <img> tag management to remove images that user doesn't have access to
+	 *
+	 */
+	const htmlImageRemoveNoAccess = 16;
 
 	/**
 	 * Instance of MarkupQA 
@@ -56,9 +86,18 @@ class FieldtypeTextarea extends FieldtypeText {
 	 */
 	protected $markupQA = null;
 
+	/**
+	 * Instanceof FieldtypeTextareaHelper 
+	 * 
+	 * @var FieldtypeTextareaHelper
+	 * 
+	 */
+	protected $configHelper = null;
+
 	public function init() {
 		$this->set('inputfieldClass', self::defaultInputfieldClass); 
 		$this->set('contentType', self::contentTypeUnknown); 
+		$this->set('htmlOptions', array());
 		parent::init();
 	}
 
@@ -68,7 +107,7 @@ class FieldtypeTextarea extends FieldtypeText {
 
 	public function ___markupValue(Page $page, Field $field, $value = null, $property = '') {
 		if(is_null($value)) $value = $page->getFormatted($field->name);
-		if($field->contentType >= self::contentTypeHTML) {
+		if($field->get('contentType') >= self::contentTypeHTML) {
 			$value = $this->formatValue($page, $field, $value); 	
 		} else {
 			$value = parent::___markupValue($page, $field, $value, $property);
@@ -83,7 +122,7 @@ class FieldtypeTextarea extends FieldtypeText {
 
 	public function ___sleepValue(Page $page, Field $field, $value) {
 		$value = parent::___sleepValue($page, $field, $value);
-		if($field->contentType >= self::contentTypeHTML) $this->htmlReplacements($page, $field,$value, true);
+		if($field->get('contentType') >= self::contentTypeHTML) $this->htmlReplacements($page, $field,$value, true);
 		return $value; 
 	}
 	
@@ -91,7 +130,7 @@ class FieldtypeTextarea extends FieldtypeText {
 		// note: we do this here in addition to loadPageField to account for values that came
 		// from external resources (not loaded from DB). 
 		$value = parent::___wakeupValue($page, $field, $value);
-		if($field->contentType >= self::contentTypeHTML) {
+		if($field->get('contentType') >= self::contentTypeHTML) {
 			$this->htmlReplacements($page, $field, $value, false);
 		}
 		return $value;
@@ -99,10 +138,29 @@ class FieldtypeTextarea extends FieldtypeText {
 	
 	public function ___loadPageField(Page $page, Field $field) {
 		$value = parent::___loadPageField($page, $field);
-		if($field->contentType >= self::contentTypeHTML) {
+		if($field->get('contentType') >= self::contentTypeHTML) {
 			$this->htmlReplacements($page, $field, $value, false);
 		}
 		return $value; 
+	}
+
+	/**
+	 * Get the MarkupQA instance
+	 * 
+	 * @param Page $page
+	 * @param Field $field
+	 * @return MarkupQA
+	 * @throws WireException If called the first time without page or field arguments
+	 * 
+	 */
+	public function markupQA(Page $page = null, Field $field = null) {
+		if(is_null($this->markupQA)) {
+			$this->markupQA = $this->wire(new MarkupQA($page, $field));
+		} else {
+			if($page) $this->markupQA->setPage($page);
+			if($field) $this->markupQA->setField($field);
+		}
+		return $this->markupQA;
 	}
 
 	/**
@@ -131,90 +189,116 @@ class FieldtypeTextarea extends FieldtypeText {
 	 * 	
 	 */
 	protected function htmlReplacements(Page $page, Field $field, &$value, $sleep = true) {
-		if(is_null($this->markupQA)) {
-			$this->markupQA = $this->wire(new MarkupQA($page, $field)); 
-		} else {
-			$this->markupQA->setPage($page);
-			$this->markupQA->setField($field);
-		}
+		
+		$languages = $this->wire('languages');
+		
 		if(is_array($value)) {
+			// array of values, most likely multi-language data123 columns from loadPageField 
 			foreach($value as $k => $v) {
-				$this->_htmlReplacement($v, $sleep, $field);
+				if(is_string($v)) {
+					$this->_htmlReplacement($page, $field, $v, $sleep);
+				} else {
+					$this->htmlReplacements($page, $field, $v, $sleep); // recursive
+				}
 				$value[$k] = $v;
 			}
-		} else if(is_object($value) && $value instanceof LanguagesValueInterface && $this->wire('languages')) {
+			
+		} else if(is_object($value) && $languages && $value instanceof LanguagesValueInterface && $value instanceof Wire) {
+			// most likely a LanguagesPageFieldValue, but can be any type implementing LanguagesValueInterface
+			/** @var Wire|LanguagesValueInterface $value */
 			$trackChanges = $value->trackChanges();
 			$value->setTrackChanges(false);
-			foreach($this->wire('languages') as $language) {
+			foreach($languages as $language) {
 				/** @var LanguagesValueInterface $value */
 				$v = $value->getLanguageValue($language->id);
-				$this->_htmlReplacement($v, $sleep, $field);
+				$this->_htmlReplacement($page, $field, $v, $sleep);
 				$value->setLanguageValue($language, $v, $field);
 			}
 			if($trackChanges) $value->setTrackChanges($trackChanges);
 			
 		} else if(is_string($value)) {
-			$this->_htmlReplacement($value, $sleep, $field);
+			// standard textarea string
+			$this->_htmlReplacement($page, $field, $value, $sleep);
 		}
 	}
 
 	/**
 	 * Helper for htmlReplacements, to process single value
 	 * 
-	 * @param string|array|LanguagesValueInterface $value
+	 * @param Page $page
+	 * @param Field $field
+	 * @param string $value
 	 * @param bool $sleep
-	 * @param int $contentType
 	 * 
 	 */
-	protected function _htmlReplacement(&$value, $sleep, Field $field) {
+	protected function _htmlReplacement(Page $page, Field $field, &$value, $sleep) {
+	
+		if(!strlen($value)) return;
+		
+		$markupQA = $this->markupQA($page, $field);
+		$contentType = $field->get('contentType');
+		$htmlOptions = $field->get('htmlOptions');
+		
+		if(!is_array($htmlOptions)) $htmlOptions = array();
+
 		if($sleep) {
-			$this->markupQA->sleepUrls($value);
+			$markupQA->sleepUrls($value);
+			if(in_array(self::htmlLinkAbstract, $htmlOptions)) $markupQA->sleepLinks($value);
 		} else {
-			$this->markupQA->wakeupUrls($value);
-			if($field->contentType >= self::contentTypeImageHTML) $this->markupQA->checkImgTags($value);
+			if(in_array(self::htmlLinkAbstract, $htmlOptions)) $markupQA->wakeupLinks($value);
+			$markupQA->wakeupUrls($value);
+			$useCheckImg = false;
+			if($contentType == self::contentTypeImageHTML) {
+				// keep default options, which means all enabled
+				$opts = array();
+				$useCheckImg = true;
+			} else {
+				// set image options specifically
+				$opts = array(
+					'replaceBlankAlt' => in_array(self::htmlImageReplaceBlankAlt, $htmlOptions),
+					'removeNoExists' => in_array(self::htmlImageRemoveNoExists, $htmlOptions),
+					'removeNoAccess' => in_array(self::htmlImageRemoveNoAccess, $htmlOptions)
+				);
+				foreach($opts as $val) if($val) $useCheckImg = true;
+			}
+			if($useCheckImg) $markupQA->checkImgTags($value, $opts);
 		}
 	}
 
+	/**
+	 * Get the Inputfield module that provides input for Field
+	 * 
+	 * @param Page $page
+	 * @param Field $field
+	 * @return Inputfield
+	 * 
+	 */
 	public function getInputfield(Page $page, Field $field) {
-	
-		if($field->inputfieldClass) {
-			$inputfield = $this->modules->getModule($field->inputfieldClass, array('noSubstitute' => true)); 
+
+		$inputfieldClass = $field->get('inputfieldClass');
+		
+		if($inputfieldClass) {
+			$inputfield = $this->modules->getModule($inputfieldClass, array('noSubstitute' => true)); 
 		} else {
 			$inputfield = $this->modules->get(self::defaultInputfieldClass); 
 		}
 		
 		if(!$inputfield) {
-			
 			$inputfield = $this->modules->get(self::defaultInputfieldClass);
-			$editURL = $this->wire('config')->urls->admin . "setup/field/edit?id=$field->id";
-			$modulesURL = $this->wire('config')->urls->admin . "module/";
-			$findURL = "http://modules.processwire.com/search/?q=$field->inputfieldClass";
-			$tab = '<br /> &nbsp; &nbsp; &nbsp;';
-			
-			$note = "<br /><small>TO INSTALL:$tab 1. <a href='$modulesURL'>Go to Modules</a>.$tab 2. click the \"New\" tab. $tab 3. For \"Module Class Name\" paste in \"$field->inputfieldClass\". $tab 4. Click \"Download &amp; Install\".";
-			$note .= "<br />TO CHANGE: $tab 1. <a href='$editURL'>Edit the field</a>. $tab 2. Click the \"Details\" tab. $tab 3. Select the \"Inputfield Type\". $tab 4. Click \"Save\".</small>";
-		
-			if($field->inputfieldClass == 'InputfieldTinyMCE') {
-				$this->wire('modules')->getInstall('InputfieldCKEditor'); // install it so it's ready for them
-				$this->error(
-					"Field '$field->name' uses TinyMCE, which is no longer part of the core. " . 
-					"Please install <a target='_blank' href='$findURL'>TinyMCE</a> " . 
-					"or change it to use CKEditor (or another).$note", 
-					Notice::allowMarkup); 
-				
-			} else if($field->inputfieldClass) {
-				$this->error(
-					"The module \"$field->inputfieldClass\" specified to provide input for field \"$field->name\" was not found. " . 
-					"Please <a target='_blank' href='$findURL'>install $field->inputfieldClass</a> " . 
-					"or convert the field to use another input type.$note", 
-					Notice::allowMarkup); 
-			}
+			$this->configHelper()->getInputfieldError($field);
 		}
 		
 		$inputfield->class = $this->className();
 		return $inputfield; 
 	}
 
+	/**
+	 * Get database schema used by the Field
+	 * 
+	 * @param Field $field
+	 * @return array
+	 * 
+	 */
 	public function getDatabaseSchema(Field $field) {
 		$schema = parent::getDatabaseSchema($field); 
 		$schema['data'] = 'mediumtext NOT NULL';
@@ -222,42 +306,31 @@ class FieldtypeTextarea extends FieldtypeText {
 		return $schema;
 	}
 
-	public function ___getConfigInputfields(Field $field) {
-
-		$inputfields = parent::___getConfigInputfields($field);
-		$f = $this->modules->get('InputfieldSelect');
-		$f->attr('name', 'inputfieldClass'); 
-		$f->attr('value', $field->inputfieldClass ? $field->inputfieldClass : self::defaultInputfieldClass); 
-		$f->label = $this->_('Inputfield Type');
-		$f->description = $this->_('The type of field that will be used to collect input (Textarea is the default). Note that if you change this and submit, the available configuration options in the "input" tab section may change.'); // Inputfield type description
-		$f->required = true; 
-
-		$baseClass = "InputfieldTextarea";
-		foreach($this->wire('modules')->find("className^=Inputfield") as $fm) {
-			if("$fm" == $baseClass || is_subclass_of($fm->className(true), __NAMESPACE__ . "\\$baseClass")) 
-				$f->addOption("$fm", str_replace("Inputfield", '', "$fm")); 
+	/**
+	 * Get an instance of the FieldtypeTextareaHelper config helper
+	 * 
+	 * @return FieldtypeTextareaHelper
+	 * 
+	 */
+	public function configHelper() {
+		if(is_null($this->configHelper)) {
+			require_once($this->wire('config')->paths->FieldtypeTextarea . 'FieldtypeTextareaHelper.php');
+			$this->configHelper = new FieldtypeTextareaHelper();
 		}
+		return $this->configHelper;
+	}
 
-		$inputfields->append($f); 	
-
-		$f = $this->modules->get('InputfieldRadios'); 
-		$f->attr('name', 'contentType'); 
-		$f->label = $this->_('Content Type'); 
-		$f->addOption(self::contentTypeUnknown, $this->_('Unknown')); 
-		$f->addOption(self::contentTypeHTML, $this->_('Markup/HTML'));
-		$f->addOption(self::contentTypeImageHTML, $this->_('Markup/HTML with image management')); 
-		$f->attr('value', (int) $field->contentType); 
-		$f->description = $this->_('The Markup/HTML choice (optionally with image management) is recommended for fields using rich text editors (TinyMCE, CKEditor, etc.) and those containing HTML. It provides additional runtime checks filtering for quality assurance.'); // Content type description
-		$f->notes = sprintf($this->_('For more information about the options above see [description of content type options](%s).'), 'https://processwire.com/api/fieldtypes/textarea-fieldtype/#content-type'); 
-		/*
-		$f->notes = $this->_('Choose the "Markup/HTML with image management" option to add the following runtime checks:') . "\n" . 
-			$this->_('1. Populate blank alt attributes with file description - ensures changes to file description are reflected in <img> alt attribute.') . "\n" . 
-			$this->_('2. Automatically re-create image size variations that do not exist.') . "\n" . 
-			$this->_('3. Remove <img> tags that point to files that do not exist.') . "\n" . 
-			$this->_('4. Record missing image errors to "markup-qa-errors" log file and send notification to system/admin user.'); 
-		*/
-		$inputfields->append($f); 
-		
+	/**
+	 * Get Inputfields to configure the Field
+	 * 
+	 * @param Field $field
+	 * @return InputfieldWrapper
+	 * 
+	 */
+	public function ___getConfigInputfields(Field $field) {
+		$this->markupQA()->setVerbose(true);
+		$inputfields = parent::___getConfigInputfields($field);
+		$inputfields = $this->configHelper()->getConfigInputfields($field, $inputfields);
 		return $inputfields; 
 	}
 

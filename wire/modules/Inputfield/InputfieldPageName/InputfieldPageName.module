@@ -156,7 +156,7 @@ class InputfieldPageName extends InputfieldName implements ConfigurableModule {
 			if($this->hasLanguagePageNames && $this->parentPage->id == $this->wire('config')->rootPageID) {
 				if($user->language->isDefault()) {
 					$parentName = $this->parentPage->name;
-					if(!trim($url, '/')) $url = ($parentName === 'home' ? "" : $parentName);
+					if(!trim($url, '/')) $url = ($parentName === Pages::defaultRootName ? "" : $parentName);
 				}
 			}
 		}
@@ -218,10 +218,10 @@ class InputfieldPageName extends InputfieldName implements ConfigurableModule {
 			$user = $this->wire('user');
 			if(!$languages->editable($user->language)) return $this;
 			$return = parent::___processInput($input);
-			if($user->language->isDefault()) {
-				$process = $this->wire('process');
-				if($process instanceof WirePageEditor && $process->getPage()->id == $this->wire('config')->rootPageID) {
-					if(!strlen($this->attr('value'))) $this->attr('value', 'home');
+			$process = $this->wire('process');
+			if($process instanceof WirePageEditor && $process->getPage()->id == $this->wire('config')->rootPageID) {
+				if(!strlen($this->attr('value'))) {
+					$this->attr('value', Pages::defaultRootName);
 				}
 			}
 		} else {

@@ -17,7 +17,7 @@
  * @method finished()
  * @method failed(\Exception $e)
  * @method sendFile($page, $basename)
- * @method string pageNotFound($page, $url, $triggerReady = false)
+ * @method string pageNotFound($page, $url, $triggerReady = false, $reason = '')
  *
  */
 class ProcessPageView extends Process {
@@ -128,7 +128,7 @@ class ProcessPageView extends Process {
 	/**
 	 * Retrieve a page, check access, and render
 	 * 
-	 * @param bool $internal True if request should be interanally processed. False if PW is bootstrapped externally. 
+	 * @param bool $internal True if request should be internally processed. False if PW is bootstrapped externally. 
 	 * @return string Output of request
  	 *
 	 */
@@ -139,6 +139,7 @@ class ProcessPageView extends Process {
 		$this->responseType = self::responseTypeNormal;
 		$config = $this->config; 
 		$debug = $config->debug; 
+		if($config->usePoweredBy !== null) header('X-Powered-By:' . ($config->usePoweredBy ? ' ProcessWire CMS' : ''));
 		if(is_array($config->pageNumUrlPrefixes)) foreach($config->pageNumUrlPrefixes as $prefix) {
 			$this->pageNumUrlPrefixes[$prefix] = $prefix;
 		}
@@ -156,7 +157,9 @@ class ProcessPageView extends Process {
 			$page->setOutputFormatting(true); 
 			$_page = $page;
 			$page = $this->checkAccess($page); 
-			if(!$page || $_page->id == $config->http404PageID) return $this->pageNotFound($_page, $this->requestURL, true); 
+			if(!$page || $_page->id == $config->http404PageID) {
+				return $this->pageNotFound($_page, $this->requestURL, true, 'access not allowed');
+			}
 			
 			if(!$this->delayRedirects) {
 				$this->checkProtocol($page); 
@@ -204,11 +207,11 @@ class ProcessPageView extends Process {
 				}
 
 			} catch(Wire404Exception $e) {
-				return $this->pageNotFound($page, $this->requestURL);
+				return $this->pageNotFound($page, $this->requestURL, false, '404 thrown during render');
 			}
 
 		} else {
-			return $this->pageNotFound(new NullPage(), $this->requestURL, true); 
+			return $this->pageNotFound(new NullPage(), $this->requestURL, true, 'requested page resolved to NullPage'); 
 		}
 
 	}
@@ -708,10 +711,11 @@ class ProcessPageView extends Process {
 	 * @param Page|null $page Page that was found if applicable (like if user didn't have permission or $page's template threw the 404). If not applicable then NULL will be given instead.
 	 * @param string $url The URL that the request originated from (like $_SERVER['REQUEST_URI'] but already sanitized)
 	 * @param bool $triggerReady Whether or not the ready() hook should be triggered (default=false)
+	 * @param string $reason Reason why 404 occurred, for debugging purposes (en text)
 	 * @throws WireException
 	 * @return string
 	 */
-	protected function ___pageNotFound($page, $url, $triggerReady = false) {
+	protected function ___pageNotFound($page, $url, $triggerReady = false, $reason = '') {
 
 		$this->responseType = self::responseTypeError; 
 		$config = $this->config;

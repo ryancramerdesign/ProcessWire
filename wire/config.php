@@ -966,6 +966,14 @@ $config->preloadCacheNames = array(
 $config->allowExceptions = false;
 
 /**
+ * Use the X-Powered-By header?
+ * 
+ * @var bool
+ * 
+ */
+$config->usePoweredBy = true;
+
+/**
  * Settings specific to InputfieldWrapper class
  *
  * Setting useDependencies to false may enable to use depencencies in some places where

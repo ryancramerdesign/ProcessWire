@@ -8,9 +8,8 @@
  * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
  * https://processwire.com
  *
- *
  * @property string $url URL to the file on the server	
- * @proeprty string $URL Same as $url property but with cache buster appended.
+ * @property string $URL Same as $url property but with cache buster appended.
  * @property string $filename full disk path to the file on the server
  * @property string $name Returns the filename without the path (basename)
  * @property string $basename Returns the filename without the path (alias of name)
@@ -25,6 +24,9 @@
  * @property Pagefiles $pagefiles the WireArray that contains this file
  * @property Page $page the $page that contains this file
  * @property Field $field the $field that contains this file
+ * 
+ * @method install($filename)
+ * @method httpUrl()
  *
  */
 
@@ -152,13 +154,15 @@ class Pagefile extends WireData {
 	 *
 	 * @param string $value
 	 * @param Page|Language Langage to set it for. Omit to determine automatically. 
-	 * @return this
+	 * @return $this
 	 *
 	 */
 	protected function setDescription($value, Page $language = null) {
 		
+		/** @var Language|null $language */
+		
 		$field = $this->field; 
-		$noLang = $field && $field->noLang; // noLang setting to disable multi-language from InputfieldFile
+		$noLang = $field && $field->get('noLang'); // noLang setting to disable multi-language from InputfieldFile
 
 		if(!is_null($language) && $language->id) {
 			$name = "description";
@@ -372,6 +376,8 @@ class Pagefile extends WireData {
 	
 	/**
 	 * Return the web accessible URL (with schema and hostname) to this Pagefile
+	 * 
+	 * @return string
 	 *
 	 */
 	public function ___httpUrl() {
@@ -382,6 +388,8 @@ class Pagefile extends WireData {
 
 	/**
 	 * Returns the disk path to the Pagefile
+	 * 
+	 * @return string
 	 *
 	 */
 	public function filename() {
@@ -463,7 +471,8 @@ class Pagefile extends WireData {
 	 *
 	 */
 	public function hash() {
-		if($hash = parent::get('hash')) return $hash; 	
+		$hash = parent::get('hash');
+		if($hash) return $hash; 	
 		$this->set('hash', md5($this->basename())); 
 		return parent::get('hash'); 
 	}
@@ -540,6 +549,10 @@ class Pagefile extends WireData {
 	 * Implement the hook that is called when a property changes (from Wire)
 	 *
 	 * Alert the $pagefiles of the change 
+	 * 
+	 * @param string $what
+	 * @param mixed $old
+	 * @param mixed $new
 	 *
 	 */
 	public function ___changed($what, $old = null, $new = null) {
@@ -552,6 +565,9 @@ class Pagefile extends WireData {
 
 	/**
 	 * Set the parent array container
+	 * 
+	 * @param Pagefiles $pagefiles
+	 * @return $this
 	 *
 	 */
 	public function setPagefilesParent(Pagefiles $pagefiles) {

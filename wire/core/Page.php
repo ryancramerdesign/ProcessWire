@@ -691,8 +691,14 @@ class Page extends WireData implements \Countable, WireMatchable {
 			return $this;
 		}
 
+		// check if the given key resolves to a Field or not
 		if(!$field = $this->getField($key)) {
 			// not a known/saveable field, let them use it for runtime storage
+			$valPrevious = parent::get($key);	
+			if($valPrevious !== null && is_null(parent::get("-$key")) && $valPrevious !== $value) {
+				// store previous value (if set) in a "-$key" version
+				parent::setQuietly("-$key", $valPrevious);
+			}
 			return parent::set($key, $value); 
 		}
 
