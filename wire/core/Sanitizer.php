@@ -507,6 +507,90 @@ class Sanitizer extends Wire {
 	}
 
 	/**
+	 * Convert a string containing markup or entities to be plain text
+	 * 
+	 * @param string $value
+	 * @param array $options
+	 * @return string
+	 * 
+	 */	
+	public function markupToText($value, array $options = array()) {
+
+		$defaults = array(
+			'newline' => "\n", // character(s) to replace newlines with
+			'separator' => "\n", // character(s) to separate list items with
+			'entities' => false,
+			'trim' => " -,:;|\n\t ", // character(s) to trim from beginning and end
+		);
+
+		$options = array_merge($defaults, $options);
+		$newline = $options['newline'];
+
+		if(strpos($value, "\r") !== false) {
+			// normalize newlines
+			$value = str_replace(array("\r\n", "\r"), "\n", $value);
+		}
+
+		// remove entities
+		$value = $this->wire('sanitizer')->unentities($value);
+
+		if(strpos($value, '<') !== false) {
+			// tag replacements before strip_tags()
+			$regex =
+				'!(?:<' .
+				'/?(?:ul|ol|p|h\d|div)(?:>|\s[^><]*)' .
+				'|br[\s/]*' .
+				')>!is';
+			$value = preg_replace($regex, $newline, $value);
+			if(stripos($value, '</li>')) {
+				$value = preg_replace('!</li>\s*<li!is', "$options[separator]<li", $value);
+			}
+		}
+	
+		// remove tags
+		$value = trim(strip_tags($value));
+
+		if($newline != "\n") {
+			// if newline is not "\n", don't allow them to be repeated together
+			$value = str_replace("\n", $newline, $value);
+			$test = "$newline$newline";
+			$repl = "$newline";
+		} else {
+			// if newline is whitespace (i.e. "\n") then only allow max of 2 together
+			$test = "$newline$newline$newline";
+			$repl = "$newline$newline";
+		}
+
+		while(strpos($value, $test) !== false) {
+			// limit quantity of newlines
+			$value = str_replace($test, $repl, $value);
+		}
+	
+		// entity-encode text value, if requested
+		if($options['entities']) $value = $this->entities($value);
+	
+		// trim characters from beginning and end
+		$_value = trim($value, $options['trim'] . $options['newline']);
+		if(strlen($_value)) $value = $_value;
+		
+		return $value;
+	}
+
+	/**
+	 * Same as markupToText but only allows a single line of text
+	 * 
+	 * @param string $value 
+	 * @param array $options
+	 * @return string
+	 * 
+	 */
+	public function markupToLine($value, array $options = array()) {
+		if(!isset($options['newline'])) $options['newline'] = $options['newline'] = " "; 
+		if(!isset($options['separator'])) $options['separator'] = ", ";
+		return $this->markupToText($value, $options);
+	}
+
+	/**
 	 * Returns a valid URL, or blank if it can't be made valid
 	 *
 	 * Performs some basic sanitization like adding a protocol to the front if it's missing, but leaves alone local/relative URLs.
