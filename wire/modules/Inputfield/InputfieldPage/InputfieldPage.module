@@ -350,6 +350,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 				}
 				if(!strlen($label)) $label = $child->name; 
 				if($child->hasStatus(Page::statusUnpublished)) $label .= ' ' . $this->_('(unpublished)');
+				$label = $this->wire('sanitizer')->markupToLine($label);
 				$inputfield->addOption($child->id, $label);
 			}
 		} else {
@@ -415,11 +416,15 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		if($this->findPagesSelector) {
 			$selector = $this->wire('sanitizer')->entities($this->findPagesSelector); 
 			$formatName = '';
-			if(strlen($this->labelFieldFormat) && $this->labelFieldName === '.') {
+			if($this->wire('user')->hasPermission('page-edit') && strlen($this->labelFieldFormat) && $this->labelFieldName === '.') {
 				/** @var ProcessPageSearch $pps */
 				$formatName = "page_$this->name";
-				$pps = $this->wire('modules')->get('ProcessPageSearch');
-				$pps->setDisplayFormat($formatName, $this->labelFieldFormat);
+				try {
+					$pps = $this->wire('modules')->get('ProcessPageSearch');
+					$pps->setDisplayFormat($formatName, $this->labelFieldFormat);
+				} catch(\Exception $e) {
+					// most likely user does not have access to ProcessPageSearch
+				}
 			}
 			$labelFieldName = $this->labelFieldName == '.' ? 'name' : $this->labelFieldName;	
 			$out .= "<input " . 

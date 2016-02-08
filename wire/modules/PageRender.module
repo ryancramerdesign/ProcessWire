@@ -20,7 +20,7 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 		return array(
 			'title' => __('Page Render', __FILE__), // Module Title
 			'summary' => __('Adds a render method to Page and caches page output.', __FILE__), // Module Summary
-			'version' => 104, 
+			'version' => 105, 
 			'permanent' => true, 
 			'singular' => true, 
 			'autoload' => true, 
@@ -65,7 +65,7 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 		$this->useFuel(false);
 		$this->config = $this->wire('config'); 
 		$this->addHook('Page::render', $this, 'renderPage');
-		$this->addHook('Page::renderField', $this, 'renderField');
+		// $this->addHook('Page::renderField', $this, 'renderField');
 		$this->wire('pages')->addHookAfter('save', $this, 'clearCacheFile'); 
 		$this->wire('pages')->addHookAfter('delete', $this, 'clearCacheFile'); 
 		// $this->addHookAfter('Fieldtype::savePageField', $this, 'savePageField'); // removed, see note in commented function
@@ -321,18 +321,18 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 	 * 
 	 * We use this to determine if Page::render() should be a render() or a renderField()
 	 * 
-	 * @param HookEvent $e
+	 * @param HookEvent $event
 	 * 
 	 */
 	public function beforeRenderPage(HookEvent $event) {
 		$fieldName = $event->arguments(0);
 		if($fieldName && is_string($fieldName) && $this->wire('sanitizer')->fieldName($fieldName) === $fieldName) {
 			// render field requested, cancel page render and hooks, and delegate to renderField
-			$basename = $event->arguments(1); // optional basename of file to use for render
-			if(!is_string($basename)) $basename = null;
+			$file = $event->arguments(1); // optional basename of file to use for render
+			if(!is_string($file)) $file = null;
 			$event->cancelHooks = true;
 			$event->replace = true;
-			$event->return = $event->object->renderField($fieldName, null, $basename);
+			$event->return = $event->object->renderField($fieldName, $file);
 		}
 	}
 
@@ -512,93 +512,136 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 	}
 
 	/**
-	 * Implements the Page::renderField($key, $value = null) method
+	 * Renders a field value
 	 * 
-	 * hook method arguments: 
-	 * - arg0: field name
-	 * - arg1: optional $value to use (default=pull from page) 
-	 * - arg2: optional basename of file in /site/templates/fields/ to use for render (default=auto determine)
+	 * if $fieldName is omitted (blank), a $file and $value must be provided
 	 * 
-	 * @param HookEvent $e
+	 * @param Page $page
+	 * @param string $fieldName
+	 * @param string $file
+	 * @param mixed $value
+	 * @return string|mixed
 	 *
 	 */
-	public function ___renderField(HookEvent $event) {
-		
-		$page = $event->object; 
-		
-		// arg0: field name
-		$arg0 = $event->arguments(0);
-		$key = $this->wire('sanitizer')->fieldName($arg0);
-		if(!$key || $key !== $arg0) {
-			$event->return = '';
-			return;
+	public function renderField(Page $page, $fieldName, $file = '', $value = null) {
+
+		/*
+		if(strpos($fieldName, '/') && empty($file)) {
+			$file = $fieldName;
+			$fieldName = '';	
+		}
+		*/
+		if(strlen($fieldName)) {
+			$fieldName = $this->wire('sanitizer')->fieldName($fieldName);
 		}
 	
-		// arg1: value, if not default from page
-		$value = $event->arguments(1);
-		if(is_null($value)) $value = $page->getFormatted($key);
-		if(is_null($value)) {
-			$event->return = '';
-			return;
-		}	
+		if(is_null($value) && $fieldName) $value = $page->getFormatted($fieldName);
+		if(is_null($value)) return '';
 		
 		$path = $this->wire('config')->paths->fieldTemplates;
-		$file = '';
 		$files = array();
 		
-		// arg2: filename to use for render, if not default
-		$basename = $event->arguments(2);
-		if($basename) {
-			if(substr($basename, -4) != '.php') $basename .= '.php';
-			if(strpos($basename, '\\') !== false) $basename = str_replace('\\', '/', $basename);
-			if(strpos($basename, '/') !== false) {
-				// i.e. custom_dir/custom_name.php
-				$basename = trim($basename, '/');
-				$parts = explode('/', $basename);
+		if($file) {
+			// a render file or path was specified
+			if(strpos($file, '\\') !== false) $file = str_replace('\\', '/', $file);
+			$hasTrailingSlash = substr($file, -1) == '/';
+			$hasLeadingSlash = strpos($file, '/') === 0;
+			$file = trim($file, '/');
+			if(substr($file, -4) == '.php') $file = substr($file, 0, -4);
+			
+			if($hasLeadingSlash && $file) {
+				// VERY SPECIFIC
+				// use only what was specified
+				$files[] = $file;
+
+			} else if(!$hasTrailingSlash && strpos($file, '/') !== false) {
+				// SPECIFIC RENDER FILE
+				// file includes a directory off of fields/[dir]
+				$parts = explode('/', $file);
 				foreach($parts as $key => $part) {
 					$parts[$key] = $this->wire('sanitizer')->name($part);
 				}
-				$basename = implode('/', $parts);
-				$basename = str_replace('..', '', $basename);
-				// i.e. site/templates/fields/custom_dir/custom_name.php
-				$files[] = "$path$basename";
+				$file = implode('/', $parts);
+				$file = str_replace('..', '', $file);
+				// i.e. fields/custom_dir/custom_name.php
+				$files[] = $file;
+				
+			} else if($hasTrailingSlash && $fieldName) {
+				// GROUP DIRECTORY
+				// specifies a group name, referring to a directory, i.e. "group_name/"
+				// i.e. fields/custom_name/field_name.php
+				$files[] = "$file/$fieldName";
+				
+			} else if($fieldName) {
+				// FIELD DIRECTORY WITH CUSTOM NAMED RENDER FILE
+				// i.e. fields/field_name/custom_name.php
+				$files[] = "$fieldName/$file";
+
+				// GROUP DIRECTORY WITH FIELD NAMED RENDER FILE
+				// i.e. fields/field_name/custom_name.php
+				$files[] = "$file/$fieldName";
+		
+				// CUSTOM NAMED RENDER FILE ONLY (NO GROUP)
+				// i.e. fields/custom_name.php
+				$files[] = $file;
 			} else {
-				// i.e. site/templates/fields/field_name.custom_name.php
-				$files[] = "$path$key.$basename";
+				$files[] = $file;
 			}
-			// i.e. site/templates/fields/custom_name.php
-			$files[] = "$path$basename";
+		} else if($fieldName) {
+			// no render file was specified, check for possible template context files
+			
+			// FIELD DIRECTORY WITH TEMPLATE NAME
+			// i.e. fields/field_name/template_name.php
+			$files[] = "$fieldName/{$page->template->name}";
+			
+			// TEMPLATE DIRECTORY WITH FIELD NAME
+			// i.e. fields/template_name/field_name.php
+			$files[] = "{$page->template->name}/$fieldName";
+			
+			// FIELD NAME WITH TEMPLATE NAME
+			// i.e. fields/field_name.template_name.php
+			$files[] = "$fieldName.{$page->template->name}";
+
 		}
 	
-		// i.e. site/templates/fields/field_name.template_name.php
-		$files[] = "$path$key.{$page->template->name}.php";
-		// i.e. site/templates/fields/field_name.php
-		$files[] = "$path$key.php";
+		// LAST FALLBACK/DEFAULT
+		// i.e. fields/field_name.php
+		if($fieldName) $files[] = $fieldName;
+	
+		$renderFile = '';
 	
 		foreach($files as $f) {
-			if(!is_file($f)) continue;
-			$file = $f;
+			$file = "$path$f.php";
+			if(!is_file($file)) continue;
+			$renderFile = $file;
 			break;
 		}
 		
-		if(!$file) {
-			$event->return = $page->getMarkup($key);
-			return;
+		if(!$renderFile) {
+			if($fieldName) {
+				return $page->getMarkup($fieldName);
+			} else {
+				return '';
+			}
 		}
-		
-		$field = $page->getField($key);
-		if(!$field) $field = $this->wire('fields')->get($key);
 	
-		if($this->wire('config')->templateCompile) {
-			$file = $this->wire('files')->compile($file);
+		if($fieldName) {
+			$field = $page->getField($fieldName);
+			if(!$field) $field = $this->wire('fields')->get($fieldName);
+		} else {
+			$field = null;
 		}
 		
-		$tpl = $this->wire(new TemplateFile($file));
+		if($this->wire('config')->templateCompile) {
+			$renderFile = $this->wire('files')->compile($renderFile);
+		}
+		
+		$tpl = $this->wire(new TemplateFile($renderFile));
 		$tpl->set('page', $page);
 		$tpl->set('value', $value);
 		$tpl->set('field', $field);
 		
-		$event->return = $tpl->render();
+		return $tpl->render();
 	}
 
 	/**

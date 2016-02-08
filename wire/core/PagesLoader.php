@@ -31,7 +31,21 @@ class PagesLoader extends Wire {
 	 * 
 	 */
 	protected $pages;
-	
+
+	/**
+	 * Columns native to pages table
+	 * 
+	 * @var array
+	 * 
+	 */
+	protected $nativeColumns = array();
+
+	/**
+	 * Construct
+	 * 
+	 * @param Pages $pages
+	 * 
+	 */
 	public function __construct(Pages $pages) {
 		$this->pages = $pages;
 	}
@@ -645,8 +659,8 @@ class PagesLoader extends Wire {
 			return $path;
 		}
 
-		// if PagePaths module is installed, and using default language, attempt to get from PagePaths module
-		if(!$languageID && $options['usePagePaths'] && $this->wire('modules')->isInstalled('PagePaths')) {
+		// if PagePaths module is installed, and not in multi-language environment, attempt to get from PagePaths module
+		if(!$languages && !$languageID && $options['usePagePaths'] && $this->wire('modules')->isInstalled('PagePaths')) {
 			/** @var PagePaths $pagePaths */
 			$pagePaths = $this->modules->get('PagePaths');
 			$path = $pagePaths->getPath($id);
@@ -906,6 +920,38 @@ class PagesLoader extends Wire {
 		}
 		$itemsAllowed->resetTrackChanges(true);
 		return $itemsAllowed;
+	}
+
+	/**
+	 * Returns an array of all columns native to the pages table
+	 * 
+	 * @return array of column names, also indexed by column name
+	 * 
+	 */
+	public function getNativeColumns() {
+		if(empty($this->nativeColumns)) {
+			$query = $this->wire('database')->prepare("SELECT * FROM pages WHERE id=:id");
+			$query->bindValue(':id', $this->wire('config')->rootPageID);
+			$query->execute();
+			$row = $query->fetch(\PDO::FETCH_ASSOC);
+			foreach(array_keys($row) as $colName) {
+				$this->nativeColumns[$colName] = $colName;
+			}
+			$query->closeCursor();
+		}
+		return $this->nativeColumns;	
+	}
+
+	/**
+	 * Is the given column name native to the pages table?
+	 * 
+	 * @param $columnName
+	 * @return bool
+	 * 
+	 */
+	public function isNativeColumn($columnName) {
+		$nativeColumns = $this->getNativeColumns();
+		return isset($nativeColumns[$columnName]);
 	}
 	
 }

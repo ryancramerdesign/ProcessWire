@@ -3832,6 +3832,10 @@ class Modules extends WireArray {
 				$toVersion = $this->formatVersion($moduleInfo['version']);
 				$versionChanges[] = "$moduleInfo[name]: $fromVersion => $toVersion";
 				$this->modulesLastVersions[$id] = $moduleVersions[$id];
+				if(strpos($moduleInfo['name'], 'Fieldtype') === 0) {
+					// apply update now, to Fieldtype modules only (since they are loaded differently)
+					$this->getModule($moduleInfo['name']);
+				}
 			}
 		}
 	

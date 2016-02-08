@@ -13,6 +13,7 @@
  * https://processwire.com
  *
  * @todo: automatic sorting.
+ * @todo: look into possibility of only creating repeater parents when there is at least one item.
  * 
  * @property int $repeatersRootPageID
  * @method saveConfigInputfields(Field $field, Template $template, Page $parent)
@@ -32,7 +33,7 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 		return array(
 			'title' => __('Repeater', __FILE__), // Module Title
 			'summary' => __('Maintains a collection of fields that are repeated for any number of times.', __FILE__), // Module Summary
-			'version' => 104,
+			'version' => 105,
 			'autoload' => true,
 			'installs' => 'InputfieldRepeater'
 			);
@@ -101,8 +102,6 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 	public function ready() {
 		// if(in_array('WirePageEditor', wireClassImplements((string) $this->wire('page')->process))) { // @todo
 	
-
-		
 		if($this->wire('page')->process == 'ProcessPageEdit') {
 			
 			$this->addHookBefore('ProcessPageEdit::ajaxSave', $this, 'hookProcessPageEditAjaxSave');
@@ -268,24 +267,11 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 		if(!$repeaterPage->id) return; 
 
 		// check that the given repeaterPage is actually a repeater component of the ownerPage
-		$ownerPageField = null;
-		foreach($ownerPage->fieldgroup as $field) {
-			if($field->type instanceof FieldtypeRepeater) {
-				//$pageArray = $ownerPage->getUnformatted($field->name); 	
-				//echo var_export($pageArray); 
-				$grandparent = $this->getRepeaterParent($field);
-				$parent = $grandparent->child('name=' . self::repeaterPageNamePrefix . $ownerPage->id . ', include=all');
-				if(!$parent->id) continue; 
-				$child = $parent->child('include=all, id=' . $repeaterPage->id);
-				if($child->id) { 
-					// found it, it's valid
-					$ownerPageField = $field;
-					break;
-				}
-			}
+		if(!$this->isRepeaterItemValidOnPage($repeaterPage, $ownerPage)) {
+			$this->error("Repeater item $repeaterPage not valid for owner page $ownerPage");
+			return;
 		}
-		if(!$ownerPageField) return;
-
+		
 		// repopulate the ProcessPageEdit::ajaxSave function's argument to be the repeaterPage rather than the ownerPage
 		$args = $event->arguments; 
 		$args[0] = $repeaterPage; 
@@ -305,6 +291,51 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 
 		// ensures that InputfieldFile outputs markup with the proper fieldname, including the repeater_ part
 		$this->addHookBefore('InputfieldFile::renderItem', $this, 'hookInputfieldFileRenderItem'); 
+	}
+
+	/**
+	 * Is the given repeater item valid on the given owner page?
+	 * 
+	 * @param Page $repeaterItem
+	 * @param Page $ownerPage
+	 * @return null|Field Returns the repeater Field object that is valid, or null if not valid
+	 * 
+	 */
+	protected function isRepeaterItemValidOnPage(Page $repeaterItem, Page $ownerPage) {
+		
+		$hasField = null;
+		$repeaters = array();
+		
+		foreach($ownerPage->fieldgroup as $f) {
+			if(!$f->type instanceof FieldtypeRepeater) continue;
+			$repeaters[$f->name] = $f->name;
+			$grandparent = $this->getRepeaterParent($f);
+			$name = self::repeaterPageNamePrefix . $ownerPage->id; 
+			$parent = $grandparent->child("name=$name, include=all");
+			if(!$parent->id) continue;
+			$child = $parent->child("include=all, id=$repeaterItem->id");
+			if($child->id) {
+				// found it, it's valid
+				$hasField = $f;
+				break;
+			}
+		}
+		
+		if($hasField) return $hasField;
+		
+		// check for nested repeater
+		foreach($repeaters as $name) {
+			$repeaterItems = $ownerPage->get($name);	
+			if(!$repeaterItems || !$repeaterItems instanceof PageArray) continue;
+			foreach($repeaterItems as $nestedOwnerPage) {
+				// perform recursive check
+				$hasField = $this->isRepeaterItemValidOnPage($repeaterItem, $nestedOwnerPage);
+				if($hasField) break;
+			}
+			if($hasField) break;	
+		}
+		
+		return $hasField;
 	}
 
 	/**

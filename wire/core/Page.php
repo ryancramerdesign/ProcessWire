@@ -61,8 +61,7 @@
  * 
  * Methods added by PageRender.module: 
  * -----------------------------------
- * @method string render() Returns rendered page markup. echo $page->render();
- * @method string renderField($fieldName, $value = null) Returns rendered field markup. echo $page->renderField('title');
+ * @method string|mixed render() Returns rendered page markup. If given a $fieldName argument, it behaves same as the renderField() method.
  * 
  * Methods added by PagePermissions.module: 
  * ----------------------------------------
@@ -78,7 +77,7 @@
  * @method bool sortable() Returns true if the current user can change the sort order of the current page (within the same parent). 
  *
  * Methods added by LanguageSupport.module (not installed by default) 
- * ------------------------------------------------------------------
+ * -----------------------------------------------------------------
  * @method Page setLanguageValue($language, $fieldName, $value) Set value for field in language (requires LanguageSupport module). $language may be ID, language name or Language object.
  * @method Page getLanguageValue($language, $fieldName) Get value for field in language (requires LanguageSupport module). $language may be ID, language name or Language object. 
  * 
@@ -94,6 +93,8 @@
  * @method void setEditor(WirePageEditor $editor)
  * @method string getIcon()
  * @method string getMarkup($key) Return the markup value for a given field name or {tag} string.
+ * @method string|mixed renderField($fieldName, $file = '') Returns rendered field markup, optionally with file relative to templates/fields/
+ * @method string|mixed renderValue($value, $file) Returns rendered markup for $value using $file relative to templates/fields/
  *
  */
 
@@ -1832,6 +1833,52 @@ class Page extends WireData implements \Countable, WireMatchable {
 		foreach($fuel as $key => $value) $this->output->set($key, $value); 
 		$this->output->set('page', $this); 
 		return $this->output; 
+	}
+
+	/**
+	 * Render given $fieldName using site/templates/fields/ markup file 
+	 * 
+	 * Shorter aliases of this method include:
+	 * 
+	 *   $page->render(fieldName, file); 
+	 *   $page->render->fieldName;
+	 *   $page->_fieldName_;
+	 * 
+	 * This method expects that there is a file in /site/templates/fields/ to render the field with:
+	 * 
+	 *   /site/templates/fields/fieldName.php
+	 *   /site/templates/fields/fieldName.templateName.php 
+	 *   /site/templates/fields/fieldName/$file.php (using $file argument)
+	 *   /site/templates/fields/$file.php
+	 *   /site/templates/fields/$file/fieldName.php (using $file argument, must have trailing slash)
+	 *   /site/templates/fields/$file.fieldName.php (using $file argument, must have trailing period)
+	 * 
+	 * Note that the examples aboe using $file require that the $file argument is specified. 
+	 * 
+	 * @param string $fieldName May be any custom field name or native page property
+	 * @param string $file Optionally specify file (in site/templates/fields/) to render with (may omit .php extension)
+	 * @param mixed|null $value Optionally specify value to render, otherwise it will be pulled from this $page. 
+	 * @return mixed|string
+	 * 
+	 */
+	public function ___renderField($fieldName, $file = '', $value = null) {
+		/** @var PageRender $pageRender */
+		$pageRender = $this->wire('modules')->get('PageRender');
+		return $pageRender->renderField($this, $fieldName, $file, $value);
+	}
+
+	/**
+	 * Render given $value using given site/templates/fields/ markup file
+	 * 
+	 * See the documentation for the renderField() method above for information about the $file argument. 
+	 *
+	 * @param mixed $value
+	 * @param string $file Optionally specify file (in site/templates/fields/) to render with (may omit .php extension)
+	 * @return mixed|string
+	 *
+	 */
+	public function ___renderValue($value, $file = '') {
+		return $this->___renderField('', $file, $value);
 	}
 
 	/**

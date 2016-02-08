@@ -32,6 +32,12 @@ class PagePaths extends WireData implements Module {
 	const dbTableName = 'pages_paths';
 
 	/**
+	 * @var Languages|false
+	 *
+	 */
+	protected $languages = null;
+
+	/**
 	 * Initialize the hooks
 	 *
 	 */
@@ -40,6 +46,45 @@ class PagePaths extends WireData implements Module {
 		$this->pages->addHook('renamed', $this, 'hookPageMoved'); 
 		$this->pages->addHook('added', $this, 'hookPageMoved'); 
 		$this->pages->addHook('deleted', $this, 'hookPageDeleted');
+	}
+	
+	public function ready() {
+		$page = $this->wire('page');
+		if($page->template == 'admin' && $page->name == 'module') {
+			$this->wire('modules')->addHookAfter('refresh', $this, 'hookModulesRefresh');
+		}
+	}
+
+	/**
+	 * Returns Languages object or false if not available
+	 *
+	 * @return Languages|null
+	 *
+	 */
+	public function getLanguages() {
+		if(!is_null($this->languages)) return $this->languages;
+		$languages = $this->wire('languages');
+		if(!$languages) return null;
+		if(!$this->wire('modules')->isInstalled('LanguageSupportPageNames')) {
+			$this->languages = false;
+		} else {
+			$this->languages = $this->wire('languages');
+		}
+		return $this->languages;
+	}
+
+	/**
+	 * Hook to ProcessModule::refresh
+	 * 
+	 * @param HookEvent $event
+	 * 
+	 */
+	public function hookModulesRefresh(HookEvent $event) {
+		if($this->getLanguages()) {
+			$this->wire('session')->warning(
+				$this->_('Please uninstall the Core > PagePaths module (it is not compatible with LanguageSupportPageNames)')
+			);
+		}
 	}
 
 	/**
@@ -65,15 +110,15 @@ class PagePaths extends WireData implements Module {
 	}
 
 	/**
-	 * Given a page ID, return the page path or NULL if not found.
+	 * Given a page ID, return the page path, NULL if not found, or boolean false if cannot be determined.
 	 *
 	 * @param int $id
-	 * @return string|null
+	 * @return string|null|false
 	 *
 	 */
 	public function getPath($id) {
+		if($this->getLanguages()) return false; // we do not support multi-language yet for this module
 		$table = self::dbTableName;
-		$id = (int) $id; 
 		$database = $this->wire('database');
 		$query = $database->prepare("SELECT path FROM `$table` WHERE pages_id=:pages_id"); 
 		$query->bindValue(":pages_id", $id, \PDO::PARAM_INT);
