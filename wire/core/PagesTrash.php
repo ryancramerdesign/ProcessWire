@@ -77,7 +77,7 @@ class PagesTrash extends Wire {
 	 * @return bool
 	 *
 	 */
-	protected function restore(Page $page, $save = true) {
+	public function restore(Page $page, $save = true) {
 
 		if(preg_match('/^(' . $page->id . ')((?:\.\d+\.\d+)?)_(.+)$/', $page->name, $matches)) {
 
