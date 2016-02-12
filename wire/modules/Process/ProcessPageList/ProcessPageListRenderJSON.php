@@ -123,6 +123,7 @@ class ProcessPageListRenderJSON extends ProcessPageListRender {
 			'limit' => $this->limit,
 		);
 
+		if($this->getOption('getArray')) return $json;
 		header("Content-Type: application/json;");
 		return json_encode($json);
 	}

@@ -132,13 +132,16 @@ class PageFrontEdit extends WireData implements Module {
 		
 		$contentType = $page->template->contentType;
 		if($contentType && $contentType != 'html' && $contentType != 'text/html') return;
-		
+	
 		if(count($this->demoPages) && in_array($page->id, $this->demoPages)) {
 			// allow this through, for demo mode
 			$isDemo = true;
 		} else {
 			$user = $this->wire('user');
-			if($user->isGuest() || !$page->editable() || !$user->hasPermission('page-edit-front', $page)) {
+			if($user->isGuest() 
+				|| ($page->hasStatus(Page::statusDraft) && !$page->get('_isDraft'))
+				|| !$page->editable() 
+				|| !$user->hasPermission('page-edit-front', $page)) {
 				// replace any <edit> tags or "edit" attributes in the markup
 				$this->addHookAfter('Page::render', $this, 'hookPageRenderNoEdit');
 				return;

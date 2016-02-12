@@ -3,13 +3,15 @@
  *
  * Provides the Javascript/jQuery implementation of the PageList process when used with the JSON renderer
  * 
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * ProcessWire 3.x (development), Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  */
 
 function ProcessPageListInit() {
-	if(ProcessWire.config.ProcessPageList) $('#' + ProcessWire.config.ProcessPageList.containerID).ProcessPageList(ProcessWire.config.ProcessPageList); 
+	if(ProcessWire.config.ProcessPageList) {
+		$('#' + ProcessWire.config.ProcessPageList.containerID).ProcessPageList(ProcessWire.config.ProcessPageList);
+	}
 }
 
 $(document).ready(function() {
@@ -95,8 +97,11 @@ $(document).ready(function() {
 			// pagination number that you want to open (to correspond with openPageIDs)
 			openPagination: 0, 
 
-			// ID sof the pages that we want to automatically open (default none) 
+			// IDs of the pages that we want to automatically open (default none) 
 			openPageIDs: [],
+		
+			// pre-rendered data corresponding to openPageIDs, indexed by '_123' where 123 is id
+			openPageData: {},
 
 			// speed at which the slideUp/slideDown run (in ms)
 			speed: 200,
@@ -116,8 +121,13 @@ $(document).ready(function() {
 			// session field name that holds page label format, when used
 			labelName: '',
 		};
-			
-
+	
+		// array of "123.0" (page_id.start) that are currently open (used in non-select mode only)
+		var currentOpenPageIDs = [];
+	
+		// true when operations are occurring where we want to ignore clicks
+		var ignoreClicks = false;
+	
 		$.extend(options, customOptions);
 
 		return this.each(function(index) {
@@ -127,7 +137,6 @@ $(document).ready(function() {
 			var $loading = $(options.spinnerMarkup).addClass('PageListLoading');
 			var firstPagination = 0; // used internally by the getPaginationList() function
 			var curPagination = 0; // current page number used by getPaginationList() function
-			var ignoreClicks = false; // true when operations are occurring where we want to ignore clicks
 
 			/**
 	 		 * Initialize the Page List
@@ -301,7 +310,7 @@ $(document).ready(function() {
 			 */
 			function getPaginationList(id, start, limit, total) {
 
-				// console.log(start + ", " + limit + ", " + total); 
+				// console.log('getPaginationList(id=' + id + ', start=' + start + ", limit=" + limit + ", total=" + total + ')'); 
 
 				var maxPaginationLinks = 9; 
 				var numPaginations = Math.ceil(total / limit); 
@@ -339,7 +348,9 @@ $(document).ready(function() {
 					var $curList = $(this).parents("ul.PageListPagination");
 					var info = $curList.data('paginationInfo'); 
 					if(!info) return false;
-					var $newList = getPaginationList(id, parseInt($(this).attr('href')) * info.limit, info.limit, info.total);
+					var start = parseInt($(this).attr('href')) * info.limit;
+					if(start === NaN) start = 0;
+					var $newList = getPaginationList(id, start, info.limit, info.total);
 					var $spinner = $(options.spinnerMarkup);
 					var $loading = $("<li>&nbsp;</li>").append($spinner.hide());
 					$curList.siblings(".PageList").remove(); // remove any open lists below current
@@ -351,6 +362,8 @@ $(document).ready(function() {
 						$spinner.fadeOut('fast', function() {
 							$loading.remove();
 						});
+						$newList.parent('.PageList').prev('.PageListItem').data('start', start);
+						updateOpenPageIDs();
 					}); 
 					return false;	
 				}
@@ -428,7 +441,7 @@ $(document).ready(function() {
 			 *
 			 */
 			function loadChildren(id, $target, start, beginList, pagination, replace, callback) {
-
+				
 				if(pagination == undefined) pagination = true; 
 				if(replace == undefined) replace = false;
 
@@ -443,15 +456,14 @@ $(document).ready(function() {
 
 					var $children = listChildren($(data.children)); 
 					var nextStart = data.start + data.limit; 
-
+					//var openPageKey = id + '-' + start;
+					
 					if(data.page.numChildren > nextStart) {
 						var $a = $("<a></a>").attr('href', nextStart).data('pageId', id).text(options.moreLabel).click(clickMore); 
 						$children.append($("<ul></ul>").addClass('PageListActions actions').append($("<li></li>").addClass('PageListActionMore').append($a)));
-						if(pagination) {
-							$children.prepend(getPaginationList(id, data.start, data.limit, data.page.numChildren));
-						}
-
-
+					}
+					if(pagination && (data.page.numChildren > nextStart || data.start > 0)) {
+						$children.prepend(getPaginationList(id, data.start, data.limit, data.page.numChildren));
 					}
 
 					$children.hide();
@@ -490,8 +502,11 @@ $(document).ready(function() {
 							if(callback != undefined) callback();
 						}); 
 					}
+					
+					$children.prev('.PageListItem').data('start', data.start);
 
 					// if a pagination is requested to be opened, and it exists, then open it
+					/*
 					if(options.openPagination > 1) {
 						//var $a = $(".PageListPagination" + (options.openPagination-1) + ">a");
 						var $a = $(".PageListPagination a[href=" + (options.openPagination-1) + "]");
@@ -503,10 +518,18 @@ $(document).ready(function() {
 							$(".PageListPagination9 a").click();
 						}
 					}
+					*/
 
 				}; 
 
 				if(!replace) $target.append($loading.fadeIn('fast')); 
+			
+		
+				var key = id + '-' + start;
+				if(typeof options.openPageData[key] != "undefined") {
+					processChildren(options.openPageData[key]);
+					return;
+				} 
 				
 				// @teppokoivula PR #1052
 				var ajaxURL = options.ajaxURL + 
@@ -555,12 +578,12 @@ $(document).ready(function() {
 			 * 
 			 */
 			function addClickEvents($ul) {
-				
+
 				$("a.PageListPage", $ul).click(clickChild);
 				$(".PageListActionMove a", $ul).click(clickMove);
 				$(".PageListActionSelect a", $ul).click(clickSelect);
-				$(".PageListTriggerOpen a.PageListPage", $ul).click();
-				$(".PageListActionExtras > a", $ul).on('click', clickExtras);
+				$(".PageListTriggerOpen:not(.PageListID1) > a.PageListPage", $ul).click();
+				$(".PageListActionExtras > a:not(.clickExtras)", $ul).addClass('clickExtras').on('click', clickExtras);
 				
 				// if(options.useHoverActions) $(".PageListActionExtras > a", $ul).on('mouseover', clickExtras);
 			}
@@ -572,7 +595,7 @@ $(document).ready(function() {
 			 *
 			 */
 			function listChild(child) {
-
+				
 				var $li = $("<div></div>").data('pageId', child.id).addClass('PageListItem').addClass('PageListTemplate_' + child.template); 
 				var $a = $("<a></a>")
 					.attr('href', '#')
@@ -592,6 +615,7 @@ $(document).ready(function() {
 				if(child.type && child.type.length > 0) if(child.type == 'System') $li.addClass('PageListStatusSystem'); 
 
 				$(options.openPageIDs).each(function(n, id) {
+					id = parseInt(id);
 					if(child.id == id) $li.addClass('PageListTriggerOpen'); 
 				}); 
 
@@ -823,14 +847,13 @@ $(document).ready(function() {
 				var $li = $t.parent('.PageListItem'); 
 				var id = $li.data('pageId');
 
-				if(ignoreClicks && !$li.is(".PageListTriggerOpen")) return false; 
-
+				if(ignoreClicks && !$li.hasClass("PageListTriggerOpen")) return false; 
 
 				if($root.is(".PageListSorting") || $root.is(".PageListSortSaving")) {
 					return false; 
 				}
 
-				if($li.is(".PageListItemOpen")) {
+				if($li.hasClass("PageListItemOpen")) {
 					$li.removeClass("PageListItemOpen").next(".PageList").slideUp(options.speed, function() { 
 						$(this).remove(); 
 					}); 
@@ -839,13 +862,62 @@ $(document).ready(function() {
 					var numChildren = parseInt($li.children('.PageListNumChildren').text()); 
 					if(numChildren > 0 || $li.hasClass('PageListForceReload')) {
 						ignoreClicks = true; 
-						loadChildren(id, $li, 0, false); 
+						var start = getOpenPageStart(id);
+						loadChildren(id, $li, start, false); 
 					}
 				}
-					
+	
+				if(options.mode != 'select') {
+					setTimeout(function() { updateOpenPageIDs() }, 250); 
+				}
+
 				return false;
 			}
 
+			/**
+			 * Get the pagination "start" index for the given open page ID 
+			 * 
+			 * @param id
+			 * @returns {number}
+			 * 
+			 */
+			function getOpenPageStart(id) {
+				var start = 0;
+				for(n = 0; n < options.openPageIDs.length; n++) {
+					var key = options.openPageIDs[n];
+					if(key.indexOf('-') == -1) continue;
+					var parts = options.openPageIDs[n].split('-');
+					var _id = parseInt(parts[0]);
+					if(_id == id) {
+						start = parseInt(parts[1]);
+						break;
+					}
+				}
+				return start;
+			}
+
+			/**
+			 * Update the currentOpenPageIDs list and cookie to reflect the current open pages
+			 * 
+			 */
+			function updateOpenPageIDs() {
+				currentOpenPageIDs = [];
+				$('.PageListItemOpen').each(function() {
+					var id = $(this).data('pageId');
+					var start = $(this).data('start');
+					if(typeof start == "undefined" || start === null) {
+						start = 0;
+					} else {
+						var start = parseInt(start);
+					}
+					if(jQuery.inArray(id, currentOpenPageIDs) == -1) {
+						currentOpenPageIDs.push(id + '-' + start); // id.start
+					}
+				});
+				// console.log(currentOpenPageIDs);
+				$.cookie('pagelist_open', currentOpenPageIDs);
+			}
+			
 			/**
 			 * Event called when the 'more' action/link is clicked on
 			 *

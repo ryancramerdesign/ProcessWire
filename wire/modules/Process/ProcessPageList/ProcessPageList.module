@@ -74,10 +74,11 @@ class ProcessPageList extends Process implements ConfigurableModule {
 	 */
 	public function init() {
 		parent::init();
+		$isAjax = $this->wire('config')->ajax;
 		$this->start = isset($_GET['start']) ? (int) $_GET['start'] : 0;
 		$this->limit = (isset($_GET['limit']) && $_GET['limit'] < $this->limit) ? (int) $_GET['limit'] : $this->limit;
 		$this->render = isset($_GET['render']) ? strtoupper($this->sanitizer->name($_GET['render'])) : '';
-		if($this->wire('config')->ajax && !$this->render && !$this->wire('input')->get('renderInputfieldAjax')) $this->render = 'JSON';
+		if($isAjax && !$this->render && !$this->wire('input')->get('renderInputfieldAjax')) $this->render = 'JSON';
 		if($this->render && !isset($this->allowRenderTypes[$this->render])) $this->render = null;
 
 		$settings = $this->wire('config')->pageList;
@@ -87,6 +88,10 @@ class ProcessPageList extends Process implements ConfigurableModule {
 			$this->set('hoverActionFade', isset($settings['hoverActionFade']) ? (int) $settings['hoverActionFade'] : 100);
 			if($this->speed == self::defaultSpeed) $this->set('speed', isset($settings['speed']) ? (int) $settings['speed'] : self::defaultSpeed);
 			if($this->limit == self::defaultLimit) $this->set('limit', isset($settings['limit']) ? (int) $settings['limit'] : self::defaultLimit);
+		}
+		
+		if(!$isAjax) {
+			$this->wire('modules')->get('JqueryCore')->use('cookie');	
 		}
 	}
 
@@ -122,7 +127,8 @@ class ProcessPageList extends Process implements ConfigurableModule {
 			// ensure that we use the page's title is always consistent in the admin (i.e. 'Pages' not 'Page List')
 			$p->title = $p->parent->title; 
 		}
-		
+	
+		/*
 		if($p->process == $this && $this->wire('input')->get('mode') != 'select') {
 			// store information about the last page list so that it can later be linked to again by ProcessPageEdit
 			$n = 1; 
@@ -137,6 +143,7 @@ class ProcessPageList extends Process implements ConfigurableModule {
 				);
 			$this->session->set('lastPageList', $lastPageList); 
 		}
+		*/
 		
 		return $this->render();
 	}	
@@ -148,14 +155,44 @@ class ProcessPageList extends Process implements ConfigurableModule {
 	protected function render() {
 
 		$this->setupBreadcrumbs();
-		if($this->render) return $this->getPageListRender()->render();
+		if($this->render) return $this->getPageListRender($this->page)->render();
 
+		$isAjax = $this->wire('config')->ajax;
 		$openPageIDs = array();
+		$openPageData = array();
+		$script = '';
+		
 		if($this->openPage->id > 1) {
 			$openPageIDs[] = $this->openPage->id; 
 			foreach($this->openPage->parents() as $parent) {
 				if($parent->id > 1 && $parent->id != $this->id) $openPageIDs[] = $parent->id;
 			}
+		} else if(!$isAjax && $this->wire('page')->process == $this) {
+			$openPageIDs = $this->wire('input')->cookie->array('pagelist_open');	
+		}
+		
+		if($isAjax) {
+			if($this->wire('input')->get('renderInputfieldAjax')) {
+				$script = "<script>ProcessPageListInit();</script>";
+			}
+		} else if(count($openPageIDs)) {
+			$render = $this->render;
+			$this->render = 'JSON';
+			foreach($openPageIDs as $key => $openPageID) {
+				if(strpos($openPageID, '-')) {
+					list($openPageID, $openPageStart) = explode('-', $openPageID);
+					$openPageStart = (int) $openPageStart;
+				} else {
+					$openPageStart = 0;
+				}
+				$openPageID = (int) $openPageID;
+				$openPageIDs[$key] = "$openPageID-$openPageStart";
+				$p = $this->wire('pages')->get($openPageID);
+				if(!$p->id || !$p->listable()) continue;
+				$renderer = $this->getPageListRender($p, $this->limit, $openPageStart);
+				$openPageData["$openPageID-$openPageStart"] = $renderer->setOption('getArray', true)->render();
+			}
+			$this->render = $render;
 		}
 
 		$this->wire('config')->js('ProcessPageList', array(
@@ -164,6 +201,7 @@ class ProcessPageList extends Process implements ConfigurableModule {
 			'ajaxMoveURL' => $this->config->urls->admin . "page/sort/",
 			'rootPageID' => $this->id, 
 			'openPageIDs' => $openPageIDs, 
+			'openPageData' => $openPageData,
 			'openPagination' => (int) $this->input->get->n, // @todo: make it openPaginations and correspond to openPageIDs
 			'showRootPage' => $this->showRootPage ? true : false, 
 			'limit' => $this->limit, 
@@ -182,16 +220,11 @@ class ProcessPageList extends Process implements ConfigurableModule {
 			'ajaxNetworkError' => $this->_('Network error, please try again later'), // Network error during AJAX request
 			'ajaxUnknownError' => $this->_('Unknown error, please try again later'), // Unknown error during AJAX request
 			)); 
-
+		
 		$tokenName = $this->session->CSRF->getTokenName();
 		$tokenValue = $this->session->CSRF->getTokenValue();
 		$class = $this->id ? "PageListContainerPage" : "PageListContainerRoot";
 	
-		$script = '';
-		if($this->wire('config')->ajax && $this->wire('input')->get('renderInputfieldAjax')) {
-			$script = "<script>ProcessPageListInit();</script>";
-		}
-		
 		return "\n" . 
 			"<div id='PageListContainer' " .
 				"class='$class' " . 
@@ -200,7 +233,7 @@ class ProcessPageList extends Process implements ConfigurableModule {
 			"</div>$script"; 
 	}
 	
-	protected function getPageListRender($limit = null) {
+	protected function getPageListRender(Page $page, $limit = null, $start = null) {
 		
 		require_once(dirname(__FILE__) . '/ProcessPageListRender.php');
 		$class = "ProcessPageListRender" . $this->render;
@@ -209,16 +242,17 @@ class ProcessPageList extends Process implements ConfigurableModule {
 		if(!class_exists($className, false)) require_once(dirname(__FILE__) . "/$class.php");
 		
 		if(is_null($limit)) $limit = $this->limit;
+		if(is_null($start)) $start = $this->start;
 		
 		if($limit) {
-			$children = $this->find("start={$this->start}, limit={$this->limit}, status<" . Page::statusMax, $this->page);
+			$children = $this->find("start=$start, limit=$limit, status<" . Page::statusMax, $page);
 		} else {
 			$children = $this->wire('pages')->newPageArray();
 		}
 
-		$renderer = $this->wire(new $className($this->page, $children));
-		$renderer->setStart($this->start);
-		$renderer->setLimit($this->limit);
+		$renderer = $this->wire(new $className($page, $children));
+		$renderer->setStart($start);
+		$renderer->setLimit($limit);
 		$renderer->setPageLabelField($this->getPageLabelField());
 		$renderer->setLabel('trash', $this->trashLabel);
 		
@@ -248,7 +282,7 @@ class ProcessPageList extends Process implements ConfigurableModule {
 		$tokenValue = $this->session->CSRF->getTokenValue();
 		$postTokenValue = $this->wire('input')->post($tokenName);
 		if($postTokenValue === null || $postTokenValue !== $tokenValue) throw new WireException("CSRF token does not match");
-		$renderer = $this->getPageListRender(0);	
+		$renderer = $this->getPageListRender($this->page, 0);	
 		$result = $renderer->actions()->processAction($this->page, $action);
 		if(!empty($result['updateItem'])) {
 			$result['child'] = $renderer->renderChild($this->page);	
@@ -316,6 +350,19 @@ class ProcessPageList extends Process implements ConfigurableModule {
 		$options['edit'] = $this->wire('config')->urls->admin . 'page/?id={id}';
 		$options = $bookmarks->initNavJSON($options);
 		return parent::___executeNavJSON($options);
+	}
+	
+	public function ___executeOpen() {
+		$id = (int) $this->wire('input')->urlSegment2;
+		$this->wire('input')->get->open = $id;	
+		$this->wire('breadcrumbs')->removeAll();
+		return $this->execute();
+	}
+	
+	public function ___executeId() {
+		$id = (int) $this->wire('input')->urlSegment2;
+		$this->wire('input')->get->id = $id;
+		return $this->execute();
 	}
 
 	/**

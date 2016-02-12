@@ -58,6 +58,18 @@ abstract class AdminTheme extends WireData implements Module {
 	 */
 	protected $bodyClasses = array();
 
+	/**
+	 * URLs to place in link prerender tags
+	 * 
+	 * @var array
+	 * 
+	 */
+	protected $preRenderURLs = array();
+
+	/**
+	 * Construct
+	 * 
+	 */
 	public function __construct() {
 		// placeholder
 	}
@@ -154,15 +166,20 @@ abstract class AdminTheme extends WireData implements Module {
 			'footer' => '',
 			'sidebar' => '', // sidebar not used in all admin themes
 		);
-		if($this->wire('modules')->isInstalled('InputfieldCKEditor') 
-			&& $this->wire('user')->isLoggedin()
+		$isLoggedin = $this->wire('user')->isLoggedin();
+		if($isLoggedin && $this->wire('modules')->isInstalled('InputfieldCKEditor') 
 			&& $this->wire('process') instanceof WirePageEditor) {
 			// necessary for when CKEditor is loaded via ajax
 			$parts['head'] .= "<script>" . 
 				"window.CKEDITOR_BASEPATH='" . $this->wire('config')->urls->InputfieldCKEditor . 
 				'ckeditor-' . InputfieldCKEditor::CKEDITOR_VERSION . "/';</script>";
 		}
-		if($this->wire('config')->advanced) $parts['footer'] = "<p class='AdvancedMode'><i class='fa fa-flask'></i> " . $this->_('Advanced Mode') . "</p>"; 
+		if($isLoggedin && $this->wire('config')->advanced) {
+			$parts['footer'] = "<p class='AdvancedMode'><i class='fa fa-flask'></i> " . $this->_('Advanced Mode') . "</p>";
+		}
+		foreach($this->preRenderURLs as $url) {
+			$parts['head'] .= "<link rel='prerender' href='$url'>";
+		}
 		return $parts; 
 	}
 	
@@ -218,6 +235,18 @@ abstract class AdminTheme extends WireData implements Module {
 
 		$this->message($this->_('Installed field "admin_theme" and added to user profile settings.')); 
 		$this->message($toUseNote); 
+	}
+
+	/**
+	 * Set a pre-render URL or get currently pre-render URL(s)
+	 * 
+	 * @param string $url
+	 * @return array
+	 * 
+	 */
+	public function preRenderURL($url = '') {
+		if(!empty($url)) $this->preRenderURLs[] = $url;
+		return $this->preRenderURLs;
 	}
 
 	public function ___uninstall() { 

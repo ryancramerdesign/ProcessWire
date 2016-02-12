@@ -28,7 +28,7 @@ class ProcessWire extends Wire {
 
 	const versionMajor = 3; 
 	const versionMinor = 0; 
-	const versionRevision = 7; 
+	const versionRevision = 8; 
 	const versionSuffix = 'devns';
 	
 	const indexVersion = 300; // required version for index.php file (represented by PROCESSWIRE define)
@@ -690,18 +690,9 @@ class ProcessWire extends Wire {
 			@include($configFile);
 		}
 
-		// Include composer autoloader if present
-		$composerAutoloader = $rootPath . '/vendor/autoload.php';
-		if(file_exists($composerAutoloader)) {
-			/** @noinspection PhpIncludeInspection */
-			require_once($composerAutoloader);
-		}
-
 		return $config;
 	}
 
 }
-
-
 
 

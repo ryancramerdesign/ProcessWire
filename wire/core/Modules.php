@@ -3085,16 +3085,15 @@ class Modules extends WireArray {
 			// get defaults from ModuleConfig class if available
 			$className = $nsClassName . 'Config';
 			$config = null; // may be overridden by included file
+			$compile = strrpos($className, '\\') < 1 && $this->wire('config')->moduleCompile;
+			$configFile = '';
+			
 			if(!class_exists($className, false)) {
-				if(strrpos($className, '\\') < 1 && $this->wire('config')->moduleCompile) {
-					// root namespace
-					/** @noinspection PhpIncludeInspection */
-					include_once($this->wire('files')->compile($configurable));
-				} else {
-					/** @noinspection PhpIncludeInspection */
-					include_once($configurable);
-				}
+				$configFile = $compile ? $this->wire('files')->compile($configurable) : $configurable;
+				/** @noinspection PhpIncludeInspection */
+				include_once($configFile);
 			}
+			
 			if(wireClassExists($className)) {
 				$parents = wireClassParents($className, false);
 				if(is_array($parents) && in_array('ModuleConfig', $parents)) { 
@@ -3108,8 +3107,11 @@ class Modules extends WireArray {
 				// the file may have already been include_once before, so $config would not be set
 				// so we try a regular include() next. 
 				if(is_null($config)) {
+					if(!$configFile) {
+						$configFile = $compile ? $this->wire('files')->compile($configurable) : $configurable;
+					}
 					/** @noinspection PhpIncludeInspection */
-					include($configurable);
+					include($configFile);
 				}
 				if(is_array($config)) {
 					// alternatively, file may just specify a $config array
@@ -3236,9 +3238,12 @@ class Modules extends WireArray {
 	
 		$config = null;
 		$configClass = $this->getModuleNamespace($moduleName) . $moduleName . "Config";
+		$configFile = '';
+		$compile = strrpos($configClass, "\\") < 1 && $this->wire('config')->moduleCompile;
 		if(!class_exists($configClass)) {
+			$configFile = $compile ? $this->wire('files')->compile($file) : $file;
 			/** @noinspection PhpIncludeInspection */
-			include_once($file);
+			include_once($configFile);
 		}
 		$configModule = null;
 		
@@ -3248,8 +3253,9 @@ class Modules extends WireArray {
 			
 		} else {
 			if(is_null($config)) {
+				if(!$configFile) $configFile = $compile ? $this->wire('files')->compile($file) : $file;
 				/** @noinspection PhpIncludeInspection */
-				include($file); // in case of previous include_once 
+				include($configFile); // in case of previous include_once 
 			}
 			if(is_array($config)) {
 				// file contains a $config array

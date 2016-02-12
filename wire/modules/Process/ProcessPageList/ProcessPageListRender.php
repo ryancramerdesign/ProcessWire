@@ -15,6 +15,7 @@ abstract class ProcessPageListRender extends Wire {
 	protected $actionTips = array();
 	protected $superuser = false;
 	protected $actions = null;
+	protected $options = array();
 
 	public function __construct(Page $page, PageArray $children) {
 		$this->page = $page;
@@ -40,6 +41,15 @@ abstract class ProcessPageListRender extends Wire {
 		require_once(dirname(__FILE__) . '/ProcessPageListActions.php');
 		$this->actions = $this->wire(new ProcessPageListActions($this));
 		$this->actions->setActionLabels($this->actionLabels);
+	}
+	
+	public function setOption($key, $value) {
+		$this->options[$key] = $value;
+		return $this;
+	}
+	
+	public function getOption($key) {
+		return isset($this->options[$key]) ? $this->options[$key] : null;
 	}
 
 	public function setStart($n) {

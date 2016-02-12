@@ -176,9 +176,14 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 			$this->page->name = '';
 		}
 		
+		$adminTheme = $this->wire('adminTheme');
+		if($adminTheme) {
+			$className = $this->className();
+			$adminTheme->addBodyClass("$className-id-{$this->page->id}");
+			$adminTheme->addBodyClass("$className-template-{$this->page->template->name}");
+		}
 
 		$this->form = $this->modules->get('InputfieldForm');
-
 		$this->form = $this->buildForm($this->form);
 		$this->form->setTrackChanges();
 
@@ -1249,17 +1254,12 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 		
 		$pageListConfig = $this->modules->getModuleConfigData('ProcessPageList'); 
 		$limit = isset($pageListConfig['limit']) && $pageListConfig['limit'] > 0 ? $pageListConfig['limit'] : 50;
-		
+	
+		$numParents = $page->parents->count();
 		foreach($page->parents() as $cnt => $p) {
 			$parent = $p->parent; 
-
-			// make breadcrumb to go pagelist with page clicked, unless pagination is active in that PageList
-			if($limit && $parent->id && $parent->numChildren > $limit && $p->editable()) {
-				$url = "./?id={$p->id}"; 
-			} else {
-				// if($p->id == $page->parent_id && isset($lastPageList[$p->id])) continue; 
-				$url = "../?open=" . $p->id; 
-			}
+			$url = "../?open=$p->id";
+			if($cnt == $numParents-1) $url = "../";
 			$this->breadcrumb($url, $p->get("title|name")); 
 		}
 		
