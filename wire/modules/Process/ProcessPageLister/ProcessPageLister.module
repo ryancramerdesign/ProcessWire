@@ -62,6 +62,7 @@
  * 
  * 
  * @todo make system fields hookable for output like markupValue is for custom fields
+ * @todo show bookmark title somewhere on page so users know what they are looking at (+ browser title?)
  *
  */
 
@@ -1079,7 +1080,9 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		$table->headerRow($header); 
 
 		foreach($results as $p) {
-			$table->row($this->buildListerTableRow($p, $fields, $columns)); 
+			$table->row($this->buildListerTableRow($p, $fields, $columns), array(
+				'attrs' => array('data-pid' => $p->id)
+			)); 
 		}
 
 		return $table;

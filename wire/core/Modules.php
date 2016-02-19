@@ -3275,7 +3275,12 @@ class Modules extends WireArray {
 				}
 				foreach($data as $key => $value) {
 					$f = $form->getChildByName($key);
-					if($f) $f->attr('value', $value);
+					if(!$f) continue;
+					if($f instanceof InputfieldCheckbox && $value) {
+						$f->attr('checked', 'checked');
+					} else {
+						$f->attr('value', $value);
+					}
 				}
 			} else {
 				$this->error("$configModule.getInputfields() did not return InputfieldWrapper");

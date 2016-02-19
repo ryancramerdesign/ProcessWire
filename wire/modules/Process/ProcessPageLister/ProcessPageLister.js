@@ -395,8 +395,9 @@ var ProcessLister = {
 	getPageID: function($tr) {
 		if(!$tr.is("tr")) $tr = $tr.closest('tr');
 		if(!$tr.length) return 0;
-		var $toggle = $tr.find('.actions_toggle');	
-		return parseInt($toggle.attr('id').replace('page', ''));
+		return parseInt($tr.attr('data-pid'));
+		//var $toggle = $tr.find('.actions_toggle');	
+		//return parseInt($toggle.attr('id').replace('page', ''));
 	},
 
 	/**
