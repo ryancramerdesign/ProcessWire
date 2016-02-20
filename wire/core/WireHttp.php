@@ -812,7 +812,15 @@ class WireHttp extends Wire {
 				$key = $header;
 				$value = '';
 			}
-			if(!isset($this->responseHeaders[$key])) $this->responseHeaders[$key] = $value;
+			if(!isset($this->responseHeaders[$key])) {
+				$this->responseHeaders[$key] = $value;
+			}
+			else if(is_array($this->responseHeaders[$key])) {
+				$this->responseHeaders[$key][] = $value;
+			}
+			else {
+				$this->responseHeaders[$key] = array($this->responseHeaders[$key], $value);
+			}
 		}
 	
 		/*
