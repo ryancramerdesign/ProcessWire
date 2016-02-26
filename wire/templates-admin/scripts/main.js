@@ -1,222 +1,297 @@
 /**
- * ProcessWire Admin Theme jQuery/Javascript
+ * ProcessWire Admin common javascript
  *
- * Copyright 2012 by Ryan Cramer
+ * Copyright 2016 by Ryan Cramer
  * 
  */
 
-var ProcessWireAdminTheme = {
+var ProcessWireAdmin = {
 
 	/**
-	 * Initialize the default ProcessWire admin theme
-	 *
+	 * Initialize all
+	 * 
 	 */
 	init: function() {
-		this.setupCloneButton();
 		this.setupButtonStates();
 		this.setupTooltips();
-		this.setupSearch();
-		this.sizeTitle();
-		$('#content').removeClass('fouc_fix'); // FOUC fix
-		//this.browserCheck();
+		this.setupDropdowns();
 	},
-
+	
 	/**
 	 * Enable jQuery UI tooltips
 	 *
 	 */
 	setupTooltips: function() {
-		$("a.tooltip").tooltip({ 
+		$("a.tooltip, .pw-tooltip").tooltip({
 			position: {
-				my: "center bottom-20",
-				at: "center top",
-				using: function(position, feedback) {
-					$(this).css(position);
-					$("<div>")
-						.addClass("arrow")
-						.addClass(feedback.vertical)
-						.addClass(feedback.horizontal)
-						.appendTo(this);
-				}
+				my: "center bottom", // bottom-20
+				at: "center top"
 			}
 		}).hover(function() {
 			$(this).addClass('ui-state-hover');
 		}, function() {
 			$(this).removeClass('ui-state-hover');
-		}); 
+		});
 	},
-
-	/**
-	 * Clone a button at the bottom to the top 
-	 *
-	 */
-	setupCloneButton: function() {
-		// if there are buttons in the format "a button" without ID attributes, copy them into the masthead
-		// or buttons in the format button.head_button_clone with an ID attribute.
-		// var $buttons = $("#content a[id=] button[id=], #content button.head_button_clone[id!=]"); 
-		var $buttons = $("#content a:not([id]) button:not([id]), #content button.head_button_clone[id!=]"); 
-
-		// don't continue if no buttons here or if we're in IE
-		if($buttons.size() == 0) return; // || $.browser.msie) return;
-
-		var $head = $("<div id='head_button'></div>").appendTo("#masthead .container").show();
-		$buttons.each(function() {
-			var $t = $(this);
-			var $a = $t.parent('a'); 
-			if($a.size()) { 
-				$button = $t.parent('a').clone();
-				$head.append($button);
-			} else if($t.is('.head_button_clone')) {
-				$button = $t.clone();
-				$button.attr('data-from_id', $t.attr('id')).attr('id', $t.attr('id') + '_copy');
-				$a = $("<a></a>").attr('href', '#');
-				$button.click(function() {
-					$("#" + $(this).attr('data-from_id')).click(); // .parents('form').submit();
-					return false;
-				});
-				$head.append($a.append($button));	
-			}
-		}); 
-	},
-
+	
 	/**
 	 * Make buttons utilize the jQuery button state classes
-	 *	
- 	 */
+	 *
+	 */
 	setupButtonStates: function() {
 		// jQuery UI button states
-		$(".ui-button").hover(function() {
+		$(document).on('mouseover', '.ui-button', function() {
 			$(this).removeClass("ui-state-default").addClass("ui-state-hover");
-		}, function() {
+		}).on('mouseout', '.ui-button', function() {
 			$(this).removeClass("ui-state-hover").addClass("ui-state-default");
-		}).click(function() {
-			$(this).removeClass("ui-state-default").addClass("ui-state-active").effect('highlight', {}, 500); 
+		}).on('click', '.ui-button', function() {
+			$(this).removeClass("ui-state-default").addClass("ui-state-active"); // .effect('highlight', {}, 100); 
+		}).on('click', 'a > button', function() {
+			// make buttons with <a> tags click to the href of the <a>
+			window.location = $(this).parent("a").attr('href');
 		});
-
-		// make buttons with <a> tags click to the href of the <a>
-		$("a > button").click(function() {
-			window.location = $(this).parent("a").attr('href'); 
-		}); 
 	},
 
 	/**
-	 * Adjust the font-size of the #title to fit within the screen's width
-	 *
-	 * If we get below a certain size, then we introduce line wrap
-	 *
+	 * Setup dropdown menus
+	 * 
 	 */
-	sizeTitle: function() {
-		// adjust the font-size of #title to fit within the screen's width
-		var $title = $("#title"); 
+	setupDropdowns: function() {
 
-		// don't bother continuing if the title isn't a consideration
-		if($title.size() == 0 || $title.text().length < 35) return;
+		// whether or not dropdown positions are currently being monitored
+		var dropdownPositionsMonitored = false;
 
-		var titleSizePx = $title.css('font-size'); // original/starting size (likely 37px)
-		var titleSize = parseInt(titleSizePx); // size integer without 'px'
-		var fitTitle = function() {
-			// determine size of possible #head_button so that we don't overlap with it
-			var buttonWidth = 0;
-			var $button = $("#head_button button"); 
-			if($button.size() > 0) buttonWidth = $button.width()+20; // 20=padding
+		var hoveredDropdownAjaxItem;
 
-			// maxTitleWidth is the width of #title's parent minus the buttonWidth
-			maxTitleWidth = $title.parent().width() - buttonWidth; 
-			
-			// our default CSS settings when no resizing is needed
-			$title.css({ whiteSpace: 'nowrap', marginTop: '0', paddingRight: '0' }); 
+		function setupDropdown() {
 
-			// keep reducing the font-size of title until it fits
-			while($title.width() > maxTitleWidth) {
-				if(--titleSize < 22) {
-					// if we get below 22px, lets wordwrap instead, and then get out
-					$title.css({ marginTop: '-0.75em', whiteSpace: 'normal', paddingRight: buttonWidth + 'px' })
-					break;
+			var $a = $(this);
+			var $ul;
+
+			if($a.attr('data-dropdown')) {
+				// see if it is specifying a certain <ul>
+				// first check if the selector matches a sibling
+				$ul = $a.siblings($a.attr('data-dropdown'));
+				// if no match for sibling, check entire document
+				if(!$ul.length) $ul = $($a.attr('data-dropdown'));
+			} else {
+				// otherwise use the <ul> that is the sibling
+				$ul = $a.siblings('.dropdown-menu');
+			}
+
+			$ul.hide();
+			$a.data('dropdown-ul', $ul);
+
+			if($a.is('button')) {
+				if($a.find('.ui-button-text').length == 0) $a.button();
+				if($a.attr('type') == 'submit') {
+					$a.click(function() {
+						$a.addClass('dropdown-disabled');
+						setTimeout(function() {
+							$a.removeClass('dropdown-disabled');
+						}, 2000);
+					});
 				}
-				$title.css('font-size', titleSize + 'px');
+			} else {
+				// $ul.css({ 'border-top-right-radius': 0 }); 
+			}
+			
+			// hide nav when an item is selected to avoid the whole nav getting selected
+			$ul.find('a').click(function() {
+				$ul.hide();
+				return true;
+			});
+
+			// prepend icon to dropdown items that themselves have more items
+			$ul.find(".has-items").each(function() {
+				var $icon = $("<i class='has-items-icon fa fa-angle-right ui-priority-secondary'></i>");
+				$(this).prepend($icon);
+			});
+
+			// when the mouse leaves the dropdown menu, hide it
+			$ul.mouseleave(function() {
+				//if($a.is(":hover")) return;
+				//if($a.filter(":hover").length) return;
+				$ul.hide();
+				$a.removeClass('hover');
+			});
+		}
+
+		function mouseenterDropdownToggle() {
+
+			var $a = $(this);
+			var $ul = $a.data('dropdown-ul');
+			var delay = $a.hasClass('dropdown-toggle-delay') ? 700 : 0;
+			var lastOffset = $ul.data('dropdown-last-offset');
+			var timeout = $a.data('dropdown-timeout');
+			
+			if($a.hasClass('dropdown-disabled')) return;
+
+			timeout = setTimeout(function() {
+				if($a.hasClass('dropdown-disabled')) return;
+				var offset = $a.offset();
+				if(lastOffset != null) {
+					if(offset.top != lastOffset.top || offset.left != lastOffset.left) {
+						// dropdown-toggle has moved, destroy and re-create
+						$ul.menu('destroy').removeClass('dropdown-ready');
+					}
+				}
+
+				if(!$ul.hasClass('dropdown-ready')) {
+					$ul.css('position', 'absolute');
+					$ul.prependTo($('body')).addClass('dropdown-ready').menu();
+					var position = {my: 'right top', at: 'right bottom', of: $a};
+					var my = $ul.attr('data-my');
+					var at = $ul.attr('data-at');
+					if(my) position.my = my;
+					if(at) position.at = at;
+					$ul.position(position).css('z-index', 200);
+				}
+
+				$a.addClass('hover');
+				$ul.show();
+				$ul.data('dropdown-last-offset', offset);
+
+			}, delay);
+
+			$a.data('dropdown-timeout', timeout);
+		}
+
+		function mouseleaveDropdownToggle() {
+
+			var $a = $(this);
+			var $ul = $a.data('dropdown-ul');
+			var timeout = $a.data('dropdown-timeout');
+
+			if(timeout) clearTimeout(timeout);
+			setTimeout(function() {
+				if($ul.filter(":hover").length) return;
+				$ul.find('ul').hide();
+				$ul.hide();
+				$a.removeClass('hover');
+			}, 50);
+
+			if($("body").hasClass('touch-device')) {
+				$(this).attr('data-touchCnt', 0);
 			}
 		}
 
-		// when the window is resized, update the title size
-		$(window).resize(function() {
-			$title.css('font-size', titleSizePx);
-			titleSize = parseInt(titleSizePx);
-			fitTitle();
-		});
+		function hoverDropdownAjaxItem($a) {
+			var fromAttr = $a.attr('data-from');
+			if(!fromAttr) return;
+			var $from = $('#' + $a.attr('data-from'));
+			if($from.length > 0) setTimeout(function() {
+				var fromLeft = $from.offset().left;
+				//if($a.attr('id') == 'topnav-page-22') fromLeft--;
+				var $ul = $a.closest('li').parent('ul');
+				var thisLeft = $ul.offset().left;
+				if(thisLeft != fromLeft) $ul.css('left', fromLeft);
+			}, 500);
+		}
 
-		fitTitle();
-	},
+		function mouseenterDropdownAjaxItem() {
 
-	/**
-	 * Make the site search use autocomplete
-	 * 
-	 */
-	setupSearch: function() {
+			var $a = $(this);
+			hoveredDropdownAjaxItem = $a;
 
-		$.widget( "custom.adminsearchautocomplete", $.ui.autocomplete, {
-			_renderMenu: function(ul, items) {
-				var that = this;
-				var currentType = "";
-				$.each(items, function(index, item) {
-					if (item.type != currentType) {
-						ul.append("<li class='ui-widget-header'><a>" + item.type + "</a></li>" );
-						currentType = item.type;
-					}
-					ul.attr('id', 'ProcessPageSearchAutocomplete'); 
-					that._renderItemData(ul, item);
-				});
-			},
-			_renderItemData: function(ul, item) {
-				if(item.label == item.template) item.template = '';
-				ul.append("<li><a href='" + item.edit_url + "'>" + item.label + " <small>" + item.template + "</small></a></li>"); 
-			}
-		});
-		
-		var $input = $("#ProcessPageSearchQuery"); 
-		var $status = $("#ProcessPageSearchStatus"); 
-		
-		$input.adminsearchautocomplete({
-			minLength: 2,
-			position: { my : "right top", at: "right bottom" },
-			search: function(event, ui) {
-				$status.html("<img src='" + ProcessWire.config.urls.modules + "Process/ProcessPageList/images/loading.gif'>");
-			},
-			source: function(request, response) {
-				var url = $input.parents('form').attr('action') + 'for?get=template_label,title&include=all&admin_search=' + request.term;
+			setTimeout(function() {
+
+				// check if user wasn't hovered long enough for this to be their intent
+				if(!hoveredDropdownAjaxItem) return;
+				if(hoveredDropdownAjaxItem != $a) return;
+
+				$a.addClass('ajax-items-loaded');
+				// var url = $a.attr('href');
+				var url = $a.attr('data-json');
+				var $ul = $a.siblings('ul');
+				var setupDropdownHover = false;
+				var $itemsIcon = $a.children('.has-items-icon');
+				$itemsIcon.removeClass('fa-angle-right').addClass('fa-spinner fa-spin');
+
 				$.getJSON(url, function(data) {
-					var len = data.matches.length; 
-					if(len < data.total) $status.text(data.matches.length + '/' + data.total); 
-						else $status.text(len); 
-					response($.map(data.matches, function(item) {
-						return {
-							label: item.title,
-							value: item.title,
-							page_id: item.id,
-							template: item.template_label ? item.template_label : '',
-							edit_url: item.editUrl,
-							type: item.type
+					$itemsIcon.removeClass('fa-spinner fa-spin').addClass('fa-angle-right');
+
+					// now add new event to monitor menu positions
+					if(!dropdownPositionsMonitored && data.list.length > 10) {
+						dropdownPositionsMonitored = true;
+						setupDropdownHover = true;
+						$(document).on('hover', 'ul.dropdown-menu a', function() {
+							hoverDropdownAjaxItem($(this));
+						});
+					}
+
+					if(data.add) {
+						var $li = $(
+							"<li class='ui-menu-item add'>" +
+							"<a href='" + data.url + data.add.url + "'>" +
+							"<i class='fa fa-fw fa-" + data.add.icon + "'></i>" +
+							data.add.label + "</a>" +
+							"</li>"
+						);
+						$ul.append($li);
+					}
+					// populate the retrieved items
+					$.each(data.list, function(n) {
+						var icon = '';
+						if(this.icon) icon = "<i class='ui-priority-secondary fa fa-fw fa-" + this.icon + "'></i>";
+						var url = this.url.indexOf('/') === 0 ? this.url : data.url + this.url;
+						var $li = $("<li class='ui-menu-item'><a href='" + url + "'>" + icon + this.label + "</a></li>");
+						if(typeof this.className != "undefined" && this.className && this.className.length) {
+							$li.addClass(this.className);
 						}
-					}));
+						$ul.append($li);
+					});
+
+					$ul.addClass('navJSON')
+					$ul.addClass('length' + parseInt(data.list.length));
+
+					// trigger the first call
+					hoverDropdownAjaxItem($a);
+
+				}); // getJSON
+
+			}, 250); // setTimeout
+
+		}
+
+		function touchClick() {
+			var touchCnt = $(this).attr('data-touchCnt');
+			if(!touchCnt) touchCnt = 0;
+			touchCnt++;
+			$(this).attr('data-touchCnt', touchCnt);
+			if(touchCnt == 2) {
+				$(this).mouseleave();
+			} else {
+				$(this).mouseenter();
+			}
+			return false;
+		}
+
+		function init() {
+
+			if($("body").hasClass('touch-device')) {
+				$('#topnav').on("click", "a.dropdown-toggle, a.has-items", touchClick);
+			}
+
+			$(".dropdown-menu").on("click", "a", function(e) {
+				e.stopPropagation();
+			});
+
+			$(".dropdown-toggle").each(setupDropdown);
+
+			$(document)
+				.on('mouseenter', '.dropdown-toggle', mouseenterDropdownToggle)
+				.on('mouseleave', '.dropdown-toggle', mouseleaveDropdownToggle)
+				.on('mouseenter', '.dropdown-menu a.has-ajax-items:not(.ajax-items-loaded)', mouseenterDropdownAjaxItem) // navJSON
+				.on('mouseleave', '.dropdown-menu a.has-ajax-items', function() { // navJSON
+					hoveredDropdownAjaxItem = null;
 				});
-			},
-			select: function(event, ui) { }
-		}).blur(function() {
-			$status.text('');	
-		});
+		}
+
+		init();
 		
-	}
-
-	/**
-	 * Give a notice to IE versions we don't support
-	 *
-	browserCheck: function() {
-		if($.browser.msie && $.browser.version < 8) 
-			$("#content .container").html("<h2>ProcessWire does not support IE7 and below at this time. Please try again with a newer browser.</h2>").show();
-	}
-	 */
-
+	} // setupDropdowns
+	
 };
 
-$(document).ready(function() {
-	ProcessWireAdminTheme.init();
-}); 
+

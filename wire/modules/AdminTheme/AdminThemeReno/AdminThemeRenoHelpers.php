@@ -241,7 +241,7 @@ class AdminThemeRenoHelpers extends AdminThemeDefaultHelpers {
 
 		$out .= "<li>";
 	
-		if(count($children)) {
+		if(count($children) && WireArray::iterable($children)) {
 
 			$out .= "<a href='$p->url' class='$class $p->name '><i class='fa {$icon}'></i> $title</a>"; 
 			$out .= "<ul>";
@@ -265,15 +265,17 @@ class AdminThemeRenoHelpers extends AdminThemeDefaultHelpers {
 					
 				} else {
 					// $c is a Page object
+					if(!$c->process || !$c->viewable()) continue;
+					
 					$list = array(
 						$this->wire('config')->urls->admin . "page/",
 						$this->wire('config')->urls->admin . "page/edit/"
 					);
+					
 					in_array($currentPagePath, $list) ? $currentPagePath = $this->wire('config')->urls->admin . "page/list/" : '';
-					$class = strpos($currentPagePath, $c->url) === 0 ? 'current' : ''; // child current class
+					$class = strlen($currentPagePath) && strpos($currentPagePath, $c->url) === 0 ? 'current' : ''; // child current class
 					$name = $c->name;
 
-					if(!$c->viewable()) continue;
 					$moduleInfo = $c->process ? $modules->getModuleInfo($c->process) : array();
 					$title = $this->getPageTitle($c);
 					if(!strlen($title)) continue;

@@ -129,6 +129,8 @@ class PageFrontEdit extends WireData implements Module {
 		$config = $this->wire('config');
 		$this->addHook('Page::edit', $this, 'hookPageEditor');
 		$this->addHook('Page::editor', $this, 'hookPageEditor');
+
+		if(isset($_GET['livepreview'])) return; // PWPD
 		
 		$contentType = $page->template->contentType;
 		if($contentType && $contentType != 'html' && $contentType != 'text/html') return;
@@ -266,16 +268,17 @@ class PageFrontEdit extends WireData implements Module {
 		$arg1 = $event->arguments(0);
 		$arg2 = $event->arguments(1);
 		$arg3 = $event->arguments(2);
+		$livePreview = isset($_GET['livepreview']); // PWPD
 
 		if(is_null($arg1)) {
 			// no arguments specified
-			$event->return = $this->inlineEditorActive;
+			$event->return = $livePreview ? false : $this->inlineEditorActive;
 			return;
 		}
 
 		if(is_bool($arg1)) {
 			// set editor active state
-			$this->inlineEditorActive = $arg1;
+			if(!$livePreview) $this->inlineEditorActive = $arg1;
 			$event->return = $page;
 			return;
 		}
@@ -313,7 +316,7 @@ class PageFrontEdit extends WireData implements Module {
 
 		if(is_string($arg2)) {
 			// make a markup string editable for indicated field, arg1 is field name, arg2 is markup
-			if($page->editable($field->name)) {
+			if($page->editable($field->name) && !$livePreview) {
 				// field is editable, return markup wrapped in modal editor
 				$forceModal = $arg3 === true;
 				if(!$forceModal && $this->inlineSupported($field)) {
@@ -332,7 +335,7 @@ class PageFrontEdit extends WireData implements Module {
 		}
 
 		// now try for inline editable field
-		if($this->inlineIsSaveable($page, $field)) {
+		if(!$livePreview && $this->inlineIsSaveable($page, $field)) {
 			// if inline can be used, use it...
 			$editorActive = $this->inlineEditorActive;
 			$this->inlineEditorActive = true;

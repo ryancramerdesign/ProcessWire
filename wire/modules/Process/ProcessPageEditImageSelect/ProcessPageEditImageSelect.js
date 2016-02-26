@@ -501,9 +501,9 @@ function setupSelectedImage() {
 		/*** INIT: setupImage ******************************************************/
 			
 		// adjust height of wrap_info so that there is no change when crop buttons are turned on
-		var $wrapInfo = $("#wrap_info"); 
-		$wrapInfo.css('min-height', $wrapInfo.height() + 'px'); 
-		$wrapInfo.children("span").css("min-height", $wrapInfo.height() + 'px'); 
+		//var $wrapInfo = $("#wrap_info"); 
+		//$wrapInfo.css('min-height', $wrapInfo.height() + 'px'); 
+		//$wrapInfo.children("span").css("min-height", $wrapInfo.height() + 'px'); 
 		$("#loading_button").hide();
 		
 		if($img.attr('data-fit')) {

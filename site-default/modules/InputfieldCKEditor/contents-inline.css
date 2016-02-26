@@ -112,6 +112,9 @@
 .InputfieldForm .InputfieldCKEditorInline table th {
 	font-weight: bold;
 }
+.InputfieldForm .InputfieldCKEditorInline img {
+	max-width: 100%;
+}
 .InputfieldForm .InputfieldCKEditorInline img.cke_anchor {
 	display: inline;
 }

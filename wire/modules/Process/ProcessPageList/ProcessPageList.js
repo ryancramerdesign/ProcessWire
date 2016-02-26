@@ -127,6 +127,9 @@ $(document).ready(function() {
 	
 		// true when operations are occurring where we want to ignore clicks
 		var ignoreClicks = false;
+		
+		var isModal = $("body").hasClass("modal");
+		var isTouch = $("body").hasClass("touch");
 	
 		$.extend(options, customOptions);
 
@@ -156,6 +159,12 @@ $(document).ready(function() {
 					options.mode = 'actions'; 
 					$container.append($root); 
 					loadChildren(options.rootPageID > 0 ? options.rootPageID : 1, $root, 0, true); 
+					/*
+					// longclick to initiate sort, still marinating on whether to support this
+					$(document).on('longclick', 'a.PageListPage', function() {
+						$(this).parent().find('.PageListActionMove > a').click();
+					});
+					*/
 				}
 				
 				if(options.useHoverActions && !$("body").hasClass('touch-device')) {
@@ -641,6 +650,14 @@ $(document).ready(function() {
 						else actionName = action.cn; // cn = className
 
 					var $a = $("<a></a>").html(action.name).attr('href', action.url);
+					if(!isModal && !isTouch) {
+						if(action.cn == 'Edit') {
+							$a.addClass('pw-modal pw-modal-large pw-modal-longclick');
+							$a.attr('data-buttons', '#ProcessPageEdit > .Inputfields > .InputfieldSubmit .ui-button');
+						} else if(action.cn == 'View') {
+							$a.addClass('pw-modal pw-modal-large pw-modal-longclick');
+						}
+					}
 					if(typeof action.extras != "undefined") {
 						$a.data('extras', action.extras);
 					}

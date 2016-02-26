@@ -102,7 +102,11 @@ class PagefilesManager extends Wire {
 		if(strpos($name, '/') !== false) {
 			$pageID = self::dirToPageID($name);
 			if(!$pageID) return null;
-			$page = $this->wire('pages')->get($pageID);
+			if($pageID == $this->page->id) {
+				$page = $this->page;
+			} else {
+				$page = $this->wire('pages')->get($pageID);
+			}
 			if(!$page->id) return null;
 		} else {
 			$page = $this->page;

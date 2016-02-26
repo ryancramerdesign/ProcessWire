@@ -91,7 +91,9 @@ class ProcessPageList extends Process implements ConfigurableModule {
 		}
 		
 		if(!$isAjax) {
-			$this->wire('modules')->get('JqueryCore')->use('cookie');	
+			$this->wire('modules')->get('JqueryCore')->use('cookie');
+			$this->wire('modules')->get('JqueryCore')->use('longclick');
+			$this->wire('modules')->get('JqueryUI')->use('modal');	
 		}
 	}
 

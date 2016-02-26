@@ -33,6 +33,7 @@ $config->styles->append($config->urls->root . "wire/templates-admin/styles/font-
 
 // Scripts
 $config->scripts->append($config->urls->root . "wire/templates-admin/scripts/inputfields.$ext?v=$version");
+$config->scripts->append($config->urls->root . "wire/templates-admin/scripts/main.$ext?v=$version");
 $config->scripts->append($config->urls->adminTemplates . "scripts/main.$ext?v=$version");
 
 require_once(dirname(__FILE__) . "/AdminThemeRenoHelpers.php");
