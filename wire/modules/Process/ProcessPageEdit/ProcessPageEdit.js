@@ -51,6 +51,7 @@ function initPageEditForm() {
 
 		var $button = $dropdown.data('button');
 		if(!$button) return true;
+		$(":input:focus").blur();
 		$button.click();
 
 		return false;
