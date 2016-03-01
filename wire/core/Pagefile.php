@@ -113,11 +113,13 @@ class Pagefile extends WireData {
 
 		if(strpos($filename, ' ') !== false && strpos($filename, '://') !== false) $filename = str_replace(' ', '%20', trim($filename)); // per Pete
 		$destination = $this->pagefiles->path() . $basename; 
-		if(!@copy($filename, $destination)) throw new WireException("Unable to copy: $filename => $destination"); 
+		$http = $this->wire(new WireHttp());
+		// note: download() method throws excepton on failure
+		$http->download($filename, $destination);
+		// download was successful
 		if($this->config->chmodFile) chmod($this->pagefiles->path() . $basename, octdec($this->config->chmodFile));
 		$this->changed('file');
-		parent::set('basename', $basename); 
-			
+		parent::set('basename', $basename);
 	}
 
 	/**
