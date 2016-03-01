@@ -307,23 +307,35 @@ class FileCompiler extends Wire {
 		foreach($matches[0] as $key => $fullMatch) {
 		
 			$open = $matches[1][$key];
+			$funcMatch = $matches[2][$key];
+			$fileMatch = $matches[3][$key];
+			$argsMatch = '';
 			
 			if(strlen($open)) {
-				
-				if(strpos($open, '"') !== false || strpos($open, "'") !== false) {
+				$skipMatch = false;
+				$test = $open;
+				foreach(array('"', "'") as $quote) {
 					// skip when words like "require" are in a string
-					continue;
+					if(strpos($test, $quote) === false) continue;
+					$test = str_replace('\\' . $quote, '', $test); // ignore quotes that are escaped
+					if(strpos($test, $quote) === false) continue;
+					if(substr_count($test, $quote) % 2 > 0) {
+						// there are an uneven number of quotes, indicating that
+						// our $funcMatch is likely part of a quoted string
+						$skipMatch = true;
+						break;
+					}
+					if($quote == '"' && strpos($test, "'") !== false) {
+						// remove quoted apostrophes so they don't confuse the next iteration
+						$test = preg_replace('/"[^"\']*\'[^"]*"/', '', $test);	
+					}
 				}
-
+				if($skipMatch) continue;
 				if(preg_match('/^[$_a-zA-Z0-9]+$/', substr($open, -1))) {
 					// skip things like: something_include(... and $include
 					continue;
 				}
 			}
-				
-			$funcMatch = $matches[2][$key];
-			$fileMatch = $matches[3][$key];
-			$argsMatch = '';
 
 			if(substr($fileMatch, -1) == ')') $fileMatch = substr($fileMatch, 0, -1);
 			if(empty($fileMatch)) continue;
@@ -426,7 +438,7 @@ class FileCompiler extends Wire {
 				// 1=open 2=close
 				// all patterns match within 1 line only
 				"new" => '(new\s+)' . $class . '\s*(\(|;|\))',  // 'new Page(' or 'new Page;' or 'new Page)'
-				"function" => '([_a-zA-Z0-9]+\s*\([^)]*?)\b' . $class . '(\s+\$[_a-zA-Z0-9]+)', // 'function(Page $page' or 'function($a, Page $page'
+				"function" => '(function\s+[_a-zA-Z0-9]+\s*\([^)]*?)\b' . $class . '(\s+\$[_a-zA-Z0-9]+)', // 'function(Page $page' or 'function($a, Page $page'
 				"::" => '(^|[^_a-zA-Z0-9"\'])' . $class . '(::)', // constant ' Page::foo' or '(Page::foo' or '=Page::foo' or bitwise open
 				"extends" => '(\sextends\s+)' . $class . '(\s|\{|$)', // 'extends Page'
 				"implements" => '(\simplements[^{]*?[\s,]+)' . $class . '([^_a-zA-Z0-9]|$)', // 'implements Module' or 'implements Foo, Module'
