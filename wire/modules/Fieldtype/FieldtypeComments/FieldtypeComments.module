@@ -998,7 +998,7 @@ class FieldtypeComments extends FieldtypeMulti {
 			if($f == 'page') $f = 'pages_id';
 			if($f == 'user') $f = 'created_users_id';
 
-			if(in_array($f, array('id', 'status', 'created', 'pages_id', 'parent_id', 'created_users_id', 'upvotes', 'downvotes'))) {
+			if(in_array($f, array('id', 'status', 'created', 'pages_id', 'parent_id', 'created_users_id', 'upvotes', 'downvotes', 'stars'))) {
 				$_sql .= "AND $f$operator" . ((int) $value)  . " ";
 
 			} else if($f == 'start') {
