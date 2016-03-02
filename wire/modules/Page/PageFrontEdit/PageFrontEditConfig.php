@@ -15,7 +15,6 @@ class PageFrontEditConfig extends ModuleConfig {
 			'inlineLimitPage' => 1, // 1=limit editor to rendered page only, 0=edit for any page 
 			'editRegionAttr' => 'edit', // attribute to use for user-defined modal editable regions
 			'editRegionTag' => 'edit', // tag to use for marking user-defined modal editable regions with tags
-			'demoPages' => array(),
 			'buttonLocation' => 'auto',
 			'buttonType' => 'auto',
 		);
@@ -69,16 +68,6 @@ class PageFrontEditConfig extends ModuleConfig {
 		$f->icon = 'cube';
 		$fieldset->add($f);
 		
-		if(PageFrontEdit::demo) {
-			$f = $this->modules->get('InputfieldPageListSelectMultiple');
-			$f->attr('name', 'demoPages');
-			$f->label = $this->_('Pages to use for demo');
-			$f->description = $this->_('Enables the editor functions to appear to users without edit access, but changes will not be saved.');
-			//$f->attr('value', $this->demoPages);
-			$f->collapsed = Inputfield::collapsedBlank;
-			$fieldset->add($f);
-		}
-
 		$fieldset2 = $this->wire('modules')->get('InputfieldFieldset');
 		$fieldset2->label = $this->_('Save/cancel buttons');
 		$fieldset2->collapsed = Inputfield::collapsedYes;

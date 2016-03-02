@@ -6,7 +6,6 @@
  * Enables front-end editing of page fields.
  * 
  * @property array $inlineEditFields
- * @property array $demoPages
  * @property string $buttonLocation
  * @property string $buttonType
  * @property string $editRegionAttr
@@ -39,12 +38,6 @@ class PageFrontEdit extends WireData implements Module {
 	 * 
 	 */
 	const debug = false;
-
-	/**
-	 * Whether or not demo mode is allowed
-	 * 
-	 */
-	const demo = false;
 
 	/**
 	 * Names of fields applying front end editing to
@@ -93,6 +86,22 @@ class PageFrontEdit extends WireData implements Module {
 	 *
 	 */
 	protected $editorAllowed = false;
+
+	/**
+	 * Priority of Page::render hook
+	 * 
+	 * @var int
+	 * 
+	 */
+	protected $renderHookPriority = 102;
+
+	/**
+	 * Priority for Fieldtype::formatValue hook
+	 * 
+	 * @var int
+	 * 
+	 */
+	protected $formatHookPriority = 200;
 	
 	/**
 	 * Editor number for setting ID attributes on .pw-edit divs
@@ -135,20 +144,16 @@ class PageFrontEdit extends WireData implements Module {
 		$contentType = $page->template->contentType;
 		if($contentType && $contentType != 'html' && $contentType != 'text/html') return;
 	
-		if(count($this->demoPages) && in_array($page->id, $this->demoPages)) {
-			// allow this through, for demo mode
-			$isDemo = true;
-		} else {
-			$user = $this->wire('user');
-			if($user->isGuest() 
-				|| ($page->hasStatus(Page::statusDraft) && !$page->get('_isDraft'))
-				|| !$page->editable() 
-				|| !$user->hasPermission('page-edit-front', $page)) {
-				// replace any <edit> tags or "edit" attributes in the markup
-				$this->addHookAfter('Page::render', $this, 'hookPageRenderNoEdit');
-				return;
-			}
-			$isDemo = false;
+		$user = $this->wire('user');
+		if($user->isGuest() 
+			|| ($page->hasStatus(Page::statusDraft) && !$page->get('_isDraft'))
+			|| !$page->editable() 
+			|| !$user->hasPermission('page-edit-front', $page)) {
+			// replace any <edit> tags or "edit" attributes in the markup
+			$this->addHookAfter('Page::render', $this, 'hookPageRenderNoEdit', array(
+				'priority' => $this->renderHookPriority
+			));
+			return;
 		}
 		
 		// editing is allowed
@@ -164,15 +169,18 @@ class PageFrontEdit extends WireData implements Module {
 			$url = $input->httpUrl(true);
 			if(strpos($url, 'http://') === 0) {
 				$url = str_replace('http://', 'https://', $url);
-				$permanent = $isDemo ? true : false;
-				$this->wire('session')->redirect($url, $permanent);
+				$this->wire('session')->redirect($url, false);
 			}
 		} else {
 			// we are allowing this page to use the editor, so attach hooks
 			foreach($this->inlineAllowFieldtypes as $fieldtypeClass) {
-				$this->addHookAfter("$fieldtypeClass::formatValue", $this, 'inlineHookFormatValue', array('priority' => 200));
+				$this->addHookAfter("$fieldtypeClass::formatValue", $this, 'inlineHookFormatValue', array(
+					'priority' => $this->formatHookPriority
+				));
 			}
-			$this->addHookAfter('Page::render', $this, 'hookPageRender');
+			$this->addHookAfter('Page::render', $this, 'hookPageRender', array(
+				'priority' => $this->renderHookPriority
+			));
 		}
 	}
 
@@ -198,7 +206,6 @@ class PageFrontEdit extends WireData implements Module {
 		if(!$this->inlineEditorActive || !$this->editorAllowed) return false;
 		if(!in_array($field->id, $this->inlineEditFields) && $field->id != $this->inlineEditField) return false;
 		if($this->inlineLimitPage && $page->id != $this->page->id && in_array($field->id, $this->inlineEditFields)) return false;
-		if(count($this->demoPages) && in_array($page->id, $this->demoPages)) return true;
 		if(!$this->wire('user')->hasPermission('page-edit-front', $page)) return false;
 		if(!$page->editable($field)) return false;
 		return true;
@@ -661,6 +668,7 @@ class PageFrontEdit extends WireData implements Module {
 		
 		$modules = $this->wire('modules');
 		$config = $this->wire('config');
+		$draft = (int) $this->wire('input')->get('draft');
 		$adminTheme = $this->wire('user')->admin_theme;
 		$ckeditor = $config->urls->InputfieldCKEditor . "ckeditor-" . InputfieldCKEditor::CKEDITOR_VERSION . '/';
 		$configJS = $config->js();
@@ -679,8 +687,9 @@ class PageFrontEdit extends WireData implements Module {
 				'fa' => $config->urls->adminTemplates . "styles/font-awesome/css/font-awesome.min.css", 
 			),
 			'adminTheme' => $adminTheme ? $adminTheme : 'AdminThemeDefault',
-			'pageURL' => $this->wire('page')->url
+			'pageURL' => $this->wire('page')->url . ($draft ? "?draft=$draft" : "")
 		);
+	
 		
 		$scripts[] = "window.CKEDITOR_BASEPATH = '$ckeditor';";
 		$scripts[] = ($config->urls->$className) . $className . 'Load.js';
@@ -932,17 +941,15 @@ class PageFrontEdit extends WireData implements Module {
 			'formatted' => array(), // formatted field values
 			'unformatted' => array(), // unformatted field values
 		);
-		
-		if($pageID != $this->page->id) {
+	
+		if(!$this->page || !$this->page->id) {
+			$data['error'] = "Page is not available for front-end edits";
+		} else if($pageID != $this->page->id) {
 			$data['error'] = "Edited page does not match current page ID ($pageID != {$this->page->id})";
 		} else if($this->wire('languages') && ($langID != $user->language->id)) {
 			$data['error'] = "Edited language does not match current language ($langID != {$this->user->language})";
 		} else if(!$this->page->editable()) {
-			if(count($this->demoPages) && in_array($pageID, $this->demoPages)) {
-				$data['error'] = "This page is in demo mode, edits are not saved.";
-			} else {
-				$data['error'] = "Page is not editable by this user (page $pageID, user {$this->user->name})";
-			}
+			$data['error'] = "Page is not editable by this user (page $pageID, user {$this->user->name})";
 		} else if(!is_array($fields)) {
 			$data['error'] = "No changes to save";
 		} else {
@@ -978,6 +985,7 @@ class PageFrontEdit extends WireData implements Module {
 		$errors = array();
 		$pagesToSave = array();
 		$names = array();
+		$draft = (int) $this->wire('input')->get('draft');
 		
 		foreach($fields as $key => $value) {
 			
@@ -997,7 +1005,12 @@ class PageFrontEdit extends WireData implements Module {
 			if(isset($pagesToSave[$pageID])) {
 				$page = $pagesToSave[$pageID];
 			} else {
-				$page = $pages->get($pageID);
+				if($pageID == $this->wire('page')->id) {
+					// ensure we are using same instance as the one loaded
+					$page = $this->wire('page');
+				} else {
+					$page = $pages->get($pageID);
+				}
 				if(!$page->id) continue;
 				$page->resetTrackChanges(true);
 				$page->setOutputFormatting(false);
@@ -1095,7 +1108,12 @@ class PageFrontEdit extends WireData implements Module {
 				$data['error'] .= " \n" . implode(" \n", $errors);
 			}
 
-			$page = $pages->get((int) $page->id);
+			if($draft && $page->id == $this->wire('page')->id) {
+				// use existing $page
+			} else {
+				// get fresh copy of page
+				$page = $pages->get((int) $page->id);
+			}
 			$page->of(false);
 
 			foreach($fields as $key => $value) {
