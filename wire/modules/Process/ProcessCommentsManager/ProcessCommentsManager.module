@@ -87,6 +87,7 @@ class ProcessCommentsManager extends Process {
 	 *
 	 */
 	public function init() {
+		$this->wire('modules')->get('FieldtypeComments');
 		parent::init();
 		$this->statuses = array(
 			Comment::statusApproved => 'approved',
@@ -120,7 +121,11 @@ class ProcessCommentsManager extends Process {
 
 		$count = count($fields);
 
-		if(!$count) return $this->error($this->_('There are no comments fields installed')); 
+		if(!$count) {
+			$error = $this->_('There are no comments fields installed');
+			$this->error($error);
+			return "<p>$error</p>";
+		}
 		
 		$go = $this->wire('sanitizer')->pageName($this->wire('input')->get('go')); 
 
