@@ -170,6 +170,7 @@ function InputfieldRepeaterInit($this) {
 	function setupRepeaterHeaders($headers) {
 		$headers.each(function() {
 			var $t = $(this);
+			if($t.hasClass('InputfieldRepeaterHeaderInit')) return;
 			var icon = 'fa-arrows';
 			var $item = $t.parent();
 			if($item.hasClass('InputfieldRepeaterNewItem')) {
@@ -177,7 +178,7 @@ function InputfieldRepeaterInit($this) {
 				icon = 'fa-plus';
 				$t.addClass('ui-priority-secondary');
 			}
-			$t.addClass('ui-state-default');
+			$t.addClass('ui-state-default InputfieldRepeaterHeaderInit');
 			$t.prepend("<i class='fa fa-fw " + icon + " InputfieldRepeaterDrag'></i>")
 			$t.prepend($toggle.clone(true).addClass($t.parent().hasClass('InputfieldRepeaterOff') ? 'fa-toggle-off' : 'fa-toggle-on'));
 			$t.prepend($delete.clone(true));
@@ -249,7 +250,9 @@ function InputfieldRepeaterInit($this) {
 	});
 
 
-	$(".InputfieldRepeaterAddLink", $this).click(function() {
+	var $addLinks = $(".InputfieldRepeaterAddLink:not(.InputfieldRepeaterAddLinkInit)", $this);
+	$addLinks.addClass('InputfieldRepeaterAddLinkInit');
+	$addLinks.click(function() {
 
 		var $addLink = $(this);
 		var $inputfields = $(this).parent('p').prev('ul.Inputfields');
@@ -299,6 +302,7 @@ function InputfieldRepeaterInit($this) {
 				var $addItem = $(data).find(".InputfieldRepeaterItem.InputfieldRepeaterUnpublished");
 				if(!$addItem.length) {
 					// error
+					// console.log("Can't find item: .InputfieldRepeaterItem.InputfieldRepeaterUnpublished");
 					return;
 				}
 				//console.log($addItem);

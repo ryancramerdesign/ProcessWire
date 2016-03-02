@@ -444,9 +444,9 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 		$ajax = $this->wire('config')->ajax;
 	
 		if($ajax && $input->get('field') == $this->attr('name')) {
-			$repeaterAdd = (int) $input->get('repeater_add');
+			$repeaterAdd = $input->get('repeater_add');
 			$repeaterEdit = (int) $input->get('repeater_edit');
-			if($repeaterAdd && !$noAjaxAdd) {
+			if($repeaterAdd !== null && !$noAjaxAdd) {
 				return $this->renderAjaxNewItem();
 			} else if($repeaterEdit) {
 				return $this->buildForm($repeaterEdit)->render();
