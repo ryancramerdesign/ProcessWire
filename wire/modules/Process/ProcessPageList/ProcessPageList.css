@@ -163,7 +163,7 @@
 	display: inline !important;
 	border-left: 1px solid #bbb;
 	padding: 0 1px;
-	text-transform: lowercase;
+	/*text-transform: lowercase;*/
 }
 
 /**
