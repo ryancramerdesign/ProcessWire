@@ -357,9 +357,9 @@ class Pageimage extends Pagefile {
 
 		//$basename = $this->pagefiles->cleanBasename($this->basename(), false, false, false);
 		// cleanBasename($basename, $originalize = false, $allowDots = true, $translate = false) 
-		$basename = basename($this->basename(), "." . $this->ext());        // i.e. myfile
-		$originalName = $basename;
-		$originalSize = $debug ? filesize($this->filename) : 0;
+		$originalName = $this->basename();
+		$basename = basename($originalName, "." . $this->ext());        // i.e. myfile
+		$originalSize = $debug ? @filesize($this->filename) : 0;
 		if($options['cleanFilename'] && strpos($basename, '.') !== false) {
 			$basename = substr($basename, 0, strpos($basename, '.')); 
 		}
@@ -384,12 +384,13 @@ class Pageimage extends Pagefile {
 					}
 
 					$timer = $debug ? Debug::timer($timer) : null;
-					if($debug) $this->wire('log')->save('image-sizer', 
+					if($debug) $this->wire('log')->save('image-sizer',
+						str_replace('ImageSizerEngine', '', $sizer->getEngine()) . ' ' . 
 						($this->error ? "FAILED Resize: " : "Resized: ") . 
 						"$originalName => " . 
 						basename($filenameFinal) . " " .
 						"({$width}x{$height}) $timer secs " . 
-						"$originalSize => " . filesize($filenameFinal) . " bytes"
+						"$originalSize => " . filesize($filenameFinal) . " bytes " 
 					);
 					
 				} catch(\Exception $e) {
