@@ -299,14 +299,16 @@ class FileCompiler extends Wire {
 			'(.*?)' . // 1: open
 			'(' . implode('|', $funcs) . ')' . // 2:function
 			'[\(\s]+' . // open parenthesis and/or space
-			'(["\']?[^;\r\n]+);' . // 3:filename, and the rest of the statement (filename may be quoted or end with closing parenthesis)
-			'/m';
+			'(["\']?[^;\r\n]+)' . // 3:filename, and rest of the statement (file may be quoted or end with closing parens)
+			'([;\r\n])' . // 4:close, whatever the last character is on the line
+			'/im';
 		
 		if(!preg_match_all($re, $data, $matches)) return;
 		
 		foreach($matches[0] as $key => $fullMatch) {
 		
 			$open = $matches[1][$key];
+			$close = $matches[4][$key];
 			$funcMatch = $matches[2][$key];
 			$fileMatch = $matches[3][$key];
 			$argsMatch = '';
@@ -337,7 +339,11 @@ class FileCompiler extends Wire {
 				}
 			}
 
-			if(substr($fileMatch, -1) == ')') $fileMatch = substr($fileMatch, 0, -1);
+			if(substr($fileMatch, -1) == ')') {
+				// move the closing parenthesis out of fileMatch and into close
+				$fileMatch = substr($fileMatch, 0, -1);
+				$close = ")$close";
+			}
 			if(empty($fileMatch)) continue;
 			
 			$commaPos = strpos($fileMatch, ',');
@@ -360,7 +366,7 @@ class FileCompiler extends Wire {
 		
 			$fileMatch = str_replace("\t", '', $fileMatch);
 			if(strlen($open)) $open .= ' ';
-			$newFullMatch = $open . $funcMatch . "(\\ProcessWire\\wire('files')->compile($fileMatch,$optionsStr)$argsMatch);";
+			$newFullMatch = $open . $funcMatch . "(\\ProcessWire\\wire('files')->compile($fileMatch,$optionsStr)$argsMatch$close";
 			$data = str_replace($fullMatch, $newFullMatch, $data);
 		}
 		

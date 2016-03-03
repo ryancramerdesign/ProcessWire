@@ -209,7 +209,7 @@ abstract class Wire implements WireTranslatable, WireFuelable, WireTrackable {
 	 *
 	 * @param array|bool|null $options Optionally an option or boolean for 'namespace' option: 
 	 * 	- lowercase (bool): Specify true to make it return hyphenated lowercase version of class name
-	 * 	- namespace (bool): Specify false to omit namespace from returned class name. Default=true. 
+	 * 	- namespace (bool): Specify false to omit namespace from returned class name. Default=false. 
 	 * 	Note: when lowercase=true option is specified, the namespace=false option is required.
 	 * @return string
 	 *
