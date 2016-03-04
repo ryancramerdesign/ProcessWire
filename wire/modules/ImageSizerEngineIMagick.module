@@ -147,6 +147,8 @@ class ImageSizerEngineIMagick extends ImageSizerEngine {
 	 *
 	 */
 	protected function processResize($srcFilename, $dstFilename, $fullWidth, $fullHeight, $finalWidth, $finalHeight) {
+		
+		$this->setTimeLimit(120);
 
 		// start image magick
 		$this->im = new \IMagick();
