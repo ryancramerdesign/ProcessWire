@@ -46,6 +46,8 @@ class ImageSizer extends Wire {
 	/**
 	 * Known ImageSizer engine modules (class names) excluding ImageSizerEngineGD (the default)
 	 * 
+	 * Cached result of getEngines() call
+	 * 
 	 * @var null|array
 	 * 
 	 */
@@ -62,50 +64,72 @@ class ImageSizer extends Wire {
 	protected $forceEngineName = '';
 
 	/**
+	 * Whether or not ImageSizer has an engine ready to use
+	 * 
+	 * @var bool
+	 * 
+	 */
+	protected $initialized = false;
+
+	/**
 	 * Construct the ImageSizer for a single image
-	 *
-	 * @param string $filename
-	 * @param array $options
+	 * 
+	 * @param string $filename Filename to resize. Omit only if instantiating class for a getEngines() call.
+	 * @param array $options Initial options to the engine.
 	 * @throws WireException
 	 *
 	 */
-	public function __construct($filename, $options = array()) {
+	public function __construct($filename = '', $options = array()) {
 		
 		if(isset($options['forceEngine'])) {
 			$this->forceEngineName = $options['forceEngine'];
 			unset($options['forceEngine']);
 		}
-		
-		$this->filename = $filename; // store it here for optional later usage if we need to invoke a fallback instance
-		$this->initialOptions = $options; // store it here for optional later usage if we need to invoke a fallback instance
 
-		if(is_null(self::$knownEngines)) {
-			self::$knownEngines = array();
-			$modules = $this->wire('modules');
-			$engines = $modules->find("className^=ImageSizerEngine");
-			foreach($engines as $module) {
-				$moduleName = $module->className();
-				if(!$modules->isInstalled($moduleName)) continue;
-				if(count($engines) > 1) {
-					$configData = $modules->getModuleConfigData($moduleName);
-					$priority = isset($configData['enginePriority']) ? (int) $configData['enginePriority'] : 0;
-					while(isset(self::$knownEngines[$priority])) $priority++;
-				} else {
-					$priority = 0;
-				}
-				self::$knownEngines[$priority] = $moduleName;
-			}
-			if(count(self::$knownEngines) > 1) ksort(self::$knownEngines);
-		}
+		$this->filename = $filename;
+		$this->initialOptions = $options;
 		
-		// set the engine, and check if the engine is ready to use
-		$this->engine = $this->newImageSizerEngine($filename, $options);
-		
-		if(!$this->engine) {
-			throw new WireException($this->_('There seems to be no support for the GD image library on your host?'));
+		if(strlen($filename)) {
+			$this->engine = $this->newImageSizerEngine($filename, $options);
 		}
 	}
-
+	
+	/**
+	 * Get array of all available ImageSizer engine names in order of priority
+	 * 
+	 * Note that the returned value excludes the default engine (ImageSizerEngineGD).
+	 * 
+	 * @param bool $forceReload Specify true only if you want to prevent it from using cached result from previous call.
+	 * @return array of module names 
+	 * 
+	 */
+	public function getEngines($forceReload = false) {
+		
+		if(!$forceReload && is_array(self::$knownEngines)) return self::$knownEngines;
+		
+		self::$knownEngines = array();
+		
+		$modules = $this->wire('modules');
+		$engines = $modules->find("className^=ImageSizerEngine");
+		
+		foreach($engines as $module) {
+			$moduleName = $module->className();
+			if(!$modules->isInstalled($moduleName)) continue;
+			if(count($engines) > 1) {
+				$configData = $modules->getModuleConfigData($moduleName);
+				$priority = isset($configData['enginePriority']) ? (int) $configData['enginePriority'] : 0;
+				while(isset(self::$knownEngines[$priority])) $priority++;
+			} else {
+				$priority = 0;
+			}
+			self::$knownEngines[$priority] = $moduleName;
+		}
+		
+		if(count(self::$knownEngines) > 1) ksort(self::$knownEngines);
+		
+		return self::$knownEngines;
+	}
+	
 	/**
 	 * Instantiate an ImageSizerEngine
 	 *
@@ -123,7 +147,7 @@ class ImageSizer extends Wire {
 		$engine = null;
 	
 		// find first supported engine, according to knownEngines priority
-		foreach(self::$knownEngines as $engineName) {
+		foreach($this->getEngines() as $engineName) {
 			if($this->forceEngineName && $engineName != $this->forceEngineName) continue;
 			$e = $this->wire('modules')->get($engineName);
 			$e->prepare($filename, $options);	
@@ -162,6 +186,7 @@ class ImageSizer extends Wire {
 		$engineClass = __NAMESPACE__ . "\\$this->defaultEngineName";
 		/** @var ImageSizerEngine $engine */
 		$engine = new $engineClass();
+		$this->wire($engine);
 		$engine->prepare($filename, $options);
 		if(!$engine->supported()) $engine = null;
 		
@@ -176,16 +201,28 @@ class ImageSizer extends Wire {
 	 *     is assumed.
 	 *
 	 * @return bool True if the resize was successful, false if not
-	 * @throws WireException when not enough memory to load image
+	 * @throws WireException when not enough memory to load image or missing required data
 	 *
 	 */
 	public function ___resize($targetWidth, $targetHeight = 0) {
+		
+		if(empty($this->filename)) throw new WireException('No file to resize: please call setFilename($file) before resize()');
+		
+		if(empty($this->engine)) {
+			// set the engine, and check if the engine is ready to use
+			$this->engine = $this->newImageSizerEngine();
+			if(!$this->engine) {
+				throw new WireException('There seems to be no support for the GD image library on your host?');
+			}
+		}
 
 		$success = $this->engine->resize($targetWidth, $targetHeight);
+		
 		if(!$success) {
 			// fallback to GD
 			$success = $this->resizeFallback($targetWidth, $targetHeight);
 		}
+		
 		return $success;
 	}
 
@@ -207,14 +244,53 @@ class ImageSizer extends Wire {
 		if($engine->supported()) $success = $engine->resize($targetWidth, $targetHeight);
 		return $success;
 	}
-	
-	public function setOptions(array $options) {
-		$this->initialOptions = array_merge($this->initialOptions, $options);
-		return $this->engine->setOptions($options);
+
+	/**
+	 * Set the filename 
+	 * 
+	 * @param $filename
+	 * @return $this
+	 * 
+	 */
+	public function setFilename($filename) {
+		$this->filename = $filename;
+		return $this;
 	}
 
+	/**
+	 * Force the use of a specific engine
+	 * 
+	 * @param $engineName Module name of engine you want to force
+	 * @return $this
+	 * 
+	 */
+	public function setForceEngine($engineName) {
+		$this->forceEngineName = $engineName;
+		return $this;
+	}
+
+	/**
+	 * Set multiple resize options
+	 * 
+	 * @param array $options
+	 * @return $this
+	 * 
+	 */
+	public function setOptions(array $options) {
+		$this->initialOptions = array_merge($this->initialOptions, $options);
+		if($this->engine) $this->engine->setOptions($options);
+		return $this;
+	}
+
+	/**
+	 * Set whether a modification was made
+	 * 
+	 * @param $modified
+	 * @return $this
+	 * 
+	 */
 	public function setModified($modified) {
-		$this->engine->modified = $modified ? true : false;
+		if($this->engine) $this->engine->modified = $modified ? true : false;
 		return $this;
 	}
 
@@ -241,17 +317,8 @@ class ImageSizer extends Wire {
 	public function getImageType() { return $this->engine->imageType; }
 	public function isModified() { return $this->engine->modified; }
 	public function getOptions() { return $this->engine->getOptions(); }
+	public function getEngine() { return $this->engine; }
 	public function __get($key) { return $this->engine->__get($key); }
-
-	/**
-	 * Get the current ImageSizer Engine
-	 *
-	 * @return ImageSizerEngine
-	 *
-	 */
-	public function getEngine() {
-		return $this->engine;
-	}
 
 	/**
 	 * Given an unknown cropping value, return the validated internal representation of it

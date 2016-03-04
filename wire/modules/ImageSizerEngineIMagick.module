@@ -58,6 +58,16 @@ class ImageSizerEngineIMagick extends ImageSizerEngine {
 	protected $hasXMP;
 
 	/**
+	 * Class constructor
+	 * 
+	 */
+	public function __construct() {
+		// set a lower default quality of 80, which is more like 90 in GD
+		$this->setQuality(80);
+		parent::__construct();
+	}
+
+	/**
 	 * Class destructor
 	 * 
 	 */

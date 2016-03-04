@@ -296,7 +296,11 @@ class Pageimage extends Pagefile {
 				$options = array();
 			}
 		}
-
+		
+		// originally requested options
+		$requestOptions = $options;
+	
+		// default options
 		$defaultOptions = array(
 			'upscaling' => true,
 			'cropping' => true,
@@ -374,9 +378,29 @@ class Pageimage extends Pagefile {
 			if(file_exists($filenameUnvalidated)) @unlink($filenameUnvalidated);
 			if(@copy($this->filename(), $filenameUnvalidated)) {
 				try { 
+					
 					$timer = $debug ? Debug::timer() : null;
-					$sizer = $this->wire(new ImageSizer($filenameUnvalidated));
-					$sizer->setOptions($options);
+					
+					/** @var ImageSizer $sizer */
+					$sizer = $this->wire(new ImageSizer($filenameUnvalidated, $options));
+					
+					/** @var ImageSizerEngine $engine */
+					$engine = $sizer->getEngine();
+					
+					// allow for ImageSizerEngine module settings for quality and sharpening to override system defaults
+					// when they are not specified as an option to this resize() method
+					$engineConfigData = $engine->getConfigData();
+					if(!empty($engineConfigData)) {
+						if(!empty($engineConfigData['quality']) && empty($options['hidpi']) && empty($requestOptions['quality'])) {
+							$engine->setQuality($engineConfigData['quality']);
+							$options['quality'] = $engineConfigData['quality'];
+						}
+						if(!empty($engineConfigData['sharpening']) && empty($requestOptions['sharpening'])) {
+							$engine->setSharpening($engineConfigData['sharpening']);
+							$options['sharpening'] = $engineConfigData['sharpening'];
+						}
+					}
+					
 					if($sizer->resize($width, $height) && @rename($filenameUnvalidated, $filenameFinal)) {
 						$this->wire('files')->chmod($filenameFinal);
 					} else {
@@ -390,7 +414,8 @@ class Pageimage extends Pagefile {
 						"$originalName => " . 
 						basename($filenameFinal) . " " .
 						"({$width}x{$height}) $timer secs " . 
-						"$originalSize => " . filesize($filenameFinal) . " bytes " 
+						"$originalSize => " . filesize($filenameFinal) . " bytes " . 
+						"(quality=$options[quality], sharpening=$options[sharpening]) "
 					);
 					
 				} catch(\Exception $e) {

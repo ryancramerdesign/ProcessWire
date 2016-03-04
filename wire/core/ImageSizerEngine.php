@@ -305,6 +305,14 @@ abstract class ImageSizerEngine extends WireData implements Module, Configurable
 	 */
 	protected $finalHeight;
 
+	/**
+	 * Data received from the setConfigData() method
+	 * 
+	 * @var array
+	 * 
+	 */
+	protected $moduleConfigData = array();
+
 	/******************************************************************************************************/
 	
 	public function __construct() {
@@ -1556,12 +1564,42 @@ abstract class ImageSizerEngine extends WireData implements Module, Configurable
 	}
 
 	/**
+	 * Set module config data for ConfigurableModule interface
+	 * 
+	 * @param array $data
+	 * 
+	 */
+	public function setConfigData(array $data) {
+		if(count($data)) $this->moduleConfigData = $data;
+		foreach($data as $key => $value) {
+			if($key == 'sharpening') {
+				$this->setSharpening($value);
+			} else if($key == 'quality') {
+				$this->setQuality($value);
+			} else {
+				$this->set($key, $value);
+			}
+		}
+	}
+
+	/**
+	 * Get module config data
+	 * 
+	 * @return array
+	 * 
+	 */
+	public function getConfigData() {
+		return $this->moduleConfigData;
+	}
+
+	/**
 	 * Module configuration
 	 * 
 	 * @param InputfieldWrapper $inputfields
 	 * 
 	 */
 	public function getModuleConfigInputfields(InputfieldWrapper $inputfields) {
+		
 		$f = $this->wire('modules')->get('InputfieldInteger');
 		$f->attr('name', 'enginePriority');
 		$f->label = $this->_('Engine priority');
@@ -1569,6 +1607,29 @@ abstract class ImageSizerEngine extends WireData implements Module, Configurable
 		$f->description .= ' ' . $this->_('The lower the number, the more preference you give it.');
 		$f->description .= ' ' . $this->_('If you have other ImageSizerEngine modules installed, make sure no two have the same priority.');
 		$f->attr('value', $this->enginePriority);
+		$f->icon = 'sort-numeric-asc';
+		$inputfields->add($f);
+		
+		$f = $this->wire('modules')->get('InputfieldRadios');
+		$f->attr('name', 'sharpening'); 
+		$f->label = $this->_('Sharpening');
+		$f->addOption('none', $this->_('None'));
+		$f->addOption('soft', $this->_('Soft'));
+		$f->addOption('medium', $this->_('Medium'));
+		$f->addOption('strong', $this->_('Strong'));
+		$f->optionColumns = 1;
+		$f->attr('value', $this->sharpening);
+		$f->icon = 'image';
+		$inputfields->add($f);
+
+		$f = $this->wire('modules')->get('InputfieldInteger');
+		$f->attr('name', 'quality');
+		$f->label = $this->_('Quality');
+		$f->description = $this->_('Default quality setting from 1 to 100 where 1 is lowest quality, and 100 is highest.');
+		$f->attr('value', $this->quality);
+		$f->min = 0;
+		$f->max = 100;
+		$f->icon = 'dashboard';
 		$inputfields->add($f);
 	}
 
