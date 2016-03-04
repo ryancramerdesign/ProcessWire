@@ -298,9 +298,9 @@ class FileCompiler extends Wire {
 		$re = '/^' . 
 			'(.*?)' . // 1: open
 			'(' . implode('|', $funcs) . ')' . // 2:function
-			'[\(\s]+' . // open parenthesis and/or space
-			'(["\']?[^;\r\n]+)' . // 3:filename, and rest of the statement (file may be quoted or end with closing parens)
-			'([;\r\n])' . // 4:close, whatever the last character is on the line
+			'([\(\s]+)' . // 3: argOpen: open parenthesis and/or space
+			'(["\']?[^;\r\n]+)' . // 4:filename, and rest of the statement (file may be quoted or end with closing parens)
+			'([;\r\n])' . // 5:close, whatever the last character is on the line
 			'/im';
 		
 		if(!preg_match_all($re, $data, $matches)) return;
@@ -308,9 +308,10 @@ class FileCompiler extends Wire {
 		foreach($matches[0] as $key => $fullMatch) {
 		
 			$open = $matches[1][$key];
-			$close = $matches[4][$key];
 			$funcMatch = $matches[2][$key];
-			$fileMatch = $matches[3][$key];
+			$argOpen = trim($matches[3][$key]);
+			$fileMatch = $matches[4][$key];
+			$close = $matches[5][$key];
 			$argsMatch = '';
 			
 			if(strlen($open)) {
@@ -344,7 +345,13 @@ class FileCompiler extends Wire {
 				$fileMatch = substr($fileMatch, 0, -1);
 				$close = ")$close";
 			}
+			
 			if(empty($fileMatch)) continue;
+			
+			if(empty($argOpen)) {
+				// if there was no opening "(", compiler will be adding one, so we'll need an additional corresponding ")"
+				$close = ")$close";
+			}
 			
 			$commaPos = strpos($fileMatch, ',');
 			if($commaPos) {
@@ -366,7 +373,7 @@ class FileCompiler extends Wire {
 		
 			$fileMatch = str_replace("\t", '', $fileMatch);
 			if(strlen($open)) $open .= ' ';
-			$newFullMatch = $open . $funcMatch . "(\\ProcessWire\\wire('files')->compile($fileMatch,$optionsStr)$argsMatch$close";
+			$newFullMatch = "$open$funcMatch(\\ProcessWire\\wire('files')->compile($fileMatch,$optionsStr)$argsMatch$close";
 			$data = str_replace($fullMatch, $newFullMatch, $data);
 		}
 		
