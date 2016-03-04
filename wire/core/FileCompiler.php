@@ -340,11 +340,16 @@ class FileCompiler extends Wire {
 				}
 			}
 
+			if(substr($fileMatch, -2) == '?>') {
+				// move closing PHP tag out of the fileMatch and into the close
+				$fileMatch = substr($fileMatch, 0, -2);
+				$close = "?>$close";
+			}
 			if(substr($fileMatch, -1) == ')') {
 				// move the closing parenthesis out of fileMatch and into close
 				$fileMatch = substr($fileMatch, 0, -1);
 				$close = ")$close";
-			}
+			} 
 			
 			if(empty($fileMatch)) continue;
 			
