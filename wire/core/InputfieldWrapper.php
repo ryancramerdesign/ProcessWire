@@ -38,7 +38,7 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 		'item_description' => "\n<p class='description'>{out}</p>", 
 		'item_head' => "\n<h2>{out}</h2>", 
 		'item_notes' => "\n<p class='notes'>{out}</p>",
-		'item_icon' => "<i class='fa fa-{name}'></i> ",
+		'item_icon' => "<i class='fa fa-fw fa-{name}'></i> ",
 		'item_toggle' => "<i class='toggle-icon fa fa-fw fa-angle-down' data-to='fa-angle-down fa-angle-right'></i>", 
 		// ALSO: 
 		// InputfieldAnything => array( any of the properties above to override on a per-Inputifeld basis)
