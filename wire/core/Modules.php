@@ -916,7 +916,7 @@ class Modules extends WireArray {
 				$i = $this->getModuleInfoExternal($basename); 
 				if(empty($i)) {
 					$this->includeModuleFile($pathname, $basename);
-					$className = wireClassName($basename, true);
+					$className = $moduleInfo['namespace'] . $basename;
 					if(method_exists($className, 'getModuleInfo')) {
 						$i = $className::getModuleInfo();
 					} else {
