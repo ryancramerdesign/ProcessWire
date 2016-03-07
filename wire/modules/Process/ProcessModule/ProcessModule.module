@@ -235,12 +235,17 @@ class ProcessModule extends Process {
 
 		if($this->input->post->install) {
 			$this->session->CSRF->validate();
-			$name = $this->input->post->install;
+			$name = $this->wire('sanitizer')->name($this->input->post->install);
 			if($name && isset($this->modulesArray[$name]) && !$this->modulesArray[$name]) {
 				$module = $this->modules->get($name); 		
-				$this->modulesArray[$name] = 1; 
-				$this->session->message($this->_("Module Install") . " - " . $module->className); // Message that precedes the name of the module installed
-				$this->session->redirect("edit?name={$module->className}"); 
+				if($module) {
+					$this->modulesArray[$name] = 1;
+					$this->session->message($this->_("Module Install") . " - $name"); // Message that precedes the name of the module installed
+					$this->session->redirect("edit?name=$name");
+				} else {
+					$this->session->error($this->_('Error installing module') . " - $name");
+					$this->session->redirect("./");
+				}
 			}
 		}
 
