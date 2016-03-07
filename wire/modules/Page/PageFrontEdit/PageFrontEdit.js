@@ -389,10 +389,17 @@ function PageFrontEditInit($) {
 						var file = ProcessWire.config.InputfieldCKEditor.plugins[name];
 						CKEDITOR.plugins.addExternal(name, file, '');
 					}
+				}).fail(function(jqxhr, settings, exception) {
+					alert('failed to load modal.js: ' + exception);
 				});
+			}).fail(function(jqxhr, settings, exception) {
+				alert('failed to load ckeditor.js: ' + exception);
 			});
 		} else {
-			jQuery.getScript(ProcessWire.config.PageFrontEdit.files.modal);
+			jQuery.getScript(ProcessWire.config.PageFrontEdit.files.modal)
+				.fail(function(jqxhr, settings, exception) {
+					alert('failed to load modal.js: ' + exception);
+				});
 		}
 
 		// click action to cancel edits

@@ -440,8 +440,8 @@ function pwModalOpenEvent(e) {
 function pwModalDoubleClick() {
 	// double click handler that still enables links within to work as single-click
 	var clicks = 0, timer = null, allowClick = false;
-	$(document).on('click', '.pw-modal-dblclick a', function() {
-		var $a = $(this);
+	jQuery(document).on('click', '.pw-modal-dblclick a', function() {
+		var $a = jQuery(this);
 		if(allowClick) {
 			allowClick = false;
 			return true;
@@ -458,11 +458,11 @@ function pwModalDoubleClick() {
 			clearTimeout(timer); // prevent single-click action
 			allowClick = false;
 			clicks = 0;
-			$(this).closest('.pw-modal-dblclick').trigger('dblclick');
+			jQuery(this).closest('.pw-modal-dblclick').trigger('dblclick');
 		}
 		return false;
 	});
-	$(document).on('dblclick', '.pw-modal-dblclick a', function(e) {
+	jQuery(document).on('dblclick', '.pw-modal-dblclick a', function(e) {
 		e.stopPropagation();
 		return false;
 	});
@@ -470,7 +470,7 @@ function pwModalDoubleClick() {
 	var isTouch = (('ontouchstart' in window) || (navigator.MaxTouchPoints > 0) || (navigator.msMaxTouchPoints > 0));
 
 	if(isTouch) {
-		$(document).on('pwdoubletap', '.pw-modal-dblclick', pwModalOpenEvent);
+		jQuery(document).on('pwdoubletap', '.pw-modal-dblclick', pwModalOpenEvent);
 	}
 }
 
