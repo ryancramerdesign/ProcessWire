@@ -354,20 +354,47 @@ class ImageSizerEngineIMagick extends ImageSizerEngine {
 	 * 
 	 */
 	protected function imSharpen($mode) {
-		switch($mode) {
-			case 'none':
-				return true;
-				break;
-			case 'strong':
-				$m = array(0, 0.5, 5.0, 0.02);
-				break;
-			case 'medium':
-				$m = array(0, 0.5, 3.2, 0.04);
-				break;
-			case 'soft':
-			default:
-				$m = array(0, 0.5, 2.4, 0.07);
-				break;
+		if('none' == $mode) return true;
+		$mp = intval($this->finalHeight * $this->finalWidth);
+		if($mp > 1440000) {
+			switch($mode) {
+				case 'strong':
+					$m = array(0, 0.5, 4.6, 0.03);
+					break;
+				case 'medium':
+					$m = array(0, 0.5, 3.0, 0.04);
+					break;
+				case 'soft':
+				default:
+					$m = array(0, 0.5, 2.3, 0.07);
+					break;
+			}
+		} else if($mp > 480000) {
+			switch($mode) {
+				case 'strong':
+					$m = array(0, 0.5, 3.0, 0.04);
+					break;
+				case 'medium':
+					$m = array(0, 0.5, 2.3, 0.06);
+					break;
+				case 'soft':
+				default:
+					$m = array(0, 0.5, 1.8, 0.08);
+					break;
+			}
+		} else {
+			switch($mode) {
+				case 'strong':
+					$m = array(0, 0.5, 2.0, 0.06);
+					break;
+				case 'medium':
+					$m = array(0, 0.5, 1.7, 0.08);
+					break;
+				case 'soft':
+				default:
+					$m = array(0, 0.5, 1.2, 0.1);
+					break;
+			}
 		}
 		$this->im->unsharpMaskImage($m[0], $m[1], $m[2], $m[3]);
 		$this->modified = true;
