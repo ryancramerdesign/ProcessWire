@@ -461,6 +461,12 @@ abstract class ImageSizerEngine extends WireData implements Module, Configurable
 	 *
 	 */
 	public function writeBackIPTC($filename, $includeCustomTags = false) {
+		if($this->config->debug) {
+			// add a timestamp and the name of the image sizer engine to the IPTC tag number 217
+			$entry = $this->className() . '-' . date('Ymd:His');
+			if(!$this->iptcRaw) $this->iptcRaw = array();
+			$this->iptcRaw['2#217'] = array(0 => $entry);
+		}
 		if(!$this->iptcRaw) return null; // the sourceimage doesn't contain IPTC infos
 		$content = iptcembed($this->iptcPrepareData($includeCustomTags), $filename);
 		if(false === $content) return null;
