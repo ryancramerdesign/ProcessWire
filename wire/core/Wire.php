@@ -323,7 +323,6 @@ abstract class Wire implements WireTranslatable, WireFuelable, WireTrackable {
 	 *
 	 */ 
 	public function __call($method, $arguments) {
-		if(!$this->wire('hooks')) throw new WireException('gotcha');
 		$result = $this->wire('hooks')->runHooks($this, $method, $arguments); 
 		if(!$result['methodExists'] && !$result['numHooksRun']) return $this->callUnknown($method, $arguments);
 		return $result['return'];
