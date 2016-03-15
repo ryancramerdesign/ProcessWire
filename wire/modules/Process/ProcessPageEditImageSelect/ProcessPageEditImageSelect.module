@@ -781,7 +781,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		// @todo move all this markup to a separate template file
 		$out =	
 			"<form id='selected_image_settings' class='$formClass' method='post' action='$formActionURL'>" .
-			"<small>" . 
+			"<small class='ui-helper-clearfix'>" . 
 			"<p id='wrap_info'>" .
 				"<select id='selected_image_class' name='class'>" .
 					"<option value=''>" . $this->_('No Alignment') . "</option>" .

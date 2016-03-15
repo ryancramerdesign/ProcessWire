@@ -19,6 +19,7 @@ class MarkupAdminDataTable extends ModuleJS {
 	protected $footerRow = array();
 	protected $rows = array();
 	protected $rowClasses = array();
+	protected $rowAttrs = array();
 	protected $actions = array();
 	protected $encodeEntities = true; 
 	protected $sortable = true; 
@@ -60,6 +61,7 @@ class MarkupAdminDataTable extends ModuleJS {
 	 * @param array $options Optionally specify any one of the following:
 	 *   - separator (bool): specify true to show a stronger visual separator above the column
 	 *   - class (string): specify one or more class names to apply to the <tr>
+	 *   - attrs (array): array of attr => value for attributes to add to the <tr>
 	 * @return $this
 	 * 
 	 */
@@ -67,6 +69,7 @@ class MarkupAdminDataTable extends ModuleJS {
 		$defaults = array(
 			'separator' => false,
 			'class' => '', 
+			'attrs' => array(),
 		);
 		$options = array_merge($defaults, $options);
 		$n = count($this->rows);
@@ -75,6 +78,7 @@ class MarkupAdminDataTable extends ModuleJS {
 		}
 		$this->rows[$n] = $this->setupRow($a);
 		if(!empty($options['class'])) $this->rowClasses[$n] = $options['class'];
+		if(!empty($options['attrs'])) $this->rowAttrs[$n] = $options['attrs'];
 		return $this; 
 	}
 
@@ -151,8 +155,13 @@ class MarkupAdminDataTable extends ModuleJS {
 				$cols = count($row);
 				if($cols > $maxCols) $maxCols = $cols; 
 				if($cols < $maxCols) for(; $cols < $maxCols; $cols++) $row[] = '&nbsp;';
-				$tr = isset($this->rowClasses[$n]) ? "<tr class='" . $this->rowClasses[$n] . "'>" : "<tr>";
-				$out .= "\n\t\t$tr";
+				$attrs = isset($this->rowAttrs[$n]) ? $this->rowAttrs[$n] : array();
+				if(isset($this->rowClasses[$n])) $attrs['class'] = $this->rowClasses[$n];
+				$attrStr = '';
+				foreach($attrs as $attrName => $attrVal) {
+					$attrStr .= " $attrName='" . $this->wire('sanitizer')->entities($attrVal) . "'";
+				}
+				$out .= "\n\t\t<tr$attrStr>";
 				foreach($row as $td) {
 					$class = '';
 					if(is_array($td)) list($td, $class) = $td;

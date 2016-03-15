@@ -1883,9 +1883,13 @@ class ProcessField extends Process implements ConfigurableModule {
 					$f->icon = 'plus-circle';
 					$beforeLabel = $this->_('Before %s');
 					$afterLabel = $this->_('After %s');
+					$value = 0;
+					if(!count($template->fieldgroup)) {
+						$f->addOption('-', $this->_('Add as first field'));
+						$value = '-';
+					}
 					$f->addOption(0, $this->_('Do not add'));
 
-					$value = 0;
 					foreach($template->fieldgroup as $field) { // overwrite of $field is OK
 						if(strpos((string) $field->type, 'FieldtypeFieldset') === 0) continue;
 						$f->addOption($field->name, array(
@@ -1936,6 +1940,12 @@ class ProcessField extends Process implements ConfigurableModule {
 				
 				$addFieldID = $this->wire('input')->post("add_{$field->id}_template_$template->id");
 				if(!$addFieldID) continue;
+				if($addFieldID === '-') {
+					// add as first field
+					$template->fieldgroup->add($field);
+					continue;
+				}
+				
 				$before = substr($addFieldID, 0, 1) == '-';
 				$addFieldID = (int) ltrim($addFieldID, '-');
 

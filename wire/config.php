@@ -71,7 +71,7 @@ $config->debugIf = '';
 /**
  * Tools, and their order, to show in debug mode (admin)
  * 
- * Options include: pages, api, session, modules, hooks, database, db, timers, user, input, cache 
+ * Options include: pages, api, session, modules, hooks, database, db, timers, user, input, cache, autoload
  * 
  * @var array
  * 

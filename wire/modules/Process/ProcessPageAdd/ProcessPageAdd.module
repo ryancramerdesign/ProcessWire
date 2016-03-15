@@ -80,6 +80,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 					$data = array();
 					$session->remove($this, 'nav');
 					$session->remove($this, 'numAddable');
+					$this->message("Clearing 'Add New' page cache", Notice::debug);
 					break;
 				}
 			}
@@ -108,7 +109,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 					if($parent->id) {
 						// one parent possible	
 						if(!$this->isAllowedParent($parent, false, $template)) continue; // double check
-						$qs = "?parent_id=$parent->id";
+						$qs = "?parent_id=$parent->id&template_id=$template->id";
 					} else {
 						// multiple parents possible
 						$qs = "?template_id=$template->id";

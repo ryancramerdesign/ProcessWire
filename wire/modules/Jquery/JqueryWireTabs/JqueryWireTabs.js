@@ -35,7 +35,7 @@
 			function init() {
 
 				if(!options.items) return;
-				if(options.items.length < 2) return;
+				if(options.items.length < 1) return;
 				
 				if(options.id.length) {
 					$tabList = $("#" + options.id);

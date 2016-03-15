@@ -291,15 +291,20 @@ function pwModalOpenEvent(e) {
 			'z-index': 9999
 		}).hide();
 
-	if($a.is('button')) {
+	// first see if there is a specific/override href available
+	var href = $a.attr('data-pw-modal-href')
+	
+	if(href && href.length) {
+		// use the data-pw-modal-href attribute
+	} else if($a.is('button')) {
 		var $aparent = $a.closest('a');
-		var href = $aparent.length ? $aparent.attr('href') : $a.attr('data-href');
+		href = $aparent.length ? $aparent.attr('href') : $a.attr('data-href');
 		if(!href) href = $a.find('a').attr('href');
 	} else if($a.is('a')) {
-		var href = $a.attr('href');
+		href = $a.attr('href');
 	} else {
 		// some other element, we require a data-href attribute
-		var href = $a.attr('data-href');
+		href = $a.attr('data-href');
 	}
 	
 	if(!href) {
@@ -432,27 +437,11 @@ function pwModalOpenEvent(e) {
 
 })(jQuery);
 
-jQuery(document).ready(function($) {
-	
-	// enable titles with HTML in ui dialog
-	$.widget("ui.dialog", $.extend({}, $.ui.dialog.prototype, {
-		_title: function(title) {
-			if (!this.options.title ) {
-				title.html("&#160;");
-			} else {
-				title.html(this.options.title);
-			}
-		}
-	}));
-
-	$(document).on('pwdblclick', '.pw-modal-dblclick', pwModalOpenEvent);
-	$(document).on('click', '.pw-modal:not(.pw-modal-dblclick)', pwModalOpenEvent);
-	$(document).on('dblclick', '.pw-modal-dblclick', pwModalOpenEvent);
-
+function pwModalDoubleClick() {
 	// double click handler that still enables links within to work as single-click
 	var clicks = 0, timer = null, allowClick = false;
-	$(document).on('click', '.pw-modal-dblclick a', function() {
-		var $a = $(this);
+	jQuery(document).on('click', '.pw-modal-dblclick a', function() {
+		var $a = jQuery(this);
 		if(allowClick) {
 			allowClick = false;
 			return true;
@@ -469,19 +458,41 @@ jQuery(document).ready(function($) {
 			clearTimeout(timer); // prevent single-click action
 			allowClick = false;
 			clicks = 0;
-			$(this).closest('.pw-modal-dblclick').trigger('dblclick');
+			jQuery(this).closest('.pw-modal-dblclick').trigger('dblclick');
 		}
 		return false;
 	});
-	$(document).on('dblclick', '.pw-modal-dblclick a', function(e) {
+	jQuery(document).on('dblclick', '.pw-modal-dblclick a', function(e) {
 		e.stopPropagation();
 		return false;
 	});
 
 	var isTouch = (('ontouchstart' in window) || (navigator.MaxTouchPoints > 0) || (navigator.msMaxTouchPoints > 0));
-	
+
 	if(isTouch) {
-		$(document).on('pwdoubletap', '.pw-modal-dblclick', pwModalOpenEvent);
+		jQuery(document).on('pwdoubletap', '.pw-modal-dblclick', pwModalOpenEvent);
 	}
+}
+
+jQuery(document).ready(function($) {
+	
+	// enable titles with HTML in ui dialog
+	$.widget("ui.dialog", $.extend({}, $.ui.dialog.prototype, {
+		_title: function(title) {
+			if (!this.options.title ) {
+				title.html("&#160;");
+			} else {
+				title.html(this.options.title);
+			}
+		}
+	}));
+
+	$(document).on('pwdblclick', '.pw-modal-dblclick', pwModalOpenEvent);
+	$(document).on('click', '.pw-modal:not(.pw-modal-dblclick):not(.pw-modal-longclick)', pwModalOpenEvent);
+	$(document).on('dblclick', '.pw-modal-dblclick', pwModalOpenEvent);
+	$(document).on('longclick', '.pw-modal-longclick', pwModalOpenEvent);
+	
+	pwModalDoubleClick();
+
 });
 

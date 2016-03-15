@@ -56,7 +56,7 @@ var InputfieldSelector = {
 			timeout = setTimeout(function() { InputfieldSelector.changeAny($t); }, 100); 
 		}); 
 
-		$(".InputfieldSelector .selector-add").click(function() {
+		$(document).on('click', '.InputfieldSelector .selector-add', function() {
 			InputfieldSelector.addRow($(this)); 
 			return false; 
 		}); 	

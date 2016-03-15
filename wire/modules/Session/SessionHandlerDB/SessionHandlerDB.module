@@ -283,7 +283,7 @@ class SessionHandlerDB extends WireSessionHandler implements Module, Configurabl
 	public function getSessions($seconds = 300, $limit = 100) {
 		
 		$sql = 	"SELECT id, user_id, pages_id, ts, ip, ua " . 
-				"FROM " . self::tableName . " " . 
+				"FROM " . self::dbTableName . " " . 
 				"WHERE ts > '" . date('Y-m-d H:i:s', (time() - $seconds)) . "' " . 
 				"ORDER BY ts DESC LIMIT " . (int) $limit;
 		

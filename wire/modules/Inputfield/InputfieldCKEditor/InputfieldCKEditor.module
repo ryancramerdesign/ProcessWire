@@ -343,8 +343,8 @@ class InputfieldCKEditor extends InputfieldTextarea {
 				'captionLabel' => $this->_('Your caption text here'),
 				'savingNote'   => $this->_('Saving Image'),
 				'cancelBtn'    => $cancelButtonLabel,
-				'insertBtn'    => $this->_('Insert This Image'),
-				'selectBtn'    => $this->_('Select Another Image')
+				'insertBtn'    => $this->_('Insert Image'),
+				'selectBtn'    => $this->_('Select Another')
 			)
 		);
 		
@@ -463,10 +463,11 @@ class InputfieldCKEditor extends InputfieldTextarea {
 	protected function purifyValue($value) {
 
 		$value = (string) $value; 
+		if(strpos($value, "\r") !== false) $value = str_replace(array("\r\n", "\r"), "\n", $value);
 		$length = strlen($value);
 		if(!$length) return ''; 
 
-		if($length && $this->usePurifier && $this->wire('modules')->isInstalled('MarkupHTMLPurifier')) {
+		if($this->usePurifier && $this->wire('modules')->isInstalled('MarkupHTMLPurifier')) {
 			if(is_null(self::$purifier)) self::$purifier = $this->wire('modules')->get('MarkupHTMLPurifier');
 			self::$purifier->set('Attr.AllowedFrameTargets', array('_blank')); // allow links opened in new window/tab
 			self::$purifier->set('Attr.EnableID', stripos($this->toolbar, 'anchor') !== false); // for anchor plugin use of id and name attributes

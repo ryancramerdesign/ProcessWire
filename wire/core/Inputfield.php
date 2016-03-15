@@ -591,7 +591,7 @@ abstract class Inputfield extends WireData implements Module {
 		foreach($attributes as $attr => $value) {
 
 			// skip over empty attributes
-			if(!strlen("$value") && (!$value = $this->get($attr))) continue; 
+			if(!is_array($value) && !strlen("$value") && (!$value = $this->get($attr))) continue;
 
 			// if an attribute has multiple values (like class), then bundle them into a string separated by spaces
 			if(is_array($value)) $value = implode(' ', $value); 

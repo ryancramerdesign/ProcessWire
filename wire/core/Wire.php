@@ -209,7 +209,7 @@ abstract class Wire implements WireTranslatable, WireFuelable, WireTrackable {
 	 *
 	 * @param array|bool|null $options Optionally an option or boolean for 'namespace' option: 
 	 * 	- lowercase (bool): Specify true to make it return hyphenated lowercase version of class name
-	 * 	- namespace (bool): Specify false to omit namespace from returned class name. Default=true. 
+	 * 	- namespace (bool): Specify false to omit namespace from returned class name. Default=false. 
 	 * 	Note: when lowercase=true option is specified, the namespace=false option is required.
 	 * @return string
 	 *
@@ -323,7 +323,6 @@ abstract class Wire implements WireTranslatable, WireFuelable, WireTrackable {
 	 *
 	 */ 
 	public function __call($method, $arguments) {
-		if(!$this->wire('hooks')) throw new WireException('gotcha');
 		$result = $this->wire('hooks')->runHooks($this, $method, $arguments); 
 		if(!$result['methodExists'] && !$result['numHooksRun']) return $this->callUnknown($method, $arguments);
 		return $result['return'];

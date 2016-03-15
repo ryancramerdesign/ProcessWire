@@ -44,6 +44,11 @@
 	overflow: visible; 
 }
 
+small.ui-helper-clearfix {
+	display: block;
+	padding-bottom: 1em;
+}
+
 #action_icons {
 	margin-right: 0.5em;
 }
@@ -220,6 +225,7 @@
 	margin: 0 auto;
 }
 #selected_image_container + #latin {
+	margin-top: 0;
 	position: relative; 
 	display: none; 
 	overflow: hidden; 
@@ -235,6 +241,19 @@
 	bottom: 0;
 	left: 0; 
 	background-image: linear-gradient(to bottom, rgba(255,255,255,0.1), #fff);
+}
+
+.cropping_active #latin {
+	display: none !important;
+	
+}
+
+.show_when_crop #crop_coordinates label {
+	white-space: nowrap;
+}
+
+.show_when_crop button {
+	margin-bottom: 0.5em;
 }
 
 #selected_image_class {

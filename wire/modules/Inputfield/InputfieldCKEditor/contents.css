@@ -91,6 +91,10 @@ figure figcaption {
 	font-size: 13px; 
 }
 
+img {
+	max-width: 100%; 
+}
+
 img.right,
 img.align_right,
 img.align-right,

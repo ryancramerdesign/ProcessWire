@@ -31,6 +31,13 @@ class RepeaterPage extends Page {
 	 */
 	public function setForPage(Page $forPage) {
 		$this->forPage = $forPage; 
+		/* future use
+		if($forPage->hasStatus(Page::statusDraft)) {
+			if(!$this->hasStatus(Page::statusDraft)) $this->addStatus(Page::statusDraft);
+		} else {
+			if($this->hasStatus(Page::statusDraft)) $this->removeStatus(Page::statusDraft);
+		}
+		*/
 		return $this;
 	}
 

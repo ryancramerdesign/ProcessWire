@@ -266,6 +266,71 @@ class FileCompiler extends Wire {
 	}
 
 	/**
+	 * Compile comments so that they can be easily identified by other compiler methods
+	 * 
+	 * @todo this is a work in progress, not yet in use
+	 * 
+	 * @param $data
+	 * 
+	 */
+	protected function compileComments(&$data) {
+		
+		$inComment = false;
+		$inPHP = false;
+		$lines = explode("\n", $data);
+		$numChanges = 0;
+		$commentIdentifier = '!PWFC!';
+		
+		foreach($lines as $key => $line) {
+	
+			$_line = $line; // original
+			$phpOpen = strrpos($line, '<' . '?');
+			$phpClose = strrpos($line, '?' . '>');
+			
+			if($inPHP) {
+				if($phpClose !== false && ($phpClose === 0 || $phpClose > (int) $phpOpen)) {
+					$inPHP = false;
+				}
+			} else {
+				if($phpOpen !== false && ($phpClose === false || $phpClose < $phpOpen)) {
+					$inPHP = true;
+				}
+			}
+			
+			if(!$inPHP) continue;
+			
+			$commentOpen = strpos($line, '/' . '*');
+			$commentClose = strpos($line, '*' . '/');
+			
+			if($inComment) {
+				if($commentClose !== false && ($commentOpen === false || $commentOpen < $commentClose)) {
+					$inComment = false;
+				}
+				$line = $commentIdentifier . $line;
+			} 
+
+			if($commentOpen !== false) {
+				// has an open comment
+				if($commentClose !== false) {
+					// has a close comment, skip this line
+					continue; 
+				} else {
+					$inComment = true;
+				}
+			}
+			
+			if($line !== $_line) {
+				$lines[$key] = $line;	
+				$numChanges++;
+			}
+		}
+		
+		if($numChanges) {
+			$data = implode("\n", $lines);
+		}
+	}
+
+	/**
 	 * Compile include(), require() (and variations) to refer to compiled files where possible
 	 * 
 	 * @param string $data
@@ -298,35 +363,78 @@ class FileCompiler extends Wire {
 		$re = '/^' . 
 			'(.*?)' . // 1: open
 			'(' . implode('|', $funcs) . ')' . // 2:function
-			'[\(\s]+' . // open parenthesis and/or space
-			'(["\']?[^;\r\n]+);' . // 3:filename, and the rest of the statement (filename may be quoted or end with closing parenthesis)
-			'/m';
+			'([\( ]+)' . // 3: argOpen: open parenthesis and/or space
+			'(["\']?[^;\r\n]+)' . // 4:filename, and rest of the statement (file may be quoted or end with closing parens)
+			'([;\r\n])' . // 5:close, whatever the last character is on the line
+			'/im';
 		
 		if(!preg_match_all($re, $data, $matches)) return;
 		
 		foreach($matches[0] as $key => $fullMatch) {
 		
 			$open = $matches[1][$key];
+			$funcMatch = $matches[2][$key];
+			$argOpen = trim($matches[3][$key]);
+			$fileMatch = $matches[4][$key];
+			$close = $matches[5][$key];
+			$argsMatch = '';
+			
+			if(strpos($fileMatch, '$') === 0) {
+				// fileMatch stars with a var name
+			} else if(strpos($fileMatch, '"') !== strrpos($fileMatch, '"')) {
+				// fileMatch has both open and close double quotes
+			} else if(strpos($fileMatch, "'") !== strrpos($fileMatch, "'")) {
+				// fileMatch has both open and close single quotes
+			} else if(strpos($fileMatch, '(') !== false && strpos($fileMatch, ')') !== false) {
+				// likely a function call 
+			} else {
+				// likely NOT a valid file match, as it doesn't have any of the expected characters
+				continue;
+			}
 			
 			if(strlen($open)) {
-				
-				if(strpos($open, '"') !== false || strpos($open, "'") !== false) {
+				$skipMatch = false;
+				$test = $open;
+				foreach(array('"', "'") as $quote) {
 					// skip when words like "require" are in a string
-					continue;
+					if(strpos($test, $quote) === false) continue;
+					$test = str_replace('\\' . $quote, '', $test); // ignore quotes that are escaped
+					if(strpos($test, $quote) === false) continue;
+					if(substr_count($test, $quote) % 2 > 0) {
+						// there are an uneven number of quotes, indicating that
+						// our $funcMatch is likely part of a quoted string
+						$skipMatch = true;
+						break;
+					}
+					if($quote == '"' && strpos($test, "'") !== false) {
+						// remove quoted apostrophes so they don't confuse the next iteration
+						$test = preg_replace('/"[^"\']*\'[^"]*"/', '', $test);	
+					}
 				}
-
+				if($skipMatch) continue;
 				if(preg_match('/^[$_a-zA-Z0-9]+$/', substr($open, -1))) {
 					// skip things like: something_include(... and $include
 					continue;
 				}
 			}
-				
-			$funcMatch = $matches[2][$key];
-			$fileMatch = $matches[3][$key];
-			$argsMatch = '';
 
-			if(substr($fileMatch, -1) == ')') $fileMatch = substr($fileMatch, 0, -1);
+			if(substr($fileMatch, -2) == '?>') {
+				// move closing PHP tag out of the fileMatch and into the close
+				$fileMatch = substr($fileMatch, 0, -2);
+				$close = "?>$close";
+			}
+			if(substr($fileMatch, -1) == ')') {
+				// move the closing parenthesis out of fileMatch and into close
+				$fileMatch = substr($fileMatch, 0, -1);
+				$close = ")$close";
+			} 
+			
 			if(empty($fileMatch)) continue;
+			
+			if(empty($argOpen)) {
+				// if there was no opening "(", compiler will be adding one, so we'll need an additional corresponding ")"
+				$close = ")$close";
+			}
 			
 			$commaPos = strpos($fileMatch, ',');
 			if($commaPos) {
@@ -334,21 +442,24 @@ class FileCompiler extends Wire {
 				$argsMatch = substr($fileMatch, $commaPos);
 				$fileMatch = substr($fileMatch, 0, $commaPos);
 			}
-			
-			if(strpos($fileMatch, './') === 1) {
-				// relative to current dir, convert to absolute
-				$fileMatch = $fileMatch[0] . dirname($sourceFile) . substr($fileMatch, 2);
-			} else if(strpos($fileMatch, '/') === false 
-				&& strpos($fileMatch, '$') === false 
-				&& strpos($fileMatch, '(') === false
-				&& strpos($fileMatch, '\\') === false) {
-				// i.e. include("file.php")
-				$fileMatch = $fileMatch[0] . dirname($sourceFile) . '/' . substr($fileMatch, 1);
-			}
 		
+			if(strpos($fileMatch, '"') === 0 || strpos($fileMatch, "'") === 0) {
+				// fileMatch is quoted string
+				if(strpos($fileMatch, './') === 1) {
+					// relative to current dir, convert to absolute
+					$fileMatch = $fileMatch[0] . dirname($sourceFile) . substr($fileMatch, 2);
+				} else if(strpos($fileMatch, '/') === false
+					&& strpos($fileMatch, '$') === false
+					&& strpos($fileMatch, '(') === false
+					&& strpos($fileMatch, '\\') === false) {
+					// i.e. include("file.php")
+					$fileMatch = $fileMatch[0] . dirname($sourceFile) . '/' . substr($fileMatch, 1);
+				}
+			}
+			
 			$fileMatch = str_replace("\t", '', $fileMatch);
 			if(strlen($open)) $open .= ' ';
-			$newFullMatch = $open . $funcMatch . "(\\ProcessWire\\wire('files')->compile($fileMatch,$optionsStr)$argsMatch);";
+			$newFullMatch = "$open$funcMatch(\\ProcessWire\\wire('files')->compile($fileMatch,$optionsStr)$argsMatch$close";
 			$data = str_replace($fullMatch, $newFullMatch, $data);
 		}
 		
@@ -426,7 +537,7 @@ class FileCompiler extends Wire {
 				// 1=open 2=close
 				// all patterns match within 1 line only
 				"new" => '(new\s+)' . $class . '\s*(\(|;|\))',  // 'new Page(' or 'new Page;' or 'new Page)'
-				"function" => '([_a-zA-Z0-9]+\s*\([^)]*?)\b' . $class . '(\s+\$[_a-zA-Z0-9]+)', // 'function(Page $page' or 'function($a, Page $page'
+				"function" => '(function\s+[_a-zA-Z0-9]+\s*\([^)]*?)\b' . $class . '(\s+\$[_a-zA-Z0-9]+)', // 'function(Page $page' or 'function($a, Page $page'
 				"::" => '(^|[^_a-zA-Z0-9"\'])' . $class . '(::)', // constant ' Page::foo' or '(Page::foo' or '=Page::foo' or bitwise open
 				"extends" => '(\sextends\s+)' . $class . '(\s|\{|$)', // 'extends Page'
 				"implements" => '(\simplements[^{]*?[\s,]+)' . $class . '([^_a-zA-Z0-9]|$)', // 'implements Module' or 'implements Foo, Module'

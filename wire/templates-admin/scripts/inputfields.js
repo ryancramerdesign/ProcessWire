@@ -920,11 +920,29 @@ function InputfieldStates($target) {
 	function InputfieldStateAjaxClick($li) {
 		
 		function headerHighlightEffect($header, $li) {
-			$header.fadeTo('fast', 0.5, function() {
-				$header.fadeTo('fast', 1.0, function() {
-					if($li.hasClass('InputfieldAjaxLoading')) headerHighlightEffect($header, $li);
-				});
-			});
+			
+			var $spinner = $("<i class='fa fa-spin fa-spinner'></i>");
+			var offset = $header.offset();
+			var interval;
+			var maxRuns = 10;
+			var runs = 0;
+			
+			$("body").append($spinner.hide());
+			
+			$spinner.css({
+				position: 'absolute',	
+				top: offset.top - ($spinner.height() + 5),
+				left: offset.left + ($header.width() / 2) + ($spinner.width() * 0.8)
+			}).fadeIn();
+			
+			interval = setInterval(function() {
+				if(++runs > maxRuns || !$li.hasClass('InputfieldAjaxLoading')) {
+					clearInterval(interval);
+					$spinner.fadeOut('normal', function() {
+						$spinner.remove();
+					});
+				}
+			}, 500);
 		}
 		
 		// check for ajax rendered Inputfields
@@ -970,7 +988,11 @@ function InputfieldStates($target) {
 				if($spinner) $spinner.fadeOut('fast', function() {
 					$spinner.remove();
 				});
-				$header.click();
+				if(isTab) {
+					$header.effect('highlight', 500);
+				} else {
+					$header.click();
+				}
 			}, 500);
 		}, 'html');
 		

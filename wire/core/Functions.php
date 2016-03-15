@@ -412,7 +412,9 @@ function wirePopulateStringTags($str, $vars, array $options = array()) {
 		}
 
 		// replace tags with replacement values
-		$str = str_replace($tag, $value, $str); 
+		if($value !== null || $options['removeNullTags']) {
+			$str = str_replace($tag, (string) $value, $str);
+		}
 	}
 
 	return $str; 

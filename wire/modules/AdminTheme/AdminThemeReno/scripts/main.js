@@ -14,9 +14,8 @@ var ProcessWireAdminTheme = {
 	
 	init: function() {
 		this.setupCloneButton();
-		this.setupButtonStates();
+		ProcessWireAdmin.init();
 		// this.setupFieldFocus();
-		this.setupTooltips();
 		this.setupSearch();
 		this.setupDropdowns();
 		this.setupSidebarNav();
@@ -244,33 +243,6 @@ var ProcessWireAdminTheme = {
 	},
 
 	/**
-	 * Enable jQuery UI tooltips
-	 *
-	 */
-	setupTooltips: function() {
-		$("a.tooltip").tooltip({ 
-			position: {
-				my: "center bottom",
-				at: "center top"
-				/*
-				using: function(position, feedback) {
-					$(this).css(position);
-					$("<div>")
-						.addClass("arrow")
-						.addClass(feedback.vertical)
-						.addClass(feedback.horizontal)
-						.appendTo(this);
-				}
-				*/
-			}
-		}).hover(function() {
-			$(this).addClass('ui-state-hover');
-		}, function() {
-			$(this).removeClass('ui-state-hover');
-		}); 
-	},
-
-	/**
 	 * Clone a button at the bottom to the top 
 	 *
 	 */
@@ -307,24 +279,6 @@ var ProcessWireAdminTheme = {
 				$head.prepend($a.append($button));
 			}
 		}); 
-	},
-
-	/**
-	 * Make buttons utilize the jQuery button state classes
-	 *	
- 	 */
-	setupButtonStates: function() {
-		// jQuery UI button states
-		$(document).on('mouseover', '.ui-button', function() {
-			$(this).removeClass("ui-state-default").addClass("ui-state-hover");
-		}).on('mouseout', '.ui-button', function() {
-			$(this).removeClass("ui-state-hover").addClass("ui-state-default");
-		}).on('click', '.ui-button', function() {
-			$(this).removeClass("ui-state-default").addClass("ui-state-active"); // .effect('highlight', {}, 100); 
-		}).on('click', 'a > button', function() {
-			// make buttons with <a> tags click to the href of the <a>
-			window.location = $(this).parent("a").attr('href');
-		});
 	},
 
 	/**
@@ -478,6 +432,7 @@ var ProcessWireAdminTheme = {
 			$('#masthead li.dropdown ul').removeClass('open');
 		});
 
+		/*
 		$("ul.dropdown-menu").each(function() {
 			var $ul = $(this).hide();
 			var $a = $ul.siblings(".dropdown-toggle"); 
@@ -539,6 +494,7 @@ var ProcessWireAdminTheme = {
 			}); 
 
 		});
+		*/
 	}, 
 
 	setupSideBarToggle: function() {

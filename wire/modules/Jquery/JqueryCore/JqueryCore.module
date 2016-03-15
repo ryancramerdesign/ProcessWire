@@ -36,6 +36,7 @@ class JqueryCore extends ModuleJS {
 			'cookie' => 'jquery.cookie.js',
 			'iframe-resizer' => 'iframe-resizer.min.js',
 			'iframe-resizer-frame' => 'iframe-resizer-frame.min.js', 
+			'longclick' => 'jquery.longclick.js',
 			));
 		$info = self::getModuleInfo();
 		$this->config->scripts->prepend($this->config->urls->JqueryCore . "JqueryCore.js?v=$info[version]");

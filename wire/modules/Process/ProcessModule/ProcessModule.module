@@ -235,12 +235,17 @@ class ProcessModule extends Process {
 
 		if($this->input->post->install) {
 			$this->session->CSRF->validate();
-			$name = $this->input->post->install;
+			$name = $this->wire('sanitizer')->name($this->input->post->install);
 			if($name && isset($this->modulesArray[$name]) && !$this->modulesArray[$name]) {
 				$module = $this->modules->get($name); 		
-				$this->modulesArray[$name] = 1; 
-				$this->session->message($this->_("Module Install") . " - " . $module->className); // Message that precedes the name of the module installed
-				$this->session->redirect("edit?name={$module->className}"); 
+				if($module) {
+					$this->modulesArray[$name] = 1;
+					$this->session->message($this->_("Module Install") . " - $name"); // Message that precedes the name of the module installed
+					$this->session->redirect("edit?name=$name");
+				} else {
+					$this->session->error($this->_('Error installing module') . " - $name");
+					$this->session->redirect("./");
+				}
 			}
 		}
 
@@ -1099,13 +1104,14 @@ class ProcessModule extends Process {
 
 		$out = ''; 
 		$moduleId = $this->modules->getModuleID($moduleName); 
+		$collapseInfo = $this->wire('input')->get('collapse_info') || $this->wire('input')->get('modal') ? '&collapse_info=1': '';
 		if(!$moduleId) {
 			$this->error("Unknown module"); 
 			return $this->session->redirect('./'); 
 		}
 		if($this->wire('input')->get('refresh') == $moduleName) {
 			$this->wire('modules')->resetCache();
-			$this->session->redirect("./edit?name=$moduleName");
+			$this->session->redirect("./edit?name=$moduleName$collapseInfo");
 			return;
 		}
 		$sinfo = self::getModuleInfo();
@@ -1120,7 +1126,7 @@ class ProcessModule extends Process {
 		/** @var InputfieldForm $form */
 		$form = $this->modules->get("InputfieldForm"); 
 		$form->attr('id', 'ModuleEditForm'); 
-		$form->attr('action', "edit?name=$moduleName"); 
+		$form->attr('action', "edit?name=$moduleName$collapseInfo"); 
 		$form->attr('method', 'post'); 
 
 		$fields = array();
@@ -1223,7 +1229,7 @@ class ProcessModule extends Process {
 				$this->modules->saveModuleConfigData($moduleName, $data);
 				$updatedNames = count($updatedNames) ? ' (' . implode(', ', $updatedNames) . ')' : '';
 				$this->message($this->_("Saved Module") . " - $moduleName $updatedNames"); // Message shown before the name of a module that was just saved
-				$redirectURL = "./edit?name=$moduleName"; 
+				$redirectURL = "./edit?name=$moduleName$collapseInfo"; 
 				if($allowDisabledFlag) {
 					// module is autoload and has an option to diable
 					if($this->input->post('_flags_disabled')) {
@@ -1305,7 +1311,7 @@ class ProcessModule extends Process {
 		$field->attr('value', $table->render()); 
 		$field->label = $this->_x("Module Information", 'edit');
 		$field->icon = 'info-circle';
-		if($this->wire('input')->get('modal')) $field->collapsed = Inputfield::collapsedYes;
+		if($collapseInfo) $field->collapsed = Inputfield::collapsedYes;
 		$form->prepend($field); 
 
 		$out .= $form->render();

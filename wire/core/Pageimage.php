@@ -296,7 +296,11 @@ class Pageimage extends Pagefile {
 				$options = array();
 			}
 		}
-
+		
+		// originally requested options
+		$requestOptions = $options;
+	
+		// default options
 		$defaultOptions = array(
 			'upscaling' => true,
 			'cropping' => true,
@@ -357,9 +361,9 @@ class Pageimage extends Pagefile {
 
 		//$basename = $this->pagefiles->cleanBasename($this->basename(), false, false, false);
 		// cleanBasename($basename, $originalize = false, $allowDots = true, $translate = false) 
-		$basename = basename($this->basename(), "." . $this->ext());        // i.e. myfile
-		$originalName = $basename;
-		$originalSize = $debug ? filesize($this->filename) : 0;
+		$originalName = $this->basename();
+		$basename = basename($originalName, "." . $this->ext());        // i.e. myfile
+		$originalSize = $debug ? @filesize($this->filename) : 0;
 		if($options['cleanFilename'] && strpos($basename, '.') !== false) {
 			$basename = substr($basename, 0, strpos($basename, '.')); 
 		}
@@ -374,9 +378,29 @@ class Pageimage extends Pagefile {
 			if(file_exists($filenameUnvalidated)) @unlink($filenameUnvalidated);
 			if(@copy($this->filename(), $filenameUnvalidated)) {
 				try { 
+					
 					$timer = $debug ? Debug::timer() : null;
-					$sizer = $this->wire(new ImageSizer($filenameUnvalidated));
-					$sizer->setOptions($options);
+					
+					/** @var ImageSizer $sizer */
+					$sizer = $this->wire(new ImageSizer($filenameUnvalidated, $options));
+					
+					/** @var ImageSizerEngine $engine */
+					$engine = $sizer->getEngine();
+					
+					// allow for ImageSizerEngine module settings for quality and sharpening to override system defaults
+					// when they are not specified as an option to this resize() method
+					$engineConfigData = $engine->getConfigData();
+					if(!empty($engineConfigData)) {
+						if(!empty($engineConfigData['quality']) && empty($options['hidpi']) && empty($requestOptions['quality'])) {
+							$engine->setQuality($engineConfigData['quality']);
+							$options['quality'] = $engineConfigData['quality'];
+						}
+						if(!empty($engineConfigData['sharpening']) && empty($requestOptions['sharpening'])) {
+							$engine->setSharpening($engineConfigData['sharpening']);
+							$options['sharpening'] = $engineConfigData['sharpening'];
+						}
+					}
+					
 					if($sizer->resize($width, $height) && @rename($filenameUnvalidated, $filenameFinal)) {
 						$this->wire('files')->chmod($filenameFinal);
 					} else {
@@ -384,12 +408,14 @@ class Pageimage extends Pagefile {
 					}
 
 					$timer = $debug ? Debug::timer($timer) : null;
-					if($debug) $this->wire('log')->save('image-sizer', 
+					if($debug) $this->wire('log')->save('image-sizer',
+						str_replace('ImageSizerEngine', '', $sizer->getEngine()) . ' ' . 
 						($this->error ? "FAILED Resize: " : "Resized: ") . 
 						"$originalName => " . 
 						basename($filenameFinal) . " " .
 						"({$width}x{$height}) $timer secs " . 
-						"$originalSize => " . filesize($filenameFinal) . " bytes"
+						"$originalSize => " . filesize($filenameFinal) . " bytes " . 
+						"(quality=$options[quality], sharpening=$options[sharpening]) "
 					);
 					
 				} catch(\Exception $e) {

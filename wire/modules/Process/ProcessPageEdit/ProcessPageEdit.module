@@ -176,9 +176,14 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 			$this->page->name = '';
 		}
 		
+		$adminTheme = $this->wire('adminTheme');
+		if($adminTheme) {
+			$className = $this->className();
+			$adminTheme->addBodyClass("$className-id-{$this->page->id}");
+			$adminTheme->addBodyClass("$className-template-{$this->page->template->name}");
+		}
 
 		$this->form = $this->modules->get('InputfieldForm');
-
 		$this->form = $this->buildForm($this->form);
 		$this->form->setTrackChanges();
 
@@ -214,6 +219,32 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 		}
 		
 		$out .= $this->form->render();
+	
+		// buttons with dropdowns
+		if(!$this->wire('input')->get('modal') && !count($this->fields)) {
+			
+			$input = "<input type='hidden' id='after-submit-action' name='_after_submit_action' value='' />";
+			$out = str_replace('</form>', "$input</form>", $out);
+			
+			$out .= 
+				"<ul class='pw-button-dropdown' data-dropdown-input='#after-submit-action' data-my='left top' data-at='left bottom+1'>" .
+				"<li><a data-dropdown-value='exit' href='#'><i class='fa fa-fw fa-close'></i> " . 
+				$this->_('%s + Exit') . "</a></li>";
+			
+			if($this->page->viewable()) {
+				$out .= 
+					"<li><a data-dropdown-value='view' href='#'><i class='fa fa-fw fa-eye'></i> " . 
+					$this->_('%s + View') . "</a></li>";
+			}
+			
+			if($this->wire('process') == $this && $this->page->id > 1 && $this->page->parent()->addable()) {
+				$out .= 
+					"<li><a data-dropdown-value='add' href='#'><i class='fa fa-fw fa-plus-circle'></i> " .
+					$this->_('%s + Add New') . "</a></li>";
+			}
+			
+			$out .= "</ul>";
+		}
 		$out .= "<script>initPageEditForm();</script>"; // ends up being slightly faster than ready() (or at least appears that way)
 		return $out; 
 	}
@@ -311,6 +342,15 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 					$this->error($e->getMessage()); 
 				}
 			}
+		}
+		
+		$submitAction = $this->wire('input')->post('_after_submit_action');
+		if($submitAction == 'exit') {
+			$this->redirectUrl = '../';
+		} else if($submitAction == 'view') {
+			$this->redirectUrl = $this->page->httpUrl();
+		} else if($submitAction == 'add') {
+			$this->redirectUrl = "../add/?parent_id={$this->page->parent_id}";
 		}
 
 		$this->processSaveRedirect($this->redirectUrl);
@@ -892,12 +932,13 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 	 *
 	 */ 
 	protected function ___buildFormView($url) {
+		$this->wire('modules')->get('JqueryCore')->use('longclick');
 		$label = $this->_('View'); // Tab Label: View
 		$id = $this->className() . 'View';
 		$settings = $this->wire('config')->pageEdit; 
 		$target = '';
 		if(is_array($settings) && !empty($settings['viewNew'])) $target = " target='_blank'";
-		$a = "<a id='_ProcessPageEditView'$target href='$url'>$label</a>"; 
+		$a = "<a id='_ProcessPageEditView'$target href='$url' class='pw-modal pw-modal-large pw-modal-longclick'>$label</a>"; 
 		$this->addTab($id, $a);
 	}
 
@@ -1249,17 +1290,12 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 		
 		$pageListConfig = $this->modules->getModuleConfigData('ProcessPageList'); 
 		$limit = isset($pageListConfig['limit']) && $pageListConfig['limit'] > 0 ? $pageListConfig['limit'] : 50;
-		
+	
+		$numParents = $page->parents->count();
 		foreach($page->parents() as $cnt => $p) {
 			$parent = $p->parent; 
-
-			// make breadcrumb to go pagelist with page clicked, unless pagination is active in that PageList
-			if($limit && $parent->id && $parent->numChildren > $limit && $p->editable()) {
-				$url = "./?id={$p->id}"; 
-			} else {
-				// if($p->id == $page->parent_id && isset($lastPageList[$p->id])) continue; 
-				$url = "../?open=" . $p->id; 
-			}
+			$url = "../?open=$p->id";
+			if($cnt == $numParents-1) $url = "../";
 			$this->breadcrumb($url, $p->get("title|name")); 
 		}
 		
@@ -1498,9 +1534,22 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 		$page->setTrackChanges(true); 
 		$numFields = 0;
 		$lastFieldName = null;
+		$languages = $this->wire('languages');
 
-		foreach($form->children() as $inputfield) { 
-			$page->set($inputfield->name, $inputfield->value); 
+		foreach($form->children() as $inputfield) {
+			$name = $inputfield->name;
+			if($languages && $inputfield->useLanguages) {
+				$v = $page->get($name);
+				if(is_object($v)) {
+					$v->setFromInputfield($inputfield);
+					$page->set($name, $v);
+					$page->trackChange($name);
+				} else {
+					$page->set($name, $inputfield->value);
+				}
+			} else {
+				$page->set($name, $inputfield->value);
+			}
 			$numFields++; 
 			$lastFieldName = $inputfield->name; 
 		}

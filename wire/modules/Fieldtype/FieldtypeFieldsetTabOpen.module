@@ -14,7 +14,7 @@
  *
  */
 
-require_once("FieldtypeFieldsetOpen.module"); 
+require_once(__DIR__ . "/FieldtypeFieldsetOpen.module"); 
 
 class InputfieldFieldsetTabOpen extends InputfieldFieldsetOpen { 
 	

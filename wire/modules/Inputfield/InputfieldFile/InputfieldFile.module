@@ -116,6 +116,12 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 		$this->addClass('InputfieldItemList', 'wrapClass');
 		$this->addClass('InputfieldHasFileList', 'wrapClass');
 	}
+	
+	public function get($key) {
+		if($key == 'renderValueMode') return $this->renderValueMode;
+		if($key == 'singleFileReplacement') return $this->singleFileReplacement;
+		return parent::get($key);
+	}
 
 	/**
 	 * Per Inputfield interface, returns true when this field is empty
@@ -337,7 +343,7 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 			}
 		}
 
-		if(!$this->uploadOnlyMode) {
+		if(!$this->uploadOnlyMode && WireArray::iterable($value)) {
 			foreach($value as $k => $pagefile) {
 				$id = $this->pagefileId($pagefile);
 				$this->currentItem = $pagefile;
