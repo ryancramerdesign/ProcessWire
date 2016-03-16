@@ -127,9 +127,9 @@ DirectoryIndex index.php index.html index.htm
 
   # -----------------------------------------------------------------------------------------------
   # Access Restrictions: Keep web users out of dirs that begin with a period
+  # but let services like Let´s encrypt use the webroot authentication method 
   # -----------------------------------------------------------------------------------------------
-
-  RewriteRule "(^|/)\." - [F]
+  RewriteRule "(^|/)\.(?!well-known)" - [F]
 
   # -----------------------------------------------------------------------------------------------
   # OPTIONAL: Redirect users to the 'www.' version of the site (uncomment to enable).
