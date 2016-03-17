@@ -10,7 +10,10 @@
 
 function ProcessPageListInit() {
 	if(ProcessWire.config.ProcessPageList) {
-		$('#' + ProcessWire.config.ProcessPageList.containerID).ProcessPageList(ProcessWire.config.ProcessPageList);
+		for (var containerID in ProcessWire.config.ProcessPageList) {
+			var config = ProcessWire.config.ProcessPageList[containerID];
+			$('#' + containerID).ProcessPageList(config);
+		}
 	}
 }
 
@@ -204,7 +207,7 @@ $(document).ready(function() {
 					}
 				}
 				
-				$(document).on('mouseover', '.PageListItem', function(e) {
+				$container.on('mouseover', '.PageListItem', function(e) {
 
 					if($root.is(".PageListSorting") || $root.is(".PageListSortSaving")) return;
 					if(!$(this).children('a:first').is(":hover")) return;
@@ -733,11 +736,11 @@ $(document).ready(function() {
 							var href = $(this).attr('href');
 							var actionName = href.match(/[\?&]action=([-_a-zA-Z0-9]+)/)[1];
 							var pageID = parseInt(href.match(/[\?&]id=([0-9]+)/)[1]);
-							var tokenName = $("#PageListContainer").attr('data-token-name');
-							var tokenValue = $("#PageListContainer").attr('data-token-value');
+							var tokenName = $container.attr('data-token-name');
+							var tokenValue = $container.attr('data-token-value');
 							var postData = {
 								action: actionName,
-								id: pageID, 
+								id: pageID
 							};
 							postData[tokenName] = tokenValue;
 							$li.append($spinner);

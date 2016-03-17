@@ -31,7 +31,9 @@ class ProcessPageList extends Process implements ConfigurableModule {
 	protected $trashLabel;
 	protected $render; 
 	protected $allowRenderTypes = array('JSON' => 'ProcessPageListRenderJSON');
-	
+
+	protected static $instances = 0;
+
 	/**
 	 * Default max pages to show before pagination (configurable in the module editor)
 	 *
@@ -57,14 +59,14 @@ class ProcessPageList extends Process implements ConfigurableModule {
 	}
 
 	public function __construct() {
-		
-		$this->showRootPage = true; 
+		$this->showRootPage = true;
 		$this->pageLabelField = 'title';
 		$this->limit = self::defaultLimit;
 		$this->set('useHoverActions', false);
 		$this->set('useBookmarks', false);
 		$this->set('bookmarks', array());
-		
+		static::$instances++;
+		$this->set('containerID', 'PageListContainer' . static::$instances);
 		parent::__construct();
 	}
 
@@ -197,21 +199,21 @@ class ProcessPageList extends Process implements ConfigurableModule {
 			$this->render = $render;
 		}
 
-		$this->wire('config')->js('ProcessPageList', array(
-			'containerID' => 'PageListContainer', 
-			'ajaxURL' => $this->config->urls->admin . "page/list/", 
+		$config = array($this->get('containerID') => array(
+			'containerID' => $this->get('containerID'),
+			'ajaxURL' => $this->config->urls->admin . "page/list/",
 			'ajaxMoveURL' => $this->config->urls->admin . "page/sort/",
-			'rootPageID' => $this->id, 
-			'openPageIDs' => $openPageIDs, 
+			'rootPageID' => $this->id,
+			'openPageIDs' => $openPageIDs,
 			'openPageData' => $openPageData,
 			'openPagination' => (int) $this->input->get->n, // @todo: make it openPaginations and correspond to openPageIDs
-			'showRootPage' => $this->showRootPage ? true : false, 
-			'limit' => $this->limit, 
-			'start' => $this->start, 
+			'showRootPage' => $this->showRootPage ? true : false,
+			'limit' => $this->limit,
+			'start' => $this->start,
 			'speed' => ($this->speed !== null ? (int) $this->speed : self::defaultSpeed),
-			'useHoverActions' => $this->useHoverActions ? true : false, 
+			'useHoverActions' => $this->useHoverActions ? true : false,
 			'hoverActionDelay' => (int) $this->hoverActionDelay,
-			'hoverActionFade' => (int) $this->hoverActionFade, 
+			'hoverActionFade' => (int) $this->hoverActionFade,
 			'selectStartLabel' => $this->_('Change'), // Change a page selection
 			'selectCancelLabel' => $this->_('Cancel'), // Cancel a page selection
 			'selectSelectLabel' => $this->_('Select'), // Select a page
@@ -221,18 +223,22 @@ class ProcessPageList extends Process implements ConfigurableModule {
 			'trashLabel' => $this->trashLabel,
 			'ajaxNetworkError' => $this->_('Network error, please try again later'), // Network error during AJAX request
 			'ajaxUnknownError' => $this->_('Unknown error, please try again later'), // Unknown error during AJAX request
-			)); 
-		
+		));
+		$existingConfig = $this->wire('config')->js('ProcessPageList');
+		if (is_array($existingConfig)) {
+			$config = array_merge($existingConfig, $config);
+		}
+		$this->wire('config')->js('ProcessPageList', $config);
 		$tokenName = $this->session->CSRF->getTokenName();
 		$tokenValue = $this->session->CSRF->getTokenValue();
 		$class = $this->id ? "PageListContainerPage" : "PageListContainerRoot";
-	
-		return "\n" . 
-			"<div id='PageListContainer' " .
-				"class='$class' " . 
-				"data-token-name='$tokenName' " . // CSRF tokens
-				"data-token-value='$tokenValue'>" . 
-			"</div>$script"; 
+		$containerID = $this->get('containerID');
+		return "\n" .
+		"<div id='$containerID' " .
+		"class='$class' " .
+		"data-token-name='$tokenName' " . // CSRF tokens
+		"data-token-value='$tokenValue'>" .
+		"</div>$script";
 	}
 	
 	protected function getPageListRender(Page $page, $limit = null, $start = null) {
