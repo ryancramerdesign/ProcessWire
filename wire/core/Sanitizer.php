@@ -23,7 +23,27 @@ class Sanitizer extends Wire {
 	 * May be passed to pageName for the $beautify param, see pageName for details.
 	 *
 	 */
-	const translate = 2; 
+	const translate = 2;
+
+	/**
+	 * Beautify argument for pageName() to IDN encode UTF8 to ascii
+	 * 
+	 */
+	const toAscii = 4;
+
+	/**
+	 * Beautify argument for pageName() to allow decode IDN ascii to UTF8
+	 * 
+	 */
+	const toUTF8 = 8;
+
+	/**
+	 * Beautify argument for pageName() to indicate that UTF8 (in whitelist) is allowed
+	 * 
+	 * Unlike the toUTF8 option, no ascii to UTF8 conversion is allowed. 
+	 * 
+	 */
+	const okUTF8 = 16;
 
 	/**
 	 * Caches the status of multibyte support.
@@ -249,18 +269,95 @@ class Sanitizer extends Wire {
 	/**
 	 * Name filter for ProcessWire Page names
 	 *
-	 * Because page names are often generated from a UTF-8 title, UTF8 to ASCII conversion will take place when $beautify is on
+	 * Because page names are often generated from a UTF-8 title, UTF8 to ASCII conversion will take place when $beautify is on.
+	 * 
+	 * You may optionally omit the $beautify and/or $maxLength arguments and substitute the $options array instead.
+	 * When substituted, the beautify and maxLength options can be specified in $options as well.
+	 * 
+	 * If $config->pageNameCharset is UTF8 then non-ascii page names will be converted to punycode ("xn-") ascii page names,
+	 * rather than converted, regardless of $beautify setting. 
 	 *
 	 * @param string $value
-	 * @param bool|int $beautify Should be true when creating a Page's name for the first time. Default is false. 
+	 * @param bool|int|array $beautify Should be true when creating a Page's name for the first time. Default is false. 
 	 *	You may also specify Sanitizer::translate (or number 2) for the $beautify param, which will make it translate letters
 	 *	based on the InputfieldPageName custom config settings. 
-	 * @param int $maxLength Maximum number of characters allowed in the name
+	 *  You may also specify the $options array for this argument instead. 
+	 * @param int|array $maxLength Maximum number of characters allowed in the name
+	 *  You may also specify the $options array for this argument instead. 
+	 * @param array $options 
 	 * @return string
 	 *
 	 */
-	public function pageName($value, $beautify = false, $maxLength = 128) {
-		return strtolower($this->name($value, $beautify, $maxLength, '-')); 
+	public function pageName($value, $beautify = false, $maxLength = 128, array $options = array()) {
+	
+		if(!strlen($value)) return '';
+		
+		$defaults = array(
+			'charset' => $this->wire('config')->pageNameCharset
+		);
+		
+		if(is_array($beautify)) {
+			$options = array_merge($beautify, $options);
+			$beautify = isset($options['beautify']) ? $options['beautify'] : false;
+			$maxLength = isset($options['maxLength']) ? $options['maxLength'] : 128;
+		} else if(is_array($maxLength)) {
+			$options = array_merge($maxLength, $options);
+			$maxLength = isset($options['maxLength']) ? $options['maxLength'] : 128;
+		} else {
+			$options = array_merge($defaults, $options);
+		}
+		
+		if($options['charset'] !== 'UTF8' && is_int($beautify) && $beautify > self::translate) {
+			// UTF8 beautify modes aren't available if $config->pageNameCharset is not UTF8
+			if(in_array($beautify, array(self::toAscii, self::toUTF8, self::okUTF8))) {
+				// if modes aren't supported, disable 
+				$beautify = false;
+			}
+		}
+		
+		if($beautify === self::toAscii) {
+			// convert UTF8 to ascii (IDN/punycode)
+			$beautify = false;
+			if(strlen($value) > $maxLength) $value = substr($value, 0, $maxLength);
+			$_value = $value;
+			
+			if(!ctype_alnum($value)
+				&& !ctype_alnum(str_replace(array('-', '_', '.'), '', $value)) 
+				&& strpos($value, 'xn-') !== 0) {
+				
+				do {
+					// encode value
+					$value = $this->punyEncodeName($_value);
+					// if result stayed within our allowed character limit, then good, we're done
+					if(strlen($value) <= $maxLength) break;
+					// continue loop until encoded value is equal or less than allowed max length
+					$_value = substr($_value, 0, strlen($_value) - 1);
+				} while(true);
+				
+				// if encode was necessary and successful, return with no further processing
+				if(strpos($value, 'xn-') === 0) {
+					return $value;
+				} else {
+					// can't be encoded, send to regular name sanitizer
+					$value = $_value;
+				}
+			}
+			
+		} else if($beautify === self::toUTF8) {
+			// convert ascii IDN/punycode to UTF8
+			$beautify = self::okUTF8;
+			if(strpos($value, 'xn-') === 0) {
+				// found something to convert
+				$value = $this->punyDecodeName($value);
+				// now it will run through okUTF8
+			}
+		}
+		
+		if($beautify === self::okUTF8) {
+			return $this->pageNameUTF8($value);
+		}
+		
+		return strtolower($this->name($value, $beautify, $maxLength, '-', $options));
 	}
 
 	/**
@@ -275,6 +372,156 @@ class Sanitizer extends Wire {
 	 */
 	public function pageNameTranslate($value, $maxLength = 128) {
 		return $this->pageName($value, self::translate, $maxLength);
+	}
+
+	/**
+	 * Sanitize and allow for UTF8 characters (from $config->pageNameWhitelist) in page name
+	 * 
+	 * This method does not convert to or from UTF8, it only sanitizes it against $config->pageNameWhitelist.
+	 * If given a $value that has only ascii characters, this will pass control to pageName() instead. 
+	 * If $config->pageNameCharset is not "UTF8" then this function just passes control to pageName() instead.
+	 * 
+	 * @param $value
+	 * @return string
+	 *
+	 */
+	public function pageNameUTF8($value) {
+		
+		if(!strlen($value)) return '';
+		
+		// if UTF8 module is not enabled then delegate this call to regular pageName sanitizer
+		if($this->wire('config')->pageNameCharset != 'UTF8') return $this->pageName($value);
+	
+		// we don't allow UTF8 page names to be prefixed with "xn-"
+		if(strpos($value, 'xn-') === 0) $value = substr($value, 3);
+
+		// word separators that we always allow 
+		$separators = array('.', '-', '_');
+
+		// proceed only if value has some non-ascii characters
+		if(ctype_alnum(str_replace($separators, '', $value))) return $this->pageName($value);
+
+		// validate that all characters are in our whitelist
+		$whitelist = $this->wire('config')->pageNameWhitelist;
+		if(!strlen($whitelist)) $whitelist = false;
+		$blacklist = '/\\%"\'<>?#@:;,+=*^$()[]{}|&';
+		$replacements = array();
+
+		for($n = 0; $n < mb_strlen($value); $n++) {
+			$c = mb_substr($value, $n, 1);
+			if(!strlen(trim($c)) || ctype_cntrl($c)) {
+				// character does not resolve to something visible
+				$replacements[] = $c;
+			} else if(mb_strpos($blacklist, $c) !== false || strpos($blacklist, $c) !== false) {
+				// character that is in blacklist
+				$replacements[] = $c;
+			} else if($whitelist !== false && mb_strpos($whitelist, $c) === false) {
+				// character that is not in whitelist
+				$replacements[] = $c;
+			}
+		}
+
+		// replace disallowed characters with "-"
+		if(count($replacements)) $value = str_replace($replacements, '-', $value);
+		
+		// replace doubled word separators
+		foreach($separators as $c) {
+			while(strpos($value, "$c$c") !== false) {
+				$value = str_replace("$c$c", $c, $value);
+			}
+		}
+
+		// trim off any remaining separators/extras
+		$value = trim($value, '-_.');
+		
+		return $value;
+	}
+
+	/**
+	 * Decode a PW-punycode'd name value
+	 * 
+	 * @param string $value
+	 * @return string
+	 * 
+	 */
+	protected function punyDecodeName($value) {
+		// exclude values that we know can't be converted
+		if(strlen($value) < 4 || strpos($value, 'xn-') !== 0) return $value;
+		
+		if(strpos($value, '__')) {
+			$_value = $value;
+			$parts = explode('__', $_value);
+			foreach($parts as $n => $part) {
+				$parts[$n] = $this->punyDecodeName($part);
+			}
+			$value = implode('', $parts);
+			return $value; 
+		}
+		
+		$_value = $value; 
+		// convert "xn-" single hyphen to recognized punycode "xn--" double hyphen
+		if(strpos($value, 'xn--') !== 0) $value = 'xn--' . substr($value, 3);
+		if(function_exists('idn_to_utf8')) {
+			// use native php function if available
+			$value = idn_to_utf8($value);
+		} else {
+			// otherwise use Punycode class
+			$pc = new Punycode();
+			$value = $pc->decode($value);
+		}
+		// if utf8 conversion failed, restore original value
+		if($value === false || !strlen($value)) $value = $_value;
+		return $value;
+	}
+
+	/**
+	 * Encode a name value to PW-punycode
+	 * 
+	 * @param string $value
+	 * @return string
+	 * 
+	 */
+	protected function punyEncodeName($value) {
+		// exclude values that don't need to be converted
+		if(strpos($value, 'xn-') === 0) return $value;
+		if(ctype_alnum(str_replace(array('.', '-', '_'), '', $value))) return $value;
+
+		while(strpos($value, '__') !== false) {
+			$value = str_replace('__', '_', $value);
+		}
+		
+		if(strlen($value) >= 50) {
+			$_value = $value;
+			$parts = array();
+			while(strlen($_value)) {
+				$part = mb_substr($_value, 0, 20);
+				$_value = mb_substr($_value, 20);
+				$parts[] = $this->punyEncodeName($part);
+			}
+			$value = implode('__', $parts);
+			return $value; 
+		}
+		
+		$_value = $value;
+		
+		if(function_exists("idn_to_ascii")) {
+			// use native php function if available
+			$value = substr(idn_to_ascii($value), 3);
+		} else {
+			// otherwise use Punycode class
+			$pc = new Punycode();
+			$value = substr($pc->encode($value), 3);
+		}
+		if(strlen($value) && $value !== '-') {
+			// in PW the xn- prefix has one fewer hyphen than in native Punycode
+			// for compatibility with pageName sanitization and beautification
+			$value = "xn-$value";
+		} else {
+			// fallback to regular 'name' sanitization on failure, ensuring that
+			// return value is always ascii
+			$value = $this->name($_value);
+		}
+		return $value;
 	}
 
 	/**
@@ -321,6 +568,13 @@ class Sanitizer extends Wire {
 
 	/**
 	 * Hookable alias of filename method for case consistency with other name methods (preferable to use filename)
+	 * 
+	 * @param string $value
+	 * @param bool|int $beautify Should be true when creating a file's name for the first time. Default is false.
+	 *	You may also specify Sanitizer::translate (or number 2) for the $beautify param, which will make it translate letters
+	 *	based on the InputfieldPageName custom config settings.
+	 * @param int $maxLength Maximum number of characters allowed in the name
+	 * @return string
 	 *
 	 */
 	public function ___fileName($value, $beautify = false, $maxLength = 128) {
@@ -372,16 +626,79 @@ class Sanitizer extends Wire {
 	 *
 	 */
 	public function pagePathName($value, $beautify = false, $maxLength = 1024) {
-		$options = array(
-			'allowedExtras' => array('/', '-', '_', '.')
-		);
-		$value = $this->name($value, $beautify, $maxLength, '-', $options); 
+	
+		$extras = array('/', '-', '_', '.');
+		$options = array('allowedExtras' => $extras);
+		$charset = $this->wire('config')->pageNameCharset;
+	
+		if($charset === 'UTF8' && $beautify === self::toAscii) {
+			// convert UTF8 to punycode when applicable
+			if(!ctype_alnum(str_replace($extras, '', $value))) {
+				$parts = explode('/', $value);
+				foreach($parts as $n => $part) {
+					if(!strlen($part) || ctype_alnum($part)) continue;
+					if(!ctype_alnum(str_replace($extras, '', $part))) {
+						$parts[$n] = $this->pageName($part, self::toAscii);
+					}
+				}
+				$value = implode('/', $parts);
+			}
+		}
+		
+		if($charset === 'UTF8' && $beautify === self::okUTF8) {
+			$value = $this->pagePathNameUTF8($value);
+		} else {
+			if(in_array($beautify, array(self::okUTF8, self::toUTF8, self::toAscii))) $beautify = false;
+			// regular ascii path
+			$value = $this->name($value, $beautify, $maxLength, '-', $options);
+		}
+		
 		// disallow double slashes
 		while(strpos($value, '//') !== false) $value = str_replace('//', '/', $value); 
+		
 		// disallow relative paths
 		while(strpos($value, '..') !== false) $value = str_replace('..', '.', $value);
+		
 		// disallow names that start with a period
-		while(strpos($value, '/.') !== false) $value = str_replace('/.', '/', $value); 
+		while(strpos($value, '/.') !== false) $value = str_replace('/.', '/', $value);
+	
+		// ascii to UTF8 conversion, when requested
+		if($charset === 'UTF8' && $beautify === self::toUTF8) {
+			if(strpos($value, 'xn-') === false) return $value;
+			$parts = explode('/', $value);
+			foreach($parts as $n => $part) {
+				if(strpos($part, 'xn-') !== 0) continue;
+				$parts[$n] = $this->pageName($part, self::toUTF8);
+			}
+			$value = implode('/', $parts);
+			$value = $this->pagePathNameUTF8($value);
+		}
+
+		return $value; 
+	}
+
+	/**
+	 * Sanitize a UTF8 page path name (does not perform ascii/UTF8 conversions)
+	 * 
+	 * If $config->pageNameCharset is not UTF8 then this does the same thing as pagePathName().
+	 * 
+	 * @param string $value
+	 * @return string
+	 * 
+	 */
+	public function pagePathNameUTF8($value) {
+		if($this->wire('config')->pageNameCharset !== 'UTF8') return $this->pagePathName($value);
+		$parts = explode('/', $value);
+		foreach($parts as $n => $part) {
+			$parts[$n] = $this->pageName($part, self::okUTF8);
+		}
+		$value = implode('/', $parts);
+		$disallow = array('..', '/.', '//');
+		foreach($disallow as $x) {
+			while(strpos($value, $x) !== false) {
+				$value = str_replace($x, '', $value);
+			}
+		}
 		return $value; 
 	}
 
@@ -807,9 +1124,6 @@ class Sanitizer extends Wire {
 		// if allowIDN was specifically set false, don't proceed further
 		if(isset($options['allowIDN']) && !$options['allowIDN']) return $url;
 
-		// if PHP doesn't support idn_* functions, we can't do anything further here
-		if(!function_exists('idn_to_ascii') || !function_exists('idn_to_utf8')) return $url;
-
 		// extract scheme
 		if(strpos($_url, '//') !== false) {
 			list($scheme, $_url) = explode('//', $_url, 2);
@@ -845,13 +1159,14 @@ class Sanitizer extends Wire {
 
 		} else {
 			// domain contains utf8
-			$domain = idn_to_ascii($domain);
+			$pc = function_exists("idn_to_ascii") ? false : new Punycode();
+			$domain = $pc ? $pc->encode($domain) : idn_to_ascii($domain);
 			if($domain === false || !strlen($domain)) return '';
 			$url = $scheme . $domain . $rest;
 			$url = filter_var($url, FILTER_VALIDATE_URL);
 			if(strlen($url)) {
 				// convert back to utf8 domain
-				$domain = idn_to_utf8($domain);
+				$domain = $pc ? $pc->decode($domain) : idn_to_utf8($domain);
 				if($domain === false) return '';
 				$url = $scheme . $domain . $rest;
 			}

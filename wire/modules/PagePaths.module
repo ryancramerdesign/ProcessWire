@@ -125,7 +125,7 @@ class PagePaths extends WireData implements Module {
 		$query->execute();
 		if(!$query->rowCount()) return null;
 		$path = $query->fetchColumn();
-		$path = strlen($path) ? "/$path/" : "/";
+		$path = strlen($path) ? $this->wire('sanitizer')->pagePathName("/$path/", Sanitizer::toUTF8) : "/";
 		return $path;
 	}
 
@@ -139,6 +139,7 @@ class PagePaths extends WireData implements Module {
 	public function getID($path) {
 		$table = self::dbTableName;
 		$database = $this->wire('database');
+		$path = $this->wire('sanitizer')->pagePathName($path, Sanitizer::toAscii);
 		$path = trim($path, '/');
 		$query = $database->prepare("SELECT pages_id FROM $table WHERE path=:path");
 		$query->bindValue(":path", $path); 
@@ -172,6 +173,7 @@ class PagePaths extends WireData implements Module {
 			$where = '';
 			foreach($value as $path) {
 				if($where) $where .= $selector->not ? " AND " : " OR ";
+				$path = $this->wire('sanitizer')->pagePathName($path, Sanitizer::toAscii);
 				$path = $this->wire('database')->escapeStr(trim($path, '/')); 
 				$where .= ($selector->not ? "NOT " : "") . "$alias.path{$selector->operator}'$path'";
 			}
@@ -206,6 +208,7 @@ class PagePaths extends WireData implements Module {
 		$table = self::dbTableName;
 		$id = (int) $id;
 		$database = $this->wire('database');
+		$path = $this->wire('sanitizer')->pagePathName($path, Sanitizer::toAscii);
 		$path = trim($path, '/');
 		$_path = $database->escapeStr($path);
 		$numUpdated = 1;

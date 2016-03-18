@@ -329,14 +329,18 @@ class WireInput extends Wire {
 			$n = 0;
 			$urlSegments = array();
 			foreach($this->urlSegments as $k => $v) {
-				if($k == $num) continue; 
-				$urlSegments[++$n] = $v; 	
+				if($k == $num) continue;
+				$urlSegments[++$n] = $v;
 			}
-			$this->urlSegments = $urlSegments; 
+			$this->urlSegments = $urlSegments;
+		} else if($this->wire('config')->pageNameCharset == 'UTF8') {
+			// set UTF8
+			$this->urlSegments[$num] = $this->wire('sanitizer')->pageNameUTF8($value);
 		} else {
-			// set
-			$this->urlSegments[$num] = $this->wire('sanitizer')->name($value); 	
+			// set ascii
+			$this->urlSegments[$num] = $this->wire('sanitizer')->name($value);
 		}
+		
 	}
 
 	/**
@@ -442,6 +446,8 @@ class WireInput extends Wire {
 		$url = '';
 		/** @var Page $page */
 		$page = $this->wire('page'); 
+		$config = $this->wire('config');
+		$sanitizer = $this->wire('sanitizer');
 		
 		if($page && $page->id) {
 			// pull URL from page
@@ -450,7 +456,7 @@ class WireInput extends Wire {
 			$pageNum = $this->pageNum();
 			if(strlen($segmentStr) || $pageNum > 1) {
 				if($segmentStr) $url = rtrim($url, '/') . '/' . $segmentStr;
-				if($pageNum > 1) $url = rtrim($url, '/') . '/' . $this->wire('config')->pageNumUrlPrefix . $pageNum;
+				if($pageNum > 1) $url = rtrim($url, '/') . '/' . $config->pageNumUrlPrefix . $pageNum;
 				if(isset($_SERVER['REQUEST_URI'])) {
 					$info = parse_url($_SERVER['REQUEST_URI']);
 					if(!empty($info['path']) && substr($info['path'], -1) == '/') $url .= '/'; // trailing slash
@@ -473,8 +479,9 @@ class WireInput extends Wire {
 		} else if(isset($_SERVER['REQUEST_URI'])) {
 			// page not yet available, attempt to pull URL from request uri
 			$parts = explode('/', $_SERVER['REQUEST_URI']); 
+			$charset = $config->pageNameCharset;
 			foreach($parts as $part) {
-				$url .= "/" . $this->wire('sanitizer')->pageName($part);
+				$url .= "/" . ($charset === 'UTF8' ? $sanitizer->pageNameUTF8($part) : $sanitizer->pageName($part, false));
 			}
 			$info = parse_url($_SERVER['REQUEST_URI']);
 			if(!empty($info['path']) && substr($info['path'], -1) == '/') {

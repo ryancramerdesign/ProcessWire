@@ -77,7 +77,7 @@ class SessionLoginThrottle extends WireData implements Module, ConfigurableModul
 
 		$time = time();
 		$database = $this->wire('database');
-		$name = $this->wire('sanitizer')->pageName($name);
+		$name = $this->wire('sanitizer')->pageName($name, Sanitizer::toAscii);
 		
 		$query = $database->prepare("SELECT attempts, last_attempt FROM session_login_throttle WHERE name=:name");
 		$query->bindValue(":name", $name);

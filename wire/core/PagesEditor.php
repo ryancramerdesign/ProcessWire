@@ -305,6 +305,7 @@ class PagesEditor extends Wire {
 		);
 		$options = array_merge($defaults, $options);
 		$format = $options['format'];
+		$sanitizer = $this->wire('sanitizer');
 
 		if(strlen($page->name)) {
 			// make sure page starts with "untitled" or "untitled-"
@@ -373,7 +374,11 @@ class PagesEditor extends Wire {
 		if(strlen($pageName)) {
 			// make the name unique
 
-			$pageName = $this->wire('sanitizer')->pageName($pageName, Sanitizer::translate);
+			if($this->wire('config')->pageNameCharset === 'UTF8') {
+				$pageName = $sanitizer->pageNameUTF8($pageName);
+			} else {
+				$pageName = $sanitizer->pageName($pageName, Sanitizer::translate);
+			}
 			$numChildren = $page->parent->numChildren();
 			$n = 0;
 
@@ -391,14 +396,14 @@ class PagesEditor extends Wire {
 					$name .= $nStr;
 				}
 				$n++;
-			} while($n < 200 && $this->pages->count("parent=$page->parent, name=$name, include=all"));
+			} while($n < 200 && $this->pages->count("parent=$page->parent, name=" . $sanitizer->selectorValue($name) . ", include=all"));
 			
-			if($this->pages->count("parent=$page->parent, name=$name, include=all") > 0) {
+			if($this->pages->count("parent=$page->parent, name=" . $sanitizer->selectorValue($name) . ", include=all") > 0) {
 				// this is now extremely unlikely
 				throw new WireException("Unable to generate unique name for page $page->id");
 			}
 
-			$page->name = $name;
+			$page->name = $sanitizer->pageNameUTF8($name);
 			$page->set('_hasAutogenName', true); // for savePageQuery, provides adjustName behavior for new pages
 		}
 
@@ -499,7 +504,7 @@ class PagesEditor extends Wire {
 		$data = array(
 			'parent_id' => (int) $page->parent_id,
 			'templates_id' => (int) $page->template->id,
-			'name' => $page->name,
+			'name' => $this->wire('sanitizer')->pageName($page->name, Sanitizer::toAscii),
 			'status' => (int) $page->status,
 			'sort' =>  ($page->sort > -1 ? (int) $page->sort : 0)
 		);
@@ -598,7 +603,7 @@ class PagesEditor extends Wire {
 					$nStr = '-' . (++$n);
 					if(strlen($pageName) + strlen($nStr) > Pages::nameMaxLength) $pageName = substr($pageName, 0, Pages::nameMaxLength - strlen($nStr));
 					$page->name = $pageName . $nStr;
-					$query->bindValue(":$nameField", $page->name);
+					$query->bindValue(":$nameField", $this->wire('sanitizer')->pageName($page->name, Sanitizer::toAscii));
 
 				} else {
 					// a different exception that we don't catch, so re-throw it

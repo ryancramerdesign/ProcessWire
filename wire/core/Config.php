@@ -61,6 +61,8 @@
  * 
  * @property string $adminEmail Email address to send fatal error notifications to.
  * 
+ * @property string $pageNameCharset Character set for page names, must be 'ascii' (default, lowercase) or 'UTF8' (uppercase). 
+ * @property string $pageNameWhitelist Whitelist of characters allowed in UTF8 page names. 
  * @property string $pageNumUrlPrefix Prefix used for pagination URLs. Default is "page", resulting in "/page1", "/page2", etc.
  * @property array $pageNumUrlPrefixes Multiple prefixes that may be used for detecting pagination (internal use, for multi-language)
  * @property int $maxUrlSegments Maximum number of extra stacked URL segments allowed in a page's URL (including page numbers) 

@@ -394,7 +394,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 		// if(wire('user')->isSuperuser() || $page->editable()) return;
 		$language = $event->arguments(0);
 		if(!$language) return;
-		if(is_string($language)) $language = $this->wire('languages')->get($this->wire('sanitizer')->pageName($language));
+		if(is_string($language)) $language = $this->wire('languages')->get($this->wire('sanitizer')->pageNameUTF8($language));
 		if(!$language instanceof Language) return; // some other non-language argument
 		if($language->isDefault()) return; // we accept the result of the original viewable() call
 		$status = $page->get("status$language");
@@ -511,7 +511,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 
 			// set language page name
 			$name = $inputfield->attr('name') . $language;
-			$value = $sanitizer->pageName($input->$name); 
+			$value = $sanitizer->pageNameUTF8($input->$name);
 			if($value === $page->name) $value = '';
 			$key = "name$language";
 			if($value == $page->get($key)) continue; 
@@ -536,7 +536,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 		if(!empty($options['findAll'])) return; 
 		
 		// don't apply exclusions when output formatting is off
-		if(!wire('pages')->outputFormatting) return;
+		if(!$this->wire('pages')->outputFormatting) return;
 
 		$language = $this->wire('user')->language; 
 		if(!$language || $language->isDefault()) return;
@@ -628,7 +628,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 
 		if($language && (is_string($language) || is_int($language))) {
 			if(ctype_digit("$language")) $language = (int) $language; 
-				else $language = $this->wire('sanitizer')->pageName($language); 
+				else $language = $this->wire('sanitizer')->pageNameUTF8($language); 
 			$language = $this->wire("languages")->get($language); 
 		}
 
@@ -710,6 +710,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 		$extraData = $event->return; 
 		if(!is_array($extraData)) $extraData = array();
 		$alwaysActiveTypes = array('User', 'Role', 'Permission', 'Language'); 
+		$pageNameCharset = $this->wire('config')->pageNameCharset;
 		
 		$defaultN = 1;
 		if($pages->cloning && preg_match('/^(.+)-(\d+)$/', $page->name, $matches)) {
@@ -723,7 +724,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 
 			// populate a name123 field for each language
 			$name = "name$language_id";
-			$value = $this->wire('sanitizer')->pageName($page->get($name)); 
+			$value = $this->wire('sanitizer')->pageNameUTF8($page->get($name)); 
 			if(!strlen($value)) {
 				$value = 'NULL';
 			} else if($pages->cloning) {
@@ -736,7 +737,11 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 				}
 				$value = $newValue; 
 			}
-			$extraData[$name] = $value; 
+			if($pageNameCharset == 'UTF8') {
+				$extraData[$name] = $this->wire('sanitizer')->pageName($value, Sanitizer::toAscii);
+			} else {
+				$extraData[$name] = $value;
+			}
 
 			// populate a status123 field for each language
 			$name = "status$language_id";
@@ -789,7 +794,13 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 			$title = $page->title;
 			if(strlen($title)) {
 				$page->title = $title;
-				if(!$page->name) $page->name = $this->wire('sanitizer')->pageName($title, Sanitizer::translate);
+				if(!$page->name) {
+					if($this->wire('config')->pageNameCharset === 'UTF8') {
+						$page->name = $this->wire('sanitizer')->pageNameUTF8($title);
+					} else {
+						$page->name = $this->wire('sanitizer')->pageName($title, Sanitizer::translate);
+					}
+				}
 			}
 			if($page->name) break;
 		}
@@ -807,6 +818,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 		// The setLanguage may get lost upon some page save events, so this restores that
 		// $this->user->language = $this->setLanguage;
 		$page = $event->arguments(0);
+		$sanitizer = $this->wire('sanitizer');
 		if(!$page->namePrevious) {
 			// go into this only if we know the renamed hook hasn't already been called
 			$renamed = false;
@@ -814,8 +826,8 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 				if($language->isDefault()) continue;
 				$namePrevious = $page->get("-name$language");
 				if(!$namePrevious) continue;
-				$name = $page->get("name$language");
-				if($namePrevious != $name) {
+				$name = $sanitizer->pageNameUTF8($page->get("name$language"));
+				if($sanitizer->pageNameUTF8($namePrevious) != $name) {
 					$renamed = true;
 					break;
 				}

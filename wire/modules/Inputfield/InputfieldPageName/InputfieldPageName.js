@@ -20,7 +20,25 @@ var InputfieldPageName = {
 		name = name.replace(/['"\u0022\u0027\u00AB\u00BB\u2018\u2019\u201A\u201B\u201C\u201D\u201E\u201F\u2039\u203A\u300C\u300D\u300E\u300F\u301D\u301E\u301F\uFE41\uFE42\uFE43\uFE44\uFF02\uFF07\uFF62\uFF63]/g, '');
         
 		// replace invalid with dash
-		name = name.replace(/[^-_.a-z0-9 ]/g, '-');
+		if(ProcessWire.config.InputfieldPageName.charset == 'UTF8') {
+			// use UTF8 whitelist
+			var whitelist = ProcessWire.config.InputfieldPageName.whitelist;	
+			if(whitelist.length) {
+				// sanitize using whitelist
+				var newName = '';
+				for(var n = 0; n < name.length; n++) {
+					var c = name.substring(n, n+1);
+					if(whitelist.indexOf(c) == -1) c = '-';
+					newName += c;
+				}
+				name = newName;
+			} else {
+				// no whitelist, allow any
+			}
+		} else {
+			// use ascii as whitelist
+			name = name.replace(/[^-_.a-z0-9 ]/g, '-');
+		}
 	
 		// convert whitespace to dash
 		name = name.replace(/\s+/g, '-') 
