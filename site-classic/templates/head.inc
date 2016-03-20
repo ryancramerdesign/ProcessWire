@@ -32,6 +32,8 @@
 </head>
 <body>
 
+	<a href="#bodycopy" class="visually-hidden element-focusable bypass-to-main">Skip to content</a>
+
 	<p id='bgtitle'><?php 
 
 		// print the section title as big faded text that appears near the top left of the page
@@ -45,7 +47,7 @@
 
 			<a href='<?php echo $config->urls->root; ?>'><p id='logo'>ProcessWire</p></a>
 		
-			<ul id='topnav'><?php
+			<ul id='topnav' role='navigation'><?php
 			
 				// Create the top navigation list by listing the children of the homepage. 
 				// If the section we are in is the current (identified by $page->rootParent)
@@ -64,7 +66,7 @@
 
 			?></ul>
 
-			<ul id='breadcrumb'><?php
+			<ul id='breadcrumb' role='navigation' aria-label='You are here:'><?php
 
 				// Create breadcrumb navigation by cycling through the current $page's
 				// parents in order, linking to each:
@@ -87,6 +89,7 @@
 			?></h1>
 
 			<form id='search_form' action='<?php echo $config->urls->root?>search/' method='get'>
+				<label for='search_query' class='visually-hidden'>Search</label>
 				<input type='text' name='q' id='search_query' value='<?php echo htmlentities($input->whitelist('q'), ENT_QUOTES, 'UTF-8'); ?>' />
 				<button type='submit' id='search_submit'>Search</button>
 			</form>
@@ -111,7 +114,7 @@
 
 		<div class="container">
 
-			<div id="sidebar">
+			<div id="sidebar" role='complementary'>
 
 				<?php
 
@@ -128,7 +131,7 @@
 					// We have determined that we're not on the homepage
 					// and that this section has child pages, so make navigation: 
 
-					echo "<ul id='subnav' class='nav'>";
+					echo "<ul id='subnav' class='nav' role='navigation'>";
 
 					foreach($page->rootParent->children as $child) {
 						$class = $page === $child ? " class='on'" : '';
@@ -156,5 +159,5 @@
 
 			</div><!--/sidebar-->
 
-			<div id="bodycopy">
+			<div id="bodycopy" role="main">
 			

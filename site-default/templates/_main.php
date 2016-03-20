@@ -41,8 +41,10 @@
 </head>
 <body class="<?php if($sidebar) echo "has-sidebar "; ?>">
 
+	<a href="#main" class="visually-hidden element-focusable bypass-to-main">Skip to content</a>
+
 	<!-- top navigation -->
-	<ul class='topnav'><?php 
+	<ul class='topnav' role='navigation'><?php
 		// top navigation consists of homepage and its visible children
 		foreach($homepage->and($homepage->children) as $item) {
 			if($item->id == $page->rootParent->id) {
@@ -59,12 +61,13 @@
 
 	<!-- search form-->
 	<form class='search' action='<?php echo $pages->get('template=search')->url; ?>' method='get'>
-		<input type='text' name='q' placeholder='Search' value='<?php echo $sanitizer->entities($input->whitelist('q')); ?>' />
-		<button type='submit' name='submit'>Search</button>
+		<label for='search' class='visually-hidden'>Search:</label>
+		<input id='search' type='text' name='q' placeholder='Search' value='<?php echo $sanitizer->entities($input->whitelist('q')); ?>' />
+		<button type='submit' name='submit' class='visually-hidden'>Search</button>
 	</form>
 
 	<!-- breadcrumbs -->
-	<div class='breadcrumbs'><?php 
+	<div class='breadcrumbs' role='navigation' aria-label='You are here:'><?php
 		// breadcrumbs are the current page's parents
 		foreach($page->parents() as $item) {
 			echo "<span><a href='$item->url'>$item->title</a></span> "; 
@@ -73,7 +76,7 @@
 		echo "<span>$page->title</span> "; 
 	?></div>
 
-	<div id='main'>
+	<main id='main'>
 
 		<!-- main content -->
 		<div id='content'>
@@ -83,12 +86,12 @@
 
 		<!-- sidebar content -->
 		<?php if($sidebar): ?>
-		<div id='sidebar'>
+		<aside id='sidebar'>
 			<?php echo $sidebar; ?>
-		</div>
+		</aside>
 		<?php endif; ?>
 
-	</div>
+	</main>
 
 	<!-- footer -->
 	<footer id='footer'>

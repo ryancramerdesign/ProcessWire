@@ -24,7 +24,7 @@ if($page->numChildren) {
 
 	</div><!--/content-->
 
-	<div id="footer" class="footer">
+	<div id="footer" class="footer" role="contentinfo">
 		<div class="container">
 			<p>Powered by <a href='http://processwire.com'>ProcessWire Open Source CMS/CMF</a></p>
 		</div>
