@@ -561,7 +561,7 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 		/** @var Field $field */
 		$field = $event->object; 
 		$inputfield = $event->return; 
-		$translatable = array('label', 'description', 'notes');
+		$translatable = array('label', 'description', 'notes', 'placeholder');
 
 		// populate language versions where available
 		foreach($translatable as $key) {

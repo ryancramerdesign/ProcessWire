@@ -131,6 +131,21 @@ class InputfieldText extends Inputfield {
 		$field->collapsed = Inputfield::collapsedBlank;
 		$inputfields->append($field);
 
+		$languages = $this->wire('languages');
+		if($languages) {
+			if($this->input->post->id) $fieldId = (int) $this->input->post->id;
+				else $fieldId = $this->input->get->id ? (int) $this->input->get->id : 0;
+
+			$currentField = $fieldId ? $this->fields->get($fieldId) : ‘’;
+			if($currentField) {
+				$field->useLanguages = true;
+				foreach($languages as $language) {
+					if($language->isDefault) continue;
+					$field->set("value{$language->id}" , $currentField->get("{$field->name}{$language->id}"));
+				}
+			}
+		}
+
 		$field = $this->modules->get('InputfieldText');
 		$field->setAttribute('name', 'pattern'); 
 		$field->label = $this->_('Pattern');
