@@ -756,6 +756,8 @@ class PagesLoader extends Wire {
 			return $options['getID'] ? 0 : $this->pages->newNullPage();
 		}
 
+		$_path = $path;
+		$path = $this->wire('sanitizer')->pagePathName($path, Sanitizer::toAscii);
 		$pathParts = explode('/', trim($path, '/'));
 		$languages = $options['useLanguages'] ? $this->wire('languages') : null;
 		if($languages && !$this->wire('modules')->isInstalled('LanguageSupportPageNames')) $languages = null;
@@ -851,7 +853,7 @@ class PagesLoader extends Wire {
 
 		if(!$pageID && $options['useHistory'] && $this->wire('modules')->isInstalled('PagePathHistory')) {
 			// if finding failed, check if there is a previous path it lived at, if history module available 
-			$page = $this->wire('modules')->get('PagePathHistory')->getPage($path);
+			$page = $this->wire('modules')->get('PagePathHistory')->getPage($this->wire('sanitizer')->pagePathNameUTF8($_path));
 			return $options['getID'] ? $page->id : $page;
 		}
 

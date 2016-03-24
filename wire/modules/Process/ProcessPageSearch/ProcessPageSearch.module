@@ -862,7 +862,8 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 		if($this->adminSearchMode && $this->user->isSuperuser()) {
 			// enable search to include users when adminSearchMode and superuser
 			$a['matches'] = $this->findOtherTypes($this->input->get('admin_search')); 	
-			$users = $this->wire('users')->find("name%=" . $this->wire('sanitizer')->pageName($this->input->get('admin_search'))); 
+			$users = $this->wire('users')->find("name%=" . 
+				$this->wire('sanitizer')->pageName($this->input->get('admin_search'), Sanitizer::toAscii)); 
 			if(count($users)) $matches->prepend($users);
 		}
 

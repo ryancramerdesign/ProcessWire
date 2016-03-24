@@ -200,7 +200,7 @@ class Languages extends PagesType {
 		if(is_int($language)) {
 			$language = $this->get($language);
 		} else if(is_string($language)) {
-			$language = $this->get($this->wire('sanitizer')->pageName($language));	
+			$language = $this->get($this->wire('sanitizer')->pageNameUTF8($language));	
 		} 
 		if(!$language instanceof Language || !$language->id) throw new WireException("Unknown language");
 		$user = $this->wire('user');
@@ -342,7 +342,7 @@ class Languages extends PagesType {
 		$permissions = $this->getPageEditPermissions();
 		if($language === 'none' && isset($permissions['none'])) return $permissions['none'];
 		if(!$language instanceof Language) {
-			$language = $this->get($this->wire('sanitizer')->pageName($language));
+			$language = $this->get($this->wire('sanitizer')->pageNameUTF8($language));
 		}
 		if(!$language || !$language->id) return '';
 		return isset($permissions[$language->name]) ? $permissions[$language->name] : '';
@@ -382,7 +382,7 @@ class Languages extends PagesType {
 			
 		} else {
 			
-			if(!$language instanceof Language) $language = $this->get($this->wire('sanitizer')->pageName($language));
+			if(!$language instanceof Language) $language = $this->get($this->wire('sanitizer')->pageNameUTF8($language));
 			if(!$language || !$language->id) return false;
 		
 			$cacheKey = "$user->id.$language->id";

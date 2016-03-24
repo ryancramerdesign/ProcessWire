@@ -381,14 +381,16 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 			$parentIDs = is_array($field->parent_id) ? implode('|', $field->parent_id) : $field->parent_id; 
 			$result = $this->wire('pages')->get("parent_id=$parentIDs, title=" . $this->wire('sanitizer')->selectorValue($value));
 			// set by name
-			if(!$result->id) $result = $this->wire('pages')->get("parent_id=$parentIDs, name=" . $this->wire('sanitizer')->pageName($value)); 
+			if(!$result->id) $result = $this->wire('pages')->get("parent_id=$parentIDs, name=" . 
+				$this->wire('sanitizer')->selectorValue($this->wire('sanitizer')->pageNameUTF8($value))); 
 			
 		} else if($field->template_id) {
 			// set by title 
 			$templateIDs = is_array($field->template_id) ? implode('|', $field->template_id) : $field->template_id;
 			$result = $this->wire('pages')->get("templates_id=$templateIDs, title=" . $this->wire('sanitizer')->selectorValue($value));
 			// set by name
-			if(!$result->id) $result = $this->wire('pages')->get("templates_id=$templateIDs, name=" . $this->wire('sanitizer')->pageName($value)); 
+			if(!$result->id) $result = $this->wire('pages')->get("templates_id=$templateIDs, name=" . 
+				$this->wire('sanitizer')->selectorValue($this->wire('sanitizer')->pageNameUTF8($value))); 
 		}
 		
 		if(!$result && $this->wire('config')->debug) {
@@ -678,7 +680,7 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 			} else $value = 0;
 		
 		} else if($subfield == 'name') {
-			$value = $this->sanitizer->pageName($value); 
+			$value = $this->sanitizer->pageName($value, Sanitizer::toAscii); 
 
 		} else $value = (int) $value; 
 

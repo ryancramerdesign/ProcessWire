@@ -124,7 +124,6 @@ class InputfieldPageName extends InputfieldName implements ConfigurableModule {
 		$this->label = $this->_('Name'); // Field label for 'Name'
 		$this->icon = 'angle-double-right';
 		$this->set('parentPage', null); 
-		$this->set('sanitizeMethod', 'pageName');
 		$this->set('languageSupportLabel', ''); 
 		$this->set('slashUrls', 1); // whether a trailing slash should be shown in the URL preview
 
@@ -135,13 +134,19 @@ class InputfieldPageName extends InputfieldName implements ConfigurableModule {
 		$this->set('checkboxChecked', false); 
 		$this->set('checkboxSuffix', ''); 
 
-		$this->description = $this->_("Any combination of letters (a-z), numbers (0-9), dashes or underscores (no spaces)."); // Field description describing what characters are allowed
+		if($this->wire('config')->pageNameCharset === 'UTF8') {
+			// no need to indicate input limitations
+			$this->set('sanitizeMethod', 'pageNameUTF8');
+			$this->description = '';
+		} else {
+			$this->description = $this->_("Any combination of letters (a-z), numbers (0-9), dashes or underscores (no spaces)."); // Field description describing what characters are allowed
+			$this->set('sanitizeMethod', 'pageName');
+		}
 		$this->hasLanguagePageNames = $this->wire('modules')->isInstalled('LanguageSupportPageNames'); 
 	}
 
 	public function ___render() {
 		
-
 		$url = '';
 		$out = '';
 		$box = '';
@@ -205,8 +210,19 @@ class InputfieldPageName extends InputfieldName implements ConfigurableModule {
 		if($this->languageSupportLabel) $out .= $box . "</div>";
 
 		// make the replacements part of the JS config	
-		$replacements = empty($this->replacements) ? self::$defaultReplacements : $this->replacements; 
-		$this->config->js($this->className(), array('replacements' => $replacements)); 
+		$charset = $this->wire('config')->pageNameCharset;
+		if($charset == 'UTF8') {
+			$replacements = array(':' => '-', ',' => '-');
+			$whitelist = $this->config->pageNameWhitelist;
+		} else {
+			$replacements = empty($this->replacements) ? self::$defaultReplacements : $this->replacements; 
+			$whitelist = '';
+		}
+		$this->config->js($this->className(), array(
+			'replacements' => $replacements,
+			'charset' => $charset, 
+			'whitelist' => $whitelist
+		)); 
 
 		return $out; 
 	}
@@ -248,6 +264,12 @@ class InputfieldPageName extends InputfieldName implements ConfigurableModule {
 	}
 
 	public function getModuleConfigInputfields(array $data) {
+		
+		$fields = $this->wire(new InputfieldWrapper());
+		if($this->wire('config')->pageNameCharset === 'UTF8') {
+			$this->message($this->_('Character replacements configuration is disabled because $config->pageNameCharset is UTF8.'));
+			return $fields;
+		}
 
 		$modules = $this->wire('modules');
 		$modules->addHookBefore('saveModuleConfigData', null, 'InputfieldPageName_saveModuleConfigData'); 
@@ -267,7 +289,6 @@ class InputfieldPageName extends InputfieldName implements ConfigurableModule {
 			$data[$name] = self::replacementStringToArray($replacements); 
 		}
 
-		$fields = $this->wire(new InputfieldWrapper());
 		$field = $modules->get("InputfieldTextarea");
 		$field->attr('name', $name);
 		$field->attr('value', $replacements);

@@ -486,7 +486,7 @@ class Session extends Wire implements \IteratorAggregate {
 			$user = $name;
 			$name = $user->name;
 		} else {
-			$name = $this->wire('sanitizer')->pageName($name);
+			$name = $this->wire('sanitizer')->pageNameUTF8($name);
 		}
 
 		if(!$this->allowLogin($name)) {

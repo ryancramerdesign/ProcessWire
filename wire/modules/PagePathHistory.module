@@ -104,7 +104,7 @@ class PagePathHistory extends WireData implements Module {
 		} else if(is_int($language) || ctype_digit($language)) {
 			$language = $languages->get((int) $language);
 		} else if(is_string($language) && $language) {
-			$language = $languages->get($this->wire('sanitizer')->pageName($language));
+			$language = $languages->get($this->wire('sanitizer')->pageNameUTF8($language));
 		}
 		if($language && !$language->id) $language = null;
 		return $language;
@@ -122,7 +122,7 @@ class PagePathHistory extends WireData implements Module {
 		
 		$database = $this->wire('database');
 		$table = self::dbTableName;
-		$path = '/' . trim($path, '/');
+		$path = $this->wire('sanitizer')->pagePathName('/' . trim($path, '/'), Sanitizer::toAscii);
 		$language = $this->getLanguage($language);
 
 		$sql = "INSERT INTO $table SET path=:path, pages_id=:pages_id, created=NOW()";
@@ -141,7 +141,7 @@ class PagePathHistory extends WireData implements Module {
 
 		// delete any possible entries that overlap with the $page since are no longer applicable
 		$query = $database->prepare("DELETE FROM $table WHERE path=:path LIMIT 1");
-		$query->bindValue(":path", rtrim($page->path, '/'));
+		$query->bindValue(":path", rtrim($this->wire('sanitizer')->pagePathName($page->path, Sanitizer::toAscii), '/'));
 		$query->execute();
 	}
 
@@ -173,7 +173,7 @@ class PagePathHistory extends WireData implements Module {
 		try {
 			$query->execute();
 			while($row = $query->fetch(\PDO::FETCH_NUM)) {
-				$paths[] = $row[0];
+				$paths[] = $this->wire('sanitizer')->pagePathName($row[0], Sanitizer::toUTF8);
 			}
 		} catch(\Exception $e) {
 			// intentionally blank
@@ -295,11 +295,13 @@ class PagePathHistory extends WireData implements Module {
 		
 		$page = $this->wire('pages')->newNullPage();
 		$pathRemoved = '';
-		$path = '/' . trim($path, '/');
 		$cnt = 0;
 		$database = $this->wire('database');
 		$table = self::dbTableName;
 		$languages = $this->getLanguages();
+		
+		if(!$level) $path = $this->wire('sanitizer')->pagePathName($path, Sanitizer::toAscii);
+		$path = '/' . trim($path, '/');
 
 		while(strlen($path) && !$page->id && $cnt < self::maxSegments) {
 
