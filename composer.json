@@ -18,5 +18,6 @@
   },
   "autoload": {
     "files": [ "wire/core/ProcessWire.php" ]
-  }
+  },
+  "minimum-stability": "dev"
 }

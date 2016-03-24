@@ -631,6 +631,31 @@ $config->pageNumUrlPrefix = 'page';
  */
 
 /**
+ * Character set for page names
+ * 
+ * Set to 'UTF8' (uppercase) to allow for non-ascii word characters in page names.
+ * You must also update the .htaccess file to allow non-ascii characters through. 
+ * See also $config->pageNameWhitelist, which is used if pageNameCharset is UTF8. 
+ * 
+ * @var string
+ * 
+ * #notes Value may be either 'ascii' (lowercase) or 'UTF8' (uppercase).
+ * 
+ */
+$config->pageNameCharset = 'ascii';
+
+/**
+ * If 'pageNameCharset' is 'UTF8' then specify the whitelist of allowed characters here
+ * 
+ * To allow any characters, you can make this blank, however using a whitelist is strongly recommended.
+ * Please note this whitelist is only used if pageNameCharset is 'UTF8'. 
+ * 
+ * @var string
+ * 
+ */ 
+$config->pageNameWhitelist = '-_.abcdefghijklmnopqrstuvwxyz0123456789æåäßöüđжхцчшщюяàáâèéëêěìíïîõòóôøùúûůñçčćďĺľńňŕřšťýžабвгдеёзийклмнопрстуфыэęąśłżź';
+
+/**
  * Maximum paginations
  *
  * Maxmum number of supported paginations when using page numbers.

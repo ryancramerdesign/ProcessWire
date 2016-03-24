@@ -266,6 +266,71 @@ class FileCompiler extends Wire {
 	}
 
 	/**
+	 * Compile comments so that they can be easily identified by other compiler methods
+	 * 
+	 * @todo this is a work in progress, not yet in use
+	 * 
+	 * @param $data
+	 * 
+	 */
+	protected function compileComments(&$data) {
+		
+		$inComment = false;
+		$inPHP = false;
+		$lines = explode("\n", $data);
+		$numChanges = 0;
+		$commentIdentifier = '!PWFC!';
+		
+		foreach($lines as $key => $line) {
+	
+			$_line = $line; // original
+			$phpOpen = strrpos($line, '<' . '?');
+			$phpClose = strrpos($line, '?' . '>');
+			
+			if($inPHP) {
+				if($phpClose !== false && ($phpClose === 0 || $phpClose > (int) $phpOpen)) {
+					$inPHP = false;
+				}
+			} else {
+				if($phpOpen !== false && ($phpClose === false || $phpClose < $phpOpen)) {
+					$inPHP = true;
+				}
+			}
+			
+			if(!$inPHP) continue;
+			
+			$commentOpen = strpos($line, '/' . '*');
+			$commentClose = strpos($line, '*' . '/');
+			
+			if($inComment) {
+				if($commentClose !== false && ($commentOpen === false || $commentOpen < $commentClose)) {
+					$inComment = false;
+				}
+				$line = $commentIdentifier . $line;
+			} 
+
+			if($commentOpen !== false) {
+				// has an open comment
+				if($commentClose !== false) {
+					// has a close comment, skip this line
+					continue; 
+				} else {
+					$inComment = true;
+				}
+			}
+			
+			if($line !== $_line) {
+				$lines[$key] = $line;	
+				$numChanges++;
+			}
+		}
+		
+		if($numChanges) {
+			$data = implode("\n", $lines);
+		}
+	}
+
+	/**
 	 * Compile include(), require() (and variations) to refer to compiled files where possible
 	 * 
 	 * @param string $data
@@ -298,7 +363,7 @@ class FileCompiler extends Wire {
 		$re = '/^' . 
 			'(.*?)' . // 1: open
 			'(' . implode('|', $funcs) . ')' . // 2:function
-			'([\(\s]+)' . // 3: argOpen: open parenthesis and/or space
+			'([\( ]+)' . // 3: argOpen: open parenthesis and/or space
 			'(["\']?[^;\r\n]+)' . // 4:filename, and rest of the statement (file may be quoted or end with closing parens)
 			'([;\r\n])' . // 5:close, whatever the last character is on the line
 			'/im';
@@ -313,6 +378,19 @@ class FileCompiler extends Wire {
 			$fileMatch = $matches[4][$key];
 			$close = $matches[5][$key];
 			$argsMatch = '';
+			
+			if(strpos($fileMatch, '$') === 0) {
+				// fileMatch stars with a var name
+			} else if(strpos($fileMatch, '"') !== strrpos($fileMatch, '"')) {
+				// fileMatch has both open and close double quotes
+			} else if(strpos($fileMatch, "'") !== strrpos($fileMatch, "'")) {
+				// fileMatch has both open and close single quotes
+			} else if(strpos($fileMatch, '(') !== false && strpos($fileMatch, ')') !== false) {
+				// likely a function call 
+			} else {
+				// likely NOT a valid file match, as it doesn't have any of the expected characters
+				continue;
+			}
 			
 			if(strlen($open)) {
 				$skipMatch = false;
@@ -364,18 +442,21 @@ class FileCompiler extends Wire {
 				$argsMatch = substr($fileMatch, $commaPos);
 				$fileMatch = substr($fileMatch, 0, $commaPos);
 			}
-			
-			if(strpos($fileMatch, './') === 1) {
-				// relative to current dir, convert to absolute
-				$fileMatch = $fileMatch[0] . dirname($sourceFile) . substr($fileMatch, 2);
-			} else if(strpos($fileMatch, '/') === false 
-				&& strpos($fileMatch, '$') === false 
-				&& strpos($fileMatch, '(') === false
-				&& strpos($fileMatch, '\\') === false) {
-				// i.e. include("file.php")
-				$fileMatch = $fileMatch[0] . dirname($sourceFile) . '/' . substr($fileMatch, 1);
-			}
 		
+			if(strpos($fileMatch, '"') === 0 || strpos($fileMatch, "'") === 0) {
+				// fileMatch is quoted string
+				if(strpos($fileMatch, './') === 1) {
+					// relative to current dir, convert to absolute
+					$fileMatch = $fileMatch[0] . dirname($sourceFile) . substr($fileMatch, 2);
+				} else if(strpos($fileMatch, '/') === false
+					&& strpos($fileMatch, '$') === false
+					&& strpos($fileMatch, '(') === false
+					&& strpos($fileMatch, '\\') === false) {
+					// i.e. include("file.php")
+					$fileMatch = $fileMatch[0] . dirname($sourceFile) . '/' . substr($fileMatch, 1);
+				}
+			}
+			
 			$fileMatch = str_replace("\t", '', $fileMatch);
 			if(strlen($open)) $open .= ' ';
 			$newFullMatch = "$open$funcMatch(\\ProcessWire\\wire('files')->compile($fileMatch,$optionsStr)$argsMatch$close";

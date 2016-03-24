@@ -282,7 +282,7 @@ class WireLog extends Wire {
 		}
 		
 		$entry['date'] = wireDate($this->wire('config')->dateFormat, strtotime($entry['date']));
-		$entry['user'] = $this->wire('sanitizer')->pageName($entry['user']); 
+		$entry['user'] = $this->wire('sanitizer')->pageNameUTF8($entry['user']); 
 		
 		if($entry['url'] == 'page?') $entry['url'] = false;
 		if($entry['user'] == 'user?') $entry['user'] = false;

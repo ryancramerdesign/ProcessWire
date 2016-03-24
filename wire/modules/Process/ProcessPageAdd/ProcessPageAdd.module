@@ -307,10 +307,10 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 		if(!$parentID) return '';
 		$parent = $this->wire('pages')->get($parentID); 
 		if(!$parent->addable()) return '';
-		$name = $this->wire('sanitizer')->pageName($this->wire('input')->get('name')); 
+		$name = $this->wire('sanitizer')->pageNameUTF8($this->wire('input')->get('name')); 
 		if(!strlen($name)) return '';
 		$parentID = count($this->predefinedParents) ? $this->predefinedParents : $parentID; 
-		$page = $this->wire('pages')->get("parent_id=$parentID, name=$name, include=all"); 
+		$page = $this->wire('pages')->get("parent_id=$parentID, name=" . $this->wire('sanitizer')->selectorValue($name) . ", include=all"); 
 		if($page->id) {
 			$out = "<span class='taken ui-state-error-text'><i class='fa fa-exclamation-triangle'></i> " . $this->_('Already taken') . "</span>";
 		} else {

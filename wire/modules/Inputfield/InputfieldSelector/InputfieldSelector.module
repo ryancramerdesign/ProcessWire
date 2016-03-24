@@ -407,7 +407,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			'name' => array(
 				'input' => 'text', 
 				'label' => $this->_('Name'),
-				'sanitizer' => 'pageName',
+				'sanitizer' => 'pageNameUTF8',
 				'operators' => array('=', '!=', '%='), 
 				),
 			'status' => array(
@@ -1743,7 +1743,8 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 				$ids = array();
 				foreach($s->values as $key => $name) {
 					$property = ctype_digit("$name") ? 'id' : 'name';
-					$users = $this->wire('users')->find("$property$s->operator" . $this->wire('sanitizer')->pageName($name));
+					$users = $this->wire('users')->find("$property$s->operator" . 
+						$this->wire('sanitizer')->selectorValue($this->wire('sanitizer')->pageNameUTF8($name)));
 					foreach($users as $u) $ids[$u->id] = $u->id;
 				}
 				if($s->operator != '=' && $s->operator != '!=') {

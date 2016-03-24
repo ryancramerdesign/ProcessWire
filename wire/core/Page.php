@@ -563,15 +563,7 @@ class Page extends WireData implements \Countable, WireMatchable {
 				$this->statusPrevious = is_null($value) ? null : (int) $value; 
 				break;
 			case 'name':
-				if($this->isLoaded) {
-					$beautify = empty($this->settings[$key]); 
-					$value = $this->wire('sanitizer')->pageName($value, $beautify); 
-					if($this->settings[$key] !== $value) {
-						if($this->settings[$key] && empty($this->namePrevious)) $this->namePrevious = $this->settings[$key];
-						$this->trackChange($key, $this->settings[$key], $value); 
-					}
-				}
-				$this->settings[$key] = $value; 
+				$this->setName($value);
 				break;
 			case 'parent': 
 			case 'parent_id':
@@ -626,8 +618,13 @@ class Page extends WireData implements \Countable, WireMatchable {
 				self::$instanceIDs[$value] = $this->settings['id']; 
 				break;
 			default:
-				if($this->quietMode && !$this->template) return parent::set($key, $value); 
-				$this->setFieldValue($key, $value, $this->isLoaded); 
+				if(strpos($key, 'name') === 0 && ctype_digit(substr($key, 5)) && $this->wire('languages')) {
+					// i.e. name1234
+					$this->setName($value, $key);
+				} else {
+					if($this->quietMode && !$this->template) return parent::set($key, $value);
+					$this->setFieldValue($key, $value, $this->isLoaded);
+				}
 		}
 		return $this; 
 	}
@@ -1239,6 +1236,80 @@ class Page extends WireData implements \Countable, WireMatchable {
 			// example: uncache method polls filesManager
 			$this->filesManager = null; 
 		}
+	}
+
+	/**
+	 * Set the page name
+	 * 
+	 * @param string $value
+	 * @param Language|string|int|null $language Set language for name (can also be string in format "name1234")
+	 * @return $this
+	 *
+	 */
+	public function setName($value, $language = null) {
+		
+		$key = 'name';
+		$charset = $this->wire('config')->pageNameCharset;
+		$sanitizer = $this->wire('sanitizer');
+		
+		if($language) {
+			// update $key to contain language ID when applicable
+			$languages = $this->wire('languages');
+			if($languages) {
+				if(!is_object($language)) {
+					if(strpos($language, 'name') === 0) $language = (int) substr($language, 4);
+					$language = $languages->get($language);
+					if(!$language || !$language->id || $language->isDefault()) $language = '';
+				}
+				if(!$language) return $this;
+				$key .= $language->id;
+			}
+			$existingValue = $this->get($key);
+		} else {
+			$existingValue = isset($this->settings[$key]) ? $this->settings[$key] : '';
+		}
+	
+		if($this->isLoaded) {
+			// name is being set after page has already been loaded
+			if($charset === 'UTF8') {
+				// UTF8 page names allowed but decoding not allowed
+				$value = $sanitizer->pageNameUTF8($value);
+				
+			} else if(empty($existingValue)) {
+				// ascii, and beautify if there is no existing value
+				$value = $sanitizer->pageName($value, true);
+				
+			} else {
+				// ascii page name and do not beautify
+				$value = $sanitizer->pageName($value, false);
+			}
+			if($existingValue !== $value && !$this->quietMode) {
+				// set the namePrevious property when the main 'name' has changed
+				if($key === 'name' && $existingValue && empty($this->namePrevious)) {
+					$this->namePrevious = $existingValue;
+				}
+				// track the change 
+				$this->trackChange($key, $existingValue, $value);
+			}
+		} else {
+			// name being set while page is loading
+			if($charset === 'UTF8' && strpos($value, 'xn-') === 0) {
+				// allow decode of UTF8 name while page is loading
+				$value = $sanitizer->pageName($value, Sanitizer::toUTF8);
+			} else {
+				// regular ascii page name while page is loading, do nothing to it
+			}
+		}
+		
+		if($key === 'name') {
+			$this->settings[$key] = $value;
+		} else if($this->quietMode) {
+			parent::set($key, $value);
+		} else {
+			$this->setFieldValue($key, $value, $this->isLoaded); // i.e. name1234
+		}
+		
+		return $this;
 	}
 
 	/**
