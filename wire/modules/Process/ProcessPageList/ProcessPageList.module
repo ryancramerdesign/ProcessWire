@@ -19,6 +19,7 @@
  * @property int $hoverActionDelay Milliseconds delay between hover and showing of actions. 
  * @property int $hoverActionFade Milliseconds to spend fading in or out actions. 
  * @property bool|int $useBookmarks Allow use of PageList bookmarks?
+ * @property int|Page open The page id or page that should be opened
  *
  */
 
@@ -112,7 +113,11 @@ class ProcessPageList extends Process implements ConfigurableModule {
 
 		if(isset($_GET['id']) && $_GET['id'] == 'bookmark') $this->wire('session')->redirect('./bookmarks/');
 		if(!$this->id) $this->id = isset($_GET['id']) ? (int) $_GET['id'] : 0; 
-		$this->openPage = $this->input->get->open ? $this->pages->get((int) $this->input->get->open) : $this->wire('pages')->newNullPage();
+		if ($open = $this->get('open')) {
+			$this->openPage = ($open instanceof Page) ? $open : $this->pages->get((int) $open);
+		} else {
+			$this->openPage = $this->input->get->open ? $this->pages->get((int) $this->input->get->open) : $this->wire('pages')->newNullPage();
+		}
 		if($this->openPage->id && $this->speed > 50) $this->speed = floor($this->speed / 2);
 		$this->page = $this->pages->get("id=" . ($this->id ? $this->id : 1) . ", status<" . Page::statusMax); 
 

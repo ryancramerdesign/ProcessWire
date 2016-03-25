@@ -11,8 +11,10 @@
 function ProcessPageListInit() {
 	if(ProcessWire.config.ProcessPageList) {
 		for (var containerID in ProcessWire.config.ProcessPageList) {
+			var $container = $('#' + containerID);
+			if ($container.children('.PageListRoot').length) return;
 			var config = ProcessWire.config.ProcessPageList[containerID];
-			$('#' + containerID).ProcessPageList(config);
+			$container.ProcessPageList(config);
 		}
 	}
 }
@@ -122,7 +124,7 @@ $(document).ready(function() {
 			spinnerMarkup: "<i class='ui-priority-secondary fa fa-fw fa-spin fa-spinner'></i>",
 		
 			// session field name that holds page label format, when used
-			labelName: '',
+			labelName: ''
 		};
 	
 		// array of "123.0" (page_id.start) that are currently open (used in non-select mode only)
@@ -378,7 +380,7 @@ $(document).ready(function() {
 						updateOpenPageIDs();
 					}); 
 					return false;	
-				}
+				};
 		
 				var $separator = null;
 				var $blankItem = null;
