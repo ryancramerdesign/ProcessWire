@@ -256,7 +256,7 @@ class FieldtypeDatetime extends FieldtypeText {
 			}
 		}
 		$f->attr('onchange', "$('#Inputfield_dateOutputFormat').val($('#Inputfield__dateOutputFormat').val() + ' ' + $(this).val());"); 
-		$f->collapsed = Inputfield::collapsedBlank;
+		//$f->collapsed = Inputfield::collapsedBlank;
 		$inputfields->add($f); 
 
 		$f = $this->modules->get("InputfieldText"); 

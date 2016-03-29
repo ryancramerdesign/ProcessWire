@@ -1031,6 +1031,8 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		$operators = array();
 		$subfield = '';
 		$placeholder = '';
+		$_type = ''; // previous type, if changed
+		$inputfield = null;
 		if(strpos($fieldName, '.') !== false) list($fieldName, $subfield) = explode('.', $fieldName); 
 
 		if(isset($this->systemFields[$fieldName])) {
@@ -1088,6 +1090,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 					
 					if(strlen($selectedValue) && !ctype_digit("$selectedValue") && Selectors::stringHasOperator($selectedValue)) {
 						// existing value already has a selector in it, so we can assume type=selector
+						$_type = $type;
 						$type = 'selector';
 						
 					} else if(!empty($selectorInfo['options'])) {
@@ -1096,6 +1099,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 					
 					} else if($this->useAutocomplete($field)) {
 						// too many selectable options so use autocomplete
+						$_type = $type;
 						$type = 'autocomplete';
 						
 					} else {
@@ -1105,8 +1109,9 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 						
 						if($inputfield instanceof InputfieldPage) { 
 							// get selectable options from InputfieldPage
+							
 							foreach($inputfield->getSelectablePages($page) as $item) {
-								$options[$item->id] = $item->get('title|name'); 
+								$options[$item->id] = $inputfield->getPageLabel($item); // $item->get('title|name'); 
 							}
 							if(count($options) < 2
 								&& ($field->parent_id || $field->template_id) 
@@ -1116,13 +1121,14 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 								if($field->parent_id) $findSelector[] = "parent_id=" . (int) $field->parent_id; 
 								if($field->template_id) $findSelector[] = "templates_id=" . (int) $field->template_id; 
 								foreach($this->wire('pages')->find(implode(', ', $findSelector)) as $item) {
-									$options[$item->id] = $item->get('title|name');
+									$options[$item->id] = $inputfield->getPageLabel($item); // $item->get('title|name');
 								}
 							}
 							
 						} else {
 							// something other than InputfieldPage, and we don't know the selectable options
 							// unless the selectorInfo has them
+							$_type = $type;
 							$type = 'selector';
 						}
 					}
@@ -1134,10 +1140,12 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 
 			} else {
 				// no selector info available, only should occur pre-2.4.2
+				$_type = $type;
 				$type = 'text';
 			}
 		} else {
 			// unknown field: throw an exception or just let them enter some text
+			$_type = $type;
 			$type = 'text'; 
 		}
 
@@ -1156,12 +1164,14 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			// populate operators and options for the checkbox type
 			$operators = $this->operatorsByType['checkbox']; 
 			$options = array(0 => $this->_('Not Checked'), 1 => $this->_('Checked')); 
+			
+		} else if($_type == 'page') {
+			$operators = $this->operatorsByType['page']; 
 		}
 
 		// render the OPERATOR selection
 		$out .= $this->renderSelectOperator($fieldName, $type, $selectedOperator, $operators) . " ";
 
-	
 		// render the VALUE input
 		if(in_array($type, array('select', 'page', 'checkbox'))) { 
 			// render a <select> box for the value
@@ -1185,8 +1195,20 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 
 		} else if($type == 'autocomplete') {
 			// render autocomplete input
-			$placeholder = $this->_('Start typing...'); 
-			$selectedValueTitle = $this->wire('pages')->get((int) $selectedValueEntities)->get('title|name');
+			$placeholder = $this->_('Start typing...');
+			$selectedValueTitle = '';
+			if($selectedValueEntities) {
+				$selectedValuePage = $this->wire('pages')->get((int) $selectedValueEntities);
+				if($selectedValuePage->id) {
+					$selectedValueTitle = $selectedValuePage->get('title|name');
+					if($_type == 'page') {
+						$inputfield = $field->getInputfield($this->wire('pages')->newNullPage(), $field);
+						if($inputfield instanceof InputfieldPage) {
+							$selectedValueTitle = $this->wire('sanitizer')->entities1($inputfield->getPageLabel($selectedValuePage));
+						}
+					}
+				}
+			}
 			$out .= "<input value='$selectedValueEntities' class='input-value' name='$inputName' type='hidden' />";
 			$out .= "<input value='$selectedValueTitle' class='input-value-autocomplete' name='autocomplete_$inputName' placeholder='$placeholder' type='text' />";
 
@@ -1455,11 +1477,23 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 
 		$searchFields = $field->searchFields; // used by InputfieldPageAutocomplete
 		$labelFieldName = $field->labelFieldName; 
+		$labelFieldFormat = $field->labelFieldFormat;
+		
 		if(!$searchFields && isset($selectorInfo['searchFields'])) $searchFields = $selectorInfo['searchFields'];
-		if(!$labelFieldName && isset($selectorInfo['labelFieldName'])) $labelFieldName = $selectorInfo['labelFieldName'];
-		$labelField = $this->wire('fields')->get($labelFieldName); 
+		
+		if(!$labelFieldName && !$labelFieldFormat && isset($selectorInfo['labelFieldName'])) {
+			$labelFieldName = $selectorInfo['labelFieldName'];
+		}
+		
+		$labelField = $labelFieldName ? $this->wire('fields')->get($labelFieldName) : null;
 		$template_id = (int) (is_array($field->template_id) ? reset($field->template_id) : $field->template_id); 
 		$template = $template_id ? $this->wire('templates')->get($template_id) : null;
+		
+		if($labelFieldFormat) {
+			$inputfield = $field->getInputfield(new NullPage(), $field);
+		} else {
+			$inputfield = null;
+		}
 
 		if($searchFields) {
 			$searchFields = str_replace(' ', '|', trim($searchFields)); 
@@ -1480,9 +1514,10 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		$selector .= ", limit=50, include=hidden";
 
 		foreach($this->wire('pages')->find($selector) as $item) {
+			$label = $inputfield ? $inputfield->getPageLabel($item) : $item->get("$labelFieldName|name");
 			$data['items'][] = array(
 				'value' => $item->id, 
-				'label' => $item->get("$labelFieldName|name")
+				'label' => $label
 				); 
 		}
 		$data['status'] = 1; 
