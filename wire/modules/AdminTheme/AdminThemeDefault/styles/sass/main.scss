@@ -523,14 +523,14 @@ body:not(.hasWireTabs) #headline .container {
 	 * Disregard column width when at mobile size
 	 *
 	 */
-	.Inputfield {
+	.Inputfield:not(.InputfieldSubmit):not(.InputfieldButton) {
 		clear: both !important;
 		width: 100% !important;
 		margin-left: 0 !important;
-	}
-	.InputfieldHeader,
-	.InputfieldContent {
-		margin-left: 0 !important;
+		.InputfieldHeader,
+		.InputfieldContent {
+			margin-left: 0 !important;
+		}
 	}
 	
 }

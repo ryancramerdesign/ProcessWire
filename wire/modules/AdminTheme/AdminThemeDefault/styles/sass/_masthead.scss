@@ -209,7 +209,9 @@
 		margin-left: 10px; 
 		margin-top: 0;
 		float: right; 
-		border: none;
+	}
+	button.pw-button-dropdown-toggle {
+		margin-left: 0;
 	}
 
 	body.modal & {
@@ -227,6 +229,7 @@
 	top: 4px;
 }
 
+.pw-button-dropdown,
 .dropdown-menu.shortcuts {
 	border-radius: 5px !important;
 	

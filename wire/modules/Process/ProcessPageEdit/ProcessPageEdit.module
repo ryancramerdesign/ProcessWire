@@ -221,13 +221,17 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 		$out .= $this->form->render();
 	
 		// buttons with dropdowns
-		if(!$this->wire('input')->get('modal') && !count($this->fields)) {
+		if(!$this->wire('input')->get('modal') && !$this->wire('session')->get('touch') && !count($this->fields)) {
+			
+			$config = $this->wire('config');
+			$file = $config->debug ? 'dropdown.js' : 'dropdown.min.js';
+			$config->scripts->add($config->urls->InputfieldSubmit . $file);
 			
 			$input = "<input type='hidden' id='after-submit-action' name='_after_submit_action' value='' />";
 			$out = str_replace('</form>', "$input</form>", $out);
 			
 			$out .= 
-				"<ul class='pw-button-dropdown' data-dropdown-input='#after-submit-action' data-my='left top' data-at='left bottom+1'>" .
+				"<ul class='pw-button-dropdown' data-dropdown-input='#after-submit-action' data-my='right top' data-at='right bottom+1'>" .
 				"<li><a data-dropdown-value='exit' href='#'><i class='fa fa-fw fa-close'></i> " . 
 				$this->_('%s + Exit') . "</a></li>";
 			
