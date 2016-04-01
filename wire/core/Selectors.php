@@ -803,10 +803,10 @@ class Selectors extends WireArray {
 	protected function makeSelectorArrayItem($key, $data, $dataType = '') {
 		
 		$sanitizer = $this->wire('sanitizer');
+		$sanitize = 'selectorValue';
 		$fields = array();
 		$values = array();
 		$operator = '=';
-		$sanitize = 'selectorValue';
 		$whitelist = null;
 		$not = false;
 		$group = '';
@@ -883,17 +883,33 @@ class Selectors extends WireArray {
 			
 		} else if($dataType == 'array') {
 			
-			// selector in format: array('field', 'operator', 'value') or array('field', 'value')
-		
-			if(count($data) == 3) {
+			// selector in format: array('field', 'operator', 'value', 'sanitizer_method')
+			// or array('field', 'operator', 'value', array('whitelist value1', 'whitelist value2', 'etc'))
+			// or array('field', 'operator', 'value')
+			// or array('field', 'value') where '=' is assumed operator
+			
+			if(count($data) == 4) {
+				list($field, $operator, $value, $_sanitize) = $data;
+				if(is_array($_sanitize)) {
+					$whitelist = $_sanitize;
+				} else {
+					$sanitize = $sanitizer->name($_sanitize);
+				}
+
+			} else if(count($data) == 3) {
 				list($field, $operator, $value) = $data;
 				
 			} else if(count($data) == 2) {
 				list($field, $value) = $data;
 				$operator = $this->getOperatorFromField($field);
 			}
+		
+			if(is_array($field)) {
+				$_fields = $field;
+			} else {
+				$_fields = strpos($field, '|') ? explode('|', $field) : array($field);
+			}
 			
-			$_fields = strpos($field, '|') ? explode('|', $field) : array($field);
 			$_values = is_array($value) ? $value : array($value);
 			
 		} else {
@@ -904,7 +920,7 @@ class Selectors extends WireArray {
 		if(!isset(self::$selectorTypes[$operator])) {
 			throw new WireException("Unrecognized selector operator '$operator'");
 		}
-
+	
 		// determine field(s)
 		foreach($_fields as $name) {
 			if(strpos($name, '.') !== false) {
@@ -925,17 +941,18 @@ class Selectors extends WireArray {
 
 		// determine value(s)
 		foreach($_values as $value) {
+			$_sanitize = $sanitize;
 			if(is_array($value)) $value = 'array'; // we don't allow arrays here
 			if(is_object($value)) $value = (string) $value;
 			if(is_int($value) || ctype_digit($value)) {
 				$value = (int) $value;
-				if($sanitize == 'selectorValue') $sanitize = ''; // no need to sanitize integer to string
+				if($_sanitize == 'selectorValue') $_sanitize = ''; // no need to sanitize integer to string
 			}
 			if(is_array($whitelist) && !in_array($value, $whitelist)) {
 				$fieldsStr = implode('|', $fields);
 				throw new WireException("Value given for '$fieldsStr' is not in provided whitelist");
 			}
-			if($sanitize) $value = $sanitizer->$sanitize($value);
+			if($_sanitize) $value = $sanitizer->$_sanitize($value);
 			$values[] = $value;
 		}
 
