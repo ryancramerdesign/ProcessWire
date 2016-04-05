@@ -1051,6 +1051,8 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 		
 	}
 
+	protected function allowProcessField($name, $inputfield) {
+	}
 
 	/**
 	 * Process the input from a submitted Page Edit form, delegating to other methods where appropriate
@@ -1068,16 +1070,22 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 		if(!$level) {
 			$form->processInput($this->input->post);
 			$formRoot = $form;
+			$this->page->setQuietly('_forceAddStatus', 0);
 		}
 
 		$languages = $this->wire('languages'); 
+		$errorAction = (int) $this->page->template->errorAction;
 
 		foreach($form as $inputfield) {
 
 			$name = $inputfield->attr('name'); 
 			if($name == '_pw_page_name') $name = 'name';
 			if(in_array($name, $skipFields)) continue; 
-			if(!$this->page->editable($name, false)) continue; 
+			
+			if(!$this->page->editable($name, false)) {
+				$this->page->untrackChange($name); // just in case
+				continue;
+			}
 			
 			if($name == 'sortfield' && $this->useChildren && $form->isProcessable($inputfield->parent->parent)) {
 				$this->processInputSortfield($inputfield) ;
@@ -1104,6 +1112,35 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 				if($name == 'status' && $this->processInputStatus($inputfield)) continue; 
 			}
 
+			if($name && $errorAction 
+				&& $inputfield->getSetting('required') && $inputfield->isEmpty() 
+				&& !$this->page->isUnpublished()) {
+				
+				if($errorAction === 1) {
+					// restore existing value by skipping processing of empty when required
+					$value = $inputfield->attr('value');
+					if($value instanceof Wire) $value->resetTrackChanges();
+					if($this->page->getField($name)) $this->page->remove($name); // force fresh copy to reload
+					$previousValue = $this->page->get($name);
+					$this->page->untrackChange($name);
+					if($previousValue) {
+						// we should have a previous value to restore
+						if(WireArray::iterable($previousValue) && !count($previousValue)) {
+							// previous value still empty
+						} else {
+							// previous value restored by simply not setting new value to $page
+							$inputfield->error($this->_('Restored previous value'));
+							continue;
+						}
+					}
+					
+				} else if($errorAction === 2 && $this->page->publishable() && $this->page->id > 1) {
+					// unpublish page missing required value
+					$this->page->setQuietly('_forceAddStatus', Page::statusUnpublished);
+					$this->error(sprintf($this->_('Page unpublished because field "%s" is required'), $name));
+					continue;
+				}
+			}
 
 			if($name && $inputfield->isChanged()) {
 				if($languages && $inputfield->useLanguages) {
@@ -1122,6 +1159,13 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 
 			if($inputfield instanceof InputfieldWrapper && count($inputfield->getChildren())) {
 				$this->processInput($inputfield, $level + 1, $formRoot);
+			}
+		}
+	
+		if(!$level) {
+			$forceAddStatus = $this->page->get('_forceAddStatus');
+			if($forceAddStatus && !$this->page->hasStatus($forceAddStatus)) {
+				$this->page->addStatus($forceAddStatus);
 			}
 		}
 	}

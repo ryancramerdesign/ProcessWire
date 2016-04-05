@@ -69,6 +69,7 @@
  * @property string $tabChildren Optional replacement for default "Children" label
  * @property string $nameLabel Optional replacement for the default "Name" label on pages using this template
  * @property string $contentType Content-type header or index (extension) of content type header from $config->contentTypes
+ * @property int $errorAction Action to take when published page missing required field is saved (0=notify only, 1=restore prev value, 2=unpublish page)
  *
  */
 
@@ -221,6 +222,7 @@ class Template extends WireData implements Saveable, Exportable {
 		'tabChildren' => '', 	// label for the Children tab (if different from 'Children')
 		'nameLabel' => '', // label for the "name" property of the page (if something other than "Name")
 		'contentType' => '', // Content-type header or index of header from $config->contentTypes
+		'errorAction' => 0, // action to take on save when required field on published page is empty (0=notify,1=restore,2=unpublish)
 		); 
 
 

@@ -1127,7 +1127,21 @@ class ProcessTemplate extends Process {
 		$field->label = $this->_('Duplicate/clone this template?');
 		$field->description = $this->_('Check the box below if you want to create a duplicate/clone copy of this template. The clone will be created when you save. If your templates directory is writable and the template has a file, it will also be cloned.'); // Clone template, description
 		$field->collapsed = Inputfield::collapsedYes; 
-		$form->append($field); 
+		$form->append($field);
+		
+		// --------------------
+		
+		$field = $this->modules->get('InputfieldRadios');
+		$field->attr('id+name', 'errorAction');
+		$field->label = $this->_('Required field action'); 
+		$field->description = $this->_('What action should be taken when an already published page is saved with a missing required field?');
+		$field->addOption(0, $this->_('Alert user of the error (default)')); 
+		$field->addOption(1, $this->_('Restore previous value (when available)'));
+		$field->addOption(2, $this->_('Unpublish the page (when allowed)'));
+		$value = (int) $template->errorAction;
+		$field->attr('value', (int) $template->errorAction);
+		$field->icon = 'asterisk';
+		$form->append($field);
 
 		// --------------------
 	
@@ -2058,7 +2072,7 @@ class ProcessTemplate extends Process {
 		$this->template->cache_time = $cacheTime;
 		$this->template->setIcon($form->get('pageLabelIcon')->attr('value'));
 		$this->template->childNameFormat = $this->wire('sanitizer')->text($form->get('childNameFormat')->attr('value')); 
-		
+		$this->template->errorAction = (int) $form->get('errorAction')->attr('value');
 		$this->template->useCacheForUsers = (int) $form->get('useCacheForUsers')->attr('value');
 		$this->template->noCacheGetVars = $this->wire('sanitizer')->names($form->get('noCacheGetVars')->attr('value'), ' ', array('-', '_', '.', '*')); 
 		$this->template->noCachePostVars = $this->wire('sanitizer')->names($form->get('noCachePostVars')->attr('value'), ' ', array('-', '_', '.', '*')); 
