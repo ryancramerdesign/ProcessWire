@@ -379,6 +379,11 @@ class FileCompiler extends Wire {
 			$close = $matches[5][$key];
 			$argsMatch = '';
 			
+			if(!$argOpen && strpos($funcMatch, 'include') !== 0 && strpos($funcMatch, 'require') !== 0) {
+				// only include, include_once, require, require_once can be used without opening parenthesis
+				continue; 
+			}
+			
 			if(strpos($fileMatch, '$') === 0) {
 				// fileMatch stars with a var name
 			} else if(strpos($fileMatch, '"') !== strrpos($fileMatch, '"')) {
