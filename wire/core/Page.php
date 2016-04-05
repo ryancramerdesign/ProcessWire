@@ -1136,6 +1136,30 @@ class Page extends WireData implements \Countable, WireMatchable {
 		return $value;
 	}
 
+	/**
+	 * Same as getMarkup() except returned value is plain text
+	 * 
+	 * Returned value is entity encoded, unless $entities argument is false. 
+	 * 
+	 * @param string $key
+	 * @param bool $oneLine Specify true if returned value must be on single line
+	 * @param bool|null $entities True to entity encode, false to not. Null for auto, which follows page's outputFormatting state.
+	 * @return string
+	 * 
+	 */
+	public function getText($key, $oneLine = false, $entities = null) {
+		$value = $this->getMarkup($key);
+		if(!strlen($value)) return '';
+		$options = array(
+			'entities' => (is_null($entities) ? $this->outputFormatting() : (bool) $entities)
+		);
+		if($oneLine) {
+			$value = $this->wire('sanitizer')->markupToLine($value, $options);
+		} else {
+			$value = $this->wire('sanitizer')->markupToText($value, $options);
+		}
+		return $value; 	
+	}
 
 	/**
 	 * Get the raw/unformatted value of a field, regardless of what $this->outputFormatting is set at

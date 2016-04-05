@@ -517,7 +517,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 			foreach($value as $p) {
 				$of = $p->of();
 				$p->of(true);
-				$v = $labelFieldFormat ? $p->getMarkup($labelFieldFormat) : $p->get($labelFieldName);
+				$v = $labelFieldFormat ? $p->getText($labelFieldFormat, true, true) : $p->get($labelFieldName);
 				if(!strlen($v)) $v = $p->get('name');
 				$out .= "<li>$v</li>";
 				$p->of($of);
@@ -527,7 +527,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		} else if($value instanceof Page) {
 			$of = $value->of();
 			$value->of(true);
-			$out = $labelFieldFormat ? $value->getMarkup($labelFieldFormat) : $value->get($labelFieldName);
+			$out = $labelFieldFormat ? $value->getText($labelFieldFormat, true, true) : $value->get($labelFieldName);
 			if(!strlen($out)) $out = $value->get('name');
 			$value->of($of);
 

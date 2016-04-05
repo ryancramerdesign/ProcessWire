@@ -341,11 +341,12 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 	protected function getDisplayFormat() {
 		$name = $this->input->get('format_name');
 		if(empty($name)) return '';
-		$format = $this->wire('session')->getFor($this, "format_" . $name);
-		if(empty($format)) return '';
+		$data = $this->wire('session')->getFor($this, "format_" . $name);
+		if(empty($data)) return '';
 		return array(
 			'name' => $name,
-			'format' => $format
+			'format' => $data['format'],
+			'textOnly' => $data['textOnly']
 		);
 	}
 
@@ -354,10 +355,14 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 	 * 
 	 * @param $name Session var name that will be used, output will be returned in JSON results indexed by $name as well.
 	 * @param $format Format string to pass to $page->getMarkup(str)
+	 * @param bool $textOnly 
 	 * 
 	 */
-	public function setDisplayFormat($name, $format) {
-		$this->wire('session')->setFor($this, "format_" . $name, $format);
+	public function setDisplayFormat($name, $format, $textOnly = false) {
+		$this->wire('session')->setFor($this, "format_" . $name, array(
+			'format' => $format,
+			'textOnly' => $textOnly
+		));
 	}
 
 	/**
@@ -891,7 +896,11 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 			
 			if(isset($display['name']) && isset($display['format'])) {
 				// use display format, returning a 'value' property containing the formatted value
-				$value = $page->getMarkup($display['format']);
+				if($display['textOnly']) {
+					$value = $page->getText($display['format'], true, false);
+				} else {
+					$value = $page->getMarkup($display['format']);
+				}
 				$p[$display['name']] = $value; 
 				
 			} else {

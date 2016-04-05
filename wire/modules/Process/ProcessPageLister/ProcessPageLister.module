@@ -59,6 +59,7 @@
  * @property bool $showIncludeWarnings Whether or not to show warnings about what pages were excluded to to max "include=" mode [true]
  * @property string $blankLabel Label when a field is blank (default=Blank)
  * @property int $editOption Edit option setting, used only by ListerPro
+ * @property bool $responsiveTable Whether or not Lister table should be responsive rather than horiz scroll
  * 
  * 
  * @todo make system fields hookable for output like markupValue is for custom fields
@@ -238,6 +239,9 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 	
 		// bookmarked selectors
 		$this->set('bookmarks', array()); 
+	
+		// whether or not table collapses (rather than horiz scroll) at lower resolutions
+		$this->set('responsiveTable', true);
 		
 		$nameLabel = $this->_('Name'); 
 		$createdLabel = $this->_('Created'); 
@@ -1032,6 +1036,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		$table = $this->modules->get('MarkupAdminDataTable');
 		$table->setSortable(false);
 		$table->setResizable(true);
+		$table->setResponsive($this->responsiveTable);
 		$table->setClass('ProcessListerTable');
 		$columns = $this->sessionGet('columns'); 
 		if(!$columns) $columns = $this->columns; 
