@@ -528,6 +528,7 @@ $(document).ready(function() {
 						}
 					}
 					*/
+					$target.removeClass('PageListForceReload'); // if it happens to be present
 
 				}; 
 
@@ -535,7 +536,9 @@ $(document).ready(function() {
 			
 		
 				var key = id + '-' + start;
-				if(typeof options.openPageData[key] != "undefined") {
+				if(typeof options.openPageData[key] != "undefined" 
+					&& !$target.hasClass('PageListID7') // trash
+					&& !$target.hasClass('PageListForceReload')) {
 					processChildren(options.openPageData[key]);
 					return;
 				} 
@@ -872,7 +875,7 @@ $(document).ready(function() {
 
 				if($li.hasClass("PageListItemOpen")) {
 					var collapseThis = true;
-					if($li.hasClass('PageListID1') && options.mode != 'select') {
+					if($li.hasClass('PageListID1') && !$li.hasClass('PageListForceReload') && options.mode != 'select') {
 						var $collapseItems = $(this).closest('.PageListRoot').find('.PageListItemOpen:not(.PageListID1)');
 						if($collapseItems.length) {
 							// collapse all open items, except homepage, when homepage link is collapsed
