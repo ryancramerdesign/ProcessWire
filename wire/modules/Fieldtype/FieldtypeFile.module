@@ -358,7 +358,7 @@ class FieldtypeFile extends FieldtypeMulti {
 		$schema = parent::getDatabaseSchema($field);
 		$table = $database->escapeTable($field->table); 
 
-		$schema['data'] = 'varchar(255) NOT NULL';
+		$schema['data'] = 'varchar(250) NOT NULL';
 		$schema['description'] = "text NOT NULL";
 		$schema['modified'] = "datetime"; 
 		$schema['created'] = "datetime"; 
@@ -418,7 +418,7 @@ class FieldtypeFile extends FieldtypeMulti {
 		}
 
 		$tagsAction = null; // null=no change; 1=add tags, 0=remove tags
-		$schemaTags = 'varchar(255) NOT NULL'; 
+		$schemaTags = 'varchar(250) NOT NULL'; 
 		$schemaTagsIndex = 'FULLTEXT KEY tags (tags)'; 
 
 		if($field->useTags && !($field->fileSchema & self::fileSchemaTags)) $tagsAction = 'add';

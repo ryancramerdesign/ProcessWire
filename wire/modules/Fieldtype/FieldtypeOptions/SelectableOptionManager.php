@@ -715,13 +715,13 @@ class SelectableOptionManager extends Wire {
 
 			try {
 				$database->exec("ALTER TABLE $table ADD $titleCol TEXT");
-				$database->exec("ALTER TABLE $table ADD UNIQUE $titleCol ($titleCol(255), fields_id)");
+				$database->exec("ALTER TABLE $table ADD UNIQUE $titleCol ($titleCol(250), fields_id)");
 			} catch(\Exception $e) {
 				$this->error($e->getMessage());
 			}
 			try {
-				$database->exec("ALTER TABLE $table ADD $valueCol VARCHAR(255)");
-				$database->exec("ALTER TABLE $table ADD INDEX $valueCol ($valueCol(255), fields_id)");
+				$database->exec("ALTER TABLE $table ADD $valueCol VARCHAR(250)");
+				$database->exec("ALTER TABLE $table ADD INDEX $valueCol ($valueCol(250), fields_id)");
 				$database->exec("ALTER TABLE $table ADD FULLTEXT {$titleCol}_$valueCol ($titleCol, $valueCol)");
 			} catch(\Exception $e) {
 				$this->error($e->getMessage());
@@ -766,11 +766,11 @@ class SelectableOptionManager extends Wire {
 				"fields_id INT UNSIGNED NOT NULL, " .
 				"option_id INT UNSIGNED NOT NULL, " .
 				"`title` TEXT, " .
-				"`value` VARCHAR(255), " .
+				"`value` VARCHAR(250), " .
 				"sort INT UNSIGNED NOT NULL, " .
 				"PRIMARY KEY (fields_id, option_id), " .
-				"UNIQUE title (title(255), fields_id), " .
-				"INDEX `value` (`value`(255), fields_id), " .
+				"UNIQUE title (title(250), fields_id), " .
+				"INDEX `value` (`value`(250), fields_id), " .
 				"INDEX sort (sort, fields_id), " .
 				"FULLTEXT title_value (`title`, `value`)" .
 				") ENGINE=$engine DEFAULT CHARSET=$charset";

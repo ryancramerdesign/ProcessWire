@@ -1051,9 +1051,6 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 		
 	}
 
-	protected function allowProcessField($name, $inputfield) {
-	}
-
 	/**
 	 * Process the input from a submitted Page Edit form, delegating to other methods where appropriate
  	 *

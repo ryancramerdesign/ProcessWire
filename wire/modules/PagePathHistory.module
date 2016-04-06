@@ -382,7 +382,7 @@ class PagePathHistory extends WireData implements Module {
 	public function ___install() {
 
 		$sql = 	"CREATE TABLE " . self::dbTableName . " (" . 
-				"path VARCHAR(255) NOT NULL, " . 
+				"path VARCHAR(250) NOT NULL, " . 
 				"pages_id INT UNSIGNED NOT NULL, " .
 				"language_id INT UNSIGNED DEFAULT 0, " . // v2
 				"created TIMESTAMP NOT NULL, " . 
