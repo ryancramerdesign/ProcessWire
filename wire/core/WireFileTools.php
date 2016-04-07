@@ -530,26 +530,184 @@ class WireFileTools extends Wire {
 		return true;
 	}
 	
+	/**
+	 * Get the namespace used in the given .php or .module file
+	 *
+	 * @param string $file File name or file data (if file data, specify true for 2nd argument)
+	 * @param bool $fileIsContents Specify true if the given $file is actually the contents of the file, rather than file name.
+	 * @return string Actual found namespace or "\" (root namespace) if none found
+	 *
+	 */
+	public function getNamespace($file, $fileIsContents = false) {
+
+		$namespace = "\\"; // root namespace, if no namespace found
+		
+		if($fileIsContents) {
+			$data = $file;
+			$file = '';
+		} else {
+			$data = file_get_contents($file);
+			if($data === false) return $namespace;
+		}
+		
+		// if there's no "namespace" keyword in the file, it's not declaring one
+		$namespacePos = strpos($data, 'namespace');
+		if($namespacePos === false) return $namespace;
+
+		// if file doesn't start with an opening PHP tag, then it's not going to have a namespace declaration
+		$phpOpen = strpos($data, '<' . '?');
+		if($phpOpen !== 0) return $namespace;
+	
+		// quick optimization for common ProcessWire namespace usage
+		if(strpos($data, '<' . '?php namespace ProcessWire;') === 0) return 'ProcessWire';
+	
+		$test = substr($data, 0, $namespacePos-1);
+		$test = trim(str_replace(array('<' . '?php', '<' . '?', "\n", "\r", "\t", " "), "", $test));
+		if(!strlen($test)) {
+			// namespace declaration is the first thing in the file (other than php tag and whitespace)
+			$namespacePos += 10; // skip over "namespace" word
+			$semiPos = strpos($data, ';'); 
+			if($semiPos > $namespacePos) {
+				$test = substr($data, 0, $semiPos);
+				$namespace = substr($test, $namespacePos);
+				return trim($namespace, "; ");
+			}
+		}
+		/* for reference, the above (hopefully faster) replaces this regex
+		if(preg_match('/^<\?[ph]*[\s\r\n]+namespace\s+([^;]+);/s', $data, $matches)) {
+			return trim($matches[1]);
+		}
+		*/
+
+		// remove anything after a closing php tag
+		$phpEnd = strpos($data, '?' . '>');
+		if($phpEnd !== false) $data = substr($data, 0, $phpEnd);
+
+		// if there's no 'namespace' word present in the data, nothing is declared
+		if(strpos($data, 'namespace') === false) return $namespace;
+
+		// normalize line endings
+		if(strpos($data, "\r") !== false) $data = str_replace("\r", "\n", $data);
+
+		while(preg_match('/(^.*[\s\r\n]+)namespace\s+([_a-zA-Z0-9\\\\]+);\s*$/m', $data, $matches)) {
+
+			// $open is everything that comes before the namespace line
+			$open = $matches[1];
+
+			// potential namespace, if our checks succeed
+			$_namespace = trim($matches[2]);
+
+			// $line is everything preceding the 'namespace' declaration, on the same line as the declaration
+			$lastNewlinePos = strrpos($open, "\n");
+			if($lastNewlinePos !== false) {
+				$line = substr($open, $lastNewlinePos);
+			} else {
+				$line = $open;
+			}
+
+			// determine if line is commented
+			$hasComment = strpos($line, '//') !== false;
+
+			if(!$hasComment) {
+				// determine if namespace declaration is in a comment block
+				$startCommentPos = strrpos($open, '/*');
+				$closeCommentPos = strrpos($open, '*/');
+				if($startCommentPos !== false && ((int) $closeCommentPos) < $startCommentPos) $hasComment = true;
+			}
+
+			if(!$hasComment) {
+				// if we've reached this point, we have found a valid namespace
+				$namespace = $_namespace;
+				break;
+			}
+
+			// reduce $data for next preg_match
+			$data = str_replace($matches[0], '', $data);
+		}
+
+		return $namespace;
+	}
+
+	/**
+	 * Compile the given file 
+	 * 
+	 * This and the following compile() methods are shortcuts to using ProcessWire's FileCompiler class. 
+	 * These methods are also used by files compiled by FileCompiler. 
+	 * 
+	 * @param string $file File to compile
+	 * @param array $options Optional associative array of the following: 
+	 *   - includes (bool): Also compile files include()'d from the given $file? (default=true)
+	 *   - namespace (bool): Compile to make compatible with ProcessWire namespace? (default=true)
+	 *   - modules (bool): Allow FileCompilerModule module's to process the file as well? (default=false)
+	 *   - skipIfNamespace (bool): Return source $file if it declares a namespace (default=false)
+	 * @return string Full path and filename of compiled file, or returns original $file is compilation is not necessary.
+	 * @throws WireException if given invalid $file or other fatal error
+	 * 
+	 */
 	public function compile($file, array $options = array()) {
 		$compiler = new FileCompiler(dirname($file), $options);
 		return $compiler->compile(basename($file));
 	}
 
+	/**
+	 * Compile and include() the given file
+	 *
+	 * See phpdoc in compile() method for details on all arguments.
+	 *
+	 * @param string $file
+	 * @param array $options
+	 * @return string
+	 * @throws WireException
+	 *
+	 */
 	public function compileInclude($file, array $options = array()) {
 		$file = $this->compile($file, $options);	
 		include($file);	
 	}
-	
+
+	/**
+	 * Compile and include_once() the given file
+	 *
+	 * See phpdoc in compile() method for details on all arguments.
+	 *
+	 * @param string $file
+	 * @param array $options
+	 * @return string
+	 * @throws WireException
+	 *
+	 */
 	public function compileIncludeOnce($file, array $options = array()) {
 		$file = $this->compile($file, $options);
 		include_once($file);
 	}
-	
+
+	/**
+	 * Compile and require() the given file
+	 *
+	 * See phpdoc in compile() method for details on all arguments.
+	 *
+	 * @param string $file
+	 * @param array $options
+	 * @return string
+	 * @throws WireException
+	 *
+	 */
 	public function compileRequire($file, array $options = array()) {
 		$file = $this->compile($file, $options);
 		require($file);	
 	}
-	
+
+	/**
+	 * Compile and require_once() the given file
+	 * 
+	 * See phpdoc in compile() method for details on all arguments. 
+	 * 
+	 * @param string $file 
+	 * @param array $options
+	 * @return string
+	 * @throws WireException
+	 *
+	 */
 	public function compileRequireOnce($file, array $options = array()) {
 		$file = $this->compile($file, $options);
 		require_once($file);

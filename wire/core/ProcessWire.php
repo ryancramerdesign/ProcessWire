@@ -456,7 +456,7 @@ class ProcessWire extends Wire {
 	 */
 	protected function includeFile($file) {
 		if(!file_exists($file)) return false;
-		$file = $this->wire('files')->compile($file);
+		$file = $this->wire('files')->compile($file, array('skipIfNamespace' => true));
 		$this->pathSave = getcwd();
 		chdir(dirname($file));
 		$fuel = $this->fuel->getArray();
