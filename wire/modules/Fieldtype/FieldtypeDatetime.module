@@ -224,7 +224,7 @@ class FieldtypeDatetime extends FieldtypeText {
 		$f->icon = 'calendar';
 		$f->addOption('', $this->_('None'));
 		$f->columnWidth = 50;
-		$date = strtotime('2012-04-08 5:10:02 PM');
+		$date = strtotime('2016-04-08 5:10:02 PM');
 		$found = false;
 		foreach($wdt->getDateFormats() as $format) {
 			$dateFormatted = $wdt->formatDate($date, $format); 	
