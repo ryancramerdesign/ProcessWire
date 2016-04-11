@@ -159,7 +159,7 @@ class SessionHandlerDB extends WireSessionHandler implements Module, Configurabl
 				"data TEXT NOT NULL, " . 
 				"ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, " . 
 				"ip INT UNSIGNED NOT NULL DEFAULT 0, " . 
-				"ua VARCHAR(255) NOT NULL DEFAULT '', " . 
+				"ua VARCHAR(250) NOT NULL DEFAULT '', " . 
 				"PRIMARY KEY (id), " . 
 				"INDEX (pages_id), " . 
 				"INDEX (user_id), " . 

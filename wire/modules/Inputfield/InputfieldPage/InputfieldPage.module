@@ -305,6 +305,29 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		return $selector; 
 	}
 
+	/**
+	 * Get a label for the given page
+	 * 
+	 * @param Page $page
+	 * @param bool $allowMarkup Whether or not to allow markup in the label (default=false)
+	 * @return string
+	 * 
+	 */
+	public function getPageLabel(Page $page, $allowMarkup = false) {
+		$label = '';
+		if(strlen($this->labelFieldFormat) && $this->labelFieldName == '.') {
+			$label = $page->getMarkup($this->labelFieldFormat);
+		} else if($this->labelFieldName === '.') {
+			// skip
+		} else if($this->labelFieldName) {
+			$label = $page->get($this->labelFieldName);
+		}
+		if(!strlen($label)) $label = $page->name;
+		if($page->hasStatus(Page::statusUnpublished)) $label .= ' ' . $this->_('(unpublished)');
+		if(!$allowMarkup) $label = $this->wire('sanitizer')->markupToLine($label);
+		return $label;
+	}
+
 	public function getInputfield() {
 
 		if($this->inputfieldWidget && ((string) $this->inputfieldWidget) == $this->inputfield) return $this->inputfieldWidget; 
@@ -340,17 +363,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		if(method_exists($inputfield, 'addOption')) {
 			$children = $this->getSelectablePages($page);
 			if($children) foreach($children as $child) {
-				$label = '';
-				if(strlen($this->labelFieldFormat) && $this->labelFieldName == '.') {
-					$label = $child->getMarkup($this->labelFieldFormat);
-				} else if($this->labelFieldName === '.') {
-					// skip
-				} else if($this->labelFieldName) {
-					$label = $child->get($this->labelFieldName);
-				}
-				if(!strlen($label)) $label = $child->name; 
-				if($child->hasStatus(Page::statusUnpublished)) $label .= ' ' . $this->_('(unpublished)');
-				$label = $this->wire('sanitizer')->markupToLine($label);
+				$label = $this->getPageLabel($child);	
 				$inputfield->addOption($child->id, $label);
 			}
 		} else {
@@ -504,7 +517,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 			foreach($value as $p) {
 				$of = $p->of();
 				$p->of(true);
-				$v = $labelFieldFormat ? $p->getMarkup($labelFieldFormat) : $p->get($labelFieldName);
+				$v = $labelFieldFormat ? $p->getText($labelFieldFormat, true, true) : $p->get($labelFieldName);
 				if(!strlen($v)) $v = $p->get('name');
 				$out .= "<li>$v</li>";
 				$p->of($of);
@@ -514,7 +527,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		} else if($value instanceof Page) {
 			$of = $value->of();
 			$value->of(true);
-			$out = $labelFieldFormat ? $value->getMarkup($labelFieldFormat) : $value->get($labelFieldName);
+			$out = $labelFieldFormat ? $value->getText($labelFieldFormat, true, true) : $value->get($labelFieldName);
 			if(!strlen($out)) $out = $value->get('name');
 			$value->of($of);
 

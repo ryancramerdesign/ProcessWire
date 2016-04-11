@@ -217,6 +217,7 @@ class Pagefiles extends WireArray {
 	 *
 	 */
 	public function hookPageSave() {
+		if($this->page && $this->field && !$this->page->isChanged($this->field->name)) return $this;
 		foreach($this->unlinkQueue as $item) {
 			$item->unlink();
 		}
@@ -504,6 +505,14 @@ class Pagefiles extends WireArray {
 	public function isIdentical(WireArray $items, $strict = true) {
 		if($strict) return $this === $items;
 		return parent::isIdentical($items, $strict);
+	}
+	
+	public function resetTrackChanges($trackChanges = true) {
+		$this->unlinkQueue = array();
+		if($this->page && $this->page->id && $this->field) {
+			$this->page->untrackChange($this->field->name);	
+		}
+		return parent::resetTrackChanges($trackChanges);
 	}
 
 

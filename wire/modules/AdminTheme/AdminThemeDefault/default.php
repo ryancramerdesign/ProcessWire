@@ -15,7 +15,7 @@ if(!defined("PROCESSWIRE")) die();
 if(!isset($content)) $content = '';
 	
 $searchForm = $user->hasPermission('page-edit') ? $modules->get('ProcessPageSearch')->renderSearchForm() : '';
-$version = $adminTheme->version . 'f';
+$version = $adminTheme->version . 'g';
 
 $config->styles->prepend($config->urls->adminTemplates . "styles/" . ($adminTheme->colors ? "main-$adminTheme->colors" : "main-classic") . ".css?v=$version"); 
 $config->styles->append($config->urls->root . "wire/templates-admin/styles/font-awesome/css/font-awesome.min.css?v=$version"); 

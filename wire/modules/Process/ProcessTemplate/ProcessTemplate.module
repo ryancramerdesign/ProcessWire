@@ -1127,7 +1127,21 @@ class ProcessTemplate extends Process {
 		$field->label = $this->_('Duplicate/clone this template?');
 		$field->description = $this->_('Check the box below if you want to create a duplicate/clone copy of this template. The clone will be created when you save. If your templates directory is writable and the template has a file, it will also be cloned.'); // Clone template, description
 		$field->collapsed = Inputfield::collapsedYes; 
-		$form->append($field); 
+		$form->append($field);
+		
+		// --------------------
+		
+		$field = $this->modules->get('InputfieldRadios');
+		$field->attr('id+name', 'errorAction');
+		$field->label = $this->_('Required field action'); 
+		$field->description = $this->_('What action should be taken when an already published page is saved with a missing required field?');
+		$field->addOption(0, $this->_('Alert user of the error (default)')); 
+		$field->addOption(1, $this->_('Restore previous value (when available)'));
+		$field->addOption(2, $this->_('Unpublish the page (when allowed)'));
+		$value = (int) $template->errorAction;
+		$field->attr('value', (int) $template->errorAction);
+		$field->icon = 'asterisk';
+		$form->append($field);
 
 		// --------------------
 	
@@ -1646,6 +1660,58 @@ class ProcessTemplate extends Process {
 		
 		// --------------------
 
+		if($this->wire('config')->templateCompile) {
+			$field = $this->modules->get('InputfieldRadios');
+			$field->attr('name', 'compile');
+			$field->label = $this->_('Use Compiled File?');
+			$field->icon = 'file-code-o';
+			$field->description = $this->_('Enables ProcessWire to update your template file for the ProcessWire namespace and apply any installed FileCompiler modules.');
+			$field->description .= ' ' . $this->_('Recommend at least for template files that do not use a ProcessWire namespace (like those originating from PW 2.x sites).');
+			$field->description .= ' ' . $this->_('If you are not sure, choose "Auto".');
+			$field->addOption(0, $this->labels['No'] . ' ' . $this->_('(disables compiler)'));
+			$field->addOption(3, $this->_('Auto (compile when file has no namespace)')); 
+			$field->addOption(1, $this->labels['Yes'] . ' ' . $this->_('(template file only)'));
+			$field->addOption(2, $this->labels['Yes'] . ' ' . $this->_('(template file and files included from it)'));
+			$field->attr('value', $template->compile);
+			$template->filename();
+			$ns = $template->ns;
+			if($ns) {
+				$field->notes = sprintf($this->_('Detected template file namespace is "%s".'), $ns);
+				if($ns === "\\") {
+					$field->notes .= " " . $this->_('Compile recommended.');
+				} else {
+					$field->notes .= " " . $this->_('Compile not necessary unless needed for modules or includes.');
+				}
+			}
+			$form->append($field);
+		}
+		
+		// --------------------
+		
+		$field = $this->modules->get('InputfieldSelect');
+		$field->attr('name', 'contentType');
+		$field->label = $this->_('Content-Type');
+		$field->description = $this->_('Header to send with template file output. If none selected, ProcessWire will not send a content-type header and in most cases text/html is assumed. Selecting a content-type is recommended when output will be something other than html.'); // Description for content-type option
+		$field->notes = $this->_('To add more content types see *contentTypes* in /wire/config.php (and add them in /site/config.php).');
+		$field->icon = 'html5';
+		foreach($this->wire('config')->contentTypes as $ext => $header) {
+			$field->addOption($ext, $header);
+		}
+		if(strpos($template->contentType, '/') !== false) {
+			$contentType = array_search($template->contentType, $this->wire('config')->contentTypes);
+			if($contentType === false) {
+				$this->error("Error: content-type '$template->contentType' not found.");
+			} else {
+				$field->attr('value', $contentType);
+			}
+		} else {
+			$field->attr('value', $template->contentType);
+		}
+		$form->append($field);
+
+
+		// --------------------
+
 		$field = $this->modules->get('InputfieldText');
 		$field->attr('name', 'altFilename');
 		$field->label = $this->_('Alternate Template Filename');
@@ -1654,24 +1720,10 @@ class ProcessTemplate extends Process {
 		$field->notes = sprintf($this->_('Template files are assumed to be in directory: %s'), $this->config->urls->templates) . "\n" .
 			sprintf($this->_('Template file extension is assumed to be: %s'), '.' . $this->config->templateExtension);
 		$field->attr('value', $template->altFilename);
-		$field->columnWidth = 50;
+		$field->collapsed = Inputfield::collapsedBlank;
+		$field->icon = 'exchange';
 		$form->append($field);
 		
-		// --------------------
-
-		if($this->wire('config')->templateCompile) {
-			$field = $this->modules->get('InputfieldRadios');
-			$field->attr('name', 'compile');
-			$field->label = $this->_('Use Compiled File?');
-			$field->description = $this->_('Enables ProcessWire to update your template file for namespace and apply any installed FileCompiler modules. Recommended unless it causes errors with your template file.');
-			$field->addOption(2, $this->labels['Yes'] . ' ' . $this->_('(and included files)'));
-			$field->addOption(1, $this->labels['Yes'] . ' ' . $this->_('(template file only)'));
-			$field->addOption(0, $this->labels['No']);
-			$field->attr('value', $template->compile);
-			$field->columnWidth = 50;
-			$form->append($field);
-		}
-
 		// --------------------
 		
 		$f = $this->modules->get('InputfieldText');
@@ -1680,6 +1732,7 @@ class ProcessTemplate extends Process {
 		$f->label = $this->_('Prepend File');
 		$f->description = $this->_('File to prepend to template file during page render. Must be relative to /site/templates/.'); // prependFile description
 		$f->columnWidth = 50;
+		$f->icon = 'backward';
 		$form->add($f);
 
 		$f = $this->modules->get('InputfieldText');
@@ -1688,6 +1741,7 @@ class ProcessTemplate extends Process {
 		$f->label = $this->_('Append File');
 		$f->description = $this->_('File to append to template file during page render. Must be relative to /site/templates/.'); // appendFile description
 		$f->columnWidth = 50;
+		$f->icon = 'forward';
 		$form->add($f);
 		
 		// --------------------
@@ -1717,26 +1771,6 @@ class ProcessTemplate extends Process {
 		
 		// --------------------
 
-		$field = $this->modules->get('InputfieldSelect');
-		$field->attr('name', 'contentType');
-		$field->label = $this->_('Content-Type');
-		$field->description = $this->_('Header to send with template file output. If none selected, ProcessWire will not send a content-type header and in most cases text/html is assumed. Selecting a content-type is recommended when output will be something other than html.'); // Description for content-type option
-		$field->notes = $this->_('To add more content types see *contentTypes* in /wire/config.php (and add them in /site/config.php).');
-		foreach($this->wire('config')->contentTypes as $ext => $header) {
-			$field->addOption($ext, $header);
-		}
-		if(strpos($template->contentType, '/') !== false) {
-			$contentType = array_search($template->contentType, $this->wire('config')->contentTypes);
-			if($contentType === false) {
-				$this->error("Error: content-type '$template->contentType' not found.");
-			} else {
-				$field->attr('value', $contentType);
-			}
-		} else {
-			$field->attr('value', $template->contentType);
-		}
-		$form->append($field);
-		
 		return $form;
 	}
 
@@ -2058,7 +2092,7 @@ class ProcessTemplate extends Process {
 		$this->template->cache_time = $cacheTime;
 		$this->template->setIcon($form->get('pageLabelIcon')->attr('value'));
 		$this->template->childNameFormat = $this->wire('sanitizer')->text($form->get('childNameFormat')->attr('value')); 
-		
+		$this->template->errorAction = (int) $form->get('errorAction')->attr('value');
 		$this->template->useCacheForUsers = (int) $form->get('useCacheForUsers')->attr('value');
 		$this->template->noCacheGetVars = $this->wire('sanitizer')->names($form->get('noCacheGetVars')->attr('value'), ' ', array('-', '_', '.', '*')); 
 		$this->template->noCachePostVars = $this->wire('sanitizer')->names($form->get('noCachePostVars')->attr('value'), ' ', array('-', '_', '.', '*')); 

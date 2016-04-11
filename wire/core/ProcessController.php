@@ -208,9 +208,14 @@ class ProcessController extends Wire {
 		if($method === 'executed') return '';
 
 		$hookedMethod = "___$method";
-		
-		if(method_exists($process, $method) || method_exists($process, $hookedMethod)) return $method; 
-			else return '';
+
+		if(method_exists($process, $method) 
+			|| method_exists($process, $hookedMethod) 
+			|| $process->hasHook($method . '()')) {
+			return $method;
+		} else {
+			return '';
+		}
 	}
 
 	/**

@@ -9,6 +9,10 @@
  * 
  * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
  * https://processwire.com
+ * 
+ * @method renderPage(HookEvent $event)
+ * @method clearCacheFileAll(Page $page)
+ * @method clearCacheFilePages(PageArray $items, Page $page)
  *
  */
 
@@ -184,8 +188,6 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 		}
 
 		$cacheFile = new CacheFile($path, $id, $cacheTime);
-		if($config->chmodFile) $cacheFile->setChmodFile($config->chmodFile);
-		if($config->chmodDir) $cacheFile->setChmodDir($config->chmodDir);
 
 		if($this->wire('page') === $page) {
 			// this part is skipped if arguments provided an id (int) rather than a Page object
@@ -253,6 +255,8 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 
 	/**
 	 * Hook to clear the cache file after a Pages::save or Pages::delete call
+	 * 
+	 * @param HookEvent $event
 	 *
 	 */
 	public function clearCacheFile($event) {
@@ -363,8 +367,12 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 	 *
 	 */
 	public function ___renderPage($event) {
-		
+	
+		/** @var Page $page */
 		$page = $event->object;
+		
+		/** @var Template $template */
+		$template = $page->template;
 		
 		$this->wire('pages')->setOutputFormatting(true);
 
@@ -375,11 +383,12 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 		$_page = $this->wire('page'); // just in case one page is rendering another, save the previous
 		$config = $this->wire('config');
 		$compiler = null;
-		if($config->templateCompile && $page->template->compile) {
+		if($config->templateCompile && $template->compile) {
 			$compilerOptions = array(
 				'namespace' => true, 
-				'includes' => $page->template->compile == 2 ? true : false, 
+				'includes' => $template->compile >= 2 ? true : false, 
 				'modules' => true, 
+				'skipIfNamespace' => $template->compile == 3 ? true : false,
 			);
 			$compiler = $this->wire(new FileCompiler($config->paths->templates, $compilerOptions));
 		}
@@ -401,10 +410,10 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 
 		$defaultOptions = array(
 			'filename' => '', // default blank means filename comes from $page
-			'prependFile' => $page->template->noPrependTemplateFile ? null : $config->prependTemplateFile,
-			'prependFiles' => $page->template->prependFile ? array($page->template->prependFile) : array(), 
-			'appendFile' => $page->template->noAppendTemplateFile ? null : $config->appendTemplateFile,
-			'appendFiles' => $page->template->appendFile ? array($page->template->appendFile) : array(),
+			'prependFile' => $template->noPrependTemplateFile ? null : $config->prependTemplateFile,
+			'prependFiles' => $template->prependFile ? array($template->prependFile) : array(), 
+			'appendFile' => $template->noAppendTemplateFile ? null : $config->appendTemplateFile,
+			'appendFiles' => $template->appendFile ? array($template->appendFile) : array(),
 			'allowCache' => true, 
 			'forceBuildCache' => false,
 			'pageStack' => array(), // set after array_merge
@@ -434,13 +443,7 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 		if($output) {
 
 			// global prepend/append include files apply only to user-defined templates, not system templates
-			if(!($page->template->flags & Template::flagSystem)) {
-				/*
-				if($options['prependFile']) array_unshift($options['prependFiles'], $options['prependFile']); //$output->setPrependFilename($config->paths->templates . $this->wire('sanitizer')->name($options['prependFile'])); 
-				if($options['appendFile']) array_unshift($options['appendFiles'], $options['appendFile']); //$output->setPrependFilename($config->paths->templates . $this->wire('sanitizer')->name($options['prependFile'])); 
-				if($options['appendFile']) $output->setAppendFilename($config->paths->templates . $this->wire('sanitizer')->name($options['appendFile']));
-				// files defined at template level
-				*/
+			if(!($template->flags & Template::flagSystem)) {
 				foreach(array('prependFile' => 'prependFiles', 'appendFile' => 'appendFiles') as $singular => $plural) {
 					if($options[$singular]) array_unshift($options[$plural], $options[$singular]);
 					foreach($options[$plural] as $file) {
@@ -485,11 +488,11 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 				}
 			} else {
 				if($compiler) {
-					$options['filename'] = $compiler->compile($page->template->filename);
+					$options['filename'] = $compiler->compile($template->filename);
 					$output->setFilename($options['filename']);
-					$output->setChdir(dirname($page->template->filename));
+					$output->setChdir(dirname($template->filename));
 				} else {
-					$options['filename'] = $page->template->filename;
+					$options['filename'] = $template->filename;
 				}
 			}
 
@@ -633,7 +636,7 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 		}
 		
 		if($this->wire('config')->templateCompile) {
-			$renderFile = $this->wire('files')->compile($renderFile);
+			$renderFile = $this->wire('files')->compile($renderFile, array('skipIfNamespace' => true));
 		}
 		
 		$tpl = $this->wire(new TemplateFile($renderFile));

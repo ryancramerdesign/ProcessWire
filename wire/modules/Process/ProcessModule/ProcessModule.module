@@ -1199,6 +1199,7 @@ class ProcessModule extends Process {
 			$field = $this->modules->get("InputfieldSubmit"); 
 			$field->attr('name', 'submit_save_module'); 
 			$field->addClass('head_button_clone'); 
+			$field->addActionValue('exit', sprintf($this->_('%s + Exit'), $field->attr('value')), 'times');
 			$form->append($field);
 			
 		} else {
@@ -1206,7 +1207,8 @@ class ProcessModule extends Process {
 		}
 
 		// check for submitted form
-		if($this->input->post->submit_save_module) {
+		$submitSave = $this->input->post('submit_save_module');
+		if($submitSave) {
 
 			$data = $this->modules->getModuleConfigData($moduleName);
 			$form->processInput($this->input->post); 
@@ -1229,7 +1231,7 @@ class ProcessModule extends Process {
 				$this->modules->saveModuleConfigData($moduleName, $data);
 				$updatedNames = count($updatedNames) ? ' (' . implode(', ', $updatedNames) . ')' : '';
 				$this->message($this->_("Saved Module") . " - $moduleName $updatedNames"); // Message shown before the name of a module that was just saved
-				$redirectURL = "./edit?name=$moduleName$collapseInfo"; 
+				$redirectURL = $submitSave == 'exit' ? './' : "./edit?name=$moduleName$collapseInfo"; 
 				if($allowDisabledFlag) {
 					// module is autoload and has an option to diable
 					if($this->input->post('_flags_disabled')) {

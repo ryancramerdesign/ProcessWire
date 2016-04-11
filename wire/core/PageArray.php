@@ -329,7 +329,7 @@ class PageArray extends PaginatedArray implements WirePaginatable {
 	 * 
 	 * This is applicable to and destructive to the WireArray.
 	 *
-	 * @param string|Selectors $selectors AttributeSelector string to use as the filter.
+	 * @param string|Selectors|array $selectors AttributeSelector string to use as the filter.
 	 * @param bool $not Make this a "not" filter? (default is false)
 	 * @return PageArray reference to current [filtered] instance
 	 *

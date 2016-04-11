@@ -112,10 +112,10 @@ abstract class ProcessPageListRender extends Wire {
 	
 			// predefined format string
 			if($icon) $pageLabelField = str_replace(array("fa-$icon", "icon-$icon", "  "), array('', '', ' '), $pageLabelField);
-			$value = $page->getMarkup($pageLabelField);
 			// adjust string so that it'll work on a single line, without the markup in it
-			if(strpos($value, '</li>')) $value = preg_replace('!</li>\s*<li[^>]*>!', ', ', $value); 
-			$value = trim($this->wire('sanitizer')->entities1(strip_tags($value)));
+			$value = $page->getText($pageLabelField, true, true);
+			// if(strpos($value, '</li>')) $value = preg_replace('!</li>\s*<li[^>]*>!', ', ', $value); 
+			// $value = trim($this->wire('sanitizer')->entities($value));
 
 		} else {
 			

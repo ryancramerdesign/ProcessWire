@@ -991,8 +991,8 @@ class WireDatabaseBackup {
 	public function restoreMerge($filename1, $filename2, $options) {
 		
 		$options = array_merge($this->restoreOptions, $options); 
-		$creates1 = $this->findCreateTables($filename1); 
-		$creates2 = $this->findCreateTables($filename2); 
+		$creates1 = $this->findCreateTables($filename1, $options); 
+		$creates2 = $this->findCreateTables($filename2, $options); 
 		$creates = array_merge($creates1, $creates2); // CREATE TABLE statements in filename2 override those in filename1
 		
 		foreach($creates as $table => $create) {
@@ -1071,13 +1071,24 @@ class WireDatabaseBackup {
 	 * Returns array of all create table statements, indexed by table name
 	 * 
 	 * @param string $filename to extract all CREATE TABLE statements from
+	 * @param array $options
 	 * @return bool|array of CREATE TABLE statements, associative: indexed by table name
 	 * @throws \Exception if unable to open specified file
 	 *
 	 */
-	public function findCreateTables($filename) {
+	public function findCreateTables($filename, array $options) {
 		$regex = '/^CREATE\s+TABLE\s+`?([^`\s]+)/i';
-		return $this->findStatements($filename, $regex, false); 
+		$statements = $this->findStatements($filename, $regex, false);
+		if(!empty($options['findReplaceCreateTable'])) {
+			foreach($options['findReplaceCreateTable'] as $find => $replace) {
+				foreach($statements as $key => $line) {
+					if(strpos($line, $find) === false) continue;
+					$line = str_replace($find, $replace, $line);
+					$statements[$key] = $line;
+				}
+			}
+		}
+		return $statements;
 	}
 
 	/**

@@ -430,7 +430,7 @@ class FileLog extends Wire {
 
 		$filename = $this->logFilename; 
 
-		if(!$filename || filesize($filename) <= $bytes) return 0; 
+		if(!$filename || !file_exists($filename) || filesize($filename) <= $bytes) return 0; 
 
 		$fpr = fopen($filename, "r"); 	
 		$fpw = fopen("$filename.new", "w"); 

@@ -1136,6 +1136,30 @@ class Page extends WireData implements \Countable, WireMatchable {
 		return $value;
 	}
 
+	/**
+	 * Same as getMarkup() except returned value is plain text
+	 * 
+	 * Returned value is entity encoded, unless $entities argument is false. 
+	 * 
+	 * @param string $key
+	 * @param bool $oneLine Specify true if returned value must be on single line
+	 * @param bool|null $entities True to entity encode, false to not. Null for auto, which follows page's outputFormatting state.
+	 * @return string
+	 * 
+	 */
+	public function getText($key, $oneLine = false, $entities = null) {
+		$value = $this->getMarkup($key);
+		if(!strlen($value)) return '';
+		$options = array(
+			'entities' => (is_null($entities) ? $this->outputFormatting() : (bool) $entities)
+		);
+		if($oneLine) {
+			$value = $this->wire('sanitizer')->markupToLine($value, $options);
+		} else {
+			$value = $this->wire('sanitizer')->markupToText($value, $options);
+		}
+		return $value; 	
+	}
 
 	/**
 	 * Get the raw/unformatted value of a field, regardless of what $this->outputFormatting is set at
@@ -1402,7 +1426,7 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 *
 	 * Same as Pages::find() except that the results are limited to descendents of this Page
 	 *
-	 * @param string $selector Selector string
+	 * @param string|array $selector Selector string
 	 * @param array $options Same as the $options array passed to $pages->find(). 
 	 * @return PageArray
 	 * @see Pages::find
@@ -1410,8 +1434,12 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 */
 	public function find($selector = '', $options = array()) {
 		if(!$this->numChildren) return $this->wire('pages')->newPageArray();
-		$selector = "has_parent={$this->id}, $selector"; 
-		return $this->wire('pages')->find(trim($selector, ", "), $options); 
+		if(is_string($selector)) {
+			$selector = trim("has_parent={$this->id}, $selector", ", ");
+		} else if(is_array($selector)) {
+			$selector["has_parent"] = $this->id;	
+		}
+		return $this->wire('pages')->find($selector, $options); 
 	}
 
 	/**
@@ -1432,9 +1460,9 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 * Use this over $page->numChildren property when you want to specify a selector, or when you want the result to
 	 * include only visible children. See the options for the $selector argument. 
 	 *
-	 * @param bool|string $selector 
+	 * @param bool|string|array $selector 
 	 *	When not specified, result includes all children without conditions, same as $page->numChildren property.
-	 *	When a string, a selector string is assumed and quantity will be counted based on selector.
+	 *	When a string or array, a selector is assumed and quantity will be counted based on selector.
 	 * 	When boolean true, number includes only visible children (excludes unpublished, hidden, no-access, etc.)
 	 *	When boolean false, number includes all children without conditions, including unpublished, hidden, no-access, etc.
 	 * @return int Number of children
@@ -1450,9 +1478,9 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 * 
 	 * This method may be more convenient for front-end navigation use than the numChildren() method. 
 	 * 
-	 * @param bool|string $selector
+	 * @param bool|string|array $selector
 	 *	When not specified, result is quantity of visible children (excludes unpublished, hidden, no-access, etc.)
-	 *	When a string, a selector string is assumed and quantity will be counted based on selector.
+	 *	When a string or array, a selector is assumed and quantity will be counted based on selector.
 	 * 	When boolean true, number includes only visible children (this is the default behavior, so no need to specify this value).
 	 *	When boolean false, number includes all children without conditions, including unpublished, hidden, no-access, etc.
 	 * @return int Number of children
@@ -1467,7 +1495,7 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 *
 	 * Same as children() but returns a Page object or NullPage (with id=0) rather than a PageArray
 	 *
-	 * @param string $selector Selector to use, or blank to return the first child. 
+	 * @param string|array $selector Selector to use, or blank to return the first child. 
 	 * @param array $options Options per Pages::find
 	 * @return Page|NullPage
 	 *
@@ -1479,13 +1507,13 @@ class Page extends WireData implements \Countable, WireMatchable {
 	/**
 	 * Return this page's parent Page, or the closest parent matching the given selector.
 	 *
-	 * @param string $selector Optional selector string. When used, it returns the closest parent matching the selector. 
+	 * @param string|array $selector Optional selector string. When used, it returns the closest parent matching the selector. 
 	 * @return Page Returns a Page or a NullPage when there is no parent or the selector string did not match any parents.
 	 *
 	 */
 	public function parent($selector = '') {
 		if(!$this->parent) return $this->wire('pages')->newNullPage();
-		if(!strlen($selector)) return $this->parent; 
+		if(empty($selector)) return $this->parent; 
 		if($this->parent->matches($selector)) return $this->parent; 
 		if($this->parent->parent_id) return $this->parent->parent($selector); // recursive, in a way
 		return $this->wire('pages')->newNullPage();
@@ -1494,7 +1522,7 @@ class Page extends WireData implements \Countable, WireMatchable {
 	/**
 	 * Return this page's parent pages, or the parent pages matching the given selector.
 	 *
-	 * @param string $selector Optional selector string to filter parents by
+	 * @param string|array $selector Optional selector string to filter parents by
 	 * @return PageArray
 	 *
 	 */
@@ -1505,8 +1533,8 @@ class Page extends WireData implements \Countable, WireMatchable {
 	/**
 	 * Return all parents from current till the one matched by $selector
 	 *
-	 * @param string|Page $selector May either be a selector string or Page to stop at. Results will not include this. 
-	 * @param string $filter Optional selector string to filter matched pages by
+	 * @param string|Page|array $selector May either be a selector sor Page to stop at. Results will not include this. 
+	 * @param string|array $filter Optional selector to filter matched pages by
 	 * @return PageArray
 	 *
 	 */
@@ -1519,12 +1547,12 @@ class Page extends WireData implements \Countable, WireMatchable {
  	 *
 	 * Note also that unlike parent() a $selector is required.
 	 *
-	 * @param string $selector Selector string to match. 
+	 * @param string|array $selector Selector string to match. 
 	 * @return Page|NullPage $selector Returns the current Page or closest parent matching the selector. Returns NullPage when no match.
 	 *
 	 */
 	public function closest($selector) {
-		if(!strlen($selector) || $this->matches($selector)) return $this; 
+		if(empty($selector) || $this->matches($selector)) return $this; 
 		return $this->parent($selector); 
 	}
 
@@ -1545,7 +1573,7 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 *
 	 * Note that the siblings include the current page. To exclude the current page, specify "id!=$page". 
 	 *
-	 * @param string $selector Optional selector to filter siblings by.
+	 * @param string|array $selector Optional selector to filter siblings by.
 	 * @return PageArray
 	 *
 	 */
@@ -1565,7 +1593,7 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 * or "include=hidden", they will not work in the selector. Instead, you should provide the siblings already retrieved with
 	 * one of those modifiers, and provide those siblings as the second argument to this function.
 	 *
-	 * @param string $selector Optional selector string. When specified, will find nearest next sibling that matches. 
+	 * @param string|array $selector Optional selector. When specified, will find nearest next sibling that matches. 
 	 * @param PageArray $siblings Optional siblings to use instead of the default. May also be specified as first argument when no selector needed.
 	 * @return Page|NullPage Returns the next sibling page, or a NullPage if none found. 
 	 *
@@ -1577,7 +1605,7 @@ class Page extends WireData implements \Countable, WireMatchable {
 	/**
 	 * Return all sibling pages after this one, optionally matching a selector
 	 *
-	 * @param string $selector Optional selector string. When specified, will filter the found siblings.
+	 * @param string|array $selector Optional selector. When specified, will filter the found siblings.
 	 * @param PageArray $siblings Optional siblings to use instead of the default. 
 	 * @return Page|NullPage Returns all matching pages after this one.
 	 *
@@ -1589,8 +1617,8 @@ class Page extends WireData implements \Countable, WireMatchable {
 	/**
 	 * Return all sibling pages after this one until matching the one specified 
 	 *
-	 * @param string|Page $selector May either be a selector string or Page to stop at. Results will not include this. 
-	 * @param string $filter Optional selector string to filter matched pages by
+	 * @param string|Page|array $selector May either be a selector or Page to stop at. Results will not include this. 
+	 * @param string|array $filter Optional selector to filter matched pages by
 	 * @param PageArray $siblings Optional PageArray of siblings to use instead of all from the page.
 	 * @return PageArray
 	 *
@@ -1611,7 +1639,7 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 * or "include=hidden", they will not work in the selector. Instead, you should provide the siblings already retrieved with
 	 * one of those modifiers, and provide those siblings as the second argument to this function.
 	 *
-	 * @param string $selector Optional selector string. When specified, will find nearest previous sibling that matches. 
+	 * @param string|array $selector Optional selector. When specified, will find nearest previous sibling that matches. 
 	 * @param PageArray|null $siblings Optional siblings to use instead of the default. May also be specified as first argument when no selector needed.
 	 * @return Page|NullPage Returns the previous sibling page, or a NullPage if none found. 
 	 *
@@ -1623,7 +1651,7 @@ class Page extends WireData implements \Countable, WireMatchable {
 	/**
 	 * Return all sibling pages before this one, optionally matching a selector
 	 *
-	 * @param string $selector Optional selector string. When specified, will filter the found siblings.
+	 * @param string|array $selector Optional selector. When specified, will filter the found siblings.
 	 * @param PageArray|null $siblings Optional siblings to use instead of the default. 
 	 * @return Page|NullPage Returns all matching pages before this one.
 	 *
@@ -1635,8 +1663,8 @@ class Page extends WireData implements \Countable, WireMatchable {
 	/**
 	 * Return all sibling pages before this one until matching the one specified 
 	 *
-	 * @param string|Page $selector May either be a selector string or Page to stop at. Results will not include this. 
-	 * @param string $filter Optional selector string to filter matched pages by
+	 * @param string|Page|array $selector May either be a selector or Page to stop at. Results will not include this. 
+	 * @param string|array $filter Optional selector to filter matched pages by
 	 * @param PageArray|null $siblings Optional PageArray of siblings to use instead of all from the page.
 	 * @return PageArray
 	 *

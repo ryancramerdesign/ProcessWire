@@ -17,6 +17,7 @@ if(!isset($formAction)) $formAction = './install.php';
 	<link type='text/css' href='wire/templates-admin/styles/font-awesome/css/font-awesome.min.css' rel='stylesheet' />
 	<script type='text/javascript' src='wire/modules/Jquery/JqueryCore/JqueryCore.js'></script>
 	<script type='text/javascript' src='wire/modules/Jquery/JqueryUI/JqueryUI.js'></script>
+	<script type='text/javascript' src='wire/templates-admin/scripts/main.js'></script>
 	<script type='text/javascript' src='wire/modules/AdminTheme/AdminThemeDefault/scripts/main.js'></script>
 
 </head>
@@ -35,7 +36,7 @@ if(!isset($formAction)) $formAction = './install.php';
 
 			<ul class='nav'>
 				<li class='title'><?php echo htmlentities($title, ENT_QUOTES, "UTF-8"); ?></li>
-				<li class='support'><a target='_blank' href='http://processwire.com/talk/'><i class='fa fa-comments'></i> Need help?</a></li>
+				<li class='support'><a target='_blank' href='https://processwire.com/talk/'><i class='fa fa-comments'></i> Need help?</a></li>
 			</ul>
 
 		</div>

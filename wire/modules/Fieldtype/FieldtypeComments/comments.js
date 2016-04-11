@@ -4,15 +4,20 @@
  *
  * @param string name
  * @param string value
- * @param int days
+ * @param int days Specify 0 for session-only cookie
  *
  */
 function CommentFormSetCookie(name, value, days) {
-	var today = new Date();
-	var expire = new Date();
-	if(days == null || days == 0) days = 1;
-	expire.setTime(today.getTime() + 3600000 * 24 * days);
-	document.cookie = name + "=" + escape(value) + ";path=/;expires=" + expire.toGMTString();
+	var cookieValue = name + "=" + escape(value) + ";path=/";
+	if(days == null) days = 0;
+	if(days > 0) {
+		var today = new Date();
+		var expire = new Date();
+		expire.setTime(today.getTime() + 3600000 * 24 * days);
+		document.cookie = cookieValue + ";expires=" + expire.toGMTString();
+	} else {
+		document.cookie = cookieValue; 
+	}
 }
 
 /**
@@ -138,7 +143,7 @@ jQuery(document).ready(function($) {
 		if(email.indexOf('|') > -1) email = '';
 		if(website.indexOf('|') > -1) website = '';
 		var cookieValue = cite + '|' + email + '|' + website + '|' + notify;
-		CommentFormSetCookie('CommentForm', cookieValue, 30);
+		CommentFormSetCookie('CommentForm', cookieValue, 0);
 	});
 
 	// populate comment form values if they exist in cookie

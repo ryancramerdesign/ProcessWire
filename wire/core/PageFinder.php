@@ -388,7 +388,11 @@ class PageFinder extends Wire {
 			$groupName = $this->wire('sanitizer')->fieldName($selector->getField('string'));
 			if(!$groupName) $groupName = 'none';
 			if(!isset($this->extraOrSelectors[$groupName])) $this->extraOrSelectors[$groupName] = array();
-			$this->extraOrSelectors[$groupName][] = $this->wire(new Selectors($selector->value)); 
+			if($selector->value instanceof Selectors) {
+				$this->extraOrSelectors[$groupName][] = $selector->value;
+			} else {
+				$this->extraOrSelectors[$groupName][] = $this->wire(new Selectors($selector->value));
+			}
 			return false;
 		}
 		

@@ -74,7 +74,7 @@ class FieldtypeSelector extends Fieldtype {
 	public function getDatabaseSchema(Field $field) {
 		$schema = parent::getDatabaseSchema($field);
 		$schema['data'] = 'text NOT NULL';
-		$schema['keys']['data_exact'] = 'KEY `data_exact` (`data`(255))';
+		$schema['keys']['data_exact'] = 'KEY `data_exact` (`data`(250))';
 		$schema['keys']['data'] = 'FULLTEXT KEY `data` (`data`)';
 		return $schema;
 	}
