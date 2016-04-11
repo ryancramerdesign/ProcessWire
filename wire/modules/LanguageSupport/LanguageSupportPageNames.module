@@ -968,7 +968,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 			$f->attr('name', $name); 
 			$f->attr('value', isset($data[$name]) ? $data[$name] : ''); 
 			$f->label = "$language->title ($language->name) - " . $this->_('Page number prefix for pagination'); 
-			$f->description = sprintf($this->_('The page number is appended to this word in paginated URLs for this language. If ommitted, "%s" will be used.'), $this->wire('config')->pageNumUrlPrefix); 
+			$f->description = sprintf($this->_('The page number is appended to this word in paginated URLs for this language. If omitted, "%s" will be used.'), $this->wire('config')->pageNumUrlPrefix); 
 			$f->required = false;
 			$inputfields->add($f); 
 		}

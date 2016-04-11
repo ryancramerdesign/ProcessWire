@@ -139,7 +139,37 @@
  * @property array $preloadPageIDs IDs of pages that will be preloaded at beginning of request
  *
  */
-class Config extends WireData { 
+class Config extends WireData {
+
+	/**
+	 * Get URL for requested resource
+	 * 
+	 * $config->url('something') is a shorter alternative for $config->urls->get('something');
+	 * 
+	 * @param string $for Predefined PW URLs property or module class name
+	 * @return string|null
+	 * 
+	 */
+	public function url($for) {
+		return $this->urls->get($for);
+	}
+	
+	public function urls($for) { return $this->url($for); }
+
+	/**
+	 * Get disk path for requested resource
+	 * 
+	 * $config->path('something') is a shorter alternative for $config->paths->get('something');
+	 * 
+	 * @param string $for Predefined PW paths property or module class name
+	 * @return null|string
+	 * 
+	 */
+	public function path($for) {
+		return $this->paths->get($for);
+	}
+	
+	public function paths($for) { return $this->paths($for); }
 
 	/**
 	 * List of config keys that are also exported in javascript

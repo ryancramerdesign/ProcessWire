@@ -33,7 +33,7 @@ class InputfieldCKEditor extends InputfieldTextarea {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'CKEditor',
-			'version' => 155, 
+			'version' => 156, 
 			'summary' => __('CKEditor textarea rich text editor.', __FILE__),
 			'installs' => array('MarkupHTMLPurifier'), 
 			);
@@ -292,6 +292,15 @@ class InputfieldCKEditor extends InputfieldTextarea {
 		if(strpos($this->configName, '_repeater')) $this->configName = preg_replace('/_repeater\d+/', '', $this->configName);
 		if(!in_array($this->configName, self::$configNames)) $this->config->js($this->configName, $settings);
 		self::$configNames[] = $this->configName;
+		
+		if($this->inlineMode) {
+			// inline css must be pre-loaded
+			if($this->contentsInlineCss) {
+				$this->config->styles->add($this->pathFromRoot($this->contentsInlineCss, true));
+			} else {
+				$this->config->styles->add($this->config->urls->InputfieldCKEditor . "contents-inline.css");
+			}
+		}
 
 		return parent::renderReady($parent, $renderValueMode);
 	}
@@ -434,9 +443,6 @@ class InputfieldCKEditor extends InputfieldTextarea {
 			$this->error($this->_('CKEditor inline mode requires the MarkupHTMLPurifier module. Using normal mode instead.')); 
 			return $this->renderNormal();
 		}
-		if($this->contentsInlineCss) $this->config->styles->add($this->pathFromRoot($this->contentsInlineCss, true)); 
-			else $this->config->styles->add($this->config->urls->InputfieldCKEditor . "contents-inline.css"); 
-
 		$value = $this->purifyValue($this->attr('value')); 
 
 		$out = 	
@@ -447,8 +453,6 @@ class InputfieldCKEditor extends InputfieldTextarea {
 	}
 	
 	public function ___renderValue() {
-		if($this->contentsInlineCss) $this->config->styles->add($this->pathFromRoot($this->contentsInlineCss, true));
-			else $this->config->styles->add($this->config->urls->InputfieldCKEditor . "contents-inline.css"); 
 		$out = "<div class='InputfieldTextareaContentTypeHTML InputfieldCKEditorInline'>" . 
 			$this->wire('sanitizer')->purify($this->attr('value')) . "</div>";
 		return $out; 

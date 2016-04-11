@@ -56,7 +56,7 @@
  * @property int $noChangeTemplate Don't allow pages using this template to change their template? (0=template change allowed, 1=template change not allowed)
  * @property int $noUnpublish Don't allow pages using this template to ever exist in an unpublished state - if page exists, it must be published. (0=page may be unpublished, 1=page may not be unpublished)
  * @property int $noShortcut Don't allow pages using this template to appear in shortcut "add new page" menu
- * @property int $compile Set to 1 to enable compilation, 2 to compile file and included files, or 0 to disable. 
+ * @property int $compile Set to 1 to enable compilation, 2 to compile file and included files, 3 for auto, or 0 to disable. 
  * @property int $nameContentTab Pages should display the name field on the content tab? (0=no, 1=yes)
  * @property string $noCacheGetVars GET vars that trigger disabling the cache (only when cache_time > 0)
  * @property string $noCachePostVars POST vars that trigger disabling the cache (only when cache_time > 0)
@@ -69,6 +69,12 @@
  * @property string $tabChildren Optional replacement for default "Children" label
  * @property string $nameLabel Optional replacement for the default "Name" label on pages using this template
  * @property string $contentType Content-type header or index (extension) of content type header from $config->contentTypes
+ * @property int $errorAction Action to take when published page missing required field is saved (0=notify only, 1=restore prev value, 2=unpublish page)
+ * @property string $ns Namespace found in the template file, or blank if not determined
+ * @property int|bool $noPrependTemplateFile
+ * @property int|bool $noAppendTemplateFile
+ * @property string $prependFile
+ * @property string $appendFile
  *
  */
 
@@ -201,7 +207,7 @@ class Template extends WireData implements Saveable, Exportable {
 		'noChangeTemplate' => 0, 	// don't allow pages using this template to change their template?
 		'noShortcut' => 0, 		// don't allow pages using this template to appear in shortcut "add new page" menu
 		'noUnpublish' => 0,		// don't allow pages using this template to ever exist in an unpublished state - if page exists, it must be published 
-		'compile' => 2,		// Set to 1 to compile, set to 2 to compile file and included files, or 0 to disable
+		'compile' => 3,		// Set to 1 to compile, set to 2 to compile file and included files, 3 for auto, or 0 to disable
 		'nameContentTab' => 0, 		// pages should display the 'name' field on the content tab?	
 		'noCacheGetVars' => '',		// GET vars that trigger disabling the cache (only when cache_time > 0)
 		'noCachePostVars' => '',	// POST vars that trigger disabling the cache (only when cache_time > 0)
@@ -221,6 +227,8 @@ class Template extends WireData implements Saveable, Exportable {
 		'tabChildren' => '', 	// label for the Children tab (if different from 'Children')
 		'nameLabel' => '', // label for the "name" property of the page (if something other than "Name")
 		'contentType' => '', // Content-type header or index of header from $config->contentTypes
+		'errorAction' => 0, // action to take on save when required field on published page is empty (0=notify,1=restore,2=unpublish)
+		'ns' => '', // namespace found in the template file, or blank if not determined
 		); 
 
 
@@ -698,11 +706,19 @@ class Template extends WireData implements Saveable, Exportable {
 		} else {
 			$this->filename = $this->wire('templates')->path . $this->settings['name'] . '.' . $this->config->templateExtension;
 		}
-	
-		if($this->filenameExists()) {
+
+		$isModified = false;
+		$fileExists = $this->filenameExists();
+		
+		if($fileExists) {
 			$modified = filemtime($this->filename);
 			if($modified > $this->modified) {
+				$isModified = true;
 				$this->modified = $modified;
+			}
+			if($isModified || !$this->ns) {
+				// determine namespace
+				$this->ns = $this->wire('files')->getNamespace($this->filename);
 				// tell it to save the template after the request is finished
 				$this->addHookAfter('ProcessWire::finished', $this, 'hookFinished'); 
 			}
@@ -719,7 +735,7 @@ class Template extends WireData implements Saveable, Exportable {
 	 */
 	public function hookFinished(HookEvent $e) {
 		foreach($this->wire('templates') as $template) {
-			if($template->isChanged('modified')) $template->save();
+			if($template->isChanged('modified') || $template->isChanged('ns')) $template->save();
 		}
 	}
 

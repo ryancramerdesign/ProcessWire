@@ -82,6 +82,56 @@ class PagesLoader extends Wire {
 	public function getAutojoin() {
 		return $this->autojoin;
 	}
+
+	/**
+	 * Helper for find() method to attempt to shortcut the find when possible
+	 * 
+	 * @param string|array|Selectors $selector
+	 * @param array $options
+	 * @param array $loadOptions
+	 * @return bool|Page|PageArray Returns boolean false when no shortcut available
+	 * 
+	 */
+	protected function findShortcut(&$selector, $options, $loadOptions) {
+		
+		if(empty($selector)) return $this->pages->newPageArray($loadOptions);
+		
+		if(is_array($selector)) { 
+			
+			if(ctype_digit(implode('', array_keys($selector))) && !is_array(reset($selector)) && ctype_digit(implode('', $selector))) {
+				// if given a regular array of page IDs, we delegate that to getById() method, but with access/visibility control
+				return $this->filterListable(
+					$this->getById($selector),
+					(isset($options['include']) ? $options['include'] : ''),
+					$loadOptions);
+			}
+			
+		} else if(is_string($selector) || is_int($selector)) {
+			
+			// normalize selectors that indicate homepage to just be ID 1
+			if($selector === '/' || $selector === 'path=/') $selector = 1;
+			
+			// if selector begins with a slash, then we'll assume it's referring to a path
+			if($selector[0] == '/') $selector = "path=$selector";
+			
+			if(strpos($selector, ",") === false && strpos($selector, "|") === false) {
+				// there is just one param. Lets see if we can find a shortcut. 
+				if(ctype_digit("$selector") || strpos($selector, "id=") === 0) {
+					// if selector is just a number, or a string like "id=123" then we're going to do a shortcut
+					$s = str_replace("id=", '', $selector);
+					if(ctype_digit("$s")) {
+						$value = $this->getById(array((int) $s), $loadOptions);
+						if(empty($options['findOne'])) $value = $this->filterListable(
+							$value, (isset($options['include']) ? $options['include'] : ''), $loadOptions);
+						if($this->wire('config')->debug) $this->pages->debugLog('find', $selector . " [optimized]", $value);
+						return $value;
+					}
+				}
+			}
+		}
+		
+		return false;
+	}
 	
 	/**
 	 * Given a Selector string, return the Page objects that match in a PageArray.
@@ -89,7 +139,7 @@ class PagesLoader extends Wire {
 	 * Non-visible pages are excluded unless an include=hidden|unpublished|all mode is specified in the selector string,
 	 * or in the $options array. If 'all' mode is specified, then non-accessible pages (via access control) can also be included.
 	 *
-	 * @param string|int|array $selectorString Specify selector string (standard usage), but can also accept page ID or array of page IDs.
+	 * @param string|int|array|Selectors $selector Specify selector (standard usage), but can also accept page ID or array of page IDs.
 	 * @param array|string $options Optional one or more options that can modify certain behaviors. May be assoc array or key=value string.
 	 *	- findOne: boolean - apply optimizations for finding a single page
 	 *  - findAll: boolean - find all pages with no exculsions (same as include=all option)
@@ -105,70 +155,38 @@ class PagesLoader extends Wire {
 	 * @return PageArray
 	 *
 	 */
-	public function find($selectorString, $options = array()) {
+	public function find($selector, $options = array()) {
 
 		if(is_string($options)) $options = Selectors::keyValueStringToArray($options);
+
 		$loadOptions = isset($options['loadOptions']) && is_array($options['loadOptions']) ? $options['loadOptions'] : array();
-
-		if(is_array($selectorString)) {
-			if(ctype_digit(implode('', array_keys($selectorString))) && ctype_digit(implode('', $selectorString))) {
-				// if given a regular array of page IDs, we delegate that to getById() method, but with access/visibility control
-				return $this->filterListable(
-					$this->getById($selectorString),
-					(isset($options['include']) ? $options['include'] : ''),
-					$loadOptions);
-			} else {
-				// some other type of array/values that we don't yet recognize
-				// @todo add support for array selectors, per Selectors::arrayToSelectorString()
-				return $this->pages->newPageArray($loadOptions);
-			}
-		}
-
-		$loadPages = true;
+		$loadPages = array_key_exists('loadPages', $options) ? (bool) $options['loadPages'] : true; 
+		$caller = isset($options['caller']) ? $options['caller'] : 'pages.find';
 		$debug = $this->wire('config')->debug;
 
-		if(array_key_exists('loadPages', $options)) $loadPages = (bool) $options['loadPages'];
-		if(!strlen($selectorString)) return $this->pages->newPageArray($loadOptions);
-		if($selectorString === '/' || $selectorString === 'path=/') $selectorString = 1;
+		$pages = $this->findShortcut($selector, $options, $loadOptions);
+		if($pages) return $pages;
 
-		if($selectorString[0] == '/') {
-			// if selector begins with a slash, then we'll assume it's referring to a path
-			$selectorString = "path=$selectorString";
-
-		} else if(strpos($selectorString, ",") === false && strpos($selectorString, "|") === false) {
-			// there is just one param. Lets see if we can find a shortcut. 
-			if(ctype_digit("$selectorString") || strpos($selectorString, "id=") === 0) {
-				// if selector is just a number, or a string like "id=123" then we're going to do a shortcut
-				$s = str_replace("id=", '', $selectorString);
-				if(ctype_digit("$s")) {
-					$value = $this->getById(array((int) $s), $loadOptions);
-					if(empty($options['findOne'])) $value = $this->filterListable(
-						$value, (isset($options['include']) ? $options['include'] : ''), $loadOptions);
-					if($debug) $this->pages->debugLog('find', $selectorString . " [optimized]", $value);
-					return $value;
-				}
-			}
+		if($selector instanceof Selectors) {
+			$selectors = $selector;
+		} else {
+			$selectors = $this->wire(new Selectors());
+			$selectors->init($selector);
 		}
-
+		
 		if(isset($options['include']) && in_array($options['include'], array('hidden', 'unpublished', 'all'))) {
-			$selectorString .= ", include=$options[include]";
+			$selectors->add(new SelectorEqual('include', $options['include']));
 		}
+
+		$selectorString = is_string($selector) ? $selector : (string) $selectors;
+		
 		// see if this has been cached and return it if so
 		$pages = $this->pages->cacher()->getSelectorCache($selectorString, $options);
 		if(!is_null($pages)) {
 			if($debug) $this->pages->debugLog('find', $selectorString, $pages . ' [from-cache]');
 			return $pages;
 		}
-
-		// check if this find has already been executed, and return the cached results if so
-		// if(null !== ($pages = $this->getSelectorCache($selectorString, $options))) return clone $pages; 
-
-		// if a specific parent wasn't requested, then we assume they don't want results with status >= Page::statusUnsearchable
-		// if(strpos($selectorString, 'parent_id') === false) $selectorString .= ", status<" . Page::statusUnsearchable; 
-
-		$caller = isset($options['caller']) ? $options['caller'] : 'pages.find';
-		$selectors = $this->wire(new Selectors());
-		$selectors->init($selectorString);
+		
 		$pageFinder = $this->pages->getPageFinder();
 		if($debug) Debug::timer("$caller($selectorString)", true);
 		$pagesInfo = $pageFinder->find($selectors, $options);
@@ -268,13 +286,13 @@ class PagesLoader extends Wire {
 	 * find() method does. You can add an "include=..." to your selector string to bypass.
 	 * This method also accepts an $options arrray, whereas get() does not.
 	 *
-	 * @param string $selectorString
+	 * @param string|int|array|Selectors $selector
 	 * @param array|string $options See $options for Pages::find
 	 * @return Page|NullPage
 	 *
 	 */
-	public function findOne($selectorString, $options = array()) {
-		if(empty($selectorString)) return $this->pages->newNullPage();
+	public function findOne($selector, $options = array()) {
+		if(empty($selector)) return $this->pages->newNullPage();
 		if(is_string($options)) $options = Selectors::keyValueStringToArray($options);
 		$defaults = array(
 			'findOne' => true, // find only one page
@@ -282,7 +300,7 @@ class PagesLoader extends Wire {
 			'caller' => 'pages.findOne'
 		);
 		$options = array_merge($defaults, $options);
-		$page = $this->pages->find($selectorString, $options)->first();
+		$page = $this->pages->find($selector, $options)->first();
 		if(!$page || !$page->viewable(false)) $page = $this->pages->newNullPage();
 		return $page;
 	}
@@ -290,21 +308,23 @@ class PagesLoader extends Wire {
 	/**
 	 * Returns the first page matching the given selector with no exclusions
 	 *
-	 * @param string $selectorString
+	 * @param string|int|array|Selectors $selector
 	 * @return Page|NullPage Always returns a Page object, but will return NullPage (with id=0) when no match found
 	 *
 	 */
-	public function get($selectorString) {
-		if(empty($selectorString)) return $this->pages->newNullPage();
-		$page = $this->pages->getCache($selectorString);
-		if($page) return $page;
+	public function get($selector) {
+		if(empty($selector)) return $this->pages->newNullPage();
+		if(is_string($selector) || is_int($selector)) {
+			$page = $this->pages->getCache($selector);
+			if($page) return $page;
+		}
 		$options = array(
 			'findOne' => true, // find only one page
 			'findAll' => true, // no exclusions
 			'getTotal' => false, // don't count totals
 			'caller' => 'pages.get'
 		);
-		$page = $this->pages->find($selectorString, $options)->first();
+		$page = $this->pages->find($selector, $options)->first();
 		if(!$page) $page = $this->pages->newNullPage();
 		return $page;
 	}
@@ -870,20 +890,20 @@ class PagesLoader extends Wire {
 	/**
 	 * Count and return how many pages will match the given selector string
 	 *
-	 * @param string $selectorString Specify selector string, or omit to retrieve a site-wide count.
+	 * @param string|array $selector Specify selector, or omit to retrieve a site-wide count.
 	 * @param array|string $options See $options in Pages::find
 	 * @return int
 	 *
 	 */
-	public function count($selectorString = '', $options = array()) {
+	public function count($selector = '', $options = array()) {
 		if(is_string($options)) $options = Selectors::keyValueStringToArray($options);
-		if(!strlen($selectorString)) {
+		if(empty($selector)) {
 			if(empty($options)) {
 				// optimize away a simple site-wide total count
 				return (int) $this->wire('database')->query("SELECT COUNT(*) FROM pages")->fetch(\PDO::FETCH_COLUMN);
 			} else {
 				// no selector string, but options specified
-				$selectorString = "id>0";
+				$selector = "id>0";
 			}
 		}
 		$options['loadPages'] = false;
@@ -891,7 +911,12 @@ class PagesLoader extends Wire {
 		$options['caller'] = 'pages.count';
 		$options['returnVerbose'] = false;
 		//if($this->wire('config')->debug) $options['getTotalType'] = 'count'; // test count method when in debug mode
-		return $this->pages->find("$selectorString, limit=1", $options)->getTotal();
+		if(is_string($selector)) {
+			$selector .= ", limit=1";
+		} else if(is_array($selector)) {
+			$selector['limit'] = 1;
+		}
+		return $this->pages->find($selector, $options)->getTotal();
 	}
 
 	/**

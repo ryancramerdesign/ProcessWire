@@ -56,8 +56,19 @@ class PagesTrash extends Wire {
 				$name .= "." . $parentPrevious->id;
 				$name .= "." . $page->sort;
 			}
-			$name .= "_" . $page->name;
-			$page->name = $name;
+			$page->name = ($name . "_" . $page->name);
+		
+			// do the same for other languages, if present
+			$languages = $this->wire('languages');
+			if($languages && $this->wire('modules')->isInstalled('LanguageSupportPageNames')) {
+				foreach($languages as $language) {
+					if($language->isDefault()) continue;
+					$langName = $page->get("name$language->id");
+					if(!strlen($langName)) continue; 
+					$page->set("name$language->id", $name . "_" . $langName);
+				}
+			}
+
 		}
 		if($save) $this->pages->save($page);
 		$this->pages->editor()->savePageStatus($page->id, Page::statusTrash, true, false);
@@ -90,6 +101,8 @@ class PagesTrash extends Wire {
 				$parentID = 0;
 				$sort = 0;
 			}
+			
+			$prefix = $matches[1] . $matches[2] . '_';
 			$name = $matches[3];
 
 			if($parentID && $page->parent->isTrash() && !$page->parentPrevious) {
@@ -102,6 +115,16 @@ class PagesTrash extends Wire {
 			}
 			if(!count($page->parent->children("name=$name, include=all"))) {
 				$page->name = $name;  // remove namespace collision info if no collision
+				// do the same for other languages, when applicable
+				if($this->wire('languages') && $this->wire('modules')->isInstalled('LanguageSupportPageNames')) {
+					foreach($this->wire('languages') as $language) {
+						if($language->isDefault()) continue;
+						$langName = $page->get("name$language->id"); 
+						if(strpos($langName, $prefix) !== 0) continue;
+						$langName = str_replace($prefix, '', $langName); 
+						$page->set("name$language->id", $langName);
+					}
+				}
 			}
 		}
 

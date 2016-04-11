@@ -362,6 +362,10 @@ class Fields extends WireSaveableItems {
 			list($existingData) = $query->fetch(\PDO::FETCH_NUM);
 			$existingData = strlen($existingData) ? json_decode($existingData, true) : array();
 			if(!is_array($existingData)) $existingData = array();
+			foreach($data as $k => $v) {
+				// disallow namespace within namespace
+				if(strpos($k, Fieldgroup::contextNamespacePrefix) === 0) unset($data[$k]);
+			}
 			$existingData[Fieldgroup::contextNamespacePrefix . $namespace] = $data;
 			$data = $existingData;
 		}

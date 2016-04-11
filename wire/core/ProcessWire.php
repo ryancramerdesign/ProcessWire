@@ -28,7 +28,7 @@ class ProcessWire extends Wire {
 
 	const versionMajor = 3; 
 	const versionMinor = 0; 
-	const versionRevision = 12; 
+	const versionRevision = 14; 
 	const versionSuffix = 'devns';
 	
 	const indexVersion = 300; // required version for index.php file (represented by PROCESSWIRE define)
@@ -456,7 +456,7 @@ class ProcessWire extends Wire {
 	 */
 	protected function includeFile($file) {
 		if(!file_exists($file)) return false;
-		$file = $this->wire('files')->compile($file);
+		$file = $this->wire('files')->compile($file, array('skipIfNamespace' => true));
 		$this->pathSave = getcwd();
 		chdir(dirname($file));
 		$fuel = $this->fuel->getArray();

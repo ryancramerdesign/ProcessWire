@@ -109,13 +109,14 @@ class InputfieldPageAutocomplete extends Inputfield implements InputfieldHasArra
 	 */
 	protected function ___renderList() { 
 
-		$out = "\n<ol id='{$this->id}_items' data-id='{$this->id}' data-name='{$this->name}'>" . $this->renderListItem("Label", "1", "itemTemplate"); 
+		$out = "\n<ol id='{$this->id}_items' data-id='{$this->id}' data-name='{$this->name}'>" . 
+			$this->renderListItem("Label", "1", "itemTemplate"); 
 		
 		foreach($this->value as $page_id) {
 			if(!$page_id) continue; 
 			$page = $this->pages->get((int) $page_id); 
 			if(!$page || !$page->id) continue; 
-			$value = $this->labelFieldFormat ? $page->getMarkup($this->labelFieldFormat) : $page->get($this->labelFieldName); 
+			$value = $this->labelFieldFormat ? $page->getText($this->labelFieldFormat, true, false) : $page->get($this->labelFieldName); 
 			$value = strip_tags($value);
 			if(!strlen($value)) $value = $page->get('title|name');
 			$out .= $this->renderListItem($value, $page->id); 
@@ -190,7 +191,7 @@ class InputfieldPageAutocomplete extends Inputfield implements InputfieldHasArra
 			if(count($this->value)) {
 				$item = $this->wire('pages')->getById($this->value)->first();
 				if($item && $item->id) {
-					$textValue = $this->labelFieldFormat ? $item->getMarkup($this->labelFieldFormat) : $item->get($labelField);
+					$textValue = $this->labelFieldFormat ? $item->getText($this->labelFieldFormat, true, false) : $item->get($labelField);
 					if(!strlen($textValue)) $textValue = $item->get('title|name');
 					$textValue = strip_tags($textValue);
 					if(strpos($textValue, '&') !== false) $textValue = $this->wire('sanitizer')->unentities($textValue);
@@ -295,7 +296,7 @@ _OUT;
 		// specify what label field we want to retrieve
 		if($this->labelFieldFormat) {
 			$name = "autocomplete_" . $this->attr('name');
-			$this->wire('modules')->get('ProcessPageSearch')->setDisplayFormat($name, $this->labelFieldFormat);
+			$this->wire('modules')->get('ProcessPageSearch')->setDisplayFormat($name, $this->labelFieldFormat, true);
 			$selector .= "&format_name=$name";
 		}
 		$selector .= "&get=" . $this->labelFieldName;

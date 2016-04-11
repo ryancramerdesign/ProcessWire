@@ -149,13 +149,13 @@ class Pages extends Wire {
 	/**
 	 * Count and return how many pages will match the given selector string
 	 *
-	 * @param string $selectorString Specify selector string, or omit to retrieve a site-wide count.
+	 * @param string|array|Selectors $selector Specify selector, or omit to retrieve a site-wide count.
 	 * @param array|string $options See $options in Pages::find
 	 * @return int
 	 *
 	 */
-	public function count($selectorString = '', $options = array()) {
-		return $this->loader->count($selectorString, $options);
+	public function count($selector = '', $options = array()) {
+		return $this->loader->count($selector, $options);
 	}
 
 	/**
@@ -164,7 +164,7 @@ class Pages extends Wire {
 	 * Non-visible pages are excluded unless an include=hidden|unpublished|all mode is specified in the selector string, 
 	 * or in the $options array. If 'all' mode is specified, then non-accessible pages (via access control) can also be included. 
 	 *
-	 * @param string|int|array $selectorString Specify selector string (standard usage), but can also accept page ID or array of page IDs.
+	 * @param string|int|array|Selectors $selector Specify selector (standard usage), but can also accept page ID or array of page IDs.
 	 * @param array|string $options Optional one or more options that can modify certain behaviors. May be assoc array or key=value string.
 	 *	- findOne: boolean - apply optimizations for finding a single page 
 	 *  - findAll: boolean - find all pages with no exculsions (same as include=all option)
@@ -180,8 +180,8 @@ class Pages extends Wire {
 	 * @return PageArray
 	 *
 	 */
-	public function ___find($selectorString, $options = array()) {
-		return $this->loader->find($selectorString, $options);
+	public function ___find($selector, $options = array()) {
+		return $this->loader->find($selector, $options);
 	}
 
 	/**
@@ -192,24 +192,24 @@ class Pages extends Wire {
 	 * find() method does. You can add an "include=..." to your selector string to bypass. 
 	 * This method also accepts an $options arrray, whereas get() does not. 
 	 *
-	 * @param string $selectorString
+	 * @param string|array|Selectors $selector
 	 * @param array|string $options See $options for Pages::find
 	 * @return Page|NullPage
 	 *
 	 */
-	public function findOne($selectorString, $options = array()) {
-		return $this->loader->findOne($selectorString, $options);
+	public function findOne($selector, $options = array()) {
+		return $this->loader->findOne($selector, $options);
 	}
 
 	/**
 	 * Returns the first page matching the given selector with no exclusions
 	 *
-	 * @param string $selectorString
+	 * @param string|array|Selectors $selector
 	 * @return Page|NullPage Always returns a Page object, but will return NullPage (with id=0) when no match found
 	 * 
 	 */
-	public function get($selectorString) {
-		return $this->loader->get($selectorString); 
+	public function get($selector) {
+		return $this->loader->get($selector); 
 	}
 	
 	/**

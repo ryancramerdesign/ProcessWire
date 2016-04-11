@@ -2631,20 +2631,9 @@ class Modules extends WireArray {
 	 * 
 	 */
 	public function getFileNamespace($file) {
-		$namespace = "\\"; // root namespace, if no namespace found
-		$data = file_get_contents($file);
-		if($data !== false && strpos($data, 'namespace') !== false) {
-			while(preg_match('/(^.*)\s+namespace\s+([_a-zA-Z0-9\\\\]+);\s*$/m', $data, $matches)) {
-				$open = $matches[1];
-				if(strpos($open, '//') === false && strpos($open, '/*') === false) {
-					$namespace = trim($matches[2]);
-					$namespace = "\\" . trim($namespace, "\\") . "\\";
-					break;
-				}
-				$data = str_replace($matches[0], '', $data);
-			}
-		}
-		return $namespace;
+		$namespace = $this->wire('files')->getNamespace($file); 
+		if($namespace !== "\\") $namespace = "\\" . trim($namespace, "\\") . "\\";
+		return $namespace; 
 	}
 
 	/**

@@ -700,9 +700,14 @@ class PageFrontEdit extends WireData implements Module {
 			$configJSON = json_encode($configJS);
 		}
 		
-		// @todo update PW core to use ProcessWire.config rather than config, but keep config as a copy for legacy purposes
 		$scripts[] = 
-			"if(typeof ProcessWire == 'undefined') var ProcessWire={config:$configJSON};" . 
+			"var _pwfe={config:$configJSON};" . 
+			"if(typeof ProcessWire == 'undefined'){" . 
+				"var ProcessWire=_pwfe;" . 
+			"}else{" . 
+				"for(var _pwfekey in _pwfe.config) ProcessWire.config[_pwfekey]=_pwfe.config[_pwfekey];" . 
+			"}" . 
+			"_pwfe=null;" . 
 			"if(typeof config == 'undefined') var config=ProcessWire.config;"; // legacy
 
 		$loadItems = array();

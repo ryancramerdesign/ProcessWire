@@ -65,6 +65,8 @@ require_once(dirname(__FILE__) . '/PagerNav.php');
  * @property int $pageNum Get the current page number (1-based, set automatically)
  * @property string $queryString the queryString used in links (set automatically, based on whitelist or getVars array)
  * @property bool $isLastPage Is the current pagination the last? Set automatically after a render() call. 
+ * 
+ * @method string render(WirePaginatable $items, $options = array())
  *
  */
 class MarkupPagerNav extends Wire implements Module {

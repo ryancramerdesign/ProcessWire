@@ -418,14 +418,19 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 		}
 
 		// if given an array of keys, return all matching items
-		if(is_array($key)) {
-			/** @var array $key */
-			$items = array();
-			foreach($key as $k) {
-				$item = $this->get($k);
-				$items[$k] = $item;
+		if(is_array($key)) { 
+			if(ctype_digit(implode('', array_keys($key)))) {
+				/** @var array $key */
+				$items = array();
+				foreach($key as $k) {
+					$item = $this->get($k);
+					$items[$k] = $item;
+				}
+				return $items;
+			} else {
+				// selector array
+				return $this->findOne($key);
 			}
-			return $items;
 		}
 
 		// check if the index is set and return it if so
@@ -542,6 +547,11 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 			/** @var object|Wire $key */
 			$key = $this->getItemKey($key);
 			/** @var int|string $key */
+		}
+		
+		if(is_array($key)) {
+			// match selector array
+			return $this->findOne($key) ? true : false;
 		}
 
 		if(array_key_exists($key, $this->data)) return true; 
@@ -1095,7 +1105,7 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	 * This is applicable to and destructive to the WireArray.
 	 * This function contains additions and modifications by @niklaka.
 	 *
-	 * @param string|Selectors $selectors AttributeSelector string to use as the filter.
+	 * @param string|array|Selectors $selectors Selector string|array to use as the filter.
 	 * @param bool $not Make this a "not" filter? (default is false)
 	 * @return $this reference to current [filtered] instance
 	 *
@@ -1105,11 +1115,12 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 		if(is_object($selectors) && $selectors instanceof Selectors) {
 			// fantastic
 		} else {
-			if(ctype_digit("$selectors")) $selectors = "id=$selectors";
-			$selectorString = $selectors; 
+			if(!is_array($selectors) && ctype_digit("$selectors")) $selectors = "id=$selectors";
+			$selector = $selectors; 
 			$selectors = $this->wire(new Selectors()); 
-			$selectors->init($selectorString);
+			$selectors->init($selector);
 		}
+		
 		$this->filterDataSelectors($selectors); 
 
 		$sort = array();
@@ -1178,7 +1189,7 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	 *
 	 * Same as filterData, but for public interface without the $not option. 
 	 * 
-	 * @param string $selector AttributeSelector string to use as the filter. 
+	 * @param string|array|Selectors $selector Selector string or array to use as the filter. 
 	 * @return $this reference to current instance.
 	 * @see filterData
 	 *
@@ -1194,7 +1205,7 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	 * Same as filterData, but for public interface with the $not option specifically set to "true".
 	 * Example: $pages->not("nonav"); // returns all pages that don't have a nonav variable set to a positive value. 
 	 * 
-	 * @param string $selector AttributeSelector string to use as the filter. 
+	 * @param string|array|Selectors $selector 
 	 * @return $this reference to current instance.
 	 * @see filterData
 	 *
@@ -1209,13 +1220,13 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	 * 
 	 * This is non destructive and returns a brand new WireArray.
 	 *
-	 * @param string $selector AttributeSelector string. 
+	 * @param string|array|Selectors $selector 
 	 * @return WireArray 
 	 *
 	 */
 	public function find($selector) {
 		$a = $this->makeCopy();
-		if(!strlen($selector)) return $a;
+		if(empty($selector)) return $a;
 		$a->filter($selector); 	
 		return $a; 
 	}
@@ -1223,7 +1234,7 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	/**
 	 * Same as find, but returns a single Page rather than WireArray or FALSE if empty.
 	 * 
-	 * @param string $selector
+	 * @param string|array|Selectors $selector
 	 * @return Wire|bool
 	 *
 	 */

@@ -1121,7 +1121,7 @@ class PagesEditor extends Wire {
 		$ids = array();
 		
 		if($pages instanceof Page) {
-			$ids[] = (int) $page->id;
+			$ids[] = (int) $pages->id;
 		} else {
 			foreach($pages as $page) {
 				if(is_int($page)) {

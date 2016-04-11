@@ -41,9 +41,19 @@ var ProcessWireAdmin = {
 	setupButtonStates: function() {
 		// jQuery UI button states
 		$(document).on('mouseover', '.ui-button', function() {
-			$(this).removeClass("ui-state-default").addClass("ui-state-hover");
+			var $t = $(this);
+			$t.removeClass("ui-state-default").addClass("ui-state-hover");
+			if($t.hasClass('ui-priority-secondary')) $t.toggleClass('xui-priority-secondary ui-priority-secondary');
+			if($t.hasClass('pw-button-dropdown-main')) {
+				$t.siblings('#pw-dropdown-toggle-' + $t.attr('id')).trigger('mouseover');
+			}
 		}).on('mouseout', '.ui-button', function() {
-			$(this).removeClass("ui-state-hover").addClass("ui-state-default");
+			var $t = $(this);
+			$t.removeClass("ui-state-hover").addClass("ui-state-default");
+			if($t.hasClass('xui-priority-secondary')) $t.toggleClass('xui-priority-secondary ui-priority-secondary');
+			if($t.hasClass('pw-button-dropdown-main')) {
+				$t.siblings('#pw-dropdown-toggle-' + $t.attr('id')).trigger('mouseout');
+			}
 		}).on('click', '.ui-button', function() {
 			$(this).removeClass("ui-state-default").addClass("ui-state-active"); // .effect('highlight', {}, 100); 
 		}).on('click', 'a > button', function() {
@@ -117,7 +127,8 @@ var ProcessWireAdmin = {
 			});
 		}
 
-		function mouseenterDropdownToggle() {
+		function mouseenterDropdownToggle(e) {
+			
 
 			var $a = $(this);
 			var $ul = $a.data('dropdown-ul');
@@ -125,6 +136,10 @@ var ProcessWireAdmin = {
 			var lastOffset = $ul.data('dropdown-last-offset');
 			var timeout = $a.data('dropdown-timeout');
 			
+			if($a.hasClass('dropdown-toggle-click')) {
+				if(e.type != 'mousedown') return;
+				$a.removeClass('ui-state-focus');
+			}
 			if($a.hasClass('dropdown-disabled')) return;
 
 			timeout = setTimeout(function() {
@@ -280,7 +295,8 @@ var ProcessWireAdmin = {
 			$(".dropdown-toggle").each(setupDropdown);
 
 			$(document)
-				.on('mouseenter', '.dropdown-toggle', mouseenterDropdownToggle)
+				.on('mousedown', '.dropdown-toggle-click', mouseenterDropdownToggle)
+				.on('mouseenter', '.dropdown-toggle:not(.dropdown-toggle-click)', mouseenterDropdownToggle)
 				.on('mouseleave', '.dropdown-toggle', mouseleaveDropdownToggle)
 				.on('mouseenter', '.dropdown-menu a.has-ajax-items:not(.ajax-items-loaded)', mouseenterDropdownAjaxItem) // navJSON
 				.on('mouseleave', '.dropdown-menu a.has-ajax-items', function() { // navJSON

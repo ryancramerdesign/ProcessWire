@@ -270,13 +270,14 @@ var ProcessWireAdminTheme = {
 			} else if($t.hasClass('head_button_clone') || $t.hasClass('head-button')) {
 				$button = $t.clone();
 				$button.attr('data-from_id', $t.attr('id')).attr('id', $t.attr('id') + '_copy');
-				$a = $("<a></a>").attr('href', '#');
+				//$a = $("<a></a>").attr('href', '#');
 				$button.click(function() {
 					$("#" + $(this).attr('data-from_id')).click(); // .parents('form').submit();
 					return false;
 				});
 				// $head.append($a.append($button));	
-				$head.prepend($a.append($button));
+				//$head.prepend($a.append($button));
+				$head.prepend($button);
 			}
 		}); 
 	},

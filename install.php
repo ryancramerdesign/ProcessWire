@@ -11,12 +11,12 @@
  * If that file exists, the installer will not run. So if you need to re-run this installer for any
  * reason, then you'll want to delete that file. This was implemented just in case someone doesn't delete the installer.
  * 
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * ProcessWire 3.x (development), Copyright 2016 by Ryan Cramer
  * https://processwire.com
  * 
  */
 
-define("PROCESSWIRE_INSTALL", "3.0 (alpha)"); 
+define("PROCESSWIRE_INSTALL", "3.x"); 
 
 /**
  * class Installer
@@ -380,7 +380,6 @@ class Installer {
 
 		if(!is_file("./site/install/install.sql")) die("There is no installation profile in /site/. Please place one there before continuing. You can get it at processwire.com/download"); 
 
-		echo "<a class='ui-priority-secondary' style='float: right' title='Experimental Database Options' href='#' onclick='$(\"#dbAdvanced\").slideToggle();'><i class='fa fa-wrench'></i></a>";
 		
 		$this->h("MySQL Database"); 
 		$this->p("Please specify a MySQL 5.x database and user account on your server. If the database does not exist, we will attempt to create it. If the database already exists, the user account should have full read, write and delete permissions on the database.*"); 
@@ -405,21 +404,38 @@ class Installer {
 				$values[$key] = htmlspecialchars($value, ENT_QUOTES, 'utf-8'); 
 			}
 		}
+		
 
 		$this->input('dbName', 'DB Name', $values['dbName']); 
 		$this->input('dbUser', 'DB User', $values['dbUser']);
 		$this->input('dbPass', 'DB Pass', $values['dbPass'], false, 'password', false); 
 		$this->input('dbHost', 'DB Host', $values['dbHost']); 
-		$this->input('dbPort', 'DB Port', $values['dbPort'], true); 
+		$this->input('dbPort', 'DB Port', $values['dbPort'], true);
+		
+		echo 
+			"<div id='dbAdvancedToggle'><small>" . 
+			"<a class='ui-priority-secondary' href='#' onclick='$(\"#dbAdvanced\").slideDown();$(\"#dbAdvancedToggle\").slideUp();'>" .
+			"<i class='fa fa-wrench'></i> Advanced: Charset &amp; Engine &hellip;</a>" . 
+			"</small></div>";
 		
 		echo "<div id='dbAdvanced' style='display: none'>";
-		$this->h('Experimental Database Options'); 
-		$this->p("Don't change these settings unless you know what you are doing. ProcessWire is only known to be stable with utf8 and MyISAM at present.");
-		$this->input('dbCharset', 'DB Charset', $values['dbCharset']); 
+		$this->h('Advanced Database Options'); 
+		$this->p(
+			"The 'utf8' and 'MyISAM' options are known to work across the broadest range of servers and 3rd party modules, " . 
+			"so you should not change these settings unless you know what you are doing. " . 
+			"The 'utf8mb4' (charset) and/or 'InnoDB' (engine) may be preferable for some installations. " . 
+			"*Please note the 'InnoDB' option requires MySQL 5.6.4 or newer."
+		);
+		echo "<p style='width: 135px; float: left; margin-top: 0;'><label>DB Charset</label><br />";
+		echo "<select name='dbCharset'>";
+		echo "<option value='utf8'" . ($values['dbCharset'] != 'utf8mb4' ? " selected" : "") . ">utf8</option>";
+		echo "<option value='utf8mb4'" . ($values['dbCharset'] == 'utf8mb4' ? " selected" : "") . ">utf8mb4</option>";
+		echo "</select></p>";
+		// $this->input('dbCharset', 'DB Charset', $values['dbCharset']); 
 		echo "<p style='width: 135px; float: left; margin-top: 0;'><label>DB Engine</label><br />"; 
 		echo "<select name='dbEngine'>";
 		echo "<option value='MyISAM'" . ($values['dbEngine'] != 'InnoDB' ? " selected" : "") . ">MyISAM</option>"; 
-		echo "<option value='InnoDB'" . ($values['dbEngine'] == 'InnoDB' ? " selected" : "") . ">InnoDB</option>";
+		echo "<option value='InnoDB'" . ($values['dbEngine'] == 'InnoDB' ? " selected" : "") . ">InnoDB*</option>";
 		echo "</select></p>";
 		echo "</div>";
 
@@ -548,9 +564,9 @@ class Installer {
 			$values[$field] = trim($value); 
 		}
 	
-		$values['dbCharset'] = strtolower($values['dbCharset']); 
+		$values['dbCharset'] = ($values['dbCharset'] === 'utf8mb4' ? 'utf8mb4' : 'utf8'); 
 		$values['dbEngine'] = ($values['dbEngine'] === 'InnoDB' ? 'InnoDB' : 'MyISAM'); 
-		if(!ctype_alnum($values['dbCharset'])) $values['dbCharset'] = 'utf8';
+		// if(!ctype_alnum($values['dbCharset'])) $values['dbCharset'] = 'utf8';
 
 		if(!$values['dbUser'] || !$values['dbName'] || !$values['dbPort']) {
 			
@@ -589,10 +605,25 @@ class Installer {
 
 		$this->h("Test Database and Save Configuration");
 		$this->ok("Database connection successful to " . htmlspecialchars($values['dbName'])); 
-		$options = array('dbCharset' => strtolower($values['dbCharset']), 'dbEngine' => $values['dbEngine']); 
+		$options = array(
+			'dbCharset' => strtolower($values['dbCharset']), 
+			'dbEngine' => $values['dbEngine']
+		);
+	
+		if($options['dbEngine'] == 'InnoDB') {
+			$query = $database->query("SELECT VERSION()");
+			list($dbVersion) = $query->fetch(\PDO::FETCH_NUM);
+			if(version_compare($dbVersion, "5.6.4", "<")) {
+				$options['dbEngine'] = 'MyISAM';
+				$this->err("Your MySQL version is $dbVersion and InnoDB requires 5.6.4 or newer. Engine changed to MyISAM.");
+			}
+		}
 
-		if($this->dbSaveConfigFile($values)) $this->profileImport($database, $options);
-			else $this->dbConfig($values);
+		if($this->dbSaveConfigFile($values)) {
+			$this->profileImport($database, $options);
+		} else {
+			$this->dbConfig($values);
+		}
 	}
 
 	/**
@@ -715,7 +746,7 @@ class Installer {
 	 * Step 3b: Import profile
 	 *
 	 */
-	protected function profileImport($database) {
+	protected function profileImport($database, array $options) {
 
 		if(self::TEST_MODE) {
 			$this->ok("TEST MODE: Skipping profile import"); 
@@ -736,7 +767,7 @@ class Installer {
 
 		if(self::REPLACE_DB || !$result || $query->rowCount() == 0) {
 
-			$this->profileImportSQL($database, "./wire/core/install.sql", $profile . "install.sql"); 
+			$this->profileImportSQL($database, "./wire/core/install.sql", $profile . "install.sql", $options); 
 			
 			if(is_dir($profile . "files")) $this->profileImportFiles($profile);
 				else $this->mkdir("./site/assets/files/"); 
@@ -828,6 +859,9 @@ class Installer {
 		}
 		if($options['dbCharset'] != 'utf8') {
 			$replace['CHARSET=utf8'] = "CHARSET=$options[dbCharset]";
+			if(strtolower($options['dbCharset']) === 'utf8mb4') {
+				$replace['(255)'] = '(250)'; // max ley length in utf8mb4 is 1000 (250 * 4)
+			}
 			$this->warn("Character set has been changed to '$options[dbCharset]', please keep an eye out for issues."); 
 		}
 		if(count($replace)) $restoreOptions['findReplaceCreateTable'] = $replace; 

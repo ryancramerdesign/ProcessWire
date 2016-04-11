@@ -39,7 +39,7 @@ class FieldtypeEmail extends FieldtypeText {
 
 	public function getDatabaseSchema(Field $field) {
 		$schema = parent::getDatabaseSchema($field); 
-		$schema['data'] = "varchar(255) NOT NULL default ''";
+		$schema['data'] = "varchar(250) NOT NULL default ''";
 		return $schema;
 	}
 

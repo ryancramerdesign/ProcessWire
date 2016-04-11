@@ -1,5 +1,15 @@
 <?php namespace ProcessWire;
 
+/**
+ * ProcessWire Radios Inputfield
+ * 
+ * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * https://processwire.com
+ * 
+ * @property int $optionColumns Number of columns to display radios in, or 0 for vertical stacked, or 1 for inline (default=0)
+ * 
+ */
+
 class InputfieldRadios extends InputfieldSelect {
 
 	public static function getModuleInfo() {
