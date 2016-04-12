@@ -735,7 +735,6 @@ class Modules extends WireArray {
 	protected function load($path) {
 
 		$debugKey = $this->debug ? $this->debugTimerStart("load($path)") : null; 
-
 		$installed =& $this->modulesTableCache;
 		$modulesLoaded = array();
 		$modulesDelayed = array();
@@ -748,14 +747,15 @@ class Modules extends WireArray {
 			$pathname = trim($pathname);
 			if(empty($pathname)) continue;
 			$basename = basename($pathname);
-			list($moduleName, $ext) = explode('.', $basename, 2);
+			list($moduleName, $ext) = explode('.', $basename, 2); // i.e. "module.php" or "module"
 			
 			$this->moduleFileExts[$moduleName] = $ext === 'module' ? 1 : 2;
-			$this->setConfigPaths($moduleName, dirname($basePath . $pathname));
 			// @todo next, remove the 'file' property from verbose module info since it is redundant
 			
 			$requires = array();
+			$name = $moduleName;
 			$moduleName = $this->loadModule($path, $pathname, $requires, $installed);
+			if(!$this->wire('config')->paths->get($name)) $this->setConfigPaths($name, dirname($basePath . $pathname));
 			if(!$moduleName) continue;
 		
 			if(count($requires)) {
@@ -874,8 +874,7 @@ class Modules extends WireArray {
 		}
 
 		$info = $installed[$basename];
-	
-		// $this->setConfigPaths($basename, $dirname);
+		$this->setConfigPaths($basename, $dirname);
 		$module = null;
 		$autoload = false;
 
