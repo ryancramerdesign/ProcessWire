@@ -79,6 +79,19 @@ class AdminThemeRenoHelpers extends AdminThemeDefaultHelpers {
 		$adminTheme->$fieldName != '' ?  $avatarField = $adminTheme->$fieldName : $avatarField = '';
 		$avatarField != '' ?  $imgField = $user->get($avatarField) : $imgField = '';
 		$avatar = "<i class='fa $adminTheme->profile'></i>";
+	
+		if($user->isLoggedin() && $this->wire('process') != 'ProcessPageList') {
+			$treeLabel = $this->_('Tree');
+			$items[] = array(
+				"class" => "", 
+				"label" => "<i class='fa fa-sitemap'></i>",
+				"link" => $config->urls->admin . 'page/',
+				"attrs" => "class='pw-panel pw-panel-right' " . 
+					"data-tab-text='$treeLabel' " . 
+					"data-tab-icon='sitemap' " . 
+					"title='$treeLabel'"
+			);
+		}
 
 		// View site
 		$items[] = array(
@@ -159,7 +172,7 @@ class AdminThemeRenoHelpers extends AdminThemeDefaultHelpers {
 			// Add dropdown class if there are children
 			if($children) $class .= " dropdown";
 
-			$out .= "<li class='$class'><a href='$link'>$label</a>";
+			$out .= "<li class='$class'><a href='$link' $attrs>$label</a>";
 				if (is_array($children)){
 					$out .= "<ul>";
 						foreach($children as $child_label => $child_link){

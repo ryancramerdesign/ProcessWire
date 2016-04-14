@@ -23,6 +23,7 @@ class AdminThemeDefaultHelpers extends WireData {
 			$this->error('Error test debug', Notice::debug);
 			$this->error('Error test markup <a href="#">example</a>', Notice::allowMarkup);
 		}
+		$this->wire('modules')->get('JqueryUI')->use('panel');
 	}
 
 	/**
@@ -62,9 +63,18 @@ class AdminThemeDefaultHelpers extends WireData {
 	 *
 	 */
 	public function renderBreadcrumbs($appendCurrent = true) {
-		$out = '';
+		if($this->wire('user')->isLoggedin() && $this->wire('process') != 'ProcessPageList') {
+			$url = $this->wire('config')->urls->admin . 'page/';
+			$tree = $this->_('Tree');
+			$out = 
+				"<li><a class='pw-panel' href='$url' data-tab-text='$tree' data-tab-icon='sitemap' title='$tree'>" . 
+				"<i class='fa fa-sitemap'></i></a><i class='fa fa-angle-right'></i></li>";
+		} else {
+			$out = '';
+		}
 		foreach($this->wire('breadcrumbs') as $breadcrumb) {
-			$title = $this->wire('sanitizer')->entities1($this->_($breadcrumb->title));
+			$title = $breadcrumb->get('titleMarkup');
+			if(!$title) $title = $this->wire('sanitizer')->entities1($this->_($breadcrumb->title));
 			$out .= "<li><a href='{$breadcrumb->url}'>{$title}</a><i class='fa fa-angle-right'></i></li>";
 		}
 		if($appendCurrent) $out .= "<li class='title'>" . $this->getHeadline() . "</li>";
