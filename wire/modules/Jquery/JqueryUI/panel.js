@@ -1,7 +1,13 @@
 /**
  * ProcessWire Panels
  * 
- * Alternative to modal windows
+ * Alternative to modal windows. Creates iframe panels that load URLs. 
+ * Clicking outside the panel closes it. By default, panels load the requested 
+ * URL on mouseover of the a.pw-panel toggle link, unless the pw-panel-reload 
+ * class is specified (in which case it loads on click).
+ * 
+ * Copyright 2016 by Ryan Cramer
+ * License: MPL 2.0
  * 
  * REQUIREMENTS
  * ============
@@ -24,6 +30,7 @@
  *   <a class='pw-panel pw-panel-right' ...
  * 
  * To specify that the panel should reload the page every time it is opened, append "pw-panel-reload" class.
+ * Note that this also makes the panel load the URL on "click" of the a.pw-panel link, rather than "mouseover".
  * 
  *   <a class='pw-panel pw-panel-reload' ...
  * 
@@ -64,11 +71,13 @@
  *   pw-panel-links: Specify that links in panel should open in panel rather than parent window. 
  *     
  * Data Attributes for panel toggle element:
- *   data-panel-width: Width of panel in "px" or "%", i.e. "500px" or "50%" (default=55%)
- *   data-tab-text: Text to appear in the panel's tab
- *   data-tab-icon: Icon name to display in panel's tab (excluding the "fa-" part)
+ *   data-panel-id: ID of element to serve as the panel content (if not using a URL). 
+ *   data-panel-width: Width of panel in "px" or "%", i.e. "500px" or "50%" (default=55%).
+ *   data-tab-text: Text to appear in the panel's tab.
+ *   data-tab-icon: Icon name to display in panel's tab (excluding the "fa-" part).
  *   data-tab-offset: Integer tab offset in px from top of bottom of screen (negative number for bottom offset). 
- *   data-href: Use to specify panel URL when element is something other than <a>
+ *   data-href: Use to specify panel URL when element is something other than <a>.
+ *   
  *     
  * 
  */
@@ -106,43 +115,35 @@ var pwPanels = {
 			// initialize a page with panels in it
 			$('.pw-panel').each(function() {
 				var $toggler = $(this);
-				var href = $toggler.attr('data-href');
-				// allow for use of data-href or href attribute that references URL to load in panel
-				if(typeof href == 'undefined' || !href.length) href = $toggler.attr('href');
-				pwPanels.add(href, $toggler);
+				pwPanels.addPanel($toggler);
 			});
 		}
 	},
-
+	
 	/**
-	 * Add a new panel
+	 * Add a new panel 
 	 * 
-	 * @param panelURL URL the panel should open
-	 * @param toggler Element that toggles the panel (or selector to the element)
+	 * @param toggler Element that toggles the panel
 	 * 
 	 */
-	add: function(panelURL, toggler) {
+	addPanel: function($toggler) {
 		
-		// determine whether toggler is element or selector string
-		var $toggler = null;
-
-		if(typeof toggler == 'object') {
-			// ready to use element
-			$toggler = toggler;
-		} else if(typeof toggler != 'undefined') {
-			// selector
-			$toggler = $(toggler);
+		var panelURL = $toggler.attr('data-href');
+		var panelID = $toggler.attr('data-panel-id');
+		var panelContainerID = 'pw-panel-container-' + (++pwPanels.qty);
+		
+		// allow for use of data-href or href attribute that references URL to load in panel
+		if(typeof panelURL == 'undefined' || !panelURL.length) panelURL = $toggler.attr('href');
+		
+		if(typeof panelURL != 'undefined' && panelURL.length) {
+			panelURL += (panelURL.indexOf('?') > -1 ? '&' : '?') + 'modal=panel&pw_panel=';
+			
+			if($toggler !== null && $toggler.hasClass('pw-panel-links')) {
+				panelURL += '2'; // don't update target of links in panel
+			} else {
+				panelURL += '1'; // update target of links in panel
+			}
 		}
-
-		panelURL += (panelURL.indexOf('?') > -1 ? '&' : '?') + 'modal=panel&pw_panel=';
-		
-		if($toggler !== null && $toggler.hasClass('pw-panel-links')) {
-			panelURL += '2'; // don't update target of links in panel
-		} else {
-			panelURL += '1'; // update target of links in panel
-		}
-		
-		var panelID = 'pw-panel-container-' + (++pwPanels.qty);
 		
 		var $icon = $('<i />')
 			.attr('class', 'pw-panel-icon fa fa-angle-double-left');
@@ -159,15 +160,21 @@ var pwPanels = {
 			.append($span);
 		
 		var $panel = $('<div />')
-			.attr('id', panelID)
+			.attr('id', panelContainerID)
 			.attr('class', 'pw-panel-container pw-panel-container-closed')
 			.append($btn);
 		
 		$('body').append($panel);
-	
+		
+		if(typeof panelID != 'undefined' && panelID.length) {
+			// loading an in-page element rather than a URL
+			$('#' + panelID).hide().addClass('pw-panel-element'); // class assigned to in-page element
+			$panel.addClass('pw-panel-container-element').attr('data-panel-id', panelID);
+		}
+
 		// panel toggler
 		if($toggler !== null) {
-			pwPanels.initToggler(toggler, $btn, $panel);
+			pwPanels.initToggler($toggler, $btn, $panel);
 		} else {
 			$panel.addClass('pw-panel-left');
 		}
@@ -256,23 +263,34 @@ var pwPanels = {
 	},
 
 	/**
-	 * Populate the panel iframe and return it
+	 * Populate the panel content (iframe if using URL) and return it
 	 * 
 	 */
 	initPanelContent: function($panel) {
 		
-		var $iframe = $panel.find('iframe.pw-panel-content');
+		var $content = $panel.find('.pw-panel-content');
+		var panelID = $panel.attr('data-panel-id');
 		
-		if($iframe.length) {
-			return $iframe;
+		if($content.length) {
+			return $content;
+		} else if(typeof panelID != "undefined") {
+			var $panelTarget = $('#' + panelID);
+			// var $btn = $panel.find('.pw-panel-button').addClass(panelID + '-pw-panel-button'); // if needed for external trigger
+			if($panelTarget.length) {
+				$content = $('<div />').addClass('pw-panel-content').css('overflow', 'auto');
+				$panel.append($content);
+				$content.append($panelTarget);
+				$panelTarget.show();
+				$panelTarget.trigger('pw-panel-init');
+			}
 		} else {
-			$iframe = $('<iframe />')
+			$content = $('<iframe />')
 				.addClass('pw-panel-content')
 				.attr('src', $panel.attr('data-href'));
-			$panel.append($iframe);
+			$panel.append($content);
 		}
 		
-		return $iframe;
+		return $content;
 	}, 
 
 	/**
@@ -303,7 +321,9 @@ var pwPanels = {
 
 		var $btn = $(this);
 		var $panel = $btn.closest('.pw-panel-container');
+		var $panelContent = $panel.find('.pw-panel-content');
 		var isOpen = $panel.hasClass('pw-panel-container-open');
+		var isLoaded = $panel.hasClass('pw-panel-container-loaded');
 		var panelWidth = $panel.width();
 		var panelSide = $panel.hasClass('pw-panel-right') ? 'right' : 'left';
 		var hasJQUI = typeof jQuery.ui != "undefined";
@@ -358,7 +378,7 @@ var pwPanels = {
 
 			// open the panel
 			
-			if($panel.hasClass('pw-panel-reload')) {
+			if($panel.hasClass('pw-panel-reload') || !isLoaded) {
 				// tell the panel to load or reload, since mouseover even didn't
 				pwPanels.initPanelContent($panel);
 			}

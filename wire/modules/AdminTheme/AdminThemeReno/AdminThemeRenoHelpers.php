@@ -80,17 +80,28 @@ class AdminThemeRenoHelpers extends AdminThemeDefaultHelpers {
 		$avatarField != '' ?  $imgField = $user->get($avatarField) : $imgField = '';
 		$avatar = "<i class='fa $adminTheme->profile'></i>";
 	
-		if($user->isLoggedin() && $this->wire('process') != 'ProcessPageList') {
-			$treeLabel = $this->_('Tree');
-			$items[] = array(
-				"class" => "", 
-				"label" => "<i class='fa fa-sitemap'></i>",
-				"link" => $config->urls->admin . 'page/',
-				"attrs" => "class='pw-panel pw-panel-right' " . 
-					"data-tab-text='$treeLabel' " . 
-					"data-tab-icon='sitemap' " . 
-					"title='$treeLabel'"
-			);
+		if($user->isLoggedin() && !$this->session->get('touch')) { 
+			if($config->debug) {
+				$debugLabel = __('Debug Mode Tools', '/wire/templates-admin/debug.inc');
+				$items[] = array(
+					"class" => "",
+					"label" => "<i class='fa fa-cog'></i>",
+					"link" => "#",
+					"attrs" => "title='$debugLabel' onclick=\"$('#debug_toggle').click();return false;\"", 
+				);
+			}
+			if($this->wire('process') != 'ProcessPageList') {
+				$treeLabel = $this->_('Tree');
+				$items[] = array(
+					"class" => "",
+					"label" => "<i class='fa fa-sitemap'></i>",
+					"link" => $config->urls->admin . 'page/',
+					"attrs" => "class='pw-panel pw-panel-right' " .
+						"data-tab-text='$treeLabel' " .
+						"data-tab-icon='sitemap' " .
+						"title='$treeLabel'"
+				);
+			}
 		}
 
 		// View site

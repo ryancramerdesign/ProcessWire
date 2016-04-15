@@ -63,21 +63,38 @@ class AdminThemeDefaultHelpers extends WireData {
 	 *
 	 */
 	public function renderBreadcrumbs($appendCurrent = true) {
-		if($this->wire('user')->isLoggedin() && $this->wire('process') != 'ProcessPageList') {
-			$url = $this->wire('config')->urls->admin . 'page/';
-			$tree = $this->_('Tree');
-			$out = 
-				"<li><a class='pw-panel' href='$url' data-tab-text='$tree' data-tab-icon='sitemap' title='$tree'>" . 
-				"<i class='fa fa-sitemap'></i></a><i class='fa fa-angle-right'></i></li>";
-		} else {
-			$out = '';
+		
+		$out = '';
+		$loggedin = $this->wire('user')->isLoggedin();
+		$touch = $this->wire('session')->get('touch');
+		$separator = "<i class='fa fa-angle-right'></i>";
+	
+		if(!$touch && $loggedin && $this->className() == 'AdminThemeDefaultHelpers') {
+			
+			if($this->wire('config')->debug) {
+				$label = __('Debug Mode Tools', '/wire/templates-admin/debug.inc');
+				$out .=
+					"<li><a href='#' title='$label' onclick=\"$('#debug_toggle').click();return false;\">" .
+					"<i class='fa fa-cog'></i></a>$separator</li>";
+			}
+
+			if($this->wire('process') != 'ProcessPageList') {
+				$url = $this->wire('config')->urls->admin . 'page/';
+				$tree = $this->_('Tree');
+				$out .=
+					"<li><a class='pw-panel' href='$url' data-tab-text='$tree' data-tab-icon='sitemap' title='$tree'>" .
+					"<i class='fa fa-sitemap'></i></a>$separator</li>";
+			}
 		}
+		
 		foreach($this->wire('breadcrumbs') as $breadcrumb) {
 			$title = $breadcrumb->get('titleMarkup');
 			if(!$title) $title = $this->wire('sanitizer')->entities1($this->_($breadcrumb->title));
-			$out .= "<li><a href='{$breadcrumb->url}'>{$title}</a><i class='fa fa-angle-right'></i></li>";
+			$out .= "<li><a href='{$breadcrumb->url}'>{$title}</a>$separator</li>";
 		}
+		
 		if($appendCurrent) $out .= "<li class='title'>" . $this->getHeadline() . "</li>";
+		
 		return $out; 
 	}
 
