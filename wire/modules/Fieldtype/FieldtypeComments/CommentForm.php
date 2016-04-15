@@ -390,13 +390,13 @@ class CommentForm extends Wire implements CommentFormInterface {
 			"\n\t<p class='CommentFormCite {$id}_cite'>" .
 			"\n\t\t<label>" . 
 			"\n\t\t\t<span>$labels[cite]</span> " .
-			"\n\t\t\t<input type='text' name='cite' class='required' required='required' value='$inputValues[cite]' maxlength='128' />" .
+			"\n\t\t\t<input type='text' name='cite' class='required' required='required' id='{$id}_cite' value='$inputValues[cite]' maxlength='128' />" .
 			"\n\t\t</label> " .
 			"\n\t</p>" .
 			"\n\t<p class='CommentFormEmail {$id}_email'>" .
 			"\n\t\t<label>" . 
 			"\n\t\t\t<span>$labels[email]</span> " . 
-			"\n\t\t\t<input type='email' name='email' class='required email' required='required' value='$inputValues[email]' maxlength='255' />" .
+			"\n\t\t\t<input type='email' name='email' class='required email' required='required' id='{$id}_email' value='$inputValues[email]' maxlength='255' />" .
 			"\n\t\t</label>" . 
 			"\n\t</p>";
 
@@ -405,7 +405,7 @@ class CommentForm extends Wire implements CommentFormInterface {
 				"\n\t<p class='CommentFormWebsite {$id}_website'>" .
 				"\n\t\t<label>" . 
 				"\n\t\t\t<span>$labels[website]</span> " .
-				"\n\t\t\t<input type='text' name='website' class='website' value='$inputValues[website]' maxlength='255' />" .
+				"\n\t\t\t<input type='text' name='website' class='website' id='{$id}_website' value='$inputValues[website]' maxlength='255' />" .
 				"\n\t\t</label>" . 
 				"\n\t</p>";
 		}
@@ -433,7 +433,7 @@ class CommentForm extends Wire implements CommentFormInterface {
 			"\n\t<p class='CommentFormText {$id}_text'>" .
 			"\n\t\t<label>" .
 			"\n\t\t\t<span>$labels[text]</span>" .
-			"\n\t\t\t<textarea name='text' class='required' required='required' rows='$attrs[rows]' cols='$attrs[cols]'>$inputValues[text]</textarea>" .
+			"\n\t\t\t<textarea name='text' class='required' required='required' id='{$id}_text' rows='$attrs[rows]' cols='$attrs[cols]'>$inputValues[text]</textarea>" .
 			"\n\t\t</label>" . 
 			"\n\t</p>" .
 			$this->renderNotifyOptions() . 
