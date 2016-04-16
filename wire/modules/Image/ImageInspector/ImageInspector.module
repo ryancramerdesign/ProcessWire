@@ -1,0 +1,334 @@
+<?php namespace ProcessWire;
+
+/**
+ * ImageInspector by Horst
+ *
+ */
+class ImageInspector extends WireData implements Module, ConfigurableModule {
+
+    public static function getModuleInfo() {
+        return array(
+            'title' => 'Image Inspector',
+            'version' => 1,
+            'summary' => "Upgrades ImageSizer and ImageSizerEngines with more in depth information of imagefiles and -formats.",
+            'author' => 'Horst Nogajski',
+            #'permanent' => true,
+            'autoload' => false,
+            'singular' => false
+        );
+    }
+
+	/**
+	 * Filename to be inspected
+	 *
+	 * @var string
+	 *
+	 */
+	protected $filename;
+
+	/**
+	 * Extension of filename
+	 *
+	 * @var string
+	 *
+	 */
+	protected $extension;
+
+	/**
+	 * Information about the image
+	 *
+	 * @var array|null
+	 *
+	 */
+	protected $info = null;
+    
+	/**
+	 * Supported image types
+	 *
+	 * @var array
+	 *
+	 */
+	protected $supportedImageTypes = array(
+		'gif' => \IMAGETYPE_GIF,
+		'jpg' => \IMAGETYPE_JPEG,
+		'jpeg' => \IMAGETYPE_JPEG,
+		'png' => \IMAGETYPE_PNG
+	);
+    
+	/**
+	 * Supported mime types
+	 *
+	 * @var array
+	 *
+	 */
+	protected $supportedMimeTypes = array(
+		\IMAGETYPE_GIF => 'image/gif',
+		\IMAGETYPE_JPEG => 'image/jpeg',
+		\IMAGETYPE_PNG => 'image/png'
+	);
+
+
+
+	public function __construct($filename = '') {
+		parent::__construct();
+        if($filename && is_readable($filename)) {
+            $this->filename = $filename;
+        }
+	}
+
+
+	/**
+	 * parse Image and return information
+	 *
+	 * @param string $filename the file we want to inspect
+	 * @param bool $parseAppmarker (IPTC), default is FALSE
+	 * @return null|false|array
+	 *
+	 */
+	public function inspect($filename = '', $parseAppmarker = false) {
+        if($filename) $this->filename = $filename;
+        if(!$this->filename || !is_readable($this->filename)) return null;
+	    if(!$this->extension) $this->extension = pathinfo($this->filename, \PATHINFO_EXTENSION);
+		$this->extension = strtolower($this->extension);
+
+		$additionalInfo = array();
+        $info = @getimagesize($filename, $additionalInfo);
+		if($info === false) return false;
+
+		// read basic data
+		if(isset($info[2])) {
+			$imageType = $info[2];
+		} else if(function_exists("exif_imagetype")) {
+			$imageType = exif_imagetype($this->filename);
+		} else if(isset($this->supportedImageTypes[$this->extension])) {
+			$imageType = $this->supportedImageTypes[$this->extension];
+		}
+        $this->info['width'] = $info[0];
+        $this->info['height'] = $info[1];
+        $this->info['imageType'] = $imageType;
+		$this->info['mime'] = isset($this->supportedMimeTypes[$imageType]) ? $this->supportedMimeTypes[$imageType] : 'unsupported';
+
+		// additional, more indepth data
+		$this->info['channels'] = isset($info['channels']) ? $info['channels'] : -1;
+		$this->info['bits'] = isset($info['bits']) ? $info['bits'] : -1;
+		switch($imageType) {
+			case \IMAGETYPE_GIF:
+				$this->loadImageInfoGif();
+				break;
+			case \IMAGETYPE_JPEG:
+				$this->loadImageInfoJpg();
+				break;
+			case \IMAGETYPE_PNG:
+				$this->loadImageInfoPng();
+				break;
+		}
+		
+        // read appmarker metadata if present
+		$this->info['appmarker'] = $iptcRaw = null;
+		if(is_array($additionalInfo) && $parseAppmarker) {
+			$appmarker = array();
+			foreach($additionalInfo as $k => $v) {
+				$appmarker[$k] = substr($v, 0, strpos($v, null));
+			}
+			$this->info['appmarker'] = $appmarker;
+			if(isset($additionalInfo['APP13'])) {
+				$iptc = iptcparse($additionalInfo['APP13']);
+				if(is_array($iptc)) $iptcRaw = $iptc;
+			}
+		}
+
+		// return the result
+		return array(
+			'filename' => $this->filename,
+			'extension' => $this->extension,
+			'imageType' => $imageType,
+			'info' => $this->info,
+			'iptcRaw' => $iptcRaw
+		);
+	}
+    
+	
+	/**
+	 * parse PNG Image and collect information into $this->info
+	 *
+	 * @return bool
+	 *
+	 */
+	protected function loadImageInfoPng() {
+        @require_once(__DIR__ . '/ImageInspectorPng.php');
+	    $png = new PWPNG();
+	    if(!$png->loadFile($this->filename)) {
+	        return false;
+	    }
+        $this->info = array_merge($this->info, $png->info);
+        unset($png);
+		return true;
+	}
+
+
+	/**
+	 * parse GIF Image and collect information into $this->info
+	 *
+	 * @return bool
+	 *
+	 */
+	protected function loadImageInfoGif() {
+        @require_once(__DIR__ . '/ImageInspectorGif.php');
+	    $gif = new PWGIF(false);  // passing true also loads BitmapData
+		$iIndex = 0;
+	    if(!$gif->loadFile($this->filename, $iIndex)) {
+	        return false;
+	    }
+        $gi  = $gif->m_img;         // = CGIFIMAGE
+        $gfh = $gif->m_gfh;         // = CGIFFILEHEADER
+        $gih = $gif->m_img->m_gih;  // = CGIFIMAGEHEADER
+        $i = $this->info;
+        $i['width']       = $gfh->m_nWidth;
+        $i['height']      = $gfh->m_nHeight;
+		$i['gifversion']  = $gfh->m_lpVer;
+        $i['animated']    = $gfh->m_bAnimated;
+        $i['delay']       = $gi->m_nDelay;
+		$i['trans']       = $gi->m_bTrans;
+		$i['transcolor']  = $gi->m_nTrans;
+		$i['bgcolor']     = $gfh->m_nBgColor;
+		$i['numcolors']   = $gfh->m_colorTable->m_nColors;
+		$i['interlace']   = $gih->m_bInterlace;
+        $this->info = $i;
+        unset($gif, $gih, $gfh, $gi, $i);
+		return true;
+		//    CGIFFILEHEADER
+		//        numColors = m_colorTable->m_nColors
+		//        m_lpVer
+		//        m_nWidth
+		//        m_nHeight
+		//        m_bGlobalClr
+		//        m_nColorRes
+		//        m_bSorted
+		//        m_nTableSize
+		//        m_nBgColor
+		//        m_nPixelRatio
+		//        m_bAnimated
+		//
+		//    CGIFIMAGEHEADER
+		//        m_nLeft
+		//        m_nTop
+		//        m_nWidth
+		//        m_nHeight
+		//        m_bLocalClr
+		//        m_bInterlace
+		//        m_bSorted
+		//        m_nTableSize
+		//        m_colorTable
+		//
+		//    CGIFIMAGE
+		//        m_disp
+		//        m_bUser
+		//        m_bTrans
+		//        m_nDelay
+		//        m_nTrans
+		//        m_lpComm
+	}
+
+    
+	/**
+	 * parse JPEG Image and collect information into $this->info
+	 *
+	 * @return bool
+	 *
+	 */
+	protected function loadImageInfoJpg() {}
+
+
+	/**
+	 * Module info: not-autoload
+	 * 
+	 * @return bool
+	 * 
+	 */
+	public function isAutoload() {
+		return false;
+	}
+
+	/**
+	 * Module info: not singular
+	 * 
+	 * @return bool
+	 * 
+	 */
+	public function isSingular() {
+		return false;
+	}
+
+	/**
+	 * Set module config data for ConfigurableModule interface
+	 * 
+	 * @param array $data
+	 * 
+	 */
+	public function setConfigData(array $data) {
+		if(count($data)) $this->moduleConfigData = $data;
+		foreach($data as $key => $value) {
+			if($key == 'sharpening') {
+				$this->setSharpening($value);
+			} else if($key == 'quality') {
+				$this->setQuality($value);
+			} else {
+				$this->set($key, $value);
+			}
+		}
+	}
+
+	/**
+	 * Get module config data
+	 * 
+	 * @return array
+	 * 
+	 */
+	public function getConfigData() {
+		return $this->moduleConfigData;
+	}
+
+	/**
+	 * Module configuration
+	 * 
+	 * @param InputfieldWrapper $inputfields
+	 * 
+	 */
+	public function getModuleConfigInputfields(InputfieldWrapper $inputfields) {
+		
+//		$f = $this->wire('modules')->get('InputfieldRadios');
+//		$f->attr('name', 'inspector_depth_jpg');
+//		$f->label = $this->_('JPEG');
+//		$f->addOption('medium', $this->_('medium'));
+//		$f->addOption('full', $this->_('full'));
+//		$f->optionColumns = 1;
+//		$f->attr('value', $this->inspector_depth_jpg);
+//		$f->icon = 'image';
+//		$f->width = 33;
+//		$inputfields->add($f);
+//		
+//		$f = $this->wire('modules')->get('InputfieldRadios');
+//		$f->attr('name', 'inspector_depth_png');
+//		$f->label = $this->_('PNG');
+//		$f->addOption('medium', $this->_('medium'));
+//		$f->addOption('full', $this->_('full'));
+//		$f->optionColumns = 1;
+//		$f->attr('value', $this->inspector_depth_png);
+//		$f->icon = 'image';
+//		$f->width = 34;
+//		$inputfields->add($f);
+//		
+//		$f = $this->wire('modules')->get('InputfieldRadios');
+//		$f->attr('name', 'inspector_depth_gif');
+//		$f->label = $this->_('GIF');
+//		$f->addOption('medium', $this->_('medium'));
+//		$f->addOption('full', $this->_('full'));
+//		$f->optionColumns = 1;
+//		$f->attr('value', $this->inspector_depth_gif);
+//		$f->icon = 'image';
+//		$f->width = 33;
+//		$inputfields->add($f);
+
+	}
+
+}
