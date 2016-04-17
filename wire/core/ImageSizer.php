@@ -150,8 +150,12 @@ class ImageSizer extends Wire {
 	protected function newImageSizerEngine($filename = '', array $options = array(), $inspectionResult = null) {
 		
 		if(empty($filename)) $filename = $this->filename;
-		if(empty($inspectionResult)) $inspectionResult = $this->inspectionResult;
 		if(empty($options)) $options = $this->initialOptions;
+		if(empty($inspectionResult)) $inspectionResult = $this->inspectionResult;
+		if($filename && is_readable($filename) && empty($inspectionResult)) {
+			$imageInspector = new ImageInspector($filename);
+			$this->inspectionResult = $inspectionResult = $imageInspector->inspect($filename, true);
+		}
 		
 		$engine = null;
 	
@@ -170,7 +174,8 @@ class ImageSizer extends Wire {
 			// fallback to default
 			$engine = $this->newDefaultImageSizerEngine($filename, $options, $inspectionResult);
 		}
-		
+
+my_var_dump(array($this->getImageInfo(), $engine->className), 1);
 		return $engine;
 	}
 
@@ -344,25 +349,25 @@ class ImageSizer extends Wire {
 		$imageType = $this->inspectionResult['info']['imageType'];
 		switch($imageType) {
 			case \IMAGETYPE_JPEG:
-				$extension = 'jpg';
+				$type = 'jpg';
 				$indexed = '';
 				$trans = '';
 				$animated = '';
 				break;
 			case \IMAGETYPE_GIF:
-				$extension = 'gif';
+				$type = 'gif';
 				$indexed = '';
 				$trans = $this->inspectionResult['info']['trans'] ? '-trans' : '';
 				$animated = $this->inspectionResult['info']['animated'] ? '-anim' : '';
 				break;
 			case \IMAGETYPE_PNG:
-				$extension = 'png';
+				$type = 'png';
 				$indexed = 'Indexed' == $this->inspectionResult['info']['colspace'] ? '8' : '24';
 				$trans = is_array($this->inspectionResult['info']['trans']) || $this->inspectionResult['info']['alpha'] ? '-trans' : '';
 				$animated = '';
 				break;
 		}
-		return $extension . $indexed . $trans . $animated;
+		return $type . $indexed . $trans . $animated;
 	}
 
 	/**
