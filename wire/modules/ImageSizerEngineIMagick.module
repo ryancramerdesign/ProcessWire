@@ -111,7 +111,7 @@ class ImageSizerEngineIMagick extends ImageSizerEngine {
 	}
 
 	/**
-	 * Is IMagick supported?
+	 * Is IMagick supported? Is the current image(sub)format supported?
 	 * 
 	 * @param string $action
 	 * @return bool
@@ -120,12 +120,20 @@ class ImageSizerEngineIMagick extends ImageSizerEngine {
 	public function supported($action = '') {
 		if(!class_exists("\\IMagick")) return false;
 		if($action == 'install') return true;
-		$filename = $this->getFilename();
-		if($filename) {
-			$exts = array('jpg', 'jpeg', 'png');
-			if(!in_array(strtolower(pathinfo($filename, \PATHINFO_EXTENSION)), $exts)) return false;
+		// compare current imagefile infos fetched from ImageInspector
+		$requested = $this->getImageInfo(false);
+my_var_dump($requested, 1);
+
+		switch($requested) {
+			case 'jpg':
+				return true;
+			case 'png24':
+			case 'png24-trans':
+			case 'png24-alpha':
+				return true;
+			default:
+				return false;
 		}
-		return true;
 	}
 
 	/**
