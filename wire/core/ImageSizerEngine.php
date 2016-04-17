@@ -342,6 +342,7 @@ abstract class ImageSizerEngine extends WireData implements Module, Configurable
 		$this->setTimeLimit();
 
 		// when invoked from Pageimage, $inspectionResult holds the InfoCollection from ImageInspector, otherwise NULL
+		// if it is invoked manually and its value is NULL, the method loadImageInfo() will fetch the infos
 		$this->inspectionResult = $inspectionResult;
 
 		// filling all options with global custom values from config.php
@@ -1150,6 +1151,40 @@ abstract class ImageSizerEngine extends WireData implements Module, Configurable
 	 */
 	public function getImageType() {
 		return $this->imageType;
+	}
+
+	/**
+	 * ImageInformation from Image Inspector
+	 * in short form or full RawInfoData
+	 *
+	 * @param bool $rawData
+	 * @return string|array
+	 *
+	 */
+	protected function getImageInfo($rawData = false) {
+		if($rawData) return $this->inspectionResult;
+		$imageType = $this->inspectionResult['info']['imageType'];
+		switch($imageType) {
+			case \IMAGETYPE_JPEG:
+				$type = 'jpg';
+				$indexed = '';
+				$trans = '';
+				$animated = '';
+				break;
+			case \IMAGETYPE_GIF:
+				$type = 'gif';
+				$indexed = '';
+				$trans = $this->inspectionResult['info']['trans'] ? '-trans' : '';
+				$animated = $this->inspectionResult['info']['animated'] ? '-anim' : '';
+				break;
+			case \IMAGETYPE_PNG:
+				$type = 'png';
+				$indexed = 'Indexed' == $this->inspectionResult['info']['colspace'] ? '8' : '24';
+				$trans = is_array($this->inspectionResult['info']['trans']) || $this->inspectionResult['info']['alpha'] ? '-trans' : '';
+				$animated = '';
+				break;
+		}
+		return $type . $indexed . $trans . $animated;
 	}
 
 	/**
