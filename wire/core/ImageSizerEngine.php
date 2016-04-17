@@ -363,7 +363,7 @@ abstract class ImageSizerEngine extends WireData implements Module, Configurable
 	 * @return bool
 	 *
 	 */
-	abstract public function supported($action = '');
+	abstract public function supported($action = 'imageformat');
 
 	/**
 	 * Process the image resize
@@ -1180,7 +1180,8 @@ abstract class ImageSizerEngine extends WireData implements Module, Configurable
 			case \IMAGETYPE_PNG:
 				$type = 'png';
 				$indexed = 'Indexed' == $this->inspectionResult['info']['colspace'] ? '8' : '24';
-				$trans = is_array($this->inspectionResult['info']['trans']) || $this->inspectionResult['info']['alpha'] ? '-trans' : '';
+				$trans = is_array($this->inspectionResult['info']['trans']) ? '-trans' : '';
+				$trans = $this->inspectionResult['info']['alpha'] ? '-alpha' : $trans;
 				$animated = '';
 				break;
 		}

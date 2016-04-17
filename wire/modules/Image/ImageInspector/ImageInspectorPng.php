@@ -25,23 +25,23 @@ class PWPNG {
 	protected $extended;
 
 
-    public function __construct($extended = false) {
-    	$this->extended = $extended;
-    }
+	public function __construct($extended = false) {
+		$this->extended = $extended;
+	}
 
 
-    public function loadFile($lpszFileName) {
-        // READ FILE
-        if(!($fh = @fopen($lpszFileName, 'rb'))) {
+	public function loadFile($lpszFileName) {
+		// READ FILE
+		if(!($fh = @fopen($lpszFileName, 'rb'))) {
 			$this->Error('Can\'t open image file: '.$file);
-            return false;
-        }
+			return false;
+		}
 		$ret = (false === $this->_parsepngstream($fh, basename($lpszFileName))) ? false : true;
-        fclose($fh);
-        return $ret;
-    }
-    
-    
+		fclose($fh);
+		return $ret;
+	}
+
+
 	protected function _parsepngstream($f, $file) {
 		// Check signature
 		if($this->_readstream($f, 8) != chr(137) . 'PNG' . chr(13) . chr(10) . chr(26) . chr(10)) {
@@ -159,10 +159,10 @@ class PWPNG {
 		$a = unpack('Ni',$this->_readstream($f,4));
 		return $a['i'];
 	}
-    
-    
-    protected function Error($msg) {
+
+
+	protected function Error($msg) {
 		$this->errors[] = $msg;
-    }
-    
+	}
+	
 }

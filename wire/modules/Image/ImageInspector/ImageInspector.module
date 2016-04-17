@@ -6,17 +6,17 @@
  */
 class ImageInspector extends WireData implements Module, ConfigurableModule {
 
-    public static function getModuleInfo() {
-        return array(
-            'title' => 'Image Inspector',
-            'version' => 1,
-            'summary' => "Upgrades ImageSizer and ImageSizerEngines with more in depth information of imagefiles and -formats.",
-            'author' => 'Horst Nogajski',
-            #'permanent' => true,
-            'autoload' => false,
-            'singular' => false
-        );
-    }
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Image Inspector',
+			'version' => 2,
+			'summary' => "Upgrades ImageSizer and ImageSizerEngines with more in depth information of imagefiles and -formats.",
+			'author' => 'Horst Nogajski',
+			#'permanent' => true,
+			'autoload' => false,
+			'singular' => false
+		);
+	}
 
 	/**
 	 * Filename to be inspected
@@ -71,9 +71,9 @@ class ImageInspector extends WireData implements Module, ConfigurableModule {
 
 	public function __construct($filename = '') {
 		parent::__construct();
-        if($filename && is_readable($filename)) {
-            $this->filename = $filename;
-        }
+		if($filename && is_readable($filename)) {
+			$this->filename = $filename;
+		}
 	}
 
 
@@ -86,13 +86,13 @@ class ImageInspector extends WireData implements Module, ConfigurableModule {
 	 *
 	 */
 	public function inspect($filename = '', $parseAppmarker = false) {
-        if($filename) $this->filename = $filename;
-        if(!$this->filename || !is_readable($this->filename)) return null;
-	    if(!$this->extension) $this->extension = pathinfo($this->filename, \PATHINFO_EXTENSION);
+		if($filename) $this->filename = $filename;
+		if(!$this->filename || !is_readable($this->filename)) return null;
+		if(!$this->extension) $this->extension = pathinfo($this->filename, \PATHINFO_EXTENSION);
 		$this->extension = strtolower($this->extension);
 
 		$additionalInfo = array();
-        $info = @getimagesize($filename, $additionalInfo);
+		$info = @getimagesize($filename, $additionalInfo);
 		if($info === false) return false;
 
 		// read basic data
@@ -103,9 +103,9 @@ class ImageInspector extends WireData implements Module, ConfigurableModule {
 		} else if(isset($this->supportedImageTypes[$this->extension])) {
 			$imageType = $this->supportedImageTypes[$this->extension];
 		}
-        $this->info['width'] = $info[0];
-        $this->info['height'] = $info[1];
-        $this->info['imageType'] = $imageType;
+		$this->info['width'] = $info[0];
+		$this->info['height'] = $info[1];
+		$this->info['imageType'] = $imageType;
 		$this->info['mime'] = isset($this->supportedMimeTypes[$imageType]) ? $this->supportedMimeTypes[$imageType] : 'unsupported';
 
 		// additional, more indepth data
@@ -123,7 +123,7 @@ class ImageInspector extends WireData implements Module, ConfigurableModule {
 				break;
 		}
 		
-        // read appmarker metadata if present
+		// read appmarker metadata if present
 		$this->info['appmarker'] = $iptcRaw = null;
 		if(is_array($additionalInfo) && $parseAppmarker) {
 			$appmarker = array();
@@ -155,13 +155,13 @@ class ImageInspector extends WireData implements Module, ConfigurableModule {
 	 *
 	 */
 	protected function loadImageInfoPng() {
-        @require_once(__DIR__ . '/ImageInspectorPng.php');
-	    $png = new PWPNG();
-	    if(!$png->loadFile($this->filename)) {
-	        return false;
-	    }
-        $this->info = array_merge($this->info, $png->info);
-        unset($png);
+		@require_once(__DIR__ . '/ImageInspectorPng.php');
+		$png = new PWPNG();
+		if(!$png->loadFile($this->filename)) {
+			return false;
+		}
+		$this->info = array_merge($this->info, $png->info);
+		unset($png);
 		return true;
 	}
 
@@ -173,28 +173,28 @@ class ImageInspector extends WireData implements Module, ConfigurableModule {
 	 *
 	 */
 	protected function loadImageInfoGif() {
-        @require_once(__DIR__ . '/ImageInspectorGif.php');
-	    $gif = new PWGIF(false);  // passing true also loads BitmapData
+		@require_once(__DIR__ . '/ImageInspectorGif.php');
+		$gif = new PWGIF(false);  // passing true also loads BitmapData
 		$iIndex = 0;
-	    if(!$gif->loadFile($this->filename, $iIndex)) {
-	        return false;
-	    }
-        $gi  = $gif->m_img;         // = CGIFIMAGE
-        $gfh = $gif->m_gfh;         // = CGIFFILEHEADER
-        $gih = $gif->m_img->m_gih;  // = CGIFIMAGEHEADER
-        $i = $this->info;
-        $i['width']       = $gfh->m_nWidth;
-        $i['height']      = $gfh->m_nHeight;
-		$i['gifversion']  = $gfh->m_lpVer;
-        $i['animated']    = $gfh->m_bAnimated;
-        $i['delay']       = $gi->m_nDelay;
-		$i['trans']       = $gi->m_bTrans;
-		$i['transcolor']  = $gi->m_nTrans;
-		$i['bgcolor']     = $gfh->m_nBgColor;
-		$i['numcolors']   = $gfh->m_colorTable->m_nColors;
-		$i['interlace']   = $gih->m_bInterlace;
-        $this->info = $i;
-        unset($gif, $gih, $gfh, $gi, $i);
+		if(!$gif->loadFile($this->filename, $iIndex)) {
+			return false;
+		}
+		$gi  = $gif->m_img;			// = CGIFIMAGE
+		$gfh = $gif->m_gfh;			// = CGIFFILEHEADER
+		$gih = $gif->m_img->m_gih;	// = CGIFIMAGEHEADER
+		$i = $this->info;
+		$i['width']			= $gfh->m_nWidth;
+		$i['height']		= $gfh->m_nHeight;
+		$i['gifversion']	= $gfh->m_lpVer;
+		$i['animated']		= $gfh->m_bAnimated;
+		$i['delay']			= $gi->m_nDelay;
+		$i['trans']			= $gi->m_bTrans;
+		$i['transcolor']	= $gi->m_nTrans;
+		$i['bgcolor']		= $gfh->m_nBgColor;
+		$i['numcolors']		= $gfh->m_colorTable->m_nColors;
+		$i['interlace']		= $gih->m_bInterlace;
+		$this->info = $i;
+		unset($gif, $gih, $gfh, $gi, $i);
 		return true;
 		//    CGIFFILEHEADER
 		//        numColors = m_colorTable->m_nColors

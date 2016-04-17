@@ -52,26 +52,41 @@ class ImageSizerEngineGD extends ImageSizerEngine {
 	 * @return bool
 	 * 
 	 */
-	public function supported($action = '') {
+	public function supported($action = 'imageformat') {
+
+		// first we check parts that are mandatory for all $actions
 		if(!function_exists('gd_info')) return false;
-		// compare current imagefile infos fetched from ImageInspector
-		$requested = $this->getImageInfo(false);
-		switch($requested) {
-			case 'gif-anim':
-			case 'gif-trans-anim':
-				// Animated GIF images are not supported, but GD will render the first iamge of the animation
-				#return false;
-			default:
+
+		// and if it passes the mandatory requirements, we check particularly aspects here
+		switch($action) {
+			
+			case 'imageformat':
+				// compare current imagefile infos fetched from ImageInspector
+				$requested = $this->getImageInfo(false);
+				switch($requested) {
+					case 'gif-anim':
+					case 'gif-trans-anim':
+						// Animated GIF images are not supported, but GD renders the first image of the animation
+						#return false;
+					default:
+						return true;
+				}
+				break;
+			
+			case 'install':
+				/*
+				$gd  = gd_info();
+				$jpg = isset($gd['JPEG Support']) ? $gd['JPEG Support'] : false;
+				$png = isset($gd['PNG Support']) ? $gd['PNG Support'] : false;
+				$gif = isset($gd['GIF Read Support']) && isset($gd['GIF Create Support']) ? $gd['GIF Create Support'] : false;
+				$freetype = isset($gd['FreeType Support']) ? $gd['FreeType Support'] : false;
+				$this->config->gdReady = true;
+				*/
 				return true;
+			
+			default:
+				return false;
 		}
-		/*
-		$gd  = gd_info();
-		$jpg = isset($gd['JPEG Support']) ? $gd['JPEG Support'] : false;
-		$png = isset($gd['PNG Support']) ? $gd['PNG Support'] : false;
-		$gif = isset($gd['GIF Read Support']) && isset($gd['GIF Create Support']) ? $gd['GIF Create Support'] : false;
-		$freetype = isset($gd['FreeType Support']) ? $gd['FreeType Support'] : false;
-		$this->config->gdReady = true;
-		*/
 	}
 
 	/**
@@ -458,7 +473,7 @@ class ImageSizerEngineGD extends ImageSizerEngine {
 	/**
 	 * Unsharp Mask for PHP - version 2.1.1
 	 *
-	 * Unsharp mask algorithm by Torstein HÃ¸nsi 2003-07.
+	 * Unsharp mask algorithm by Torstein Hønsi 2003-07.
 	 * thoensi_at_netcom_dot_no.
 	 * Please leave this notice.
 	 *

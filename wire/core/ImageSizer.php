@@ -175,7 +175,6 @@ class ImageSizer extends Wire {
 			$engine = $this->newDefaultImageSizerEngine($filename, $options, $inspectionResult);
 		}
 
-my_var_dump(array($this->getImageInfo(), $engine->className), 1);
 		return $engine;
 	}
 
