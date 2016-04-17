@@ -122,8 +122,6 @@ class ImageSizerEngineIMagick extends ImageSizerEngine {
 		if($action == 'install') return true;
 		// compare current imagefile infos fetched from ImageInspector
 		$requested = $this->getImageInfo(false);
-my_var_dump($requested, 1);
-
 		switch($requested) {
 			case 'jpg':
 				return true;
