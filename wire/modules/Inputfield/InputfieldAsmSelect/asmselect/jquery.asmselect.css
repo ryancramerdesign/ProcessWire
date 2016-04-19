@@ -33,15 +33,23 @@
 	position: relative; 
 	margin-left: 0;
 	margin-bottom: 1px !important; 
-	padding-left: 0;
 	list-style: none !important;
 	width: 100%; 
-	line-height: 1em;
+	line-height: 1.3em;
+	padding-left: 0;
 }
 
+.asmListItem .asmIconSort, 
 .asmListItem .ui-icon-arrowthick-2-n-s {
 	float: left; 
 	margin-top: 1px; 
+}
+
+.asmListItem .asmIconSort {
+	/* asmIconSort used only for UTF-8 sort icon */
+	padding-left: 8px;
+	padding-right: 7px; 
+	margin-top: 2px; 
 }
 
 .asmListItemLabel,
@@ -71,6 +79,16 @@
 	position: absolute;
 	right: 3px; 
 	top: 0;
+	line-height: 1.3em;
+}
+
+.asmIconRemove {
+	/* asmIconRemove used only for UTF-8 remove icon */
+	font-size: 1.6em; 
+	padding-right: 2px;
+	padding-top: 3px; 
+	font-family: Arial, sans-serif;
+	display: inline-block;
 }
 
 .asmListItemEdit .ui-icon {

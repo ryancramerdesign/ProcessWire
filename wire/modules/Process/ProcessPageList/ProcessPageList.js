@@ -116,7 +116,7 @@ $(document).ready(function() {
 			hoverActionFade: 150,
 		
 			// markup for the spinner used when ajax calls are made
-			spinnerMarkup: "<i class='ui-priority-secondary fa fa-fw fa-spin fa-spinner'></i>",
+			spinnerMarkup: "<span class='PageListLoading'><i class='ui-priority-secondary fa fa-fw fa-spin fa-spinner'></i></span>",
 		
 			// session field name that holds page label format, when used
 			labelName: '',
@@ -137,7 +137,7 @@ $(document).ready(function() {
 
 			var $container = $(this); 
 			var $root; 
-			var $loading = $(options.spinnerMarkup).addClass('PageListLoading');
+			var $loading = $(options.spinnerMarkup); 
 			var firstPagination = 0; // used internally by the getPaginationList() function
 			var curPagination = 0; // current page number used by getPaginationList() function
 
@@ -528,6 +528,7 @@ $(document).ready(function() {
 						}
 					}
 					*/
+					$target.removeClass('PageListForceReload'); // if it happens to be present
 
 				}; 
 
@@ -535,7 +536,9 @@ $(document).ready(function() {
 			
 		
 				var key = id + '-' + start;
-				if(typeof options.openPageData[key] != "undefined") {
+				if(typeof options.openPageData[key] != "undefined" 
+					&& !$target.hasClass('PageListID7') // trash
+					&& !$target.hasClass('PageListForceReload')) {
 					processChildren(options.openPageData[key]);
 					return;
 				} 
@@ -871,11 +874,24 @@ $(document).ready(function() {
 				}
 
 				if($li.hasClass("PageListItemOpen")) {
-					$li.removeClass("PageListItemOpen").next(".PageList").slideUp(options.speed, function() { 
-						$(this).remove(); 
-					}); 
+					var collapseThis = true;
+					if($li.hasClass('PageListID1') && !$li.hasClass('PageListForceReload') && options.mode != 'select') {
+						var $collapseItems = $(this).closest('.PageListRoot').find('.PageListItemOpen:not(.PageListID1)');
+						if($collapseItems.length) {
+							// collapse all open items, except homepage, when homepage link is collapsed
+							$root.find('.PageListItemOpen:not(.PageListID1)').each(function() {
+								$(this).children('a.PageListPage').click();
+							});
+							collapseThis = false;
+						}
+					}
+					if(collapseThis) {	
+						$li.removeClass('PageListItemOpen').next(".PageList").slideUp(options.speed, function() {
+							$(this).remove();
+						});
+					}
 				} else {
-					$li.addClass("PageListItemOpen"); 
+					$li.addClass('PageListItemOpen');
 					var numChildren = parseInt($li.children('.PageListNumChildren').text()); 
 					if(numChildren > 0 || $li.hasClass('PageListForceReload')) {
 						ignoreClicks = true; 

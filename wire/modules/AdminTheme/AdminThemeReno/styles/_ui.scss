@@ -45,6 +45,10 @@
 
 .content {
 
+	.ui-widget-content a {
+		color: $link-color;
+	}
+
 	li.ui-state-default,
 	.ui-widget-content li.ui-state-default {
 		background: $ui-state-default-bg; 
@@ -77,8 +81,11 @@
 }
 	.InputfieldForm .ui-accordion-header a,
 	.ui-accordion-header a,
-	#footer .ui-accordion-header a {
+	#debug .ui-accordion-header a {
 		color: $reverse-text-color;
+		.ui-priority-secondary {
+			color: transparentize($reverse-text-color, 0.3) !important;
+		}
 	}
 .ui-accordion-content,
 .content .InputfieldForm .ui-accordion-content,
@@ -212,6 +219,11 @@ button.ui-button.ui-state-default,
 	font-size: 1em !important; 
 }
 
+.ui-button .ui-button-text > .ui-button-text {
+	// if ui-button-text class is doubled, don't let it double padding
+	padding: 0;
+}
+
 button.ui-button span {
 	text-shadow: none !important;
 }
@@ -247,6 +259,31 @@ button.ui-button.ui-state-hover,
 
 div + a > .ui-button {
 	margin-top: 1em;
+}
+
+button.ui-button.pw-button-dropdown-main {
+	border-top-right-radius: 0;
+	border-bottom-right-radius: 0;
+	margin-right: 0 !important;
+	.ui-button-text {
+		padding-right: 0.9em;
+	}
+	
+}
+button.ui-button.pw-button-dropdown-toggle {
+	outline: none !important;
+	margin-left: 0 !important;
+	border-top-left-radius: 0;
+	border-bottom-left-radius: 0;
+	border-left: 1px solid !important;
+	border-left-color: rgba(255,255,255,0.2) !important;
+	&:hover {
+		border-left-color: transparent !important;
+	}
+	.ui-button-text {
+		padding-left: 8px;
+		padding-right: 8px;
+	}
 }
 
 .ui-priority-secondary,

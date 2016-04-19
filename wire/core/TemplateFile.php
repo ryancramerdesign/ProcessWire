@@ -9,6 +9,7 @@
  * https://processwire.com
  * 
  * @property bool $halt
+ * @method string render()
  *
  */
 

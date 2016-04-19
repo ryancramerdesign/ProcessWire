@@ -209,7 +209,9 @@
 		margin-left: 10px; 
 		margin-top: 0;
 		float: right; 
-		border: none;
+	}
+	button.pw-button-dropdown-toggle {
+		margin-left: 0;
 	}
 
 	body.modal & {
@@ -227,14 +229,17 @@
 	top: 4px;
 }
 
+.pw-button-dropdown,
+.dropdown-menu-rounded, 
+.dropdown-menu-rounded ul,
 .dropdown-menu.shortcuts {
 	border-radius: 5px !important;
 	
-	li:first-child a {
+	li:first-child > a {
 		border-top-left-radius: 5px !important;
 		border-top-right-radius: 5px !important;
 	}
-	li:last-child a {
+	li:last-child > a {
 		border-bottom-left-radius: 5px !important;
 		border-bottom-right-radius: 5px !important; 
 	}

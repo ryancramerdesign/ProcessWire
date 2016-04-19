@@ -1082,7 +1082,7 @@ abstract class Inputfield extends WireData implements Module {
 	 * If not, then this should return the default HTML for the Inputfield,
 	 * where supported. 
 	 * 
-	 * If this returns blank, then it means either custom HTML is not supported.
+	 * If this returns blank, then it means custom HTML is not supported.
 	 *
 	 * @param array $attr When populated with key=value, tags will be replaced. 
 	 * @return array
@@ -1094,6 +1094,8 @@ abstract class Inputfield extends WireData implements Module {
 		if(strpos($html, '{attr}')) {
 			
 			$html = str_replace('{attr}', $this->getAttributesString($attr), $html);	
+			
+			// @todo remove any other {tags} that might be present
 			
 		} else {
 			
@@ -1133,6 +1135,6 @@ abstract class Inputfield extends WireData implements Module {
 		}
 		return $html;	
 	}
-	 */
+	 */ 
 
 }

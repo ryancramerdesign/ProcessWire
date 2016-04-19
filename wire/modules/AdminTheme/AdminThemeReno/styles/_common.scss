@@ -293,6 +293,10 @@ body.id-23 {
 		float: right;
 		border: none;
 	}
+
+	button.pw-button-dropdown-toggle {
+		margin-left: 0;
+	}
 }
 
 ul.action-group{
@@ -899,9 +903,6 @@ body.modal-inline #ProcessListerResults {
 
 #footer {
 	margin: 0;
-	font-size: $footer-font-size;
-	color: $footer-color;
-	background: $footer-bg;
 	padding: 1em 1.5em 2em 1.5em;
 	border-top: 1px solid $border-color;
 
@@ -912,20 +913,29 @@ body.modal-inline #ProcessListerResults {
 		margin-left: 0;
 	}
 
-	p {
-		margin-top: 0;
-	}
-
 	#userinfo {
 		display: block;
 		float: right;
 	}
+	
+	#debug {
+		margin-top: 2em;
+	}
 
 }
 
+#footer, #debug {
+	font-size: $footer-font-size;
+	color: $footer-color;
+	background: $footer-bg;
+	
+	p {
+		margin-top: 0;
+	}
+
+}
 
 #debug {
-	margin-top: 2em;
 
 	.container {
 		width: 100%;
@@ -939,7 +949,7 @@ body.modal-inline #ProcessListerResults {
 		margin: 1em 0;
 	}
 
-	h4 {
+	h3, h4 {
 		font-weight: $bold-weight;
 	}
 
@@ -959,6 +969,10 @@ body.modal-inline #ProcessListerResults {
 		}
 
 	}
+}
+
+.pw-panel-content #debug {
+	padding: 0.25em 0.75em 0.25em 0.25em;
 }
 
 /***********************************************************************************************

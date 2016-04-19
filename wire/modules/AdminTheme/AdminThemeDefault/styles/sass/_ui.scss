@@ -62,6 +62,7 @@
 }
 	.InputfieldForm .ui-accordion-header a,
 	.ui-accordion-header a,
+	#debug .ui-accordion-header a, 
 	#footer .ui-accordion-header a {
 		color: $reverse-text-color;
 	}
@@ -224,6 +225,25 @@ button.ui-button.ui-state-default,
 	div + a > .ui-button {
 		margin-top: 1em;
 	}
+    
+	button.ui-button.pw-button-dropdown-main {
+		border-top-right-radius: 0;
+		border-bottom-right-radius: 0;
+		padding-right: 0.6em;
+		margin-right: 0 !important;
+	}
+    button.ui-button.pw-button-dropdown-toggle {
+		outline: none !important;
+	    margin-left: 0 !important;
+	    border-top-left-radius: 0;
+	    border-bottom-left-radius: 0;
+	    border-left: 1px solid rgba(255,255,255,0.5);
+	    padding-left: 8px;
+	    padding-right: 8px;
+	    &:hover {
+		    border-left-color: transparent;
+	    }
+    }
 
 /**
  * ui-slider

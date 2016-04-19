@@ -375,7 +375,7 @@ class FieldtypeComments extends FieldtypeMulti {
 	 */
 	public function getDatabaseSchema(Field $field) {
 
-		$websiteSchema = "varchar(255) NOT NULL default ''"; 
+		$websiteSchema = "varchar(250) NOT NULL default ''"; 
 		$parentSchema = "int unsigned NOT NULL default 0";
 		$flagSchema = "int unsigned NOT NULL default 0";
 		$codeSchema = "varchar(128) default NULL";
@@ -506,13 +506,13 @@ class FieldtypeComments extends FieldtypeMulti {
 		$schema['id'] = "int unsigned NOT NULL auto_increment";
 		$schema['status'] = "tinyint(3) NOT NULL default '0'";
 		$schema['cite'] = "varchar(128) NOT NULL default ''"; 
-		$schema['email'] = "varchar(255) NOT NULL default ''";
+		$schema['email'] = "varchar(250) NOT NULL default ''";
 		$schema['data'] = "text NOT NULL"; 
 		$schema['sort'] = "int unsigned NOT NULL";
 		$schema['created'] = "int unsigned NOT NULL"; 	
 		$schema['created_users_id'] = "int unsigned NOT NULL";
 		$schema['ip'] = "varchar(15) NOT NULL default ''";
-		$schema['user_agent'] = "varchar(255) NOT NULL default ''";
+		$schema['user_agent'] = "varchar(250) NOT NULL default ''";
 
 		$schemaVersion = $field->schemaVersion;
 		if($schemaVersion > 0) $schema['website'] = $websiteSchema;

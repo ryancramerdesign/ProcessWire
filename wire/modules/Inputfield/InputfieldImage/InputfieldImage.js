@@ -25,6 +25,7 @@ $(document).ready(function() {
 	//$("a.InputfieldFileLink").magnificPopup(magnificOptions);
 	
 	function addImageListToggle($target) {
+		if($target.find('.InputfieldImageListToggle').length) return;
 		var $listToggle = $("<a class='InputfieldImageListToggle HideIfEmpty' href='#'></a>")
 			.append("<i class='fa fa-th'></i>");
 		if($target.hasClass('InputfieldImage')) {

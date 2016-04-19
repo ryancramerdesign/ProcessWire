@@ -78,30 +78,21 @@ class InputfieldDatetime extends Inputfield {
 	 */
 	public function renderReady(Inputfield $parent = null, $renderValueMode = false) {
 		$this->addClass('InputfieldNoFocus', 'wrapClass');
-		if($this->datepicker) {
-			$this->wire('modules')->get('JqueryCore'); // Jquery Core required before Jquery UI
-			$this->wire('modules')->get('JqueryUI'); 
-		} 
-		parent::renderReady($parent, $renderValueMode); 
-	}
-
-	/**
-	 * Render the date/time inputfield
-	 * 
-	 * @return string
-	 *
-	 */
-	public function ___render() {
 		list($dateFormat, $timeFormat) = $this->getInputFormats();
+		if($dateFormat) {}
 		$useTime = false;
 		$language = $this->wire('languages') ? $this->wire('user')->language : null;
 
 		if($this->datepicker) {
+			
+			$this->wire('modules')->get('JqueryCore'); // Jquery Core required before Jquery UI
+			$this->wire('modules')->get('JqueryUI');
 			$this->addClass("InputfieldDatetimeDatepicker InputfieldDatetimeDatepicker{$this->datepicker}");
+			
 			if(strlen($timeFormat) && $this->datepicker != self::datepickerInline) {
 				// add in the timepicker script, if applicable
 				$useTime = true;
-				$url = $this->config->urls->InputfieldDatetime;
+				$url = $this->config->urls->get('InputfieldDatetime');
 				$this->config->scripts->add($url . 'timepicker/jquery-ui-timepicker-addon.min.js');
 				$this->config->styles->add($url . 'timepicker/jquery-ui-timepicker-addon.min.css');
 			}
@@ -119,8 +110,8 @@ class InputfieldDatetime extends Inputfield {
 				}
 				if($useTime) {
 					$langFile = $this->_('timepicker/i18n/jquery-ui-timepicker-xx.js'); // Timepicker translation file // Replace 'xx' with jQuery UI language code or specify your own js file. Timepicker i18n files are located in /wire/modules/Inputfield/InputfieldDatetime/timepicker/i18n/.
-					$path = $this->config->paths->InputfieldDatetime;
-					$url = $this->config->urls->InputfieldDatetime;
+					$path = $this->config->paths->get('InputfieldDatetime');
+					$url = $this->config->urls->get('InputfieldDatetime');
 					if(is_file($path . $langFile)) {
 						// add a custom language file
 						$this->config->scripts->add($url . $langFile);
@@ -134,6 +125,22 @@ class InputfieldDatetime extends Inputfield {
 				}
 			}
 		}
+		parent::renderReady($parent, $renderValueMode); 
+	}
+
+	/**
+	 * Render the date/time inputfield
+	 * 
+	 * @return string
+	 *
+	 */
+	public function ___render() {
+	
+		$sanitizer = $this->wire('sanitizer');
+		$datetime = $this->wire('datetime');
+		list($dateFormat, $timeFormat) = $this->getInputFormats();
+		$useTime = false;
+		if(strlen($timeFormat) && $this->datepicker && $this->datepicker != self::datepickerInline) $useTime = true; 
 
 		$attrs = $this->getAttributes();
 		$value = $attrs['value'];
@@ -151,8 +158,8 @@ class InputfieldDatetime extends Inputfield {
 
 		$value = htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 
-		$dateFormatJS = htmlspecialchars(FieldtypeDatetime::convertDateFormat($dateFormat, 'js'), ENT_QUOTES, 'UTF-8');
-		$timeFormatJS = $useTime ? FieldtypeDatetime::convertDateFormat($timeFormat, 'js') : '';
+		$dateFormatJS = $sanitizer->entities($datetime->convertDateFormat($dateFormat, 'js'));
+		$timeFormatJS = $useTime ? $datetime->convertDateFormat($timeFormat, 'js') : '';
 
 		if(strpos($timeFormatJS, 'h24') !== false) {
 			// 24 hour format
@@ -162,9 +169,9 @@ class InputfieldDatetime extends Inputfield {
 			$ampm = 1;
 		}
 
-		if(strlen($timeFormatJS)) $timeFormatJS = htmlspecialchars($timeFormatJS, ENT_QUOTES, 'UTF-8');
+		if(strlen($timeFormatJS)) $timeFormatJS = $sanitizer->entities($timeFormatJS);
 		if(empty($value)) $value = '';
-		$yearRange = htmlspecialchars($this->yearRange, ENT_QUOTES, 'UTF-8');
+		$yearRange = $sanitizer->entities($this->yearRange);
 
 		$out = 	"\n" .
 			"<input " . $this->getAttributesString($attrs) . " " .
@@ -188,7 +195,7 @@ class InputfieldDatetime extends Inputfield {
 		$value = $this->attr('value'); 
 		if(!$value) return '';
 		$format = trim($this->dateInputFormat . ' ' . $this->timeInputFormat); 
-		return FieldtypeDatetime::formatDate($value, trim($format));
+		return $this->wire('datetime')->formatDate($value, trim($format));
 	}
 
 	/**
@@ -201,7 +208,7 @@ class InputfieldDatetime extends Inputfield {
 	 */
 	public function setAttribute($key, $value) {
 		if($key == 'value') {
-			$value = FieldtypeDatetime::stringToTimestamp($value, $this->getInputFormats(true));
+			$value = $this->wire('datetime')->stringToTimestamp($value, $this->getInputFormats(true));
 		}
 		return parent::setAttribute($key, $value); 
 	}
@@ -250,6 +257,7 @@ class InputfieldDatetime extends Inputfield {
 
 		$inputfields = parent::___getConfigInputfields();
 		$languages = $this->wire('languages');
+		$datetime = $this->wire('datetime');
 
 		/** @var InputfieldInteger $f */
 		$f = $this->modules->get('InputfieldInteger');
@@ -284,10 +292,10 @@ class InputfieldDatetime extends Inputfield {
 		$f->description = $this->_('Select the format to be used for user input to this field. Your selection will populate the field below this, which you may customize further if needed.');
 		$f->icon = 'calendar';
 		$f->addOption('', $this->_('None'));
-		$date = strtotime('2012-04-08 5:10:02 PM');
-		foreach(FieldtypeDatetime::getDateFormats() as $format) {
-			$dateFormatted = FieldtypeDatetime::formatDate($date, $format);
-			if($format == 'U') $dateFormatted .= " (unix timestamp)";
+		$date = strtotime('2016-04-08 5:10:02 PM');
+		foreach($datetime->getDateFormats() as $format) {
+			$dateFormatted = $datetime->formatDate($date, $format);
+			if($format == 'U') $dateFormatted .= " " . $this->_('(unix timestamp)');
 			$f->addOption($format, $dateFormatted);
 			if($this->dateInputFormat == $format) $f->attr('value', $format);
 		}
@@ -301,9 +309,9 @@ class InputfieldDatetime extends Inputfield {
 		$f->addOption('', $this->_('None'));
 		$f->description = $this->_('Select an optional time format to be used for input. If used, the calendar option will include a time picker.'); 
 		$f->icon = 'clock-o';
-		foreach(FieldtypeDatetime::getTimeFormats() as $format) {
+		foreach($datetime->getTimeFormats() as $format) {
 			if(strpos($format, '!') === 0) continue; // skip relative formats
-			$timeFormatted = FieldtypeDatetime::formatDate($date, $format);
+			$timeFormatted = $datetime->formatDate($date, $format);
 			$f->addOption($format, $timeFormatted);
 			if($this->timeInputFormat == $format) $f->attr('value', $format);
 		}

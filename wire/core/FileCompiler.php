@@ -23,6 +23,7 @@ class FileCompiler extends Wire {
 		'includes' => true,	// compile include()'d files too?
 		'namespace' => true, // compile to make compatible with PW namespace when necessary?
 		'modules' => false, // compile using installed FileCompiler modules
+		'skipIfNamespace' => false, // skip compiled file if original declares a namespace? (note: file still compiled, but not used)
 	);
 	
 	/**
@@ -60,6 +61,14 @@ class FileCompiler extends Wire {
 		'module',
 		'inc',
 	);
+
+	/**
+	 * Detected file namespace (during compileData)
+	 * 
+	 * @var string
+	 * 
+	 */
+	protected $ns = '';
 
 	/**
 	 * Construct
@@ -104,6 +113,8 @@ class FileCompiler extends Wire {
 		// @todo move this somewhere outside of this class
 		$this->addExclusion($this->wire('config')->paths->wire);
 		// $this->addExclusion($this->wire('config')->paths->templates . 'admin.php');
+		
+		$this->ns = '';
 		
 	}
 
@@ -182,6 +193,7 @@ class FileCompiler extends Wire {
 
 		$cacheName = md5($sourcePathname);
 		$sourceHash = md5_file($sourcePathname);
+		$targetHash = '';
 		
 		$targetPathname = $this->targetPath . ltrim($sourceFile, '/');
 		$compileNow = true;
@@ -199,6 +211,7 @@ class FileCompiler extends Wire {
 					// target file changed somewhere else, needs to be re-compiled
 					$this->wire('cache')->deleteFor($this, $cacheName);	
 				}
+				if(isset($cache['source']['ns'])) $this->ns = $cache['source']['ns'];
 			}
 		}
 		
@@ -215,16 +228,18 @@ class FileCompiler extends Wire {
 			if(false !== file_put_contents($targetPathname, $targetData, LOCK_EX)) {
 				$this->wire('files')->chmod($targetPathname);
 				touch($targetPathname, filemtime($sourcePathname));
+				$targetHash = md5_file($targetPathname);
 				$cacheData = array(
 					'source' => array(
 						'file' => $sourcePathname,
 						'hash' => $sourceHash,
 						'size' => filesize($sourcePathname), 
-						'time' => filemtime($sourcePathname)
+						'time' => filemtime($sourcePathname), 
+						'ns' => $this->ns, 
 					),
 					'target' => array(
 						'file' => $targetPathname,
-						'hash' => md5_file($targetPathname),
+						'hash' => $targetHash, 
 						'size' => filesize($targetPathname),
 						'time' => filemtime($targetPathname),
 					)
@@ -236,8 +251,13 @@ class FileCompiler extends Wire {
 				$this->message($this->_('Compiled file:') . ' ' . str_replace($this->wire('config')->paths->root, '/', $sourcePathname));
 			}
 		}
-		
 	
+		// if source and target are identical, use the source file
+		if($targetHash && $sourceHash === $targetHash) return $sourcePathname;
+
+		// if source file declares a namespace and skipIfNamespace option in use, use source file
+		if($this->options['skipIfNamespace'] && $this->ns && $this->ns != "\\") return $sourcePathname;
+		
 		return $targetPathname;
 	}
 	
@@ -251,8 +271,28 @@ class FileCompiler extends Wire {
 	 */
 	protected function ___compileData($data, $sourceFile) {
 		
+		$pos = strpos($data, 'namespace');
+		if($pos !== false) {
+			// first check if data already defines a namespace, in which case we'll skip over it
+			$this->ns = $this->wire('files')->getNamespace($data, true);
+		} else {
+			$this->ns = "\\";
+		}
+		
+		if($this->options['skipIfNamespace'] && $this->ns && $this->ns !== "\\") {
+			// file already declares a namespace and options indicate we shouldn't compile
+			return $data;
+		}
+
 		if($this->options['includes']) $this->compileIncludes($data, $sourceFile);
-		if($this->options['namespace']) $this->compileNamespace($data);
+		
+		if($this->options['namespace']) {
+			if($this->ns && $this->ns !== "\\") {
+				// namespace already present, no need for namespace compilation
+			} else {
+				$this->compileNamespace($data);
+			}
+		}
 		
 		if($this->options['modules']) {
 			foreach($this->wire('modules')->findByPrefix('FileCompiler', true) as $module) {
@@ -379,6 +419,11 @@ class FileCompiler extends Wire {
 			$close = $matches[5][$key];
 			$argsMatch = '';
 			
+			if(!$argOpen && strpos($funcMatch, 'include') !== 0 && strpos($funcMatch, 'require') !== 0) {
+				// only include, include_once, require, require_once can be used without opening parenthesis
+				continue; 
+			}
+			
 			if(strpos($fileMatch, '$') === 0) {
 				// fileMatch stars with a var name
 			} else if(strpos($fileMatch, '"') !== strrpos($fileMatch, '"')) {
@@ -489,8 +534,8 @@ class FileCompiler extends Wire {
 	 * 
 	 */
 	protected function compileNamespace(&$data) {
-		
-		// first check if data already defines a namespace, in which case we'll skip over it
+
+		/*
 		$pos = strpos($data, 'namespace');
 		if($pos !== false) { 
 			if(preg_match('/(^.*)\s+namespace\s+[_a-zA-Z0-9\\\\]+\s*;/m', $data, $matches)) {
@@ -500,6 +545,7 @@ class FileCompiler extends Wire {
 				}
 			}
 		}
+		*/
 		
 		$classes = get_declared_classes();
 		$classes = array_merge($classes, get_declared_interfaces());

@@ -281,29 +281,30 @@ code {
 #footer {
 	margin: 2em 0 2em 0; 
 	font-size: $footer-font-size; 
-	color: $footer-color; 
+	color: $footer-color;
+	
+	#userinfo {
+		display: block;
+		float: right;
+	}
+}
 
+#footer, #debug {
 	a {
-		color: $footer-link-color; 
+		color: $footer-link-color;
 	}
 	a:hover {
-		text-decoration: underline; 
+		text-decoration: underline;
 	}
 
 	p {
 		margin-top: 0;
 	}
 
-	#userinfo {
-		display: block; 
-		float: right; 
-	}
-
 }
 
-
 #debug {
-	margin-top: 2em; 
+	// margin-top: 2em; 
 
 	.container {
 		width: 100%; 
@@ -317,7 +318,7 @@ code {
 		margin: 1em 0; 
 	}
 
-	h4 {
+	h3, h4 {
 		font-weight: $bold-weight; 
 	}
 
@@ -338,6 +339,10 @@ code {
 
 	}
 
+}
+
+.pw-panel-content #debug {
+	padding: 0.25em 0.75em 0.25em 0.25em; 
 }
 
 .pw-init #debug {
@@ -523,14 +528,14 @@ body:not(.hasWireTabs) #headline .container {
 	 * Disregard column width when at mobile size
 	 *
 	 */
-	.Inputfield {
+	.Inputfield:not(.InputfieldSubmit):not(.InputfieldButton) {
 		clear: both !important;
 		width: 100% !important;
 		margin-left: 0 !important;
-	}
-	.InputfieldHeader,
-	.InputfieldContent {
-		margin-left: 0 !important;
+		.InputfieldHeader,
+		.InputfieldContent {
+			margin-left: 0 !important;
+		}
 	}
 	
 }

@@ -45,7 +45,7 @@ class PaginatedArray extends WireArray implements WirePaginatable {
 	 * Set the total number of items, if more than are in the WireArray.
 	 *
 	 * @param int $total
-	 * @return this
+	 * @return $this
 	 *
 	 */
 	public function setTotal($total) {
@@ -69,7 +69,7 @@ class PaginatedArray extends WireArray implements WirePaginatable {
 	 * Set the limit that was used in pagination.
 	 *
 	 * @param int $numLimit
-	 * @return this
+	 * @return $this
 	 *
 	 */
 	public function setLimit($numLimit) {
@@ -93,7 +93,7 @@ class PaginatedArray extends WireArray implements WirePaginatable {
 	 * Set the starting offset that was used for pagination.
 	 *
 	 * @param int $numStart;
-	 * @return this
+	 * @return $this
 	 *
 	 */
 	public function setStart($numStart) {

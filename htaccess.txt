@@ -166,9 +166,10 @@ DirectoryIndex index.php index.html index.htm
   RewriteCond %{REQUEST_URI} (^|/)(COPYRIGHT|INSTALL|README|htaccess)\.(txt|md|textile)$ [OR]
   # Block all http access to the default/uninstalled site-default directory
   RewriteCond %{REQUEST_URI} (^|/)site-default/
-  # If any conditions above match, isssue a 403 forbidden
+  # If any conditions above match, issue a 403 forbidden
   RewriteRule ^.*$ - [F,L]
 
+  # PW-PAGENAME
   # ----------------------------------------------------------------------------------------------- 
   # 16a. Ensure that the URL follows the name-format specification required by PW
   # See also directive 16b below, you should choose and use either 16a or 16b. 
@@ -183,7 +184,8 @@ DirectoryIndex index.php index.html index.htm
   # ----------------------------------------------------------------------------------------------- 
   
   # RewriteCond %{REQUEST_URI} "^/~?[-_./a-zA-Z0-9æåäßöüđжхцчшщюяàáâèéëêěìíïîõòóôøùúûůñçčćďĺľńňŕřšťýžабвгдеёзийклмнопрстуфыэęąśłżź]*$"
-
+  
+  # END-PW-PAGENAME
   # -----------------------------------------------------------------------------------------------
   # 17. If the request is for a file or directory that physically exists on the server,
   # then don't give control to ProcessWire, and instead load the file
