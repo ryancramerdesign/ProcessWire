@@ -37,4 +37,17 @@ function initPageEditForm() {
 			InputfieldSubmitDropdown.init($button, $dropdownTemplate);
 		});
 	}
+
+	var $viewLink = $("#_ProcessPageEditView");
+	var $viewMenu = $("#_ProcessPageEditViewDropdown");
+	var color = $viewLink.css('color');
+	
+	$("#_ProcessPageEditViewDropdownToggle").css('color', color);
+	
+	$viewLink.click(function() {
+		var action = $viewLink.attr('data-action');
+		if(action == 'this' || !action.length) return true; 
+		$viewMenu.find(".page-view-action-" + action + " > a").click();
+		return false;
+	}); 
 }

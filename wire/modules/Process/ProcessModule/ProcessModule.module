@@ -13,6 +13,8 @@
  * 
  * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
  * https://processwire.com
+ * 
+ * @todo add support for module configuration inputfields with useLanguages option
  *
  */
 
@@ -1104,6 +1106,7 @@ class ProcessModule extends Process {
 
 		$out = ''; 
 		$moduleId = $this->modules->getModuleID($moduleName); 
+		$languages = $this->wire('languages');
 		$collapseInfo = $this->wire('input')->get('collapse_info') || $this->wire('input')->get('modal') ? '&collapse_info=1': '';
 		if(!$moduleId) {
 			$this->error("Unknown module"); 
@@ -1153,6 +1156,7 @@ class ProcessModule extends Process {
 			$field = $this->modules->get('InputfieldRadios'); 
 			$field->attr('name', '_use_duplicate');
 			$field->label = $this->_('Module file to use'); 
+			$field->icon = 'files-o';
 			$field->description = $this->_('There are multiple copies of this module. Select the module file you want to use.'); 
 			foreach($duplicates['files'] as $file) {
 				$field->addOption($file); 
@@ -1162,8 +1166,10 @@ class ProcessModule extends Process {
 		}
 		
 		$fields = $this->wire('modules')->getModuleConfigInputfields($moduleName); 
-		if($fields) foreach($fields as $field) {
-			$form->add($field);
+		if($fields) {
+			foreach($fields as $field) {
+				$form->add($field);
+			}
 		}
 
 		// uninstall checkbox
@@ -1205,12 +1211,28 @@ class ProcessModule extends Process {
 		} else {
 			$this->message($this->_("This module doesn't have any fields to configure")); 
 		}
+	
+		$data = null;
+		if($languages && $fields) {
+			// multi-language support for Inputfield with useLanguages==true
+			// we populate the language values from module config data so module doesn't have to do this
+			$data = $this->modules->getModuleConfigData($moduleName);
+			foreach($fields->getAll() as $field) {
+				if(!$field->useLanguages) continue;
+				foreach($languages as $language) {
+					if($language->isDefault()) continue;
+					$name = $field->name . '__' . $language->id;
+					if(!isset($data[$name])) continue;
+					$field->set("value$language->id", $data[$name]);
+				}
+			}
+		}
 
 		// check for submitted form
 		$submitSave = $this->input->post('submit_save_module');
 		if($submitSave) {
 
-			$data = $this->modules->getModuleConfigData($moduleName);
+			if(is_null($data)) $data = $this->modules->getModuleConfigData($moduleName);
 			$form->processInput($this->input->post); 
 			$updatedNames = array();
 			
@@ -1220,6 +1242,18 @@ class ProcessModule extends Process {
 					$value = $field->attr('value');
 					if(!isset($data[$name]) || $value != $data[$name]) $updatedNames[] = $name;
 					$data[$name] = $value;
+					// multi-language, if Inputfield specifies useLanguages==true
+					// convert value1234 inputfield values to module config data in name__1234 format
+					if($languages && $field->useLanguages) {
+						$_name = $name;
+						foreach($languages as $language) {
+							if($language->isDefault()) continue;
+							$name = $_name . "__" . $language->id;
+							$value = $field->get("value$language->id");
+							if(!isset($data[$name]) || $value != $data[$name]) $updatedNames[] = $name;
+							$data[$name] = $value;
+						}
+					}
 				}
 			}
 		

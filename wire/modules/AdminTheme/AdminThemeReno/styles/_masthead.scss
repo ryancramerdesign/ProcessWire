@@ -289,14 +289,30 @@
 
 .dropdown-menu {
 	display: none;
-	border-radius: 0 0 3px 3px !important;
-	border: $dropdown-border;
 	position: relative;
 	z-index: 100;
-	box-shadow: $dropdown-shadow;
+	
+	&,
+	& ul {
+		border: $dropdown-border;
+		border-radius: 0 0 3px 3px !important;
+		box-shadow: $dropdown-shadow;
+	}
+	
+	.ui-menu-icon {
+		display: none;
+	}
+
+	.has-items-icon {
+		float: right;
+		position: relative;
+		right: 0.5em;
+		top: 3px;
+	}
 
 	// add-new dropdown
-	&.shortcuts{
+	&.dropdown-menu-rounded,
+	&.shortcuts {
 		min-width: 200px;
 		padding: 0.3em 0 0.3em 0;
 		background: $dropdown-bg;
@@ -308,9 +324,12 @@
 			border-radius: 0 !important;
 			padding: 0.4em 0 0.4em 0.6em;
 
+			&.ui-state-focus,
+			&.ui-state-active,
 			&:hover {
 				color: $text-color;
 				background: $dropdown-link-hover-bg !important;
+				border-color: $dropdown-link-hover-bg;
 			}
 			
 			i.fa {
