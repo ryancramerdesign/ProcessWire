@@ -362,10 +362,13 @@ class ImageSizer extends Wire {
 			case \IMAGETYPE_PNG:
 				$type = 'png';
 				$indexed = 'Indexed' == $this->inspectionResult['info']['colspace'] ? '8' : '24';
-				$trans = is_array($this->inspectionResult['info']['trans']) || $this->inspectionResult['info']['alpha'] ? '-trans' : '';
+				$trans = $this->inspectionResult['info']['alpha'] ? '-alpha' : '';
+				$trans = is_array($this->inspectionResult['info']['trans']) ? '-trans' : $trans;
 				$animated = '';
 				break;
 		}
+		#$orientation = '';
+		#if($this->inspectionResult['info']['orientation'] > 1 && $this->inspectionResult['info']['orientation'] < 9) $orientation = '-orient';
 		return $type . $indexed . $trans . $animated;
 	}
 

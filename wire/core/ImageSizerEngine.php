@@ -1259,15 +1259,10 @@ abstract class ImageSizerEngine extends WireData implements Module, Configurable
 			'7' => array(90, 1),
 			'8' => array(90, 0)
 		);
-		if(!function_exists('exif_read_data')) return false;
-		$exif = @exif_read_data($this->filename, 'IFD0');
-		if(!is_array($exif)
-			|| !isset($exif['Orientation'])
-			|| !in_array(strval($exif['Orientation']), array_keys($corrections))
-		) {
+		if(!isset($this->info['orientation']) || !isset($corrections[strval($this->info['orientation'])])) {
 			return false;
 		}
-		$correctionArray = $corrections[strval($exif['Orientation'])];
+		$correctionArray = $corrections[strval($this->info['orientation'])];
 		return true;
 	}
 
