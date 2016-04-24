@@ -118,7 +118,7 @@ class ImageSizerEngineGD extends ImageSizerEngine {
 		(!empty($orientations[0]) || !empty($orientations[1])) ? true : false);
 
 		// check if we can load the sourceimage into ram
-		if(self::checkMemoryForImage(array($this->info[0], $this->info[1], $this->info['channels'])) === false) {
+		if(self::checkMemoryForImage(array($this->info['width'], $this->info['height'], $this->info['channels'])) === false) {
 			throw new WireException(basename($srcFilename) . " - not enough memory to load");
 		}
 
@@ -164,7 +164,7 @@ class ImageSizerEngineGD extends ImageSizerEngine {
 		// if there is requested to crop _before_ resize, we do it here @horst
 		if(is_array($this->cropExtra)) {
 			// check if we can load a second copy from sourceimage into ram
-			if(self::checkMemoryForImage(array($this->info[0], $this->info[1], 3)) === false) {
+			if(self::checkMemoryForImage(array($this->info['width'], $this->info['height'], 3)) === false) {
 				throw new WireException(basename($srcFilename) . " - not enough memory to load a copy for cropExtra");
 			}
 

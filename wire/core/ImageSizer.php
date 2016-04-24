@@ -473,7 +473,7 @@ class ImageSizer extends Wire {
 		}
 		$info = getimagesize($filename);
 		if(\IMAGETYPE_GIF != $info[2]) return false;
-		if(ImageSizerEngineGD::checkMemoryForImage(array($info[0], $info[1]))) {
+		if(ImageSizerEngineGD::checkMemoryForImage(array($info['width'], $info['height']))) {
 			return (bool) preg_match('/\x00\x21\xF9\x04.{4}\x00(\x2C|\x21)/s', file_get_contents($filename));
 		}
 		// we have not enough free memory to load the complete image at once, so we do it in chunks
