@@ -3,12 +3,20 @@
 /**
  * ProcessWire Role Page
  *
- * A type of Page used for storing an individual Role
+ * #pw-summary Role is a type of Page used for grouping permissions to users. 
+ * #pw-body = 
+ * Any given User will have one or more roles, each with zero or more permissions assigned to it.
+ * Note that most public API-level access checking is typically performed from the User rather than 
+ * the Role(s), as it accounts for the combined roles. Please also see `User`, `Permission` and the 
+ * access related methods on `Page`. 
+ * #pw-body
  * 
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * ProcessWire 3.x (development), Copyright 2016 by Ryan Cramer
  * https://processwire.com
- *
+ * 
  * @property PageArray $permissions PageArray of permissions assigned to Role.
+ * @property string $name Name of role. 
+ * @property int $id Numeric page ID of role. 
  *
  */
 
@@ -46,16 +54,18 @@ class Role extends Page {
 
 	/**
 	 * Does this role have the given permission name, id or object?
-	 *
-	 * @param string|int|Permission
-	 * @param Page|Template|null $context Optional Page or Template context
+	 * 
+	 * @param string|int|Permission $permission Permission object, name, or id. 
+	 * @param Page|Template|null $context Optional Page or Template context.
 	 * @return bool
+	 * @see User::hasPermission()
 	 *
 	 */
-	public function hasPermission($name, $context = null) {
-		
-		$has = false; 
+	public function hasPermission($permission, $context = null) {
+	
+		$name = $permission;
 		$permission = null;
+		$has = false; 
 		
 		if(empty($name)) {	
 			// do nothing
@@ -165,12 +175,12 @@ class Role extends Page {
 	}
 
 	/**
-	 * Add the given permission string, id or object
+	 * Add the given Permission string, id or object.
 	 *
-	 * This is the same as $role->permissions->add($permission) except this one will accept ID or name.
+	 * This is the same as `$role->permissions->add($permission)` except this one will accept ID or name.
 	 *
-	 * @param string|int|Permission
-	 * @return bool false if permission not recognized, true otherwise
+	 * @param string|int|Permission $permission Permission object, name or id. 
+	 * @return bool Returns false if permission not recognized, true otherwise
 	 *
 	 */
 	public function addPermission($permission) {
@@ -183,11 +193,11 @@ class Role extends Page {
 	}
 
 	/**
-	 * Remove the given permission string, id or object
+	 * Remove the given permission string, id or object.
 	 *
-	 * This is the same as $role->permissions->remove($permission) except this one will accept ID or name.
+	 * This is the same as `$role->permissions->remove($permission)` except this one will accept ID or name.
 	 *
-	 * @param string|int|Permission
+	 * @param string|int|Permission $permission Permission object, name or id. 
 	 * @return bool false if permission not recognized, true otherwise
 	 *
 	 */
@@ -202,6 +212,8 @@ class Role extends Page {
 
 	/**
 	 * Return the API variable used for managing pages of this type
+	 * 
+	 * #pw-internal
 	 *
 	 * @return Pages|PagesType
 	 *

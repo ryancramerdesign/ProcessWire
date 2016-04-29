@@ -2,8 +2,18 @@
 
 /**
  * The Users class serves as the $users API variable. 
+ * 
+ * #pw-summary Manages all users (User objects) in ProcessWire. 
  *
- * @method PageArray find() find($selectorString) Return the user(s) matching the the given selector query.
+ * @method PageArray find($selector) Return the User(s) matching the the given selector query.
+ * @method User add($name) Add new User with the given name and return it.
+ * @method bool save($user) Save given User.
+ * @method bool delete($user) Delete the given User.
+ * @method array saveReady($user) Hook called just before a User is saved #pw-hooker
+ * @method void saved($user, array $changes) Hook called after a User has been saved #pw-hooker
+ * @method void added($user) Hook called just after a User is added #pw-hooker
+ * @method void deleteReady($user) Hook called before a User is deleted #pw-hooker
+ * @method void deleted($user) Hook called after a User is deleted #pw-hooker
  *
  */
 
@@ -18,12 +28,10 @@ class Users extends PagesType {
 	}
 	
 	/**
-	 * Get the user identified by $selectorString
+	 * Get the user by name, ID or selector string
 	 * 
-	 * Selector string may also be user ID or name. 
-	 *
 	 * @param string $selectorString
-	 * @return Page|null
+	 * @return Page|NullPage|null
 	 */
 	public function get($selectorString) {
 		$user = parent::get($selectorString);
@@ -98,6 +106,8 @@ class Users extends PagesType {
 
 	/**
 	 * Return new User instance
+	 * 
+	 * #pw-internal
 	 * 
 	 * @return User
 	 * 

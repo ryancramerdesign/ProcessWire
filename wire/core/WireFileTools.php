@@ -2,6 +2,8 @@
 
 /**
  * ProcessWire File Tools ($files API variable)
+ * 
+ * #pw-summary Helpers for working with files and directories. 
  *
  * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
  * https://processwire.com
@@ -12,13 +14,24 @@
 class WireFileTools extends Wire {
 	
 	/**
-	 * Create a directory that is writable to ProcessWire and uses the $config chmod settings
+	 * Create a directory that is writable to ProcessWire and uses the defined $config chmod settings
+	 * 
+	 * Unlike PHP's `mkdir()` function, this function manages the read/write mode consistent with ProcessWire's
+	 * setting `$config->chmodDir`, and it can create directories recursively. Meaning, if you want to create directory /a/b/c/ 
+	 * and directory /a/ doesn't yet exist, this method will take care of creating /a/, /a/b/, and /a/b/c/. 
+	 * 
+	 * ~~~~~
+	 * // Create a new directory in ProcessWire's cache dir
+	 * if($files->mkdir($config->paths->cache . 'foo-bar/')) {
+	 *   // directory created: /site/assets/cache/foo-bar/
+	 * }
+	 * ~~~~~
 	 *
-	 * @param string $path
+	 * @param string $path Directory you want to create
 	 * @param bool $recursive If set to true, all directories will be created as needed to reach the end.
 	 * @param string $chmod Optional mode to set directory to (default: $config->chmodDir), format must be a string i.e. "0755"
-	 * 	If omitted, then ProcessWire's $config->chmodDir setting is used instead.
-	 * @return bool
+	 *   If omitted, then ProcessWire's `$config->chmodDir` setting is used instead.
+	 * @return bool True on success, false on failure
 	 *
 	 */
 	public function mkdir($path, $recursive = false, $chmod = null) {
@@ -35,11 +48,20 @@ class WireFileTools extends Wire {
 	}
 
 	/**
-	 * Remove a directory
-	 *
-	 * @param string $path
-	 * @param bool $recursive If set to true, all files and directories in $path will be recursively removed as well.
-	 * @return bool
+	 * Remove a directory and optionally everything within it (recursively)
+	 * 
+	 * Unlike PHP's `rmdir()` function, this method provides a recursive option, which can be enabled by specifying true 
+	 * for the `$recursive` argument. You should be careful with this option, as it can easily wipe out an entire 
+	 * directory tree in a flash. 
+	 * 
+	 * ~~~~~
+	 * // Remove directory /site/assets/cache/foo-bar/ and everything in it
+	 * $files->rmdir($config->paths->cache . 'foo-bar/', true); 
+	 * ~~~~~
+	 * 
+	 * @param string $path Path/directory you want to remove
+	 * @param bool $recursive If set to true, all files and directories in $path will be recursively removed as well (default=false). 
+	 * @return bool True on success, false on failure
 	 *
 	 */
 	public function rmdir($path, $recursive = false) {
@@ -62,11 +84,22 @@ class WireFileTools extends Wire {
 
 
 	/**
-	 * Change the mode of a file or directory, consistent with PW's chmodFile/chmodDir settings
+	 * Change the read/write mode of a file or directory, consistent with ProcessWire's configuration settings
+	 * 
+	 * Unless a specific mode is provided via the `$chmod` argument, this method uses the `$config->chmodDir`
+	 * and `$config->chmodFile` settings in /site/config.php. 
+	 * 
+	 * This method also provides the option of going recursive, adjusting the read/write mode for an entire
+	 * file/directory tree at once. 
+	 * 
+	 * ~~~~~
+	 * // Update the mode of /site/assets/cache/foo-bar/ recursively
+	 * $files->chmod($config->paths->cache . 'foo-bar/', true); 
+	 * ~~~~~
 	 *
-	 * @param string $path May be a directory or a filename
-	 * @param bool $recursive If set to true, all files and directories in $path will be recursively set as well.
-	 * @param string If you want to set the mode to something other than PW's chmodFile/chmodDir settings,
+	 * @param string $path Path or file that you want to adjust mode for (may be a path/directory or a filename).
+	 * @param bool $recursive If set to true, all files and directories in $path will be recursively set as well (default=false). 
+	 * @param string If you want to set the mode to something other than ProcessWire's chmodFile/chmodDir settings,
 	 * you may override it by specifying it here. Ignored otherwise. Format should be a string, like "0755".
 	 * @return bool Returns true if all changes were successful, or false if at least one chmod failed.
 	 * @throws WireException when it receives incorrect chmod format
@@ -110,16 +143,25 @@ class WireFileTools extends Wire {
 	}
 
 	/**
-	 * Copy all files in directory $src to directory $dst
+	 * Copy all files recursively from one directory ($src) to another directory ($dst)
 	 *
-	 * The default behavior is to also copy directories recursively.
+	 * Unlike PHP's `copy()` function, this method performs a recursive copy by default, 
+	 * ensuring that all files and directories in the source ($src) directory are duplicated
+	 * in the destination ($dst) directory. 
+	 * 
+	 * ~~~~~
+	 * // Copy everything from /site/assets/cache/foo/ to /site/assets/cache/bar/
+	 * $copyFrom = $config->paths->cache . "foo/";
+	 * $copyTo = $config->paths->cache . "bar/";
+	 * copy($copyFrom, $copyTo); 
+	 * ~~~~~
 	 *
-	 * @param string $src Path to copy files from
+	 * @param string $src Path to copy files from.
 	 * @param string $dst Path to copy files to. Directory is created if it doesn't already exist.
-	 * @param bool|array Array of options:
-	 * 	- recursive (boolean): Whether to copy directories within recursively. (default=true)
-	 * 	- allowEmptyDirs (boolean): Copy directories even if they are empty? (default=true)
-	 * 	- If a boolean is specified for $options, it is assumed to be the 'recursive' option.
+	 * @param bool|array $options Array of options: 
+	 *  - `recursive` (boolean): Whether to copy directories within recursively. (default=true)
+	 *  - `allowEmptyDirs` (boolean): Copy directories even if they are empty? (default=true)
+	 *  - If a boolean is specified for $options, it is assumed to be the 'recursive' option.
 	 * @return bool True on success, false on failure.
 	 *
 	 */
@@ -172,12 +214,14 @@ class WireFileTools extends Wire {
 
 	/**
 	 * Return a new temporary directory/path ready to use for files
+	 * 
+	 * #pw-advanced
 	 *
-	 * @param object|string $name Provide the object that needs the temp dir, or name your own string
-	 * @param array|int $options Options array:
-	 * 	- maxAge: Maximum age of temp dir files in seconds (default=120)
-	 * 	- basePath: Base path where temp dirs should be created. Omit to use default (recommended).
-	 * 	Note: if you specify an integer for $options, then $maxAge is assumed.
+	 * @param Object|string $name Provide the object that needs the temp dir, or name your own string
+	 * @param array|int $options Options array to modify default behavior:
+	 *  - `maxAge` (integer): Maximum age of temp dir files in seconds (default=120)
+	 *  - `basePath` (string): Base path where temp dirs should be created. Omit to use default (recommended).
+	 *  - Note: if you specify an integer for $options, then 'maxAge' is assumed.
 	 * @return WireTempDir
 	 *
 	 */
@@ -194,11 +238,22 @@ class WireFileTools extends Wire {
 
 	/**
 	 * Unzips the given ZIP file to the destination directory
+	 * 
+	 * ~~~~~
+	 * // Unzip a file 
+	 * $zip = $config->paths->cache . "my-file.zip";
+	 * $dst = $config->paths->cache . "my-files/";
+	 * $items = $files->unzip($zip, $dst);
+	 * if(count($items)) {
+	 *   // $items is an array of filenames that were unzipped into $dst
+	 * }
+	 * ~~~~~
 	 *
 	 * @param string $file ZIP file to extract
 	 * @param string $dst Directory where files should be unzipped into. Directory is created if it doesn't exist.
 	 * @return array Returns an array of filenames (excluding $dst) that were unzipped.
 	 * @throws WireException All error conditions result in WireException being thrown.
+	 * @see WireFileTools::zip()
 	 *
 	 */
 	public function unzip($file, $dst) {
@@ -237,21 +292,41 @@ class WireFileTools extends Wire {
 
 	/**
 	 * Creates a ZIP file
+	 * 
+	 * ~~~~~
+	 * // Create zip of all files in directory $dir to file $zip
+	 * $dir = $config->paths->cache . "my-files/"; 
+	 * $zip = $config->paths->cache . "my-file.zip";
+	 * $result = $files->zip($zip, $dir); 
+	 *  
+	 * echo "<h3>These files were added to the ZIP:</h3>";
+	 * foreach($result['files'] as $file) {
+	 *   echo "<li>" $sanitizer->entities($file) . "</li>";
+	 * }
+	 * 
+	 * if(count($result['errors'])) {
+	 *   echo "<h3>There were errors:</h3>";
+	 *   foreach($result['errors'] as $error) {
+	 *     echo "<li>" . $sanitizer->entities($error) . "</li>";
+	 *   }
+	 * }
+	 * ~~~~~
 	 *
 	 * @param string $zipfile Full path and filename to create or update (i.e. /path/to/myfile.zip)
 	 * @param array|string $files Array of files to add (full path and filename), or directory (string) to add.
-	 * 	If given a directory, it will recursively add everything in that directory.
-	 * @param array $options Associative array of:
-	 * 	- allowHidden (boolean or array): allow hidden files? May be boolean, or array of hidden files (basenames) you allow. (default=false)
-	 * 		Note that if you actually specify a hidden file in your $files argument, then that overrides this.
-	 * 	- allowEmptyDirs (boolean): allow empty directories in the ZIP file? (default=true)
-	 * 	- overwrite (boolean): Replaces ZIP file if already present (rather than adding to it) (default=false)
-	 * 	- exclude (array): Files or directories to exclude
-	 * 	- dir (string): Directory name to prepend to added files in the ZIP
+	 *   If given a directory, it will recursively add everything in that directory.
+	 * @param array $options Associative array of options to modify default behavior:
+	 *  - `allowHidden` (boolean or array): allow hidden files? May be boolean, or array of hidden files (basenames) you allow. (default=false)
+	 *    Note that if you actually specify a hidden file in your $files argument, then that overrides this.
+	 *  - `allowEmptyDirs` (boolean): allow empty directories in the ZIP file? (default=true)
+	 *  - `overwrite` (boolean): Replaces ZIP file if already present (rather than adding to it) (default=false)
+	 *  - `exclude` (array): Files or directories to exclude
+	 *  - `dir` (string): Directory name to prepend to added files in the ZIP
 	 * @return Returns associative array of:
-	 * 	- files => array(all files that were added),
-	 * 	- errors => array(files that failed to add, if any)
+	 *  - `files` (array): all files that were added
+	 *  - `errors` (array): files that failed to add, if any
 	 * @throws WireException Original ZIP file creation error conditions result in WireException being thrown.
+	 * @see WireFileTools::unzip()
 	 *
 	 */
 	public function zip($zipfile, $files, array $options = array()) {
@@ -330,16 +405,16 @@ class WireFileTools extends Wire {
 	/**
 	 * Send the contents of the given filename to the current http connection
 	 *
-	 * This function utilizes the $content->fileContentTypes to match file extension
+	 * This function utilizes the `$config->fileContentTypes` to match file extension
 	 * to content type headers and force-download state.
 	 *
 	 * This function throws a WireException if the file can't be sent for some reason.
 	 *
-	 * @param string $filename Filename to send
-	 * @param array $options Options that you may pass in, see $_options in function for details.
-	 * @param array $headers Headers that are sent, see $_headers in function for details.
-	 *	To remove a header completely, make its value NULL and it won't be sent.
+	 * @param string $filename Full path and filename to send
+	 * @param array $options Optional options that you may pass in (see `WireHttp::sendFile()` for details) 
+	 * @param array $headers Optional headers that are sent (see `WireHttp::sendFile()` for details)
 	 * @throws WireException
+	 * @see WireHttp::sendFile()
 	 *
 	 */
 	public function send($filename, array $options = array(), array $headers = array()) {
@@ -353,24 +428,29 @@ class WireFileTools extends Wire {
 	 *
 	 * This is a shortcut to using the TemplateFile class.
 	 *
-	 * File is assumed relative to /site/templates/ (or a directory within there) unless you specify a full path.
-	 * If you specify a full path, it will accept files in or below site/templates/, site/modules/, wire/modules/.
+	 * File is assumed relative to `/site/templates/` (or a directory within there) unless you specify a full path.
+	 * If you specify a full path, it will accept files in or below any of the following:
+	 * 
+	 * - /site/templates/ 
+	 * - /site/modules/
+	 * - /wire/modules/
 	 *
-	 * Note this function returns the output for you to output wherever you want (delayed output).
-	 * For direct output, use the wireInclude() function instead.
+	 * Note this function returns the output to you, so that you can send the output wherever you want (delayed output).
+	 * For direct output, use the `$files->include()` function instead.
 	 *
 	 * @param string $filename Assumed relative to /site/templates/ unless you provide a full path name with the filename.
-	 * 	If you provide a path, it must resolve somewhere in site/templates/, site/modules/ or wire/modules/.
+	 *  If you provide a path, it must resolve somewhere in site/templates/, site/modules/ or wire/modules/.
 	 * @param array $vars Optional associative array of variables to send to template file.
-	 * 	Please note that all template files automatically receive all API variables already (you don't have to provide them)
+	 *  Please note that all template files automatically receive all API variables already (you don't have to provide them).
 	 * @param array $options Associative array of options to modify behavior:
-	 * 	- defaultPath: Path where files are assumed to be when only filename or relative filename is specified (default=/site/templates/)
-	 *  - autoExtension: Extension to assume when no ext in filename, make blank for no auto assumption (default=php)
-	 * 	- allowedPaths: Array of paths that are allowed (default is templates, core modules and site modules)
-	 * 	- allowDotDot: Allow use of ".." in paths? (default=false)
-	 * 	- throwExceptions: Throw exceptions when fatal error occurs? (default=true)
+	 *  - `defaultPath` (string): Path where files are assumed to be when only filename or relative filename is specified (default=/site/templates/)
+	 *  - `autoExtension` (string): Extension to assume when no ext in filename, make blank for no auto assumption (default=php)
+	 *  - `allowedPaths` (array): Array of paths that are allowed (default is templates, core modules and site modules)
+	 *  - `allowDotDot` (bool): Allow use of ".." in paths? (default=false)
+	 *  - `throwExceptions` (bool): Throw exceptions when fatal error occurs? (default=true)
 	 * @return string|bool Rendered template file or boolean false on fatal error (and throwExceptions disabled)
 	 * @throws WireException if template file doesn't exist
+	 * @see WireFileTools::include()
 	 *
 	 */
 	public function render($filename, array $vars = array(), array $options = array()) {
@@ -444,22 +524,23 @@ class WireFileTools extends Wire {
 	/**
 	 * Include a PHP file passing it all API variables and optionally your own specified variables
 	 *
-	 * This is the same as PHP's include() function except for the following:
+	 * This is the same as PHP's `include()` function except for the following:
+	 * 
 	 * - It receives all API variables and optionally your custom variables
 	 * - If your filename is not absolute, it doesn't look in PHP's include path, only in the current dir.
 	 * - It only allows including files that are part of the PW installation: templates, core modules or site modules
 	 * - It will assume a ".php" extension if filename has no extension.
 	 *
-	 * Note this function produced direct output. To retrieve output as a return value, use the
-	 * wireTemplateFile function instead.
+	 * Note this function produces direct output. To retrieve output as a return value, use the
+	 * `$files->render()` function instead.
 	 *
-	 * @param $filename
+	 * @param $filename Filename to include
 	 * @param array $vars Optional variables you want to hand to the include (associative array)
 	 * @param array $options Array of options to modify behavior:
-	 * 	- func: Function to use: include, include_once, require or require_once (default=include)
-	 *  - autoExtension: Extension to assume when no ext in filename, make blank for no auto assumption (default=php)
-	 * 	- allowedPaths: Array of paths include files are allowed from. Note current dir is always allowed.
-	 * @return bool Returns true
+	 *  - `func` (string): Function to use: include, include_once, require or require_once (default=include)
+	 *  - `autoExtension` (string): Extension to assume when no ext in filename, make blank for no auto assumption (default=php)
+	 *  - `allowedPaths` (array): Array of paths include files are allowed from. Note current dir is always allowed.
+	 * @return bool Always returns true
 	 * @throws WireException if file doesn't exist or is not allowed
 	 *
 	 */
@@ -532,6 +613,8 @@ class WireFileTools extends Wire {
 	
 	/**
 	 * Get the namespace used in the given .php or .module file
+	 * 
+	 * #pw-advanced
 	 *
 	 * @param string $file File name or file data (if file data, specify true for 2nd argument)
 	 * @param bool $fileIsContents Specify true if the given $file is actually the contents of the file, rather than file name.
@@ -629,18 +712,17 @@ class WireFileTools extends Wire {
 	}
 
 	/**
-	 * Compile the given file 
+	 * Compile the given file using ProcessWire’s file compiler
 	 * 
-	 * This and the following compile() methods are shortcuts to using ProcessWire's FileCompiler class. 
-	 * These methods are also used by files compiled by FileCompiler. 
+	 * #pw-group-compiler
 	 * 
 	 * @param string $file File to compile
 	 * @param array $options Optional associative array of the following: 
-	 *   - includes (bool): Also compile files include()'d from the given $file? (default=true)
-	 *   - namespace (bool): Compile to make compatible with ProcessWire namespace? (default=true)
-	 *   - modules (bool): Allow FileCompilerModule module's to process the file as well? (default=false)
-	 *   - skipIfNamespace (bool): Return source $file if it declares a namespace (default=false)
-	 * @return string Full path and filename of compiled file, or returns original $file is compilation is not necessary.
+	 *  - `includes` (bool): Also compile files include()'d from the given $file? (default=true)
+	 *  - `namespace` (bool): Compile to make compatible with ProcessWire namespace? (default=true)
+	 *  - `modules` (bool): Allow FileCompilerModule module's to process the file as well? (default=false)
+	 *  - `skipIfNamespace` (bool): Return source $file if it declares a namespace (default=false)
+	 * @return string Full path and filename of compiled file, or returns original `$file` if compilation is not necessary.
 	 * @throws WireException if given invalid $file or other fatal error
 	 * 
 	 */
@@ -651,14 +733,17 @@ class WireFileTools extends Wire {
 
 	/**
 	 * Compile and include() the given file
+	 * 
+	 * #pw-group-compiler
 	 *
-	 * See phpdoc in compile() method for details on all arguments.
-	 *
-	 * @param string $file
-	 * @param array $options
-	 * @return string
-	 * @throws WireException
-	 *
+	 * @param string $file File to compile and include
+	 * @param array $options Optional associative array of the following:
+	 *  - `includes` (bool): Also compile files include()'d from the given $file? (default=true)
+	 *  - `namespace` (bool): Compile to make compatible with ProcessWire namespace? (default=true)
+	 *  - `modules` (bool): Allow FileCompilerModule module's to process the file as well? (default=false)
+	 *  - `skipIfNamespace` (bool): Return source $file if it declares a namespace (default=false)
+	 * @throws WireException if given invalid $file or other fatal error
+	 * 
 	 */
 	public function compileInclude($file, array $options = array()) {
 		$file = $this->compile($file, $options);	
@@ -668,12 +753,15 @@ class WireFileTools extends Wire {
 	/**
 	 * Compile and include_once() the given file
 	 *
-	 * See phpdoc in compile() method for details on all arguments.
+	 * #pw-group-compiler
 	 *
-	 * @param string $file
-	 * @param array $options
-	 * @return string
-	 * @throws WireException
+	 * @param string $file File to compile and include
+	 * @param array $options Optional associative array of the following:
+	 *  - `includes` (bool): Also compile files include()'d from the given $file? (default=true)
+	 *  - `namespace` (bool): Compile to make compatible with ProcessWire namespace? (default=true)
+	 *  - `modules` (bool): Allow FileCompilerModule module's to process the file as well? (default=false)
+	 *  - `skipIfNamespace` (bool): Return source $file if it declares a namespace (default=false)
+	 * @throws WireException if given invalid $file or other fatal error
 	 *
 	 */
 	public function compileIncludeOnce($file, array $options = array()) {
@@ -684,13 +772,16 @@ class WireFileTools extends Wire {
 	/**
 	 * Compile and require() the given file
 	 *
-	 * See phpdoc in compile() method for details on all arguments.
+	 * #pw-group-compiler
 	 *
-	 * @param string $file
-	 * @param array $options
-	 * @return string
-	 * @throws WireException
-	 *
+	 * @param string $file File to compile and include
+	 * @param array $options Optional associative array of the following:
+	 *  - `includes` (bool): Also compile files include()'d from the given $file? (default=true)
+	 *  - `namespace` (bool): Compile to make compatible with ProcessWire namespace? (default=true)
+	 *  - `modules` (bool): Allow FileCompilerModule module's to process the file as well? (default=false)
+	 *  - `skipIfNamespace` (bool): Return source $file if it declares a namespace (default=false)
+	 * @throws WireException if given invalid $file or other fatal error
+	 * 
 	 */
 	public function compileRequire($file, array $options = array()) {
 		$file = $this->compile($file, $options);
@@ -700,12 +791,15 @@ class WireFileTools extends Wire {
 	/**
 	 * Compile and require_once() the given file
 	 * 
-	 * See phpdoc in compile() method for details on all arguments. 
-	 * 
-	 * @param string $file 
-	 * @param array $options
-	 * @return string
-	 * @throws WireException
+	 * #pw-group-compiler
+	 *
+	 * @param string $file File to compile and include
+	 * @param array $options Optional associative array of the following:
+	 *  - `includes` (bool): Also compile files include()'d from the given $file? (default=true)
+	 *  - `namespace` (bool): Compile to make compatible with ProcessWire namespace? (default=true)
+	 *  - `modules` (bool): Allow FileCompilerModule module's to process the file as well? (default=false)
+	 *  - `skipIfNamespace` (bool): Return source $file if it declares a namespace (default=false)
+	 * @throws WireException if given invalid $file or other fatal error
 	 *
 	 */
 	public function compileRequireOnce($file, array $options = array()) {

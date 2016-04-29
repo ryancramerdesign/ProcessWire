@@ -79,8 +79,7 @@ class PagesLoaderCache extends Wire {
 	 *
 	 * @param Page $page Page to uncache
 	 * @param array $options Additional options to modify behavior:
-	 * 	- shallow (bool): By default, this method also calls $page->uncache().
-	 * 	  To prevent call to $page->uncache(), set 'shallow' => true.
+	 *   - `shallow` (bool): By default, this method also calls $page->uncache(). To prevent call to $page->uncache(), set 'shallow' => true.
 	 * @return bool True if page was uncached, false if it didn't need to be
 	 *
 	 */
@@ -98,10 +97,12 @@ class PagesLoaderCache extends Wire {
 	 * Remove all pages from the cache
 	 *
 	 * @param Page $page Optional Page that initiated the uncacheAll
+	 * @param array $options Additional options to modify behavior:
+	 *   - `shallow` (bool): By default, this method also calls $page->uncache(). To prevent call to $page->uncache(), set 'shallow' => true.
 	 * @return int Number of pages uncached
 	 *
 	 */
-	public function uncacheAll(Page $page = null) {
+	public function uncacheAll(Page $page = null, array $options = array()) {
 
 		if($page) {} // to ignore unused parameter inspection
 		$user = $this->wire('user');
@@ -118,7 +119,8 @@ class PagesLoaderCache extends Wire {
 		foreach($this->pageIdCache as $id => $page) {
 			if($id == $user->id || ($language && $language->id == $id)) continue;
 			if($page->numChildren) continue; 
-			$this->uncache($page);
+			if(empty($options['shallow'])) $page->uncache();
+			unset($this->pageIdCache[$page->id]);
 			$cnt++;
 		}
 

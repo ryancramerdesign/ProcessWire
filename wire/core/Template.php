@@ -3,78 +3,108 @@
 /**
  * ProcessWire Template
  *
- * A template is a Page's connection to fields (via a Fieldgroup) and output TemplateFile.
- *
- * Templates also maintain several properties which can affect the render behavior of pages using it. 
+ * #pw-summary Template is a Page’s connection to fields (via a Fieldgroup), access control, and output via a template file. 
+ * #pw-body Template objects also maintain several properties which can affect the render behavior of pages using it. 
+ * #pw-order-groups identification,manipulation,family,URLs,access,files,cache,page-editor,behaviors,other
  * 
  * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
  * https://processwire.com
  * 
  * @todo add multi-language option for redirectLogin setting
  * 
- * @property int $id Get or set the template's numbered database ID.
- * @property string $name Get or set the template's name.
- * @property string $filename Get or set a template's filename, including path (this is auto-generated from the name, though you may modify it at runtime if it suits your need).
- * @property string $label Optional short text label to describe Template.
- * @property int $fieldgroups_id ID of Fieldgroup assigned to this template. 
- * @property int $flags Flags assigned to this template: see the flag* constants in Template class.
- * @property int $cache_time Number of seconds pages using this template should cache for, or 0 for no cache. Negative values indicates setting used for external caching engine like ProCache.
- * @property int $cacheTime Alias for $cache_time for case consistency, can be used interchangeably with cache_time.
- * @property Fieldgroup $fieldgroup Get or set a template's Fieldgroup. Can also be used to iterate a template's fields.
- * @property Fieldgroup $fields Syntactical alias for $template->fieldgroup. Use whatever makes more sense for your code readability.
- * @property Fieldgroup|null $fieldgroupPrevious Previous fieldgroup, if it was changed. Null if not. 
- * @property int|bool $useRoles Whether or not this template defines access. 
- * @property PageArray $roles Roles assigned to this template for general/view access. 
- * @property array $editRoles Array of Role IDs representing roles that may edit pages using this template.
- * @property array $addRoles Array of Role IDs representing roles that may add pages using this template.
- * @property array $createRoles Array of Role IDs representing roles that may create pages using this template.
- * @property array $rolesPermissions Override permissions: Array indexed by role ID with values as permission ID (add) or negative permission ID (revoke)
- * @property int $noInherit Specify 1 to prevent edit/create/add access from inheriting to children, or 0 for default inherit behavior.
- * @property int $childrenTemplatesID Template ID for child pages, or -1 if no children allowed. DEPRECATED
- * @property string $sortfield Field that children of templates using this page should sort by. blank=page decides or sort=manual drag-n-drop
- * @property int $noChildren Set to 1 to cancel use of childTemplates
- * @property int $noParents Set to 1 to cancel use of parentTemplates, set to -1 to only allow one page using this template to exist.
- * @property array $childTemplates Array of template IDs that are allowed for children. blank array = any. 
- * @property array $parentTemplates Array of template IDs that are allowed for parents. blank array = any.
- * @property int $allowPageNum Allow page numbers in URLs? (0=no, 1=yes)
- * @property int $allowChangeUser Allow the createdUser/created_users_id field of pages to be changed? (with API or in admin w/superuser only). 0=no, 1=yes
- * @property int $redirectLogin Redirect when no access: 0 = 404, 1 = login page, url = URL to redirect to.
- * @property int|string $urlSegments Allow URL segments on pages? (0=no, 1=yes (all), string=space separted list of segments to allow)
- * @property int $https Use https? 0 = http or https, 1 = https only, -1 = http only
- * @property int $slashUrls Page URLs should have a trailing slash? 1 = yes, 0 = no	
- * @property string|int $slashPageNum Should PageNum segments have a trailing slash? (blank=either, 1=yes, 0=no) applies only if allowPageNum!=0
- * @property string|int $slashUrlSegments Should last URL segment have a trailing slash? (blank=either, 1=yes, 0=no) applies only if urlSegments!=0
- * @property string $altFilename Alternate filename for template file, if not based on template name.
- * @property int $guestSearchable Pages appear in search results even when user doesnt have access? (0=no, 1=yes)
- * @property string $pageClass Class for instantiated page objects. Page assumed if blank, or specify class name. 
- * @property string $childNameFormat Name format for child pages. when specified, the page-add UI step can be skipped when adding chilcren. Counter appended till unique. Date format assumed if any non-pageName chars present. Use 'title' to pull from title field.
- * @property string $pageLabelField CSV or space separated string of field names to be displayed by ProcessPageList (overrides those set with ProcessPageList config).
- * @property int $noGlobal Template should ignore the global option of fields? (0=no, 1=yes)
- * @property int $noMove Pages using this template are not moveable? (0=moveable, 1=not movable)
- * @property int $noTrash Pages using this template may not go in trash? (i.e. they will be deleted not trashed) (0=trashable, 1=not trashable)
- * @property int $noSettings Don't show a settings tab on pages using this template? (0=use settings tab, 1=no settings tab)
- * @property int $noChangeTemplate Don't allow pages using this template to change their template? (0=template change allowed, 1=template change not allowed)
- * @property int $noUnpublish Don't allow pages using this template to ever exist in an unpublished state - if page exists, it must be published. (0=page may be unpublished, 1=page may not be unpublished)
- * @property int $noShortcut Don't allow pages using this template to appear in shortcut "add new page" menu
- * @property int $compile Set to 1 to enable compilation, 2 to compile file and included files, 3 for auto, or 0 to disable. 
- * @property int $nameContentTab Pages should display the name field on the content tab? (0=no, 1=yes)
- * @property string $noCacheGetVars GET vars that trigger disabling the cache (only when cache_time > 0)
- * @property string $noCachePostVars POST vars that trigger disabling the cache (only when cache_time > 0)
- * @property int $useCacheForUsers Use cache for: 0 = only guest users, 1 = guests and logged in users
- * @property int $cacheExpire Expire the cache for all pages when page using this template is saved? (1 = yes, 0 = no- only current page)
- * @property array $cacheExpirePages Array of Page IDs that should be expired, when cacheExpire == Template::cacheExpireSpecific
- * @property string $cacheExpireSelector Selector string matching pages that should be expired, when cacheExpire == Template::cacheExpireSelector
- * @property string $tags Optional tags that can group this template with others in the admin templates list 
- * @property string $tabContent Optional replacement for default "Content" label
- * @property string $tabChildren Optional replacement for default "Children" label
- * @property string $nameLabel Optional replacement for the default "Name" label on pages using this template
- * @property string $contentType Content-type header or index (extension) of content type header from $config->contentTypes
- * @property int $errorAction Action to take when published page missing required field is saved (0=notify only, 1=restore prev value, 2=unpublish page)
- * @property string $ns Namespace found in the template file, or blank if not determined
- * @property int|bool $noPrependTemplateFile
- * @property int|bool $noAppendTemplateFile
- * @property string $prependFile
- * @property string $appendFile
+ * Identification
+ * 
+ * @property int $id Numeric database ID. #pw-group-identification
+ * @property string $name Name of template.  #pw-group-identification
+ * @property string $label Optional short text label to describe Template.  #pw-group-identification
+ * @property int $flags Flags (bitmask) assigned to this template. See the flag constants.  #pw-group-identification
+ * @property string $ns Namespace found in the template file, or blank if not determined.   #pw-group-identification
+ * @property string $pageClass Class for instantiated page objects. Page assumed if blank, or specify class name.  #pw-group-identification
+ * 
+ * Fieldgroup/Fields 
+ * 
+ * @property int $fieldgroups_id Numeric ID of Fieldgroup assigned to this template. #pw-internal
+ * @property Fieldgroup $fieldgroup The Fieldgroup used by the template. Can also be used to iterate a Template's fields.  #pw-group-fields
+ * @property Fieldgroup $fields Alias for the fieldgroup property. Use whatever makes more sense for your code readability. #pw-internal 
+ * @property Fieldgroup|null $fieldgroupPrevious Previous fieldgroup, if it was changed. Null if not.  #pw-group-fields
+ * 
+ * Cache
+ * 
+ * @property int $cache_time Number of seconds pages using this template should cache for, or 0 for no cache. Negative values indicates setting used for external caching engine like ProCache. #pw-internal (Note: cacheTime is an alias of this) #pw-group-cache
+ * @property int $cacheTime Number of seconds pages using this template should cache for, or 0 for no cache. Negative values indicates setting used for external caching engine like ProCache. #pw-group-cache
+ * @property string $noCacheGetVars GET vars that trigger disabling the cache (only when cache_time > 0) #pw-group-cache
+ * @property string $noCachePostVars POST vars that trigger disabling the cache (only when cache_time > 0) #pw-group-cache
+ * @property int $useCacheForUsers Use cache for: 0 = only guest users, 1 = guests and logged in users #pw-group-cache
+ * @property int $cacheExpire Expire the cache for all pages when page using this template is saved? (1 = yes, 0 = no- only current page) #pw-group-cache
+ * @property array $cacheExpirePages Array of Page IDs that should be expired, when cacheExpire == Template::cacheExpireSpecific #pw-group-cache
+ * @property string $cacheExpireSelector Selector string matching pages that should be expired, when cacheExpire == Template::cacheExpireSelector #pw-group-cache
+ * 
+ * Access 
+ * 
+ * @property int|bool $useRoles Whether or not this template defines access. #pw-group-access
+ * @property PageArray $roles Roles assigned to this template for view access.  #pw-group-access
+ * @property array $editRoles Array of Role IDs that may edit pages using this template. #pw-group-access
+ * @property array $addRoles Array of Role IDs that may add pages using this template. #pw-group-access
+ * @property array $createRoles Array of Role IDs that may create pages using this template. #pw-group-access
+ * @property array $rolesPermissions Override permissions: Array indexed by role ID with values as permission ID (add) or negative permission ID (revoke). #pw-group-access
+ * @property int $noInherit Disable role inheritance? Specify 1 to prevent edit/create/add access from inheriting to children, or 0 for default inherit behavior. #pw-group-access
+ * @property int $redirectLogin Redirect when no access: 0 = 404, 1 = login page, url = URL to redirect to. #pw-group-access
+ * @property int $guestSearchable Pages appear in search results even when user doesnt have access? (0=no, 1=yes) #pw-group-access
+ * 
+ * Family
+ * 
+ * @property int $childrenTemplatesID Template ID for child pages, or -1 if no children allowed. DEPRECATED #pw-internal 
+ * @property string $sortfield Field that children of templates using this page should sort by (leave blank to let page decide, or specify "sort" for manual drag-n-drop). #pw-group-family
+ * @property int $noChildren Set to 1 to cancel use of childTemplates. #pw-group-family
+ * @property int $noParents Set to 1 to cancel use of parentTemplates, set to -1 to only allow one page using this template to exist. #pw-group-family
+ * @property array $childTemplates Array of template IDs that are allowed for children. Blank array indicates "any".  #pw-group-family
+ * @property array $parentTemplates Array of template IDs that are allowed for parents. Blank array indicates "any". #pw-group-family
+ * @property string $childNameFormat Name format for child pages. when specified, the page-add UI step can be skipped when adding children. Counter appended till unique. Date format assumed if any non-pageName chars present. Use 'title' to pull from title field. #pw-group-family
+ * 
+ * URLs
+ * 
+ * @property int $allowPageNum Allow page numbers in URLs? (0=no, 1=yes) #pw-group-URLs
+ * @property int|string $urlSegments Allow URL segments on pages? (0=no, 1=yes (all), string=space separted list of segments to allow) #pw-group-URLs
+ * @property int $https Use https? (0 = http or https, 1 = https only, -1 = http only) #pw-group-URLs
+ * @property int $slashUrls Page URLs should have a trailing slash? 1 = yes, 0 = no	 #pw-group-URLs
+ * @property string|int $slashPageNum Should PageNum segments have a trailing slash? (blank=either, 1=yes, 0=no) applies only if allowPageNum!=0. #pw-group-URLs
+ * @property string|int $slashUrlSegments Should last URL segment have a trailing slash? (blank=either, 1=yes, 0=no) applies only if urlSegments!=0. #pw-group-URLs
+ * 
+ * Files
+ * 
+ * @property string $filename Template filename, including path (this is auto-generated from the name, though you may modify it at runtime if it suits your need). #pw-group-files
+ * @property string $altFilename Alternate filename for template file, if not based on template name. #pw-group-files
+ * @property string $contentType Content-type header or index (extension) of content type header from $config->contentTypes #pw-group-files
+ * @property int|bool $noPrependTemplateFile Disable automatic prepend of $config->prependTemplateFile (if in use).  #pw-group-files
+ * @property int|bool $noAppendTemplateFile Disabe automatic append of $config->appendTemplateFile (if in use).  #pw-group-files
+ * @property string $prependFile File to prepend to template file (separate from $config->prependTemplateFile).  #pw-group-files
+ * @property string $appendFile File to append to template file (separate from $config->appendTemplateFile).  #pw-group-files
+ * 
+ * Page Editor
+ * 
+ * @property int $nameContentTab Pages should display the name field on the content tab? (0=no, 1=yes) #pw-group-page-editor
+ * @property string $tabContent Optional replacement for default "Content" label #pw-group-page-editor
+ * @property string $tabChildren Optional replacement for default "Children" label #pw-group-page-editor
+ * @property string $nameLabel Optional replacement for the default "Name" label on pages using this template #pw-group-page-editor
+ * @property int $errorAction Action to take when published page missing required field is saved (0=notify only, 1=restore prev value, 2=unpublish page) #pw-group-page-editor
+ * 
+ * Behaviors
+ *
+ * @property int $allowChangeUser Allow the createdUser/created_users_id field of pages to be changed? (with API or in admin w/superuser only). 0=no, 1=yes #pw-group-behaviors
+ * @property int $noGlobal Template should ignore the global option of fields? (0=no, 1=yes) #pw-group-behaviors
+ * @property int $noMove Pages using this template are not moveable? (0=moveable, 1=not movable) #pw-group-behaviors
+ * @property int $noTrash Pages using this template may not go in trash? (i.e. they will be deleted not trashed) (0=trashable, 1=not trashable) #pw-group-behaviors
+ * @property int $noSettings Don't show a settings tab on pages using this template? (0=use settings tab, 1=no settings tab) #pw-group-behaviors
+ * @property int $noChangeTemplate Don't allow pages using this template to change their template? (0=template change allowed, 1=template change not allowed) #pw-group-behaviors
+ * @property int $noUnpublish Don't allow pages using this template to ever exist in an unpublished state - if page exists, it must be published. (0=page may be unpublished, 1=page may not be unpublished) #pw-group-behaviors
+ * @property int $noShortcut Don't allow pages using this template to appear in shortcut "add new page" menu #pw-group-behaviors
+ * 
+ * Other
+ * 
+ * @property int $compile Set to 1 to enable compilation, 2 to compile file and included files, 3 for auto, or 0 to disable.  #pw-group-other
+ * @property string $tags Optional tags that can group this template with others in the admin templates list. #pw-group-other 
+ * @property string $pageLabelField CSV or space separated string of field names to be displayed by ProcessPageList (overrides those set with ProcessPageList config). #pw-group-other
+ * 
  *
  */
 
@@ -234,6 +264,8 @@ class Template extends WireData implements Saveable, Exportable {
 
 	/**
 	 * Get a Template property
+	 * 
+	 * #pw-internal
 	 *
 	 * @param string $key
 	 * @return mixed
@@ -258,9 +290,11 @@ class Template extends WireData implements Saveable, Exportable {
 	 *
 	 * This method returns a blank PageArray if roles haven't yet been loaded into the template. 
 	 * If the roles have previously been loaded as an array, then this method converts that array to a PageArray and returns it. 
+	 * 
+	 * #pw-group-access
 	 *
-	 * @param string $type Default is 'view', but you may also specify 'edit', 'create' or 'add' to retrieve those
-	 * @return PageArray
+	 * @param string $type Default is 'view', but you may also specify 'edit', 'create' or 'add' to retrieve those.
+	 * @return PageArray of Role objects. 
 	 * @throws WireException if given an unknown roles type
 	 *
 	 */
@@ -315,11 +349,18 @@ class Template extends WireData implements Saveable, Exportable {
 	}
 
 	/**
-	 * Does this template have the given role name or page?
+	 * Does this template have the given Role?
+	 * 
+	 * #pw-group-access
 	 *
-	 * @param string|Page $role Name of role or page object representing it. 
-	 * @param string|Permission Which permission to check: 'page-view', 'page-edit', 'page-create' or 'page-add' (default is 'page-view')
-	 * @return bool
+	 * @param string|Role|Page $role Name of Role or Role object. 
+	 * @param string|Permission Specify one of the following:
+	 *  - `view` (default)
+	 *  - `edit` 
+	 *  - `create` 
+	 *  - `add` 
+	 *  - Or a `Permission` object
+	 * @return bool True if template has the role, false if not
 	 *
 	 */
 	public function hasRole($role, $type = 'view') {
@@ -352,10 +393,18 @@ class Template extends WireData implements Saveable, Exportable {
 	}
 
 	/**
-	 * Given an array of page IDs or a PageArray, sets the roles for this template
+	 * Set roles for this template
+	 * 
+	 * #pw-group-access
+	 * #pw-group-manipulation
 	 *
-	 * @param array|PageArray $value
-	 * @param string Default is 'view', but you may also specify 'edit', 'create', or 'add' to set that type
+	 * @param array|PageArray $value Role objects or array or Role IDs. 
+	 * @param string Specify one of the following:
+	 *  - `view` (default)
+	 *  - `edit`
+	 *  - `create`
+	 *  - `add` 
+	 *  - Or a `Permission` object
 	 *
 	 */
 	public function setRoles($value, $type = 'view') {
@@ -382,9 +431,11 @@ class Template extends WireData implements Saveable, Exportable {
 	}
 
 	/**
-	 * Does this template have the given field?
+	 * Does this template have the given Field?
+	 * 
+	 * #pw-group-fields
 	 *
-	 * @param string|int|Field
+	 * @param string|int|Field May be field name, id or object. 
 	 * @return bool
 	 *
 	 */
@@ -394,6 +445,8 @@ class Template extends WireData implements Saveable, Exportable {
 
 	/**
 	 * Set a Template property
+	 * 
+	 * #pw-internal
 	 *
 	 * @param string $key
 	 * @param mixed $value
@@ -545,11 +598,13 @@ class Template extends WireData implements Saveable, Exportable {
 	/**
 	 * Get or set allowed URL segments
 	 * 
+	 * #pw-group-URLs
+	 * 
 	 * @param array|int|bool|string $value Omit to return current value, or to set value: 
-	 * 	Specify array of allowed URL segments, may include 'segment', 'segment/path' or 'regex:your-regex'.
-	 * 	Or specify true or 1 to enable all URL segments
-	 * 	Or specify 0, false, or blank array to disable all URL segments
-	 * @return array|int Returns array of allowed URL segments, or 0 if disabled, or 1 if any allowed
+	 *  - Specify array of allowed URL segments, may include 'segment', 'segment/path' or 'regex:your-regex'.
+	 * 	- Or specify boolean true or 1 to enable all URL segments.
+	 * 	- Or specify integer 0, boolean false, or blank array to disable all URL segments.
+	 * @return array|int Returns array of allowed URL segments, or 0 if disabled, or 1 if any allowed.
 	 * 
 	 */
 	public function urlSegments($value = '~') {
@@ -595,8 +650,10 @@ class Template extends WireData implements Saveable, Exportable {
 	}
 
 	/**
-	 * Set the flags property and prevent the system flag from being removed
-	 *
+	 * Set the flags for this Template
+	 * 
+	 * As a safety it prevents the system flag from being removed.
+	 * 
 	 * @param int $value
 	 *
 	 */
@@ -613,7 +670,7 @@ class Template extends WireData implements Saveable, Exportable {
 
 	/**
 	 * Set this template's filename, with or without path
-	 *
+	 * 
 	 * @param string $value The filename with or without path
 	 *
 	 */
@@ -635,6 +692,9 @@ class Template extends WireData implements Saveable, Exportable {
 
 	/**
 	 * Set this Template's Fieldgroup
+	 * 
+	 * #pw-group-fields
+	 * #pw-group-manipulation
 	 *
 	 * @param Fieldgroup $fieldgroup
 	 * @return $this
@@ -666,7 +726,9 @@ class Template extends WireData implements Saveable, Exportable {
 
 	/**
 	 * Return the number of pages used by this template. 
-	 *
+	 * 
+	 * #pw-group-identification
+	 * 
 	 * @return int
 	 *
 	 */
@@ -676,6 +738,10 @@ class Template extends WireData implements Saveable, Exportable {
 
 	/**
 	 * Save the template to database
+	 * 
+	 * This is the same as calling `$templates->save($template)`. 
+	 * 
+	 * #pw-group-manipulation
 	 *
 	 * @return $this|bool Returns Template if successful, or false if not
 	 *
@@ -689,6 +755,8 @@ class Template extends WireData implements Saveable, Exportable {
 
 	/**
 	 * Return corresponding template filename, including path
+	 * 
+	 * #pw-group-files
 	 *
 	 * @return string
 	 * @throws WireException
@@ -730,6 +798,8 @@ class Template extends WireData implements Saveable, Exportable {
 	/**
 	 * Saves a template after the request is complete
 	 * 
+	 * #pw-internal
+	 * 
 	 * @param HookEvent $e
 	 * 
 	 */
@@ -741,6 +811,8 @@ class Template extends WireData implements Saveable, Exportable {
 
 	/**
 	 * Does the template filename exist?
+	 * 
+	 * #pw-group-files
 	 *
 	 * @return string
 	 *	
@@ -755,6 +827,8 @@ class Template extends WireData implements Saveable, Exportable {
 	 * Per Saveable interface, get an array of this table's data
 	 *
 	 * We override this so that we can add our roles array to it. 
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	public function getArray() {
@@ -774,6 +848,8 @@ class Template extends WireData implements Saveable, Exportable {
 
 	/**
 	 * Per Saveable interface: return data for storage in table
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	public function getTableData() {
@@ -789,6 +865,8 @@ class Template extends WireData implements Saveable, Exportable {
 
 	/**
 	 * Per Saveable interface: return data for external storage
+	 * 
+	 * #pw-internal
 	 * 
 	 */
 	public function getExportData() {
@@ -807,6 +885,8 @@ class Template extends WireData implements Saveable, Exportable {
 	 * 		'error' => 'error message or blank if no error'  // error message (string) or messages (array)
 	 * 		)
 	 * 
+	 * #pw-internal
+	 * 
 	 */
 	public function setImportData(array $data) {
 		return $this->wire('templates')->setImportData($this, $data); 
@@ -822,13 +902,15 @@ class Template extends WireData implements Saveable, Exportable {
 
 
 	/**
-	 * Return the parent page that this template assumes new pages are added to 
+	 * Return the parent page that this template assumes new pages are added to .
 	 *
 	 * This is based on family settings, when applicable. 
 	 * It also takes into account user access, if requested (see arg 1). 
 	 *
 	 * If there is no shortcut parent, NULL is returned. 
 	 * If there are multiple possible shortcut parents, a NullPage is returned.
+	 * 
+	 * #pw-group-family
 	 *
 	 * @param bool $checkAccess Whether or not to check for user access to do this (default=false).
 	 * @return Page|NullPage|null
@@ -840,6 +922,8 @@ class Template extends WireData implements Saveable, Exportable {
 
 	/**
 	 * Return all possible parent pages for this template
+	 * 
+	 * #pw-group-family
 	 * 
 	 * @param bool $checkAccess Specify true to exclude parents that user doesn't have access to add children to (default=false)
 	 * @return PageArray
@@ -853,8 +937,10 @@ class Template extends WireData implements Saveable, Exportable {
 	 * Return template label for current language, or specified language if provided
 	 * 
 	 * If no template label, return template name.
-	 * This is different from $this->label in that it knows about languages (when installed)
+	 * This is different from `$template->label` in that it knows about languages (when installed)
 	 * and it will always return something. If there's no label, you'll still get the name. 
+	 * 
+	 * #pw-group-identification
 	 * 
 	 * @param Page|Language $language Optional, if not used then user's current language is used
 	 * @return string
@@ -873,7 +959,9 @@ class Template extends WireData implements Saveable, Exportable {
 	}
 	
 	/**
-	 * Return tab label for current language (or specified language if provided)
+	 * Return page tab label for current language (or specified language if provided)
+	 * 
+	 * #pw-group-page-editor
 	 *
 	 * @param string $tab Which tab? 'content' or 'children'
 	 * @param Page|Language $language Optional, if not used then user's current language is used
@@ -891,6 +979,8 @@ class Template extends WireData implements Saveable, Exportable {
 	/**
 	 * Return the overriden "page name" label, or blank if not overridden
 	 * 
+	 * #pw-group-page-editor
+	 * 
 	 * @param Language|null $language
 	 * @return string
 	 * 
@@ -902,10 +992,12 @@ class Template extends WireData implements Saveable, Exportable {
 	}
 
 	/**
-	 * Return the icon name used by this template (if specified in pageLabeField)
+	 * Return the icon name used by this template
+	 * 
+	 * #pw-group-identification
 	 * 
 	 * @param bool $prefix Specify true if you want the icon prefix (icon- or fa-) to be included (default=false).
-	 * @return string
+	 * @return string Returns a font-awesome icon name
 	 * 
 	 */
 	public function getIcon($prefix = false) {
@@ -923,13 +1015,14 @@ class Template extends WireData implements Saveable, Exportable {
 	/**
 	 * Set the icon to use with this template
 	 * 
-	 * This manipulates the pageLabelField property, since there isn't actually an icon property. 
+	 * #pw-group-identification
 	 * 
-	 * @param $icon 
+	 * @param $icon Font-awesome icon name
 	 * @return $this
 	 * 
 	 */
 	public function setIcon($icon) {
+		// This manipulates the pageLabelField property, since there isn't actually an icon property. 
 		$icon = $this->wire('sanitizer')->pageName($icon); 
 		$current = $this->getIcon(false); 	
 		$label = $this->pageLabelField;

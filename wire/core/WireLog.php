@@ -5,6 +5,8 @@
  *
  * WireLog represents the ProcessWire $log API variable.
  * It is an API-friendly interface to the FileLog class.
+ * 
+ * #pw-summary Enables creation of logs, logging of events, and management of logs. 
  *
  * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
  * https://processwire.com
@@ -17,7 +19,12 @@ class WireLog extends Wire {
 
 	/**
 	 * Record an informational or 'success' message in the message log (messages.txt)
-	 *
+	 * 
+	 * ~~~~~
+	 * // Log message to messages.txt log
+	 * $log->message("User updated profile"); 
+	 * ~~~~~
+	 * 
 	 * @param string $text Message to log
 	 * @param bool|int $flags Specify boolean true to also have the message displayed interactively (admin only).
 	 * @return $this
@@ -31,9 +38,14 @@ class WireLog extends Wire {
 	/**
 	 * Record an error message in the error log (errors.txt)
 	 *
-	 * Note: Fatal errors should instead throw a WireException.
-	 *
-	 * @param string $text
+	 * Note: Fatal errors should instead always throw a WireException.
+	 * 
+	 * ~~~~~
+	 * // Log an error message to errors.txt log
+	 * $log->error("Login attempt failed"); 
+	 * ~~~~~
+	 * 
+	 * @param string $text Text to save in the log
 	 * @param int|bool $flags Specify boolean true to also display the error interactively (admin only).
 	 * @return $this
 	 *
@@ -45,8 +57,13 @@ class WireLog extends Wire {
 
 	/**
 	 * Record a warning message in the warnings log (warnings.txt)
-	 *
-	 * @param string $text
+	 * 
+	 * ~~~~~
+	 * // Log an warning message to warnings.txt log
+	 * $log->warning("This is a warning");
+	 * ~~~~~
+	 * 
+	 * @param string $text Text to save in the log
 	 * @param int|bool $flags Specify boolean true to also display the warning interactively (admin only).
 	 * @return $this
 	 *
@@ -57,16 +74,25 @@ class WireLog extends Wire {
 	}
 	
 	/**
-	 * Save text to a caller-defined log
+	 * Save text to a named log
 	 * 
-	 * If the log doesn't currently exist, it will be created. 
+	 * - If the log doesn't currently exist, it will be created. 
+	 * - The log filename is `/site/assets/logs/[name].txt`
+	 * - Logs can be viewed in the admin at Setup > Logs
 	 * 
-	 * The log filename is /site/assets/logs/[name].txt
+	 * ~~~~~
+	 * // Save text searches to custom log file (search.txt):
+	 * $log->save("search", "User searched for: $phrase");
+	 * ~~~~~
 	 * 
-	 * @param string $name Name of log to save to (word consisting of [-._a-z0-9] and no extension)
+	 * @param string $name Name of log to save to (word consisting of only `[-._a-z0-9]` and no extension)
 	 * @param string $text Text to save to the log
-	 * @param array $options Options to modify behavior (defaults: showUser=true, showURL=true, url='url', delimiter=\t)
-	 * @return bool Whether it was written (usually assumed to be true)
+	 * @param array $options Options to modify default behavior:
+	 *   - `showUser` (bool): Include the username in the log entry? (default=true)
+	 *   - `showURL` (bool): Include the current URL in the log entry? (default=true) 
+	 *   - `url` (bool): URL to record with the log entry (default=auto determine)
+	 *   - `delimiter` (string): Log entry delimiter (default="\t" aka tab)
+	 * @return bool Whether it was written or not (generally always going to be true)
 	 * @throws WireException
 	 * 
 	 */
@@ -122,6 +148,8 @@ class WireLog extends Wire {
 	 * 
 	 * This should be called directly from a deprecated method or function. 
 	 * 
+	 * #pw-internal
+	 * 
 	 */
 	public function deprecatedCall() {
 		if(!in_array('deprecated', $this->wire('config')->logs)) return;
@@ -140,13 +168,15 @@ class WireLog extends Wire {
 	}
 
 	/**
-	 * Return array of all logs
+	 * Return array of all logs, sorted by name
 	 * 
 	 * Each log entry is an array that includes the following:
-	 * 	- name (string): Name of log file, excluding extension.
-	 * 	- file (string): Full path and filename of log file. 
-	 * 	- size (int): Size in bytes
-	 * 	- modified (int): Last modified date (unix timestamp)
+	 * 	- `name` (string): Name of log file, excluding extension.
+	 * 	- `file` (string): Full path and filename of log file. 
+	 * 	- `size` (int): Size in bytes
+	 * 	- `modified` (int): Last modified date (unix timestamp)
+	 * 
+	 * #pw-group-retrieval
 	 * 
 	 * @return array 
 	 * 
@@ -176,9 +206,11 @@ class WireLog extends Wire {
 	/**
 	 * Get the full filename (including path) for the given log name
 	 * 
-	 * @param string $name
-	 * @return string
-	 * @throws WireException
+	 * #pw-group-retrieval
+	 * 
+	 * @param string $name Name of log (not including extension)
+	 * @return string Filename to log file
+	 * @throws WireException If given invalid log name
 	 * 
 	 */
 	public function getFilename($name) {
@@ -191,17 +223,20 @@ class WireLog extends Wire {
 	/**
 	 * Return the given number of entries from the end of log file
 	 * 
-	 * This method is pagination aware. 
+	 * This method is pagination aware.
+	 * 
+	 * #pw-group-retrieval
 	 * 
 	 * @param string $name Name of log 
 	 * @param array $options Specify any of the following: 
-	 * 	- limit (integer): Specify number of lines.
-	 * 	- text (string): Text to find.
-	 * 	- dateFrom (int|string): Oldest date to match entries.
-	 * 	- dateTo (int|string): Newest date to match entries.
-	 * 	- reverse (bool): Reverse order (default=true)
-	 * 	- pageNum (int): Pagination number 1 or above (default=0 which means auto-detect)
+	 * 	- `limit` (integer): Specify number of lines (default=100)
+	 * 	- `text` (string): Text to find.
+	 * 	- `dateFrom` (int|string): Oldest date to match entries.
+	 * 	- `dateTo` (int|string): Newest date to match entries.
+	 * 	- `reverse` (bool): Reverse order (default=true)
+	 * 	- `pageNum` (int): Pagination number 1 or above (default=0 which means auto-detect)
 	 * @return array 
+	 * @see WireLog::getEntries()
 	 * 
 	 */
 	public function getLines($name, array $options = array()) {
@@ -213,22 +248,27 @@ class WireLog extends Wire {
 	}
 
 	/**
-	 * Same as getLines() but returns each log line as an associative array of each part of the line split up
+	 * Return given number of entries from end of log file, with each entry as an associative array of components
+	 * 
+	 * This is effectively the same as the `getLines()` method except that each entry is an associative 
+	 * array rather than a single line (string). This method is pagination aware.
+	 * 
+	 * #pw-group-retrieval
 	 * 
 	 * @param $name Name of log file (excluding extension)
-	 * @param array $options
-	 * 	- limit (integer): Specify number of lines. 
-	 * 	- text (string): Text to find. 
-	 * 	- dateFrom (int|string): Oldest date to match entries. 
-	 * 	- dateTo (int|string): Newest date to match entries. 
-	 * 	- reverse (bool): Reverse order (default=true)
-	 * 	- pageNum (int): Pagination number 1 or above (default=0 which means auto-detect)
-	 * @return array(array(
-	 * 	'date' => "ISO-8601 date string",
-	 * 	'user' => "user name or boolean false if unknown", 
-	 * 	'url' => "full URL or boolean false if unknown", 
-	 * 	'text' => "text of the log entry"
-	 * ));
+	 * @param array $options Optional options to modify default behavior: 
+	 * 	- `limit` (integer): Specify number of lines (default=100)
+	 * 	- `text` (string): Text to find. 
+	 * 	- `dateFrom` (int|string): Oldest date to match entries. 
+	 * 	- `dateTo` (int|string): Newest date to match entries. 
+	 * 	- `reverse` (bool): Reverse order (default=true)
+	 * 	- `pageNum` (int): Pagination number 1 or above (default=0 which means auto-detect)
+	 * @return array Returns an array of associative arrays, each with the following components:
+	 *  - `date` (string): ISO-8601 date string
+	 *  - `user` (string): user name or boolean false if unknown
+	 *  - `url` (string): full URL or boolean false if unknown
+	 *  - `text` (string) text of the log entry
+	 * @see WireLog::getLines()
 	 * 
 	 */
 	public function getEntries($name, array $options = array()) {
@@ -249,6 +289,8 @@ class WireLog extends Wire {
 
 	/**
 	 * Convert a log line to an entry array
+	 * 
+	 * #pw-internal
 	 * 
 	 * @param $line
 	 * @return array
@@ -293,8 +335,10 @@ class WireLog extends Wire {
 	/**
 	 * Get the total number of entries present in the given log
 	 * 
-	 * @param $name
-	 * @return int
+	 * #pw-group-retrieval
+	 * 
+	 * @param string $name Name of log, not including path or extension
+	 * @return int Total number of entries
 	 * 
 	 */
 	public function getTotalEntries($name) {
@@ -304,6 +348,8 @@ class WireLog extends Wire {
 	
 	/**
 	 * Get lines from log file (deprecated)
+	 * 
+	 * #pw-internal
 	 *
 	 * @param $name
 	 * @param int $limit
@@ -321,6 +367,8 @@ class WireLog extends Wire {
 	 * 
 	 * Pagination aware. 
 	 * 
+	 * #pw-internal
+	 * 
 	 * @param string $name Name of log 
 	 * @param int|string $dateFrom Unix timestamp or string date/time to start from 
 	 * @param int|string $dateTo Unix timestamp or string date/time to end at (default = now)
@@ -336,10 +384,12 @@ class WireLog extends Wire {
 	}
 	
 	/**
-	 * Delete the log file identified by $name
+	 * Delete a log file
+	 * 
+	 * #pw-group-manipulation
 	 *
-	 * @param $name
-	 * @return bool
+	 * @param string $name Name of log, excluding path and extension.
+	 * @return bool True on success, false on failure.
 	 *
 	 */
 	public function delete($name) {
@@ -348,11 +398,13 @@ class WireLog extends Wire {
 	}
 
 	/**
-	 * Prune log file to contain only entries from last n days
+	 * Prune log file to contain only entries from last [n] days
 	 * 
-	 * @param string $name
-	 * @param int $days
-	 * @return int Number of items in new log file or booean false on failure
+	 * #pw-group-manipulation
+	 * 
+	 * @param string $name Name of log file, excluding path and extension.
+	 * @param int $days Number of days
+	 * @return int Number of items in new log file or boolean false on failure
 	 * @throws WireException
 	 * 
 	 */
@@ -365,6 +417,8 @@ class WireLog extends Wire {
 
 	/**
 	 * Returns instance of FileLog for given log name
+	 * 
+	 * #pw-internal
 	 * 
 	 * @param $name
 	 * @param array $options

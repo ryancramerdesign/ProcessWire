@@ -3,13 +3,20 @@
 /**
  * ProcessWire Permission Page
  *
- * A type of Page used for storing an individual User
+ * #pw-summary Permission is a Page type used for storing an individual permission. 
+ * #pw-body = 
+ * One or more Permission objects are attached to `Role` objects, which are then attached to `User` objects 
+ * and `Template` objects, forming ProcessWire's role-based access control system. Outside of roles, 
+ * Permission objects are managed with the `$permissions` API variable. 
+ * #pw-body
+ * 
+ * @property int $id Numeric page ID of the permission. 
+ * @property string $name Name of the permission. 
+ * @property string $title Short description of what the permission is for. 
  * 
  * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
  * https://processwire.com
  * 
- * @todo PW3 move permissions to use Page hierarchy or Page reference for parent/child relationships between permissions
- *
  */
 
 class Permission extends Page {
@@ -50,10 +57,12 @@ class Permission extends Page {
 	}
 
 	/**
-	 * Return the immediate parent permission of this permission or NullPage if no parent permission
+	 * Return the immediate parent permission of this permission or NullPage if no parent permission.
 	 * 
 	 * For permissions, parents relations are typically by name. For instance, page-edit is the parent of page-edit-created.
 	 * But all page-* permissions are assumed to have page-edit as parent, except for page-view. 
+	 * 
+	 * #pw-internal
 	 * 
 	 * @return Permission|NullPage
 	 * 
@@ -84,7 +93,16 @@ class Permission extends Page {
 		
 		return $permission;
 	}
-	
+
+	/**
+	 * Get the root parent permission
+	 * 
+	 * #pw-internal
+	 * 
+	 * @return Permission|NullPage
+	 * @throws WireException
+	 * 
+	 */
 	public function getRootParentPermission() {
 		if(isset(self::$parentPermissions[$this->name])) {
 			$name = self::$parentPermissions[$this->name]; 
@@ -104,6 +122,8 @@ class Permission extends Page {
 
 	/**
 	 * Return the API variable used for managing pages of this type
+	 * 
+	 * #pw-internal
 	 *
 	 * @return Pages|PagesType
 	 *

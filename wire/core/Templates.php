@@ -7,39 +7,12 @@
  * 
  * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
  * https://processwire.com
+ * 
+ * #pw-summary Manages and provides access to all the Templates.
  *
- */
-
-/**
- * WireArray of Template instances
- *
- */
-class TemplatesArray extends WireArray {
-
-	public function isValidItem($item) {
-		return $item instanceof Template; 	
-	}
-
-	public function isValidKey($key) {
-		return is_int($key) || ctype_digit($key); 
-	}
-
-	public function getItemKey($item) {
-		return $item->id; 
-	}
-
-	public function makeBlankItem() {
-		return $this->wire(new Template());
-	}
-
-}
-
-/**
- * Manages and provides access to all the Template instances
- *
- * @method Templates find() find($selectorString) Return the templates matching the the given selector query.
- * @method bool save() save(Template $template) Save the given template instance.
- * @method bool delete() delete($template) Delete the given template instance. Note that this will throw a fatal error if the template is in use by any pages.
+ * @method TemplatesArray find($selector) Return the templates matching the the given selector query. #pw-internal
+ * @method bool save(Template $template) Save the given Template.
+ * @method bool delete() delete(Template $template) Delete the given Template. Note that this will throw a fatal error if the template is in use by any pages.
  *
  */
 class Templates extends WireSaveableItems {
@@ -78,6 +51,8 @@ class Templates extends WireSaveableItems {
 
 	/**
 	 * Initialize the TemplatesArray and populate
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	public function init() {
@@ -87,6 +62,8 @@ class Templates extends WireSaveableItems {
 
 	/**
 	 * Return the WireArray that this DAO stores it's items in
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	public function getAll() {
@@ -95,6 +72,8 @@ class Templates extends WireSaveableItems {
 
 	/**
 	 * Return a new blank item 
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	public function makeBlankItem() {
@@ -103,6 +82,8 @@ class Templates extends WireSaveableItems {
 
 	/**
 	 * Return the name of the table that this DAO stores item records in
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	public function getTable() {
@@ -111,6 +92,8 @@ class Templates extends WireSaveableItems {
 
 	/**
 	 * Return the field name that fields should initially be sorted by
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	public function getSort() {
@@ -118,7 +101,12 @@ class Templates extends WireSaveableItems {
 	}
 
 	/**
+	 * Get a template by name or ID
+	 * 
 	 * Given a template ID or name, return the matching template or NULL if not found.
+	 * 
+	 * @param string|int $key Template name or ID
+	 * @return Template|null
 	 *
 	 */
 	public function get($key) {
@@ -128,18 +116,21 @@ class Templates extends WireSaveableItems {
 		return $value; 
 	}
 
-
 	/**
-	 * Update or insert template to database 
+	 * Save a Template
+	 * 
+	 * ~~~~~
+	 * $templates->save($template); 
+	 * ~~~~~
 	 *
-	 * If the template's fieldgroup has changed, then we delete data that's no longer applicable to the new fieldgroup. 
-	 *
-	 * @param Saveable|Template $item 
-	 * @return bool true on success
+	 * @param Saveable|Template $item Template to save
+	 * @return bool True on success, false on failure
 	 * @throws WireException
 	 *
 	 */
 	public function ___save(Saveable $item) {
+		
+		// If the template's fieldgroup has changed, then we delete data that's no longer applicable to the new fieldgroup. 
 
 		$isNew = $item->id < 1; 
 
@@ -193,7 +184,11 @@ class Templates extends WireSaveableItems {
 	}
 
 	/**
-	 * Delete a template and unset it from this object. 
+	 * Delete a Template
+	 * 
+	 * @param Template|Saveable $item Template to delete
+	 * @return bool True on success, false on failure
+	 * @throws WireException Thrown when you attempt to delete a template in use, or a system template. 
 	 *
 	 */
 	public function ___delete(Saveable $item) {
@@ -207,15 +202,15 @@ class Templates extends WireSaveableItems {
 	}
 
 	/**
-	 * Create and return a cloned copy of this template
+	 * Clone the given Template
 	 *
-	 * Note that this also clones the Fieldgroup if the template being cloned has it's own named fieldgroup.
+	 * Note that this also clones the Fieldgroup if the template being cloned has its own named fieldgroup.
 	 * 
 	 * @todo: clone the fieldgroup context settings too. 
 	 *
-	 * @param Template|Saveable $item Item to clone
-	 * @param string $name
-	 * @return bool|Saveable|Template $item Returns the new clone on success, or false on failure
+	 * @param Template|Saveable $item Template to clone
+	 * @param string $name Name of new template that will be created, or omit to auto-assign. 
+	 * @return bool|Saveable|Template $item Returns the new Template on success, or false on failure
 	 *
 	 */
 	public function ___clone(Saveable $item, $name = '') {
@@ -258,8 +253,8 @@ class Templates extends WireSaveableItems {
 	/**
 	 * Return the number of pages using the provided Template
 	 * 
-	 * @param Template $tpl
-	 * @return int
+	 * @param Template $tpl Template you want to get count for 
+	 * @return int Total number of pages in use by given Template
 	 *
 	 */
 	public function getNumPages(Template $tpl) {
@@ -279,10 +274,12 @@ class Templates extends WireSaveableItems {
 	}
 
 	/**
-	 * Return data for external storage
+	 * Export Template data for external use
 	 * 
-	 * @param Template $template
-	 * @return array
+	 * #pw-advanced
+	 * 
+	 * @param Template $template Template you want to export
+	 * @return array Associative array of export data
 	 *
 	 */
 	public function ___getExportData(Template $template) {
@@ -349,17 +346,28 @@ class Templates extends WireSaveableItems {
 	}
 
 	/**
-	 * Given an array of export data, import it to the given template
+	 * Given an array of Template export data, import it to the given Template
+	 * 
+	 * ~~~~~~
+	 * // Example of return value
+	 * $returnValue = array(
+	 *   'property_name' => array(
+	 *     'old' => 'old value', // old value (in string comparison format)
+	 *     'new' => 'new value', // new value (in string comparison format)
+	 *     'error' => 'error message or blank if no error' // error message (string) or messages (array)
+	 *   ), 
+	 *   'another_property_name' => array(
+	 *     // ...
+	 *   ) 
+	 * );
+	 * ~~~~~~
 	 *
-	 * @param Template $template
-	 * @param array $data
+	 * #pw-advanced
+	 * 
+	 * @param Template $template Template you want to import to
+	 * @param array $data Import data array (must have been exported from getExportData() method).
 	 * @return bool True if successful, false if not
-	 * @return array Returns array(
-	 * 	[property_name] => array(
-	 * 		'old' => 'old value', // old value (in string comparison format)
-	 * 		'new' => 'new value', // new value (in string comparison format)
-	 * 		'error' => 'error message or blank if no error'  // error message (string) or messages (array)
-	 * 		)
+	 * @return array Returns array with list of changes (see example in method description)
 	 *
 	 */
 	public function ___setImportData(Template $template, array $data) {
@@ -447,12 +455,11 @@ class Templates extends WireSaveableItems {
 	/**
 	 * Return the parent page that this template assumes new pages are added to
 	 *
-	 * This is based on family settings, when applicable.
-	 * It also takes into account user access, if requested (see arg 1).
-	 *
-	 * If there is no shortcut parent, NULL is returned.
-	 * If there are multiple possible shortcut parents, a NullPage is returned.
-	 *
+	 * - This is based on family settings, when applicable.
+	 * - It also takes into account user access, if requested (see arg 1).
+	 * - If there is no shortcut parent, NULL is returned.
+	 * - If there are multiple possible shortcut parents, a NullPage is returned.
+	 * 
 	 * @param Template $template
 	 * @param bool $checkAccess Whether or not to check for user access to do this (default=false).
 	 * @param bool $getAll Specify true to return all possible parents (makes method always return a PageArray)

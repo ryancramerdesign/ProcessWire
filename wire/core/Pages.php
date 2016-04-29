@@ -14,25 +14,27 @@
  * @link http://processwire.com/api/variables/pages/ Offical $pages Documentation
  * @link http://processwire.com/api/selectors/ Official Selectors Documentation
  * 
+ * #pw-summary Enables loading and manipulation of Page objects, to and from the database. 
+ * 
  * PROPERTIES
  * ==========
- * @property bool cloning Whether or not a clone() operation is currently active
- * @property bool outputFormatting Current default output formatting mode.
- * @property bool autojoin Whether or not autojoin is allowed (typically true)
+ * @property bool $cloning Whether or not a clone() operation is currently active #pw-internal
+ * @property bool $outputFormatting Current default output formatting mode. #pw-internal
+ * @property bool $autojoin Whether or not autojoin is allowed (typically true) #pw-internal
  * 
  * HOOKABLE METHODS
  * ================
- * @method PageArray find() find($selectorString, array $options = array()) Find and return all pages matching the given selector string. Returns a PageArray.
- * @method bool save() save(Page $page) Save any changes made to the given $page. Same as : $page->save() Returns true on success
- * @method bool saveField() saveField(Page $page, $field) Save just the named field from $page. Same as : $page->save('field')
- * @method bool trash() trash(Page $page, $save = true) Move a page to the trash. If you have already set the parent to somewhere in the trash, then this method won't attempt to set it again.
- * @method bool restore(Page $page, $save = true) Restore a trashed page to its original location. 
- * @method int emptyTrash() Empty the trash and return number of pages deleted. 
- * @method bool delete() delete(Page $page, $recursive = false) Permanently delete a page and it's fields. Unlike trash(), pages deleted here are not restorable. If you attempt to delete a page with children, and don't specifically set the $recursive param to True, then this method will throw an exception. If a recursive delete fails for any reason, an exception will be thrown.
- * @method Page|NullPage clone(Page $page, Page $parent = null, $recursive = true, $options = array()) Clone an entire page, it's assets and children and return it.
- * @method Page|NullPage add($template, $parent, $name = '', array $values = array())
- * @method setupNew(Page $page) Setup new page that does not yet exist by populating some fields to it. 
- * @method string setupPageName(Page $page, array $options = array()) Determine and populate a name for the given page.
+ * @method PageArray find() find($selectorString, array $options = array()) Find and return all pages matching the given selector string. Returns a PageArray. #pw-group-retrieval
+ * @method bool save() save(Page $page) Save any changes made to the given $page. Same as : $page->save() Returns true on success. #pw-group-manipulation
+ * @method bool saveField() saveField(Page $page, $field) Save just the named field from $page. Same as: $page->save('field') #pw-group-manipulation
+ * @method bool trash() trash(Page $page, $save = true) Move a page to the trash. If you have already set the parent to somewhere in the trash, then this method won't attempt to set it again. #pw-group-manipulation
+ * @method bool restore(Page $page, $save = true) Restore a trashed page to its original location. #pw-group-manipulation
+ * @method int emptyTrash() Empty the trash and return number of pages deleted. #pw-group-manipulation
+ * @method bool delete() delete(Page $page, $recursive = false) Permanently delete a page and it's fields. Unlike trash(), pages deleted here are not restorable. If you attempt to delete a page with children, and don't specifically set the $recursive param to True, then this method will throw an exception. If a recursive delete fails for any reason, an exception will be thrown. #pw-group-manipulation
+ * @method Page|NullPage clone(Page $page, Page $parent = null, $recursive = true, $options = array()) Clone an entire page, it's assets and children and return it. #pw-group-manipulation
+ * @method Page|NullPage add($template, $parent, $name = '', array $values = array()) #pw-group-manipulation
+ * @method setupNew(Page $page) Setup new page that does not yet exist by populating some fields to it. #pw-internal
+ * @method string setupPageName(Page $page, array $options = []) Determine and populate a name for the given page. #pw-internal
  * 
  * METHODS PURELY FOR HOOKS
  * ========================
@@ -135,6 +137,8 @@ class Pages extends Wire {
 	
 	/**
 	 * Initialize $pages API var by preloading some pages
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	public function init() {
@@ -147,11 +151,21 @@ class Pages extends Wire {
 	 */
 
 	/**
-	 * Count and return how many pages will match the given selector string
+	 * Count and return how many pages will match the given selector. 
+	 * 
+	 * If no selector provided, it returns count of all pages in site. 
+	 * 
+	 * ~~~~~~~~~
+	 * // Return count of how may pages in the site use the blog-post template
+	 * $numBlogPosts = $pages->count("template=blog-post");
+	 * ~~~~~~~~~
+	 * 
+	 * #pw-group-retrieval
 	 *
 	 * @param string|array|Selectors $selector Specify selector, or omit to retrieve a site-wide count.
-	 * @param array|string $options See $options in Pages::find
+	 * @param array|string $options See $options for $pages->find().
 	 * @return int
+	 * @see Pages::find()
 	 *
 	 */
 	public function count($selector = '', $options = array()) {
@@ -161,23 +175,31 @@ class Pages extends Wire {
 	/**
 	 * Given a Selector string, return the Page objects that match in a PageArray. 
 	 * 
-	 * Non-visible pages are excluded unless an include=hidden|unpublished|all mode is specified in the selector string, 
-	 * or in the $options array. If 'all' mode is specified, then non-accessible pages (via access control) can also be included. 
-	 *
+	 * ~~~~~
+	 * // Find all pages using template "building" with 25 or more floors
+	 * $skyscrapers = $pages->find("template=building, floors>=25");
+	 * ~~~~~
+	 * 
+	 * #pw-group-retrieval
+	 * 
 	 * @param string|int|array|Selectors $selector Specify selector (standard usage), but can also accept page ID or array of page IDs.
-	 * @param array|string $options Optional one or more options that can modify certain behaviors. May be assoc array or key=value string.
-	 *	- findOne: boolean - apply optimizations for finding a single page 
-	 *  - findAll: boolean - find all pages with no exculsions (same as include=all option)
-	 *	- getTotal: boolean - whether to set returning PageArray's "total" property (default: true except when findOne=true)
-	 *	- loadPages: boolean - whether to populate the returned PageArray with found pages (default: true). 
-	 *		The only reason why you'd want to change this to false would be if you only needed the count details from 
-	 *		the PageArray: getTotal(), getStart(), getLimit, etc. This is intended as an optimization for Pages::count().
-	 * 		Does not apply if $selectorString argument is an array. 
-	 *  - caller: string - optional name of calling function, for debugging purposes, i.e. pages.count
-	 * 	- include: string - Optional inclusion mode of 'hidden', 'unpublished' or 'all'. Default=none. Typically you would specify this 
-	 * 		directly in the selector string, so the option is mainly useful if your first argument is not a string. 
-	 * 	- loadOptions: array - Optional assoc array of options to pass to getById() load options.
-	 * @return PageArray
+	 * @param array|string $options One or more options that can modify certain behaviors. May be associative array or "key=value" selector string.
+	 *  - `findOne` (boolean): Apply optimizations for finding a single page.
+	 *  - `findAll` (boolean): Find all pages with no exculsions (same as include=all option).
+	 *  - `getTotal` (boolean): Whether to set returning PageArray's "total" property (default: true except when findOne=true).
+	 *  - `loadPages` (boolean): Whether to populate the returned PageArray with found pages (default: true). 
+	 *	   The only reason why you'd want to change this to false would be if you only needed the count details from 
+	 *	   the PageArray: getTotal(), getStart(), getLimit, etc. This is intended as an optimization for $pages->count().
+	 * 	   Does not apply if $selector argument is an array. 
+	 *  - `caller` (string): Optional name of calling function, for debugging purposes, i.e. pages.count
+	 *  - `include` (string): Optional inclusion mode of 'hidden', 'unpublished' or 'all'. Default=none. Typically you would specify this 
+	 *     directly in the selector string, so the option is mainly useful if your first argument is not a string. 
+	 *  - `loadOptions` (array): Optional assoc array of options to pass to getById() load options.
+	 * @return PageArray Pages that matched the given selector.
+	 * 
+	 * Non-visible pages are excluded unless an "include=x" mode is specified in the selector
+	 * (where "x" is "hidden", "unpublished" or "all"). If "all" is specified, then non-accessible
+	 * pages (via access control) can also be included.
 	 *
 	 */
 	public function ___find($selector, $options = array()) {
@@ -187,14 +209,23 @@ class Pages extends Wire {
 	/**
 	 * Like find() but returns only the first match as a Page object (not PageArray)
 	 * 
-	 * This is functionally similar to the get() method except that its default behavior is to
+	 * This is functionally similar to the `get()` method except that its default behavior is to
 	 * filter for access control and hidden/unpublished/etc. states, in the same way that the
-	 * find() method does. You can add an "include=..." to your selector string to bypass. 
-	 * This method also accepts an $options arrray, whereas get() does not. 
+	 * `find()` method does. You can add an `include=...` to your selector string to bypass. 
+	 * This method also accepts an `$options` array, whereas `get()` does not. 
+	 * 
+	 * ~~~~~~ 
+	 * // Find the newest page using the blog-post template
+	 * $blogPost = $pages->findOne("template=blog-post, sort=-created");
+	 * ~~~~~~
+	 * 
+	 * #pw-group-retrieval
 	 *
-	 * @param string|array|Selectors $selector
-	 * @param array|string $options See $options for Pages::find
-	 * @return Page|NullPage
+	 * @param string|array|Selectors $selector Selector string, array or Selectors object
+	 * @param array|string $options See $options for $pages->find()
+	 * @return Page|NullPage Returns a Page on success, or a NullPage (having id=0) on failure
+	 * @since 3.0.0
+	 * @see Pages::get(), Pages::find()
 	 *
 	 */
 	public function findOne($selector, $options = array()) {
@@ -203,9 +234,25 @@ class Pages extends Wire {
 
 	/**
 	 * Returns the first page matching the given selector with no exclusions
+	 * 
+	 * Use this method when you need to retrieve a specific page without exclusions for access control or page status.
+	 * 
+	 * ~~~~~~
+	 * // Get a page by ID
+	 * $p = $pages->get(1234);
+	 * 
+	 * // Get a page by path
+	 * $p = $pages->get('/about/contact/');
+	 * 
+	 * // Get a random 'skyscraper' page by selector string
+	 * $p = $pages->get('template=skyscraper, sort=random'); 
+	 * ~~~~~~
+	 * 
+	 * #pw-group-retrieval
 	 *
-	 * @param string|array|Selectors $selector
-	 * @return Page|NullPage Always returns a Page object, but will return NullPage (with id=0) when no match found
+	 * @param string|array|Selectors|int $selector Selector string, array or Selectors object. May also be page path or ID. 
+	 * @return Page|NullPage Always returns a Page object, but will return NullPage (with id=0) when no match found.
+	 * @see Pages::findOne(), Pages::find()
 	 * 
 	 */
 	public function get($selector) {
@@ -213,24 +260,34 @@ class Pages extends Wire {
 	}
 	
 	/**
-	 * Save a page object and it's fields to database.
+	 * Save a page object and its fields to database.
 	 *
 	 * If the page is new, it will be inserted. If existing, it will be updated.
+	 * This is the same as calling `$page->save()`. If you want to just save a particular field 
+	 * in a Page, use `$page->save($fieldName)` instead.
+	 * 
+	 * ~~~~~~
+	 * // Modify a page and save it
+	 * $p = $pages->get('/festivals/decatur/beer/'); 
+	 * $p->of(false); // turn off output formatting, if it's on
+	 * $p->title = "Decatur Beer Festival";
+	 * $p->summary = "Come and enjoy fine beer and good company at the Decatur Beer Festival.";
+	 * $pages->save($p); 
+	 * ~~~~~~
+	 * 
+	 * #pw-group-manipulation
 	 *
-	 * This is the same as calling $page->save()
-	 *
-	 * If you want to just save a particular field in a Page, use $page->save($fieldName) instead.
-	 *
-	 * @param Page $page
-	 * @param array $options Optional array with the following optional elements:
-	 * 		'uncacheAll' => boolean - Whether the memory cache should be cleared (default=true)
-	 * 		'resetTrackChanges' => boolean - Whether the page's change tracking should be reset (default=true)
-	 * 		'quiet' => boolean - When true, modified date and modified_users_id won't be updated (default=false)
-	 *		'adjustName' => boolean - Adjust page name to ensure it is unique within its parent (default=false)
-	 * 		'forceID' => integer - use this ID instead of an auto-assigned on (new page) or current ID (existing page)
-	 * 		'ignoreFamily' => boolean - Bypass check of allowed family/parent settings when saving (default=false)
+	 * @param Page $page Page object to save
+	 * @param array $options Optional array to modify default behavior, with one or more of the following:
+	 * - `uncacheAll` (boolean): Whether the memory cache should be cleared (default=true)
+	 * - `resetTrackChanges` (boolean): Whether the page's change tracking should be reset (default=true)
+	 * - `quiet` (boolean): When true, modified date and modified_users_id won't be updated (default=false)
+	 * - `adjustName` (boolean): Adjust page name to ensure it is unique within its parent (default=false)
+	 * - `forceID` (integer): Use this ID instead of an auto-assigned one (new page) or current ID (existing page)
+	 * - `ignoreFamily` (boolean): Bypass check of allowed family/parent settings when saving (default=false)
 	 * @return bool True on success, false on failure
 	 * @throws WireException
+	 * @see Page::save(), Pages::saveField()
 	 *
 	 */
 	public function ___save(Page $page, $options = array()) {
@@ -238,15 +295,25 @@ class Pages extends Wire {
 	}
 
 	/**
-	 * Save just a field from the given page as used by Page::save($field)
+	 * Save only a field from the given page 
 	 *
-	 * This function is public, but the preferred manner to call it is with $page->save($field)
+	 * This is the same as calling `$page->save($field)`.
+	 * 
+	 * ~~~~~
+	 * // Update the summary field on $page and save it
+	 * $page->summary = "Those who know do not speak. Those who speak do not know.";
+	 * $pages->saveField($page, 'summary');
+	 * ~~~~~
+	 * 
+	 * #pw-group-manipulation
 	 *
-	 * @param Page $page
+	 * @param Page $page Page to save
 	 * @param string|Field $field Field object or name (string)
-	 * @param array|string $options Specify option 'quiet' => true, to bypass updating of modified_users_id and modified time.
-	 * @return bool True on success
+	 * @param array|string $options Optionally specify one or more of the following to modify default behavior:
+	 * - `quiet` (boolean): Specify true to bypass updating of modified user and time (default=false). 
+	 * @return bool True on success, false on failure
 	 * @throws WireException
+	 * @see Page::save(), Page::setAndSave(), Pages::save()
 	 *
 	 */
 	public function ___saveField(Page $page, $field, $options = array()) {
@@ -254,16 +321,34 @@ class Pages extends Wire {
 	}
 
 	/**
-	 * Add a new page using the given template to the given parent
+	 * Add a new page using the given template and parent
 	 *
-	 * If no name is specified one will be assigned based on the current timestamp.
+	 * If no page "name" is specified, one will be automatically assigned. 
+	 * 
+	 * ~~~~~
+	 * // Add new page using 'skyscraper' template into Atlanta
+	 * $building = $pages->add('skyscraper', '/skyscrapers/atlanta/');
+	 * 
+	 * // Same as above, but with specifying a name/title as well:
+	 * $building = $pages->add('skyscraper', '/skyscrapers/atlanta/', 'Symphony Tower');
+	 * 
+	 * // Same as above, but with specifying several properties: 
+	 * $building = $pages->add('skyscraper', '/skyscrapers/atlanta/', [
+	 *   'title' => 'Symphony Tower',
+	 *   'summary' => 'A 41-story skyscraper located at 1180 Peachtree Street', 
+	 *   'height' => 657,
+	 *   'floors' => 41
+	 * ]);
+	 * ~~~~~
+	 * 
+	 * #pw-group-manipulation
 	 *
 	 * @param string|Template $template Template name or Template object
 	 * @param string|int|Page $parent Parent path, ID or Page object
-	 * @param string $name Optional name or title of page. If none provided, one will be automatically assigned based on microtime stamp.
+	 * @param string $name Optional name or title of page. If none provided, one will be automatically assigned.
 	 * 	If you want to specify a different name and title then specify the $name argument, and $values['title'].
-	 * @param array $values Field values to assign to page (optional). If $name is ommitted, this may also be 3rd param.
-	 * @return Page Returned page has output formatting off.
+	 * @param array $values Field values to assign to page (optional). If $name is omitted, this may also be 3rd param.
+	 * @return Page New page ready to populate. Note that this page has output formatting off.
 	 * @throws WireException When some criteria prevents the page from being saved.
 	 *
 	 */
@@ -272,16 +357,38 @@ class Pages extends Wire {
 	}
 	
 	/**
-	 * Clone an entire page, it's assets and children and return it.
+	 * Clone entire page return it.
+	 * 
+	 * This also clones any file assets assets associated with the page. The clone is recursive
+	 * by default, cloning children (and so on) as well. To clone only the page without children,
+	 * specify false for the `$recursive` argument. 
+	 * 
+	 * Warning: this method can fail when recursive and cloning a page with huge amounts of 
+	 * children (or descendent family), and adequate resources (like memory or time limit) are
+	 * not available.
+	 * 
+	 * ~~~~~
+	 * // Clone the Westin Peachtree skyscraper page
+	 * $building = $pages->get('/skyscrapers/atlanta/westin-peachtree/');
+	 * $copy = $pages->clone($building); 
+	 * 
+	 * // Bonus: Now that the clone exists, lets move and rename it 
+	 * $copy->parent = '/skyscrapers/detroit/';
+	 * $copy->title = 'Renaissance Center';
+	 * $copy->name = 'renaissance-center';
+	 * $copy->save();
+	 * ~~~~~
+	 * 
+	 * #pw-group-manipulation
 	 *
 	 * @param Page $page Page that you want to clone
-	 * @param Page $parent New parent, if different (default=same parent)
+	 * @param Page|null $parent New parent, if different (default=null, which implies same parent)
 	 * @param bool $recursive Clone the children too? (default=true)
-	 * @param array|string $options Optional options that can be passed to clone or save
-	 * 	- forceID (int): force a specific ID
-	 * 	- set (array): Array of properties to set to the clone (you can also do this later)
-	 * 	- recursionLevel (int): recursion level, for internal use only.
-	 * @return Page the newly cloned page or a NullPage() with id=0 if unsuccessful.
+	 * @param array|string $options Options that can be passed to modify default behavior of clone or save:
+	 *  - `forceID` (int): force a specific ID.
+	 *  - `set` (array): Array of properties to set to the clone (you can also do this later).
+	 *  - `recursionLevel` (int): recursion level, for internal use only.
+	 * @return Page|NullPage The newly cloned Page or a NullPage() with id=0 if unsuccessful.
 	 * @throws WireException|\Exception on fatal error
 	 *
 	 */
@@ -290,19 +397,27 @@ class Pages extends Wire {
 	}
 
 	/**
-	 * Permanently delete a page and it's fields.
+	 * Permanently delete a page, its fields and assets. 
 	 *
-	 * Unlike trash(), pages deleted here are not restorable.
+	 * Unlike trash(), pages deleted here are not restorable. If you attempt to delete a page with children, 
+	 * and don't specifically set the `$recursive` argument to `true`, then this method will throw an exception. 
+	 * If a recursive delete fails for any reason, an exception will also will be thrown.
+	 * 
+	 * ~~~~~
+	 * // Delete a product page
+	 * $product = $pages->get('/products/foo-bar-widget/'); 
+	 * $pages->delete($product); 
+	 * ~~~~~
+	 * 
+	 * #pw-group-manipulation
 	 *
-	 * If you attempt to delete a page with children, and don't specifically set the $recursive param to True, then
-	 * this method will throw an exception. If a recursive delete fails for any reason, an exception will be thrown.
-	 *
-	 * @param Page $page
+	 * @param Page $page Page to delete
 	 * @param bool $recursive If set to true, then this will attempt to delete all children too.
-	 * @param array $options Optional settings to change behavior (for the future)
+	 * @param array $options Optional settings to change behavior (for the future, none currently in use).
 	 * @return bool|int Returns true (success), or integer of quantity deleted if recursive mode requested.
 	 * @throws WireException on fatal error
-	 *
+	 * @see Pages::trash()
+	 * 
 	 */
 	public function ___delete(Page $page, $recursive = false, array $options = array()) {
 		return $this->editor()->delete($page, $recursive, $options);
@@ -311,30 +426,51 @@ class Pages extends Wire {
 	/**
 	 * Move a page to the trash
 	 *
-	 * If you have already set the parent to somewhere in the trash, then this method won't attempt to set it again.
-	 *
-	 * @param Page $page
-	 * @param bool $save Set to false if you will perform the save() call, as is the case when called from the Pages::save() method.
-	 * @return bool
+	 * When a page is moved to the trash, it is in a "delete pending" state. Once trashed, the page can be either restored 
+	 * to its original location, or permanently deleted (when the trash is emptied). 
+	 * 
+	 * ~~~~~
+	 * // Trash a product page
+	 * $product = $pages->get('/products/foo-bar-widget/');
+	 * $pages->trash($product); 
+	 * ~~~~~
+	 * 
+	 * #pw-group-manipulation
+	 * 
+	 * @param Page $page Page to trash
+	 * @param bool $save Set to false if you will perform your own save() call afterwards to complete the operation. Omit otherwise. Primarily for internal use.
+	 * @return bool Returns true on success, false on failure.
 	 * @throws WireException
+	 * @see Pages::restore(), Pages::emptyTrash(), Pages::delete()
 	 *
 	 */
 	public function ___trash(Page $page, $save = true) {
+		// If you have already set the parent to somewhere in the trash, then this method won't attempt to set it again.
 		return $this->trasher()->trash($page, $save);
 	}
 
 	/**
-	 * Restore a page from the trash back to a non-trash state
+	 * Restore a page in the trash back to its original location and state
 	 *
-	 * Note that this method assumes already have set a new parent, but have not yet saved.
-	 * If you do not set a new parent, then it will restore to the original parent, when possible.
-	 *
-	 * @param Page $page
-	 * @param bool $save Set to false if you only want to prep the page for restore (i.e. being saved elsewhere)
-	 * @return bool
+	 * If you want to restore the page to some location other than its original location, set the `$page->parent` property
+	 * of the page to contain the location you want it to restore to. Otherwise the page will restore to its original location,
+	 * when possible to do so. 
+	 * 
+	 * ~~~~~
+	 * // Grab a page from the trash and restore it
+	 * $trashedPage = $pages->get(1234); 
+	 * $pages->restore($trashedPage); 
+	 * ~~~~~
+	 * 
+	 * #pw-group-manipulation
+	 * 
+	 * @param Page $page Page that is in the trash that you want to restore
+	 * @param bool $save Set to false if you only want to prep the page for restore (i.e. you will save the page yourself later). Primarily for internal use.
+	 * @return bool True on success, false on failure.
+	 * @see Pages::trash()
 	 *
 	 */
-	protected function ___restore(Page $page, $save = true) {
+	public function ___restore(Page $page, $save = true) {
 		return $this->trasher()->restore($page, $save);
 	}
 
@@ -346,10 +482,19 @@ class Pages extends Wire {
 	/**
 	 * Delete all pages in the trash
 	 *
-	 * Populates error notices when there are errors deleting specific pages.
+	 * Note that once the trash is emptied, pages in the trash are permanently deleted. 
+	 * This method populates error notices when there are errors deleting specific pages.
+	 * 
+	 * ~~~~~
+	 * // Empty the trash
+	 * $pages->emptyTrash();
+	 * ~~~~~
+	 * 
+	 * #pw-group-manipulation
 	 *
 	 * @return int Returns total number of pages deleted from trash.
 	 * 	This number is negative or 0 if not all pages could be deleted and error notices may be present.
+	 * @see Pages::trash(), Pages::restore()
 	 *
 	 */
 	public function ___emptyTrash() {
@@ -358,64 +503,95 @@ class Pages extends Wire {
 	
 	/**
 	 * Given an array or CSV string of Page IDs, return a PageArray 
-	 *
-	 * Optionally specify an $options array rather than a template for argument 2. When present, the 'template' and 'parent_id' arguments may be provided
-	 * in the given $options array. These options may be specified: 
 	 * 
-	 * LOAD OPTIONS (argument 2 array): 
-	 * - cache: boolean, default=true. place loaded pages in memory cache?
-	 * - getFromCache: boolean, default=true. Allow use of previously cached pages in memory (rather than re-loading it from DB)?
-	 * - template: instance of Template (see $template argument)
-	 * - parent_id: integer (see $parent_id argument)
-	 * - getNumChildren: boolean, default=true. Specify false to disable retrieval and population of 'numChildren' Page property. 
-	 * - getOne: boolean, default=false. Specify true to return just one Page object, rather than a PageArray.
-	 * - autojoin: boolean, default=true. Allow use of autojoin option?
-	 * - joinFields: array, default=empty. Autojoin the field names specified in this array, regardless of field settings (requires autojoin=true).
-	 * - joinSortfield: boolean, default=true. Whether the 'sortfield' property will be joined to the page.
-	 * - findTemplates: boolean, default=true. Determine which templates will be used (when no template specified) for more specific autojoins.
-	 * - pageClass: string, default=auto-detect. Class to instantiate Page objects with. Leave blank to determine from template. 
-	 * - pageArrayClass: string, default=PageArray. PageArray-derived class to store pages in (when 'getOne' is false). 
-	 * 
-	 * Use the $options array for potential speed optimizations:
-	 * - Specify a 'template' with your call, when possible, so that this method doesn't have to determine it separately. 
-	 * - Specify false for 'getNumChildren' for potential speed optimization when you know for certain pages will not have children. 
-	 * - Specify false for 'autojoin' for potential speed optimization in certain scenarios (can also be a bottleneck, so be sure to test). 
-	 * - Specify false for 'joinSortfield' for potential speed optimization when you know the Page will not have children or won't need to know the order.
-	 * - Specify false for 'findTemplates' so this method doesn't have to look them up. Potential speed optimization if you have few autojoin fields globally.
-	 * - Note that if you specify false for 'findTemplates' the pageClass is assumed to be 'Page' unless you specify something different for the 'pageClass' option.
+	 * Note that this method is primarily for internal use and most of the options available are specific to the needs
+	 * of core methods that utilize them. All pages loaded by ProcessWire pass through this method. 
 	 *
-	 * @param array|WireArray|string $_ids Array of IDs or CSV string of IDs
+	 * Optionally specify an `$options` array rather than a template for argument 2. When present, the `template` and `parent_id` 
+	 * arguments may be provided in the given $options array. These options may be specified: 
+	 * 
+	 * **LOAD OPTIONS (argument 2 array):** 
+	 * 
+	 * - `cache` (boolean): Place loaded pages in memory cache? (default=true)
+	 * - `getFromCache` (boolean): Allow use of previously cached pages in memory (rather than re-loading it from DB)? (default=true)
+	 * - `template` (Template): Instance of Template, see the $template argument for details.
+	 * - `parent_id` (integer): Parent ID, see $parent_id argument for details.
+	 * - `getNumChildren` (boolean): Specify false to disable retrieval and population of 'numChildren' Page property. (default=true)
+	 * - `getOne` (boolean): Specify true to return just one Page object, rather than a PageArray. (default=false)
+	 * - `autojoin` (boolean): Allow use of autojoin option? (default=true)
+	 * - `joinFields` (array): Autojoin the field names specified in this array, regardless of field settings (requires autojoin=true). (default=empty)
+	 * - `joinSortfield` (boolean): Whether the 'sortfield' property will be joined to the page. (default=true)
+	 * - `findTemplates` (boolean): Determine which templates will be used (when no template specified) for more specific autojoins. (default=true)
+	 * - `pageClass` (string): Class to instantiate Page objects with. Leave blank to determine from template. (default=auto-detect)
+	 * - `pageArrayClass` (string): PageArray-derived class to store pages in (when 'getOne' is false). (default=PageArray)
+	 * 
+	 * **Use the `$options` array for potential speed optimizations:**
+	 * 
+	 * - Specify a `template` with your call, when possible, so that this method doesn't have to determine it separately. 
+	 * - Specify false for `getNumChildren` for potential speed optimization when you know for certain pages will not have children. 
+	 * - Specify false for `autojoin` for potential speed optimization in certain scenarios (can also be a bottleneck, so be sure to test). 
+	 * - Specify false for `joinSortfield` for potential speed optimization when you know the Page will not have children or won't need to know the order.
+	 * - Specify false for `findTemplates` so this method doesn't have to look them up. Potential speed optimization if you have few autojoin fields globally.
+	 * - Note that if you specify false for `findTemplates` the pageClass is assumed to be 'Page' unless you specify something different for the 'pageClass' option.
+	 * 
+	 * ~~~~~
+	 * // Retrieve pages by IDs in CSV string
+	 * $items = $pages->getById("1111,2222,3333");
+	 * 
+	 * // Retrieve pages by IDs in PHP array
+	 * $items = $pages->getById([1111,2222,3333]);
+	 * 
+	 * // Specify that retrieved pages are using template 'skyscraper' as an optimization
+	 * $items = $pages->getById([1111,2222,3333], $templates->get('skyscraper')); 
+	 * 
+	 * // Retrieve pages with $options array
+	 * $items = $pages->getById([1111,2222,3333], [
+	 *   'template' => $templates->get('skyscraper'), 
+	 *   'parent_id' => 1024
+	 * ]);
+	 * ~~~~~
+	 * 
+	 * #pw-advanced
+	 *
+	 * @param array|WireArray|string $_ids Array of Page IDs or CSV string of Page IDs.
 	 * @param Template|array|null $template Specify a template to make the load faster, because it won't have to attempt to join all possible fields... just those used by the template. 
 	 *	Optionally specify an $options array instead, see the method notes above. 
 	 * @param int|null $parent_id Specify a parent to make the load faster, as it reduces the possibility for full table scans. 
 	 *	This argument is ignored when an options array is supplied for the $template. 
 	 * @return PageArray|Page Returns Page only if the 'getOne' option is specified, otherwise always returns a PageArray.
 	 * @throws WireException
-	 *
+	 * 
 	 */
 	public function getById($_ids, $template = null, $parent_id = null) {
 		return $this->loader->getById($_ids, $template, $parent_id);
 	}
 	
 	/**
-	 * Given an ID return a path to a page, without loading the actual page
+	 * Given an ID, return a path to a page, without loading the actual page
 	 *
-	 * Please note
-	 * ===========
-	 * 1) Always returns path in default language, unless a language argument/option is specified.
-	 * 2) Path may be different from 'url' as it doesn't include $config->urls->root at the beginning.
-	 * 3) In most cases, it's preferable to use $page->path() rather than this method. This method is
+	 * 1. Always returns path in default language, unless a language argument/option is specified.
+	 * 2. Path may be different from 'url' as it doesn't include the root URL at the beginning.
+	 * 3. In most cases, it's preferable to use `$page->path()` rather than this method. This method is
 	 *    here just for cases where a path is needed without loading the page.
-	 * 4) It's possible for there to be Page::path() hooks, and this method completely bypasses them,
+	 * 4. It's possible for there to be `Page::path()` hooks, and this method completely bypasses them,
 	 *    which is another reason not to use it unless you know such hooks aren't applicable to you.
+	 * 
+	 * ~~~~~
+	 * // Get the path for page having ID 1234
+	 * $path = $pages->getPath(1234);
+	 * echo "Path for page 1234 is: $path";
+	 * ~~~~~
+	 * 
+	 * #pw-advanced
 	 *
 	 * @param int|Page $id ID of the page you want the path to
-	 * @param null|array|Language|int|string $options Specify $options array or Language object, id or name. Allowed options:
-	 *  - language (int|string|anguage): To retrieve in non-default language, specify language object, ID or name (default=null)
-	 *  - useCache (bool): Allow pulling paths from already loaded pages? (default=true)
-	 *  - usePagePaths (bool): Allow pulling paths from PagePaths module, if installed? (default=true)
-	 * @return string Path to page or blank on error/not-found
+	 * @param null|array|Language|int|string $options Specify $options array or Language object, id or name. Allowed options include: 
+	 *  - `language` (int|string|anguage): To retrieve in non-default language, specify language object, ID or name (default=null)
+	 *  - `useCache` (bool): Allow pulling paths from already loaded pages? (default=true)
+	 *  - `usePagePaths` (bool): Allow pulling paths from PagePaths module, if installed? (default=true)
+	 * @return string Path to page or blank on error/not-found.
 	 * @since 3.0.6
+	 * @see Page::path()
 	 *
 	 */
 	public function getPath($id, $options = array()) {
@@ -436,19 +612,35 @@ class Pages extends Wire {
 	/**
 	 * Get a page by its path, similar to $pages->get('/path/to/page/') but with more options
 	 *
-	 * Please note
-	 * ===========
-	 * 1) There are no exclusions for page status or access. If needed, you should validate access
+	 * 1. There are no exclusions for page status or access. If needed, you should validate access
 	 *    on any page returned from this method.
-	 * 2) In a multi-language environment, you must specify the $useLanguages option to be true, if you
+	 * 2. In a multi-language environment, you must specify the `$useLanguages` option to be true, if you
 	 *    want a result for a $path that is (or might be) a multi-language path. Otherwise, multi-language
 	 *    paths will make this method return a NullPage (or 0 if getID option is true).
+	 * 
+	 * ~~~~~
+	 * // Get a page by path 
+	 * $p = $pages->getByPath('/skyscrapers/atlanta/191-peachtree/');
+	 * 
+	 * // Now validate that the page we retrieved is valid
+	 * if($p->id && $p->viewable()) {
+	 *   // Page is valid to display
+	 * }
+	 * 
+	 * // Get a page by path with options
+	 * $p = $pages->getByPath('/products/widget/', [
+	 *   'useLanguages' => true, 
+	 *   'useHistory' => true
+	 * ]);
+	 * ~~~~~
+	 * 
+	 * #pw-advanced
 	 *
-	 * @param $path
+	 * @param string $path Path of page you want to retrieve.
 	 * @param array|bool $options array of options (below), or specify boolean for $useLanguages option only.
-	 *  - getID: Specify true to just return the page ID (default=false)
-	 *  - useLanguages: Specify true to allow retrieval by language-specific paths (default=false)
-	 *  - useHistory: Allow use of previous paths used by the page, if PagePathHistory module is installed (default=false)
+	 *  - `getID` (int): Specify true to just return the page ID (default=false).
+	 *  - `useLanguages` (bool): Specify true to allow retrieval by language-specific paths (default=false).
+	 *  - `useHistory` (bool): Allow use of previous paths used by the page, if PagePathHistory module is installed (default=false).
 	 * @return Page|int
 	 * @since 3.0.6
 	 *
@@ -463,6 +655,8 @@ class Pages extends Wire {
 	 * Currently it does this: 
 	 * - Sets up a unique page->name based on the format or title if one isn't provided already. 
 	 * - Assigns a 'sort' value'. 
+	 * 
+	 * #pw-internal
 	 * 
 	 * @param Page $page
 	 *
@@ -479,6 +673,8 @@ class Pages extends Wire {
 	 * Page will be populated with the name given. This method will not populate names to pages that
 	 * already have a name, unless the name is "untitled"
 	 * 
+	 * #pw-internal
+	 * 
 	 * @param Page $page
 	 * @param array $options 
 	 * 	- format: Optionally specify the format to use, or leave blank to auto-determine.
@@ -491,11 +687,28 @@ class Pages extends Wire {
 
 	/**
 	 * Update page modification time to now (or the given modification time)
+	 * 
+	 * This behaves essentially the same as the unix `touch` command, but for ProcessWire pages. 
+	 * 
+	 * ~~~~~
+	 * // Touch the current $page to current date/time
+	 * $pages->touch($page);
+	 * 
+	 * // Touch the current $page and set modification date to 2016/10/24
+	 * $pages->touch($page, "2016-10-24 00:00"); 
+	 * 
+	 * // Touch all "skyscraper" pages in "Atlanta" to current date/time
+	 * $skyscrapers = $pages->find("template=skyscraper, parent=/cities/atlanta/"); 
+	 * $pages->touch($skyscrapers); 
+	 * ~~~~~
+	 * 
+	 * #pw-group-manipulation
 	 *
-	 * @param Page|PageArray|array $pages May be Page, PageArray or array of page IDs (integers)
+	 * @param Page|PageArray|array $pages May be Page, PageArray or array of page IDs (integers).
 	 * @param null|int|string $modified Omit to update to now, or specify unix timestamp or strtotime() recognized time string
 	 * @throws WireException if given invalid format for $modified argument or failed database query
 	 * @return bool True on success, false on fail
+	 * @since 3.0.0
 	 *
 	 */
 	public function ___touch($pages, $modified = null) {
@@ -507,6 +720,8 @@ class Pages extends Wire {
 	 *
 	 * Note: this does not account for user permission checking.
 	 * It only checks if the page is in a state to be saveable via the API. 
+	 * 
+	 * #pw-internal
 	 * 
 	 * @param Page $page
 	 * @param string $reason Text containing the reason why it can't be saved (assuming it's not saveable)
@@ -524,6 +739,8 @@ class Pages extends Wire {
 	 *
 	 * Note: this does not account for user permission checking. 
 	 * It only checks if the page is in a state to be deleteable via the API. 
+	 * 
+	 * #pw-internal
 	 *
 	 * @param Page $page
 	 * @return bool True if deleteable, False if not
@@ -539,6 +756,8 @@ class Pages extends Wire {
 	 * If no ID is provided, then this will return an array copy of the full cache.
 	 *
 	 * You may also pass in the string "id=123", where 123 is the page_id
+	 * 
+	 * #pw-internal
 	 *
 	 * @param int|string|null $id 
 	 * @return Page|array|null
@@ -550,6 +769,8 @@ class Pages extends Wire {
 
 	/**
 	 * Cache the given page. 
+	 * 
+	 * #pw-internal
 	 *
 	 * @param Page $page
 	 *
@@ -561,20 +782,21 @@ class Pages extends Wire {
 	/**
 	 * Remove the given page(s) from the cache, or uncache all by omitting $page argument
 	 *
-	 * Note: When any $page argument is given, this does not remove pages from selectorCache.
 	 * When no $page argument is given, this method behaves the same as $pages->uncacheAll().
+	 * When any $page argument is given, this does not remove pages from selectorCache.
+	 * 
+	 * #pw-internal
 	 *
 	 * @param Page|PageArray|null $page Page to uncache, or omit to uncache all.
 	 * @param array $options Additional options to modify behavior: 
-	 * 	- shallow (bool): By default, this method also calls $page->uncache(). 
-	 * 	  To prevent call to $page->uncache(), set 'shallow' => true. 
+	 *   - `shallow` (bool): By default, this method also calls $page->uncache(). To prevent that call, set this to true. 
 	 * @return int Number of pages uncached
 	 *
 	 */
 	public function uncache($page = null, array $options = array()) {
 		$cnt = 0;
 		if(is_null($page)) {
-			$cnt = $this->cacher->uncacheAll();
+			$cnt = $this->cacher->uncacheAll(null, $options);
 		} else if($page instanceof Page) {
 			if($this->cacher->uncache($page, $options)) $cnt++;
 		} else if($page instanceof PageArray) {
@@ -586,18 +808,48 @@ class Pages extends Wire {
 	}
 
 	/**
-	 * Remove all pages from the cache, same as $pages->uncache() with no arguments
+	 * Remove all pages from the cache (to clear memory)
+	 * 
+	 * This method clears all pages that ProcessWire has cached in memory, making room for more pages to be loaded. 
+	 * Use of this method (along with pagination) may be necessary when modifying or calculating from thousand of pages.
+	 * 
+	 * ~~~~~
+	 * // calculate total dollar value of all 50000+ products in inventory
+	 * $total = 0;
+	 * $start = 0;
+	 * $limit = 500;
+	 * 
+	 * do {
+	 *   $products = $pages->find("template=product, start=$start, limit=$limit"); 
+	 *   if(!$products->count()) break;
+	 *   foreach($products as $product) {
+	 *     $total += ($product->qty * $product->price); 
+	 *   }
+	 *   unset($products);
+	 *   $start += $limit; 
+	 *   // clear cache to make room for another 500 products
+	 *   $pages->uncacheAll();
+	 * } while(true);
+	 * 
+	 * echo "Total value of all products: $" . number_format($total);
+	 * ~~~~~
+	 * 
+	 * #pw-advanced
 	 * 
 	 * @param Page $page Optional Page that initiated the uncacheAll
+	 * @param array $options Options to modify default behavior: 
+	 *   - `shallow` (bool): By default, this method also calls $page->uncache(). To prevent that call, set this to true.
 	 * @return int Number of pages uncached
 	 *
 	 */
-	public function uncacheAll(Page $page = null) {
-		return $this->cacher->uncacheAll($page);
+	public function uncacheAll(Page $page = null, array $options = array()) {
+		return $this->cacher->uncacheAll($page, $options);
 	}
 
 	/**
 	 * For internal Page instance access, return the Pages sortfields property
+	 * 
+	 * #pw-internal
 	 *
 	 * @param bool $reset Specify boolean true to reset the Sortfields instance
 	 * @return PagesSortFields
@@ -628,7 +880,13 @@ class Pages extends Wire {
 	/**
 	 * Set whether loaded pages have their outputFormatting turn on or off
 	 *
-	 * By default, it is turned on. 
+	 * This affects pages loaded after this method has been called. 
+	 * By default, output formatting is turned on on the front-end of the site, 
+	 * and off on the back-end (admin) of the site. 
+	 * 
+	 * See the Pages::of() method alias, which is preferred for the public API.
+	 * 
+	 * #pw-internal
 	 * 
 	 * @param bool $outputFormatting
 	 *
@@ -638,9 +896,41 @@ class Pages extends Wire {
 	}
 
 	/**
+	 * Get or set the current output formatting state
+	 * 
+	 * This affects pages loaded after this method has been called.
+	 * By default, output formatting is turned on on the front-end of the site,
+	 * and off on the back-end (admin) of the site. 
+	 * 
+	 * ~~~~~
+	 * // Dictate that loaded pages should have output formatting enabled
+	 * $pages->of(true);
+	 * 
+	 * // Get the output formatting state for future loaded pages
+	 * if($pages->of()) {
+	 *   echo "Output formatting is ON";
+	 * } else {
+	 *   echo "Output formatting is OFF";
+	 * }
+	 * ~~~~~
+	 * 
+	 * #pw-advanced
+	 * 
+	 * @param null|bool $of Specify boolean to set output formatting state, or omit to get output formatting state.
+	 * @return bool Returns current output formatting state. 
+	 * 
+	 */
+	public function of($of = null) {
+		if($of !== null) $this->setOutputFormatting($of ? true : false);
+		return $this->outputFormatting;
+	}
+
+	/**
 	 * Log a Pages class event
 	 *
 	 * Only active in debug mode. 
+	 * 
+	 * #pw-internal
 	 *
 	 * @param string $action Name of action/function that occurred.
 	 * @param string $details Additional details, like a selector string. 
@@ -661,6 +951,8 @@ class Pages extends Wire {
 	 * Get the Pages class debug log
 	 *
 	 * Only active in debug mode
+	 * 
+	 * #pw-internal
 	 *
 	 * @param string $action Optional action within the debug log to find
 	 * @return array
@@ -676,6 +968,8 @@ class Pages extends Wire {
 
 	/**
 	 * Return a PageFinder object, ready to use
+	 * 
+	 * #pw-internal
 	 *
 	 * @return PageFinder
 	 *
@@ -690,6 +984,8 @@ class Pages extends Wire {
 	 * Default should always be true, and you may use this to turn it off temporarily, but
 	 * you should remember to turn it back on
 	 * 
+	 * #pw-internal
+	 * 
 	 * @param bool $autojoin
 	 * 
 	 */
@@ -699,6 +995,8 @@ class Pages extends Wire {
 
 	/**
 	 * Return a new/blank PageArray
+	 * 
+	 * #pw-internal
 	 * 
 	 * @param array $options Optionally specify array('pageArrayClass' => 'YourPageArrayClass')
 	 * @return PageArray
@@ -718,6 +1016,8 @@ class Pages extends Wire {
 
 	/**
 	 * Return a new/blank Page object (in memory only)
+	 * 
+	 * #pw-internal
 	 *
 	 * @param array $options Optionally specify array('pageClass' => 'YourPageClass')
 	 * @return Page
@@ -746,6 +1046,8 @@ class Pages extends Wire {
 	/**
 	 * Return a new NullPage
 	 * 
+	 * #pw-internal
+	 * 
 	 * @return NullPage
 	 * 
 	 */
@@ -761,6 +1063,8 @@ class Pages extends Wire {
 
 	/**
 	 * Execute a PDO statement, with retry and error handling (deprecated)
+	 * 
+	 * #pw-internal
 	 *
 	 * @param \PDOStatement $query
 	 * @param bool $throw Whether or not to throw exception on query error (default=true)
@@ -796,6 +1100,8 @@ class Pages extends Wire {
 	/**
 	 * Save to pages activity log, if enabled in config
 	 * 
+	 * #pw-internal
+	 * 
 	 * @param $str
 	 * @param Page|null Page to log
 	 * @return WireLog
@@ -810,6 +1116,8 @@ class Pages extends Wire {
 
 	/**
 	 * @return PagesLoader
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	public function loader() {
@@ -818,6 +1126,8 @@ class Pages extends Wire {
 
 	/**
 	 * @return PagesEditor
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	public function editor() {
@@ -827,6 +1137,8 @@ class Pages extends Wire {
 
 	/**
 	 * @return PagesLoaderCache
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	public function cacher() {
@@ -835,6 +1147,8 @@ class Pages extends Wire {
 	
 	/**
 	 * @return PagesTrash
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	public function trasher() {
@@ -850,8 +1164,10 @@ class Pages extends Wire {
 	/**
 	 * Hook called after a page is successfully saved
 	 *
-	 * This is the same as Pages::save, except that it occurs before other save-related hooks (below),
-	 * Whereas Pages::save occurs after. In most cases, the distinction does not matter. 
+	 * This is the same as hooking after `Pages::save`, except that it occurs before other save-related hooks.
+	 * Whereas `Pages::save` hooks occur after. In most cases, the distinction does not matter. 
+	 * 
+	 * #pw-hooker
 	 * 
 	 * @param Page $page The page that was saved
 	 * @param array $changes Array of field names that changed
@@ -870,9 +1186,11 @@ class Pages extends Wire {
 	}
 
 	/**
-	 * Hook called when a new page has been added
+	 * Hook called after a new page has been added
 	 * 
-	 * @param Page $page
+	 * #pw-hooker
+	 * 
+	 * @param Page $page Page that was added. 
 	 *
 	 */
 	public function ___added(Page $page) { 
@@ -886,9 +1204,11 @@ class Pages extends Wire {
 	/**
 	 * Hook called when a page has been moved from one parent to another
 	 *
-	 * Note the previous parent is in $page->parentPrevious
+	 * Note the previous parent is accessible in the `$page->parentPrevious` property.
 	 * 
-	 * @param Page $page
+	 * #pw-hooker
+	 * 
+	 * @param Page $page Page that was moved. 
 	 *
 	 */
 	public function ___moved(Page $page) { 
@@ -902,9 +1222,11 @@ class Pages extends Wire {
 	/**
 	 * Hook called when a page's template has been changed
 	 *
-	 * Note the previous template is in $page->templatePrevious
+	 * Note the previous template is available in the `$page->templatePrevious` property. 
 	 * 
-	 * @param Page $page
+	 * #pw-hooker
+	 * 
+	 * @param Page $page Page that had its template changed. 
 	 *
 	 */
 	public function ___templateChanged(Page $page) {
@@ -918,7 +1240,9 @@ class Pages extends Wire {
 	/**
 	 * Hook called when a page has been moved to the trash
 	 * 
-	 * @param Page $page
+	 * #pw-hooker
+	 * 
+	 * @param Page $page Page that was moved to the trash
 	 *
 	 */
 	public function ___trashed(Page $page) { 
@@ -926,9 +1250,11 @@ class Pages extends Wire {
 	}
 
 	/**
-	 * Hook called when a page has been moved OUT of the trash
+	 * Hook called when a page has been moved OUT of the trash (restored)
 	 * 
-	 * @param Page $page
+	 * #pw-hooker
+	 * 
+	 * @param Page $page Page that was restored
 	 *
 	 */
 	public function ___restored(Page $page) { 
@@ -938,12 +1264,14 @@ class Pages extends Wire {
 	/**
 	 * Hook called just before a page is saved
 	 *
-	 * May be preferable to a before(save) hook because you know for sure a save will 
+	 * May be preferable to a before `Pages::save` hook because you know for sure a save will 
 	 * be executed immediately after this is called. Whereas you don't necessarily know
- 	 * that when before(save) is called, as an error may prevent it. 
+ 	 * that when the before `Pages::save` is called, as an error may prevent it. 
+	 * 
+	 * #pw-hooker
 	 *
 	 * @param Page $page The page about to be saved
-	 * @return array Optional extra data to add to pages save query.
+	 * @return array Optional extra data to add to pages save query, which the hook can populate. 
 	 *
 	 */
 	public function ___saveReady(Page $page) {
@@ -958,10 +1286,12 @@ class Pages extends Wire {
 	/**
 	 * Hook called when a page is about to be deleted, but before data has been touched
 	 *
-	 * This is different from a before(delete) hook because this hook is called once it has 
-	 * been confirmed that the page is deleteable and WILL be deleted. 
+	 * This is different from a before `Pages::delete` hook because this hook is called once it has 
+	 * been confirmed that the page is deleteable and *will* be deleted. 
 	 * 
-	 * @param Page $page
+	 * #pw-hooker
+	 * 
+	 * @param Page $page Page that is about to be deleted. 
 	 *
 	 */
 	public function ___deleteReady(Page $page) {
@@ -972,9 +1302,11 @@ class Pages extends Wire {
 	}
 
 	/**
-	 * Hook called when a page and it's data have been deleted
+	 * Hook called after a page and its data have been deleted
 	 * 
-	 * @param Page $page
+	 * #pw-hooker
+	 * 
+	 * @param Page $page Page that was deleted
 	 *
 	 */
 	public function ___deleted(Page $page) { 
@@ -988,6 +1320,8 @@ class Pages extends Wire {
 
 	/**
 	 * Hook called when a page is about to be cloned, but before data has been touched
+	 * 
+	 * #pw-hooker
 	 *
 	 * @param Page $page The original page to be cloned
 	 * @param Page $copy The actual clone about to be saved
@@ -997,6 +1331,8 @@ class Pages extends Wire {
 
 	/**
 	 * Hook called when a page has been cloned
+	 * 
+	 * #pw-hooker
 	 *
 	 * @param Page $page The original page to be cloned
 	 * @param Page $copy The completed cloned version of the page
@@ -1009,16 +1345,18 @@ class Pages extends Wire {
 	/**
 	 * Hook called when a page has been renamed (i.e. had it's name field change)
 	 *
-	 * The previous name can be accessed at $page->namePrevious;
-	 * The new name can be accessed at $page->name
+	 * The previous name can be accessed at `$page->namePrevious`. 
+	 * The new name can be accessed at `$page->name`. 
 	 * 
 	 * This hook is only called when a page's name changes. It is not called when
 	 * a page is moved unless the name was changed at the same time. 
 	 * 
-	 * MULTI-LANGUAGE:
+	 * **Multi-language note:**  
 	 * Also note this hook may be called if a page's multi-language name changes.
 	 * In those cases the language-specific name is stored in "name123" while the
-	 * previous value is stored in "-name123" where 123 is the language ID. 
+	 * previous value is stored in "-name123" (where 123 is the language ID). 
+	 * 
+	 * #pw-hooker
 	 *
 	 * @param Page $page The $page that was renamed
 	 *
@@ -1032,7 +1370,9 @@ class Pages extends Wire {
 	/**
 	 * Hook called when a page status has been changed and saved
 	 *
-	 * Previous status may be accessed at $page->statusPrevious
+	 * Previous status may be accessed at `$page->statusPrevious`.
+	 * 
+	 * #pw-hooker
 	 *
 	 * @param Page $page 
 	 *
@@ -1070,7 +1410,9 @@ class Pages extends Wire {
 	/**
 	 * Hook called when a page's status is about to be changed and saved
 	 *
-	 * Previous status may be accessed at $page->statusPrevious
+	 * Previous status may be accessed at `$page->statusPrevious`.
+	 * 
+	 * #pw-hooker
 	 *
 	 * @param Page $page 
 	 *
@@ -1084,6 +1426,8 @@ class Pages extends Wire {
 
 	/**
 	 * Hook called after an unpublished page has just been published
+	 * 
+	 * #pw-hooker
 	 *
 	 * @param Page $page 
 	 *
@@ -1094,6 +1438,8 @@ class Pages extends Wire {
 
 	/**
 	 * Hook called after published page has just been unpublished
+	 * 
+	 * #pw-hooker
 	 *
 	 * @param Page $page 
 	 *
@@ -1104,6 +1450,8 @@ class Pages extends Wire {
 
 	/**
 	 * Hook called right before an unpublished page is published and saved
+	 * 
+	 * #pw-hooker
 	 *
 	 * @param Page $page 
 	 *
@@ -1112,6 +1460,8 @@ class Pages extends Wire {
 
 	/**
 	 * Hook called right before a published page is unpublished and saved
+	 * 
+	 * #pw-hooker
 	 *
 	 * @param Page $page 
 	 *
@@ -1120,18 +1470,22 @@ class Pages extends Wire {
 
 	/**
 	 * Hook called at the end of a $pages->find(), includes extra info not seen in the resulting PageArray
+	 * 
+	 * #pw-hooker
 	 *
 	 * @param PageArray $pages The pages that were found
 	 * @param array $details Extra information on how the pages were found, including: 
-	 * 	- PageFinder $pageFinder The PageFinder instance that was used
-	 * 	- array $pagesInfo The array returned by PageFinder
-	 * 	- array $options Options that were passed to $pages->find()
+	 *  - `pageFinder` (PageFinder): The PageFinder instance that was used.
+	 *  - `pagesInfo` (array): The array returned by PageFinder.
+	 *  - `options` (array): Options that were passed to $pages->find().
 	 *
 	 */
 	public function ___found(PageArray $pages, array $details) { }
 
 	/**
-	 * Hook called when Pages::saveField is going to execute
+	 * Hook called when Pages::saveField is ready to execute
+	 * 
+	 * #pw-hooker
 	 * 
 	 * @param Page $page
 	 * @param Field $field
@@ -1141,6 +1495,8 @@ class Pages extends Wire {
 
 	/**
 	 * Hook called after Pages::saveField successfully executes
+	 * 
+	 * #pw-hooker
 	 * 
 	 * @param Page $page
 	 * @param Field $field
