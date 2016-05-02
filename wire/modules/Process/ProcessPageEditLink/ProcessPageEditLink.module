@@ -285,15 +285,47 @@ class ProcessPageEditLink extends Process implements ConfigurableModule {
 		return wireEncodeJSON($files);
 	}
 
+	/** 
+	* Get all files of the page.
+	* This now also works when using Repeaters on the page
+	**/
 	protected function getFiles() {
 		$files = array();
-		if($this->page->id) foreach($this->page->fields as $f) {
-			if(!$f->type instanceof FieldtypeFile) continue;
-			foreach($this->page->get($f->name) as $file) {
-				$files[$file->url] = $f->getLabel() . ': ' . $file->basename; 
-			}
+		$pageToLookForImages = $this->page;
+
+		// As the link generator might be called in a repeater, we need to find the containing page		
+		while(get_class($pageToLookForImages) != 'ProcessWire\Page'){
+			$pageToLookForImages = $pageToLookForImages->getForPage();
+		}
+
+		if($pageToLookForImages->id) {
+			$files = $this->getFilesFromPage($pageToLookForImages);
 		}
 		asort($files); 
+		return $files;
+	}
+
+	/** 
+	* Helper to find all files on a page.
+	* It also searches all repeates on a page
+	**/
+	protected function getFilesFromPage($pageToCheck){
+		$files = array();
+		foreach($pageToCheck->fields as $field) {
+			if($field->type instanceof FieldtypeFile){
+				foreach($pageToCheck->get($field->name) as $file) {
+					$files[$file->url] = $field->getLabel() . ': ' . $file->basename; 
+				}
+			}
+			else if($field->type instanceof FieldtypeRepeater){
+				foreach($pageToCheck->$field as $repeaterPage){
+					$files = array_merge($this->getFilesFromPage($repeaterPage),$files);
+				}
+			}
+			else {
+				
+			}
+		}
 		return $files;
 	}
 
