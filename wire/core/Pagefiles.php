@@ -3,19 +3,50 @@
 /**
  * ProcessWire Pagefiles
  *
- * Pagefiles are a collection of Pagefile objects.
+ * #pw-summary Pagefiles is a type of WireArray that contains Pagefile objects. It also acts as the value for multi-file fields in ProcessWire.
+ * #pw-body = 
+ * The items in a Pagefiles array are `Pagefile` objects, indexed by file basename, i.e. `myfile.pdf`. 
+ * Information on most traversal, filtering and manipulation methods can be found in the `WireArray` class that Pagefiles extends. 
+ * In the examples below, `$page->files` is an instance of Pagefiles:
+ * ~~~~~
+ * // Determining if any files are present
+ * if($page->files->count()) {
+ *   // There are files here
+ * }
+ * 
+ * // Traversing and outputting links to all files
+ * foreach($page->files as $name => $pagefile) {
+ *   echo "<li><a href='$pagefile->url'>$name: $pagefile->description</a></li>";
+ * }
+ * 
+ * // Adding new file(s)
+ * $page->files->add('/path/to/file.pdf'); 
+ * $page->files->add('http://domain.com/photo.png'); 
+ * $page->save('files');
+ * 
+ * // Getting file by name 
+ * $pagefile = $page->files->getFile('file.pdf');
+ * $pagefile = $page->files['file.pdf']; // alternate
+ * 
+ * // Getting first and last file
+ * $pagefile = $page->files->first(); 
+ * $pagefile = $page->files->last();
+ * ~~~~~
+ * 
+ * #pw-body
  *
  * Typically a Pagefiles object will be associated with a specific field attached to a Page. 
  * There may be multiple instances of Pagefiles attached to a given Page (depending on what fields are in it's fieldgroup).
  * 
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * ProcessWire 3.x (development), Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  *
- * @property string $path Returns the full server disk path where files are stored	
- * @property string $url Returns the URL where files are stored
- * @property Page $page Returns the $page that contains this set of files
- * @method Pagefiles delete() delete(Pagefile $file) Removes the file and deletes from disk when page is saved (alias of remove)
+ * @property string $path Returns the full server disk path where files are stored.
+ * @property string $url Returns the URL where files are stored.
+ * @property Page $page Returns the Page that contains this set of files, same as the getPage() method. #pw-group-other
+ * @property Field $field Returns the Field that contains this set of files, same as the getField() method. #pw-group-other
+ * @method Pagefiles delete() delete(Pagefile $file) Removes the file and deletes from disk when page is saved. #pw-group-manipulation
  *
  */
 
@@ -23,30 +54,38 @@ class Pagefiles extends WireArray {
 
 	/**
 	 * The Page object associated with these Pagefiles
+	 * 
+	 * @var Page
 	 *
 	 */
 	protected $page; 
 
 	/**
 	 * The Field object associated with these Pagefiles
+	 * 
+	 * @var Field
 	 *
 	 */
 	protected $field; 
 
 	/**
 	 * Items to be deleted when Page is saved
+	 * 
+	 * @var array
 	 *
 	 */
 	protected $unlinkQueue = array();
 
 	/**
 	 * IDs of any hooks added in this instance, used by the destructor
+	 * 
+	 * @var array
 	 *
 	 */
 	protected $hookIDs = array();
 	
 	/**
-	 * Construct an instantance of Pagefiles 
+	 * Construct a Pagefiles object
 	 *
 	 * @param Page $page The page associated with this Pagefiles instance
 	 *
@@ -55,30 +94,62 @@ class Pagefiles extends WireArray {
 		$this->setPage($page); 
 	}
 
+	/**
+	 * Destruct and ensure that hooks are removed
+	 * 
+	 */
 	public function __destruct() {
 		$this->removeHooks();
 	}
 
+	/**
+	 * Remove hooks to the PagefilesManager instance
+	 * 
+	 */
 	protected function removeHooks() {
 		if(count($this->hookIDs) && $this->page && $this->page->filesManager) {
 			foreach($this->hookIDs as $id) $this->page->filesManager->removeHook($id); 
 		}
 	}
 
+	/**
+	 * Set the Page these files are assigned to
+	 * 
+	 * @param Page $page
+	 * 
+	 */
 	public function setPage(Page $page) {
 		$this->page = $page; 
 		// call the filesmanager, just to ensure paths are where they should be
 		$page->filesManager(); 
 	}
 
+	/**
+	 * Set the field these files are assigned to
+	 * 
+	 * @param Field $field
+	 * 
+	 */
 	public function setField(Field $field) {
 		$this->field = $field; 
 	}
 
+	/**
+	 * Get the page these files are assigned to
+	 * 
+	 * @return Page
+	 * 
+	 */
 	public function getPage() {
 		return $this->page; 
 	}
 
+	/**
+	 * Get the field these files are assigned to
+	 * 
+	 * @return Field|null Returns Field, or null if Field has not yet been assigned. 
+	 * 
+	 */
 	public function getField() {
 		return $this->field; 
 	}
@@ -87,6 +158,8 @@ class Pagefiles extends WireArray {
 	 * Creates a new blank instance of itself. For internal use, part of the WireArray interface. 
 	 *
 	 * Adapted here so that $this->page can be passed to the constructor of a newly created Pagefiles. 
+	 * 
+	 * #pw-internal
 	 *
 	 * @return WireArray
 	 * 
@@ -104,6 +177,8 @@ class Pagefiles extends WireArray {
 	 * This is necessary because our __clone() makes new copies of each Pagefile (deep clone)
 	 * and we don't want that to occur for the regular find() and filter() operations that
 	 * make use of makeCopy().
+	 * 
+	 * #pw-internal
 	 *
 	 * @return Pagefiles
 	 *
@@ -119,6 +194,8 @@ class Pagefiles extends WireArray {
 
 	/**
 	 * When Pagefiles is cloned, ensure that the individual Pagefile items are also cloned
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	public function __clone() {
@@ -132,6 +209,11 @@ class Pagefiles extends WireArray {
 
 	/**
 	 * Per the WireArray interface, items must be of type Pagefile
+	 * 
+	 * #pw-internal
+	 * 
+	 * @param mixed $item
+	 * @return bool
 	 *
 	 */
 	public function isValidItem($item) {
@@ -140,6 +222,11 @@ class Pagefiles extends WireArray {
 
 	/**
 	 * Per the WireArray interface, items are indexed by Pagefile::basename
+	 * 
+	 * #pw-internal
+	 * 
+	 * @param mixed $item
+	 * @return string
 	 *
 	 */
 	public function getItemKey($item) {
@@ -148,6 +235,10 @@ class Pagefiles extends WireArray {
 
 	/**
 	 * Per the WireArray interface, return a blank Pagefile
+	 * 
+	 * #pw-internal
+	 * 
+	 * @return Pagefile
 	 *
 	 */
 	public function makeBlankItem() {
@@ -158,6 +249,8 @@ class Pagefiles extends WireArray {
 	 * Get a value from this Pagefiles instance
 	 *
 	 * You may also specify a file's 'tag' and it will return the first Pagefile matching the tag.
+	 * 
+	 * #pw-internal
 	 *
 	 * @param string $key
 	 * @return mixed
@@ -171,6 +264,13 @@ class Pagefiles extends WireArray {
 		return parent::get($key);
 	}
 
+	/**
+	 * Get for direct access to properties
+	 * 
+	 * @param int|string $key
+	 * @return bool|mixed|Page|Wire|WireData
+	 * 
+	 */
 	public function __get($key) {
 		if(in_array($key, array('page', 'field', 'url', 'path'))) return $this->get($key); 
 		return parent::__get($key); 
@@ -197,9 +297,13 @@ class Pagefiles extends WireArray {
 	 */
 
 	/**
-	 * Add a new Pagefile item, or create one from it's filename and add it.
+	 * Add a new Pagefile item or filename
+	 * 
+	 * If give a filename (string) it will create the new `Pagefile` item from it and add it.
+	 * 
+	 * #pw-group-manipulation
 	 *
-	 * @param Pagefile|string $item If item is a string (filename) then the Pagefile instance will be created automatically.
+	 * @param Pagefile|string $item If item is a string (filename) it will create the new `Pagefile` item from it and add it.
 	 * @return $this
 	 *
 	 */
@@ -214,6 +318,8 @@ class Pagefiles extends WireArray {
 
 	/**
 	 * Make any removals take effect on disk
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	public function hookPageSave() {
@@ -227,9 +333,14 @@ class Pagefiles extends WireArray {
 	}
 
 	/**
-	 * Delete a pagefile item, hookable alias of remove()
-	 *
-	 * @param Pagefile $item
+	 * Delete a pagefile item
+	 * 
+	 * Deletes the filename associated with the Pagefile and removes it from this Pagefiles array.
+	 * The actual deletion of the file does not take effect until `$page->save()`.
+	 * 
+	 * #pw-group-manipulation
+	 * 
+	 * @param Pagefile|string $item Pagefile or basename
 	 * @return $this
 	 *
 	 */
@@ -240,9 +351,12 @@ class Pagefiles extends WireArray {
 	/**
 	 * Delete/remove a Pagefile item
 	 *
-	 * Deletes the filename associated with the Pagefile and removes it from this Pagefiles instance. 
+	 * Deletes the filename associated with the Pagefile and removes it from this Pagefiles array. 
+	 * The actual deletion of the file does not take effect until `$page->save()`.
+	 * 
+	 * #pw-internal Please use the hookable delete() method for public API
 	 *
-	 * @param Pagefile $item
+	 * @param Pagefile $item Item to delete/remove. 
 	 * @return $this
 	 * @throws WireException
 	 *
@@ -259,7 +373,11 @@ class Pagefiles extends WireArray {
 	}
 
 	/**
-	 * Delete all files associated with this Pagefiles instance, leaving a blank Pagefiles instance. 
+	 * Delete all files associated with this Pagefiles instance, leaving a blank Pagefiles instance.
+	 * 
+	 * The actual deletion of the files does not take effect until `$page->save()`.
+	 * 
+	 * #pw-group-manipulation
 	 *
 	 * @return $this
 	 *
@@ -274,6 +392,8 @@ class Pagefiles extends WireArray {
 
 	/**
 	 * Return the full disk path where files are stored
+	 * 
+	 * @return string
 	 *
 	 */
 	public function path() {
@@ -282,6 +402,8 @@ class Pagefiles extends WireArray {
 
 	/**
 	 * Returns the web accessible index URL where files are stored
+	 * 
+	 * @return string
 	 *
 	 */
 	public function url() {
@@ -290,6 +412,8 @@ class Pagefiles extends WireArray {
 
 	/**
 	 * Given a basename, this method returns a clean version containing valid characters 
+	 * 
+	 * #pw-internal
 	 *
 	 * @param string $basename May also be a full path/filename, but it will still return a basename
 	 * @param bool $originalize If true, it will generate an original filename if $basename already exists
@@ -332,15 +456,22 @@ class Pagefiles extends WireArray {
 		return $basename; 
 	}
 
-	public function uncache() {
-		//$this->page = null;		
-	}
-
 	/**
-	 * Return all Pagefiles that have the given tag
+	 * Return all Pagefile objects that have the given tag(s).
+	 * 
+	 * Given tag may be any of the following:
+	 * 
+	 * - `foo` (single tag): Will return all Pagefile objects having the specified tag.
+	 * - `foo|bar|baz` (multiple OR tags): Will return Pagefile objects having at least one of the tags listed.
+	 * - `foo,bar,baz` (multiple AND tags): Will return Pagefile objects having ALL of the tags listed (since 3.0.17).
+	 * - `['foo','bar','baz']` (multiple AND tags array): Same as above but can be specified as an array (since 3.0.17).
 	 *
-	 * @param string $tag
-	 * @return Pagefiles
+	 * #pw-group-tags
+	 * #pw-changelog 3.0.17 Added support for multiple AND tags and allow tag specified as an array.
+	 *
+	 * @param string|array $tag
+	 * @return Pagefiles New Pagefiles array with items that matched the given tag(s).
+	 * @see Pagefiles::getTag(), Pagefile::hasTag(), Pagefile::tags()
 	 *
 	 */
 	public function findTag($tag) {
@@ -353,9 +484,20 @@ class Pagefiles extends WireArray {
 
 	/**
 	 * Return the first Pagefile that matches the given tag or NULL if no match
+	 * 
+	 * Given tag may be any of the following:
+	 *
+	 * - `foo` (single tag): Will return the first Pagefile object having the specified tag.
+	 * - `foo|bar|baz` (multiple OR tags): Will return first Pagefile object having at least one of the tags listed.
+	 * - `foo,bar,baz` (multiple AND tags): Will return first Pagefile object having ALL of the tags listed (since 3.0.17).
+	 * - `['foo','bar','baz']` (multiple AND tags array): Same as above but can be specified as an array (since 3.0.17).
+	 *
+	 * #pw-group-tags
+	 * #pw-changelog 3.0.17 Added support for multiple AND tags and allow tag specified as an array.
 	 *
 	 * @param string $tag
 	 * @return Pagefile|null
+	 * @see Pagefiles::findTag(), Pagefile::hasTag(), Pagefile::tags()
 	 *
 	 */
 	public function getTag($tag) {
@@ -368,13 +510,25 @@ class Pagefiles extends WireArray {
 		return $item;
 	}
 
+	/**
+	 * Track a change
+	 * 
+	 * #pw-internal
+	 * 
+	 * @param string $what
+	 * @param null $old
+	 * @param null $new
+	 * @return $this
+	 * 
+	 */
+
 	public function trackChange($what, $old = null, $new = null) {
 		if($this->field && $this->page) $this->page->trackChange($this->field->name); 
 		return parent::trackChange($what, $old, $new); 
 	}
 
 	/**
-	 * Get the given file
+	 * Get the Pagefile having the given basename, or null if not found.
 	 * 
 	 * @param string $name
 	 * @return null|Pagefile
@@ -396,6 +550,8 @@ class Pagefiles extends WireArray {
 	 * Returns true if the given Pagefile is temporary, not yet published. 
 	 * 
 	 * You may also provide a 2nd argument boolean to set the temp status or check if temporary AND deletable.
+	 * 
+	 * #pw-internal
 	 *
 	 * @param Pagefile $pagefile
 	 * @param bool|string $set Optionally set the temp status to true or false, or specify string "deletable" to check if file is temporary AND deletable.
@@ -476,6 +632,8 @@ class Pagefiles extends WireArray {
 
 	/**
 	 * Remove all deletable temporary pagefiles immediately
+	 * 
+	 * #pw-internal
 	 *
 	 * @return int Number of files removed
 	 * 
@@ -496,6 +654,8 @@ class Pagefiles extends WireArray {
 
 	/**
 	 * Is the given Pagefiles identical to this one?
+	 * 
+	 * #pw-internal
 	 *
 	 * @param WireArray $items
 	 * @param bool|int $strict
@@ -506,6 +666,16 @@ class Pagefiles extends WireArray {
 		if($strict) return $this === $items;
 		return parent::isIdentical($items, $strict);
 	}
+
+	/**
+	 * Reset track changes
+	 * 
+	 * #pw-internal
+	 * 
+	 * @param bool $trackChanges
+	 * @return $this
+	 * 
+	 */
 	
 	public function resetTrackChanges($trackChanges = true) {
 		$this->unlinkQueue = array();
@@ -514,6 +684,17 @@ class Pagefiles extends WireArray {
 		}
 		return parent::resetTrackChanges($trackChanges);
 	}
+
+	/**
+	 * Uncache
+	 * 
+	 * #pw-internal
+	 * 
+	 */
+	public function uncache() {
+		//$this->page = null;		
+	}
+
 
 
 }

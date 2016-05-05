@@ -11,6 +11,8 @@
  * #pw-summary Provides easy, persistent caching of markup, strings, arrays or PageArray objects. 
  * #pw-summary-constants These constants are used for the `$expire` argument of get() and save() cache methods. 
  * #pw-use-constants
+ * 
+ * @todo add support for a deleteAll() option that can delete non-system caches
  *
  */
 
@@ -488,9 +490,9 @@ class WireCache extends Wire {
 	}
 
 	/**
-	 * Delete the cache identified by $name
+	 * Delete/clear the cache(s) identified by $name
 	 * 
-	 * @param string $name Name of cache, or partial name with wildcard (i.e. "MyCache*")
+	 * @param string $name Name of cache, or partial name with wildcard (i.e. "MyCache*") to clear multiple caches. 
 	 * @return bool True on success, false on failure
 	 * 
 	 */

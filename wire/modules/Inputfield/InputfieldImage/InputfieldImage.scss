@@ -1,0 +1,592 @@
+$activeColor: #3eb998;
+$deleteColor: #e83561;
+$errorColor: #FC3A3F;
+$gridMargin: 0 0.6em 0.6em 0;
+$itemPadding: 0.4em;
+
+.InputfieldImageErrors {
+	li {
+		margin-bottom: .5em;
+		margin-top: 0;
+		color: white;
+		background-color: $errorColor;
+		padding: .3em .5em;
+	}
+}
+
+.gridImages {
+	position: relative;
+	margin-right: -.6em;
+	display: block;
+	list-style: none;
+}
+
+
+.gridImage {
+	list-style: none;
+	position: relative;
+	display: inline-block;
+
+	@at-root li#{&} {
+		// overwrite .content li
+		display: inline-block;
+		margin: $gridMargin;
+	}
+	box-shadow: 0 1px 3px rgba(black, 0.2);
+	border-radius: 2px;
+	background: #fff;
+	padding: $itemPadding;
+	vertical-align: top;
+	border: 1px dashed transparent; // to have the placeholder item the same size
+	
+	&__overflow {
+		width: 100%;
+		height: 100%;
+		overflow: hidden;
+		position: relative;
+		background: #eee;
+		background: radial-gradient(ellipse at center, rgba(black, 0.1) 0%, rgba(black, 0.3) 100%);
+
+		& > img {
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			transition: transform ease .3s;
+			-ms-transform: translate3d(-50%, -50%, 0);
+			transform: translate3d(-50%, -50%, 0);
+		}
+
+		// .gridImage:hover & > img{
+		//   -ms-transform: translate3d(-50%, -50%, 0) scale(.8);
+		//   transform: translate3d(-50%, -50%, 0) perspective(1px) scale(.8);
+		// }
+	}
+	
+	&.gridImagePlaceholder {
+		 .gridImage__overflow {
+			 background: #fff;
+		 }
+	}
+
+
+	&.ui-sortable-placeholder {
+		display: inline-block;
+		border-radius: 2px;
+		border: 1px dashed #ccc;
+		padding: $itemPadding;
+		//padding: calc($itemPadding);
+		visibility: visible !important;
+		vertical-align: top;
+		background-color: transparent;
+		box-shadow: none;
+
+		&::after {
+			//replacement for image
+			content: " ";
+			display: block;
+		}
+	}
+
+	&__hover {
+		position: absolute;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+		padding: $itemPadding;
+	}
+
+	&__inner {
+		position: relative;
+		width: 100%;
+		height: 100%;
+
+		.gridImage:hover & {
+			background: rgba(#3eb998, .7);
+		}
+	}
+
+	&__resize {
+		position: absolute;
+		display: block;
+		height: 100%;
+		width: 100%;
+		line-height: 130px;
+		text-align: center;
+		color: white;
+		font-size: 1.3em;
+		cursor: move;
+		text-shadow: 0px 0px 7px rgba(#3eb998, .7);
+	}
+
+	&__progress {
+		/* Reset the default appearance */
+		-webkit-appearance: none;
+		-moz-appearance: none;
+		appearance: none;
+		/* Get rid of default border in Firefox. */
+		border: none;
+
+		color: $activeColor;
+		width: 100%;
+		height: 10px;
+		background: transparent;
+
+		position: absolute;
+		bottom: 0;
+		left: 0;
+
+		&::-webkit-progress-bar {
+			background-color: inherit;
+		}
+
+		&[value]::-webkit-progress-value {
+			background-color: $activeColor;
+
+			/*/ Arrow
+			  position: relative;
+			  &:after {
+				left: 100%;
+				top: 50%;
+				border: solid transparent;
+				content: " ";
+				height: 0;
+				width: 0;
+				position: absolute;
+				pointer-events: none;
+				border-color: rgba($activeColor, 0);
+				border-left-color: $activeColor;
+				border-width: 5px;
+				margin-top: -5px;
+			  }
+			  */
+		}
+
+		&[value]::-moz-progress-bar {
+			background-color: $activeColor;
+		}
+
+		&[value='-1'] {
+			background-color: $deleteColor;
+		}
+	}
+
+	&__trash {
+		position: absolute;
+		background: white;
+		padding: .2em .6em;
+		color: #aaa;
+		z-index: 2;
+		cursor: pointer;
+
+		@at-root label#{&} {
+			display: none;
+		}
+
+		&--single {
+			display: block !important;
+			position: static;
+		}
+
+		& > input {
+			display: none;
+		}
+
+		.gridImage:hover & {
+			display: block;
+		}
+
+		@at-root  .gridImage:hover label#{&}:hover {
+			// overwrite a:hover
+			display: block;
+			color: $deleteColor;
+			background-color: white;
+		}
+	}
+
+	&__edit {
+		position: absolute;
+		display: block;
+		height: 100%;
+		width: 100%;
+		line-height: 130px;
+		text-align: center;
+		color: white;
+		font-size: 1.3em;
+		cursor: move;
+		text-shadow: 0px 0px 7px rgba(#3eb998, .7);
+
+		span {
+			cursor: pointer;
+		}
+
+		display: none;
+
+		.gridImage:hover & {
+			display: block;
+		}
+
+		&:hover {
+			color: white;
+		}
+	}
+	
+	&__tooltip {
+		pointer-events: none;
+		position: absolute;
+		bottom: 100%;
+		padding: 20px;
+		-webkit-filter: drop-shadow(0 0 5px rgba(0, 0, 0, 0.1));
+		filter: drop-shadow(0 0 5px rgba(0, 0, 0, 0.1));
+		left: 50%;
+		transform: translate(-50%, 0) perspective(1px) scale(1.01);
+		margin-bottom: 12px;
+		background: #fff;
+		z-index: 110;
+		box-shadow: 0 0 1px rgba(black, 0.25);
+		opacity: 0;
+		transition: opacity .2s 02;
+		
+		.gridImage:hover & {
+			display: block;
+			opacity: 1;
+			transition: opacity .2s 1s;
+		}
+		
+		.InputfieldImageSorting & {
+			display: none !important;
+		}
+	
+		input {
+			pointer-events: none;
+		}
+
+		table {
+			margin: 0;
+			border-spacing: 10px 0;
+			border-collapse: separate;
+
+			th {
+				color: black;
+				font-weight: bold;
+				text-align: right;
+			}
+		}
+
+		&:after {
+			top: 100%;
+			left: 50%;
+			border: solid transparent;
+			content: " ";
+			height: 0;
+			width: 0;
+			position: absolute;
+			pointer-events: none;
+			border-color: rgba(#fff, 0);
+			border-top-color: #fff;
+			border-width: 10px;
+			margin-left: -10px;
+		}
+	}
+
+	&.gridImageEditing {
+		// box-shadow: 0 3px 5px rgba(0,0,0,0.25);
+
+		.gridImage__inner {
+			background: rgba($activeColor, .5);
+		}
+	}
+
+	&--active {
+		background-color: $activeColor;
+
+		& .gridImage__inner {
+			background: rgba($activeColor, .5);
+		}
+
+		& .gridImage__trash {
+			background-color: $activeColor;
+			color: white;
+
+			&:hover {
+				background-color: $activeColor;
+			}
+		}
+
+		&:hover .gridImage__trash:hover {
+			background-color: $activeColor;
+		}
+	}
+
+	&--delete {
+		background-color: $deleteColor;
+
+		@at-root .InputfieldImageEditSingle.gridImage--delete {
+			background-color: transparent;
+			.InputfieldImageEdit__inner {
+				outline: 3px solid $deleteColor;
+			}
+		}
+
+		& .gridImage__trash {
+			background-color: $deleteColor;
+			color: white;
+			display: block;
+
+			&:hover {
+				background-color: $deleteColor;
+			}
+		}
+
+		&:hover .gridImage__edit {
+			display: none;
+		}
+
+		&:hover .gridImage__trash:hover {
+			background-color: $deleteColor;
+		}
+
+		&:hover .gridImage__inner {
+			background: rgba($deleteColor, 0.3);
+		}
+	}
+}
+
+.InputfieldImageEdit {
+	position: relative;
+	display: none;
+
+	&--active,
+	&Single {
+		display: block;
+	}
+
+	&__inner {
+		position: relative;
+		display: flex;
+		flex-flow: row;
+		margin: 1em .6em 1em 0;
+		-webkit-filter: drop-shadow(0 1px 3px rgba(black, 0.2));
+		filter: drop-shadow(0 1px 3px rgba(black, 0.2));
+		background-color: white;
+		
+		@media screen and (max-width: 768px) {
+			display: block;
+			padding-top: 0.5em;
+		}
+	}
+
+	&__close {
+		cursor: pointer;
+		position: absolute;
+		font-size: 1.4em;
+		right: .5em;
+		top: 0;
+		color: #ccc !important;
+		text-decoration: none !important;
+
+		.InputfieldFileSingle & {
+			display: none;
+		}
+	}
+
+	&__trash-single {
+		cursor: pointer;
+		position: absolute;
+		font-size: 1.4em;
+		right: 0;
+		top: 0;
+		color: #aaa !important;
+		text-decoration: none !important;
+
+		&:hover {
+			color: $deleteColor;
+		}
+	}
+
+	&__arrow {
+		bottom: 100%;
+		content: " ";
+		height: 0;
+		width: 0;
+		position: absolute;
+		pointer-events: none;
+		border: .5em solid rgba(white, 0);
+		border-bottom-color: white;
+		transform: translate(-50%, 0);
+	}
+
+	&__imagewrapper {
+		display: inline-block;
+		display: flex;
+		vertical-align: top;
+		align-items: center;
+		justify-content: space-around;
+		width: 300px;
+		border-right: 1px solid #eee;
+		min-height: 1em;
+		padding: 20px;
+		
+		@media screen and (max-width: 768px) {
+			display: block;
+			width: 100%; 
+			padding-bottom: 0;
+		}
+
+		& > div {
+			// Fix for Firefox not respecting aspect ratio on images
+			width: 100%;
+		}
+		
+		.detail {
+			display: block;
+			text-align: center;
+			opacity: 0;
+			margin-top: 2px;
+		}
+		&:hover .detail {
+			opacity: 0.7;
+		}
+	}
+	
+	&__replace img {
+		opacity: 0.5;
+	}	
+
+	&__edit {
+		display: inline-block;
+		vertical-align: top;
+		min-height: 100%;
+		padding: 20px;
+		flex-grow: 1;
+		
+		@media screen and (max-width: 768px) {
+			width: 100%; 
+			padding-top: 0;
+			h2 {
+				margin: 0;
+				display: block;
+				text-align: center;
+			}
+			.InputfieldImageEdit__buttons,
+			.InputfieldImageEdit__info {
+				display: block;
+				text-align: center;
+			}
+		}
+
+		input {
+			width: 100%;
+		}
+	}
+
+	&__image {
+		position: relative;
+		margin: 0 auto;
+		height: auto;
+		cursor: zoom-in;
+		max-width: 100%;
+	}
+
+	&__name {
+		font-weight: bold;
+		display: inline-block;
+		margin-right: .5em !important;
+
+		/* These are technically the same, but use both */
+		overflow-wrap: break-word;
+		word-wrap: break-word;
+
+		-ms-word-break: break-all;
+		/* This is the dangerous one in WebKit, as it breaks things wherever */
+		word-break: break-all;
+		/* Instead use this non-standard one: */
+		word-break: break-word;
+
+		/* Adds a hyphen where the word breaks, if supported (No Blink) */
+		-ms-hyphens: auto;
+		-moz-hyphens: auto;
+		-webkit-hyphens: auto;
+		hyphens: auto;
+	}
+
+	&__info {
+		font-size: .9em;
+		color: #ddd;
+	}
+
+	&__buttons {
+		margin: 1em 0 0.5em 0;
+		button {
+			margin-bottom: 0.5em;
+		}
+	}
+	
+}
+
+.ImageData {
+	display: none;
+}
+
+.InputfieldImageValidExtensions {
+	margin-left: 1em;
+}
+
+.InputfieldImageUpload {
+	position: relative;
+	margin: 1em 0 0;
+
+	& .AjaxUploadDropHere {
+		display: none;
+		position: absolute;
+		top: 0;
+		right: 0;
+		opacity: 0.75;
+		cursor: pointer;
+
+		.ie-no-drop & {
+			display: none;
+			visibility: hidden;
+		}
+		
+		.InputfieldImageRefresh {
+			display: none;
+		}
+	}
+}
+
+.InputMask {
+	position: relative;
+	overflow: hidden;
+	line-height: 1 !important;
+	cursor: pointer;
+	font-size: 14px;
+	border: none;
+
+	i {
+		font-size: 14px; // incase the font-size above is different than an optimal FA size.
+		margin: 0 3px 0 0;
+	}
+
+	&:hover {
+		cursor: pointer;
+	}
+
+	// this should be changed to whatever the active state styles are for a secondary button in the admin theme.
+	&:active {
+		box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2)
+	}
+
+	& > input[type=file] {
+		position: absolute;
+		top: 0;
+		left: 0;
+		height: 100%;
+		-ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=0)";
+		filter: alpha(opacity=0);
+		opacity: 0;
+		font-size: 1000px;
+		cursor: inherit;
+		width: 100%;
+	}
+}

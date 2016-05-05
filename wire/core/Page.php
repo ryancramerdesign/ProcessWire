@@ -3038,7 +3038,7 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 * 
 	 * #pw-group-advanced
 	 *
-	 * @return PageFilesManager
+	 * @return PagefilesManager
 	 *
 	 */
 	public function filesManager() {

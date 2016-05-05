@@ -385,6 +385,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 					if($width > $this->maxImageWidth) $width = $this->maxImageWidth;
 					$img = "<img src='$image->URL' width='$width' alt=\"$alt\" />";
 				} else {
+					$image->set('_requireHeight', true); // recognized by InputfieldImage
 					$info = $in->getAdminThumb($image); 
 					$img = $info['markup'];
 				}

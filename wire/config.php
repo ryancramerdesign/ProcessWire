@@ -518,9 +518,10 @@ $config->imageSizerOptions = array(
  * 
  */
 $config->adminThumbOptions = array(
-	'width' => 0, // max width of admin thumbnail or 0 for proportional to height
-	'height' => 100, // max height of admin thumbnail or 0 for proportional to width
-	'scale' => 1, // admin thumb scale (1=auto detect, 0.5=always hidpi, 1.0=force non-hidpi)
+	'width' => 0, // max width of admin thumbnail or 0 for proportional to height (@deprecated, for legacy use)
+	'height' => 100, // max height of admin thumbnail or 0 for proportional to width (@deprecated, for legacy use)
+	'gridSize' => 130, // Squared grid size for images (replaces the 'width' and 'height' settings) 
+	'scale' => 1, // admin thumb scale (1=allow hidpi, 0.5=always hidpi, 1.0=force non-hidpi)
 	'upscaling' => false,
 	'cropping' => true,
 	'autoRotation' => true, // automatically correct orientation?
