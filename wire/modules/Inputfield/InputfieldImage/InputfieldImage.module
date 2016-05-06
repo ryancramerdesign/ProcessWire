@@ -93,6 +93,7 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		// adminThumbScale is no longer in use (here in case descending module using it)
 		$this->set('adminThumbScale', empty($options['scale']) ? 1.0 : (float) $options['scale']);
 
+		$options['imageSizerOptions'] = $this->wire('config')->imageSizerOptions;
 		if(empty($options['imageSizerOptions'])) {
 			// properties specified in $options rather than $options['imageSizerOptions'], so we copy them
 			$options['imageSizerOptions'] = array();
