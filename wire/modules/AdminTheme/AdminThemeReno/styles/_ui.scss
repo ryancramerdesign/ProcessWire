@@ -242,6 +242,11 @@ button.ui-button.ui-priority-secondary,
 	}
 }
 
+button.ui-button .ui-priority-secondary,
+.ui-button .ui-priority-secondary {
+	color: rgba($button-color, 0.5) !important; 
+}
+
 .ui-button:hover, 
 button.ui-button.ui-state-hover, 
 .ui-button.ui-state-hover {

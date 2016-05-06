@@ -349,7 +349,7 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 			if(!$this->overwrite && !count($_POST) && !$this->isAjax && !$this->uploadOnlyMode) {
 				// don't delete files when in render single field or fields mode
 				if(!$this->wire('input')->get('field') && !$this->wire('input')->get('fields')) {
-					$value->deleteAllTemp();
+					if($value instanceof Pagefiles) $value->deleteAllTemp();
 				}
 			}
 		}
@@ -558,6 +558,9 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 		$replace = $input->$key;
 		if($replace) {
 			// note: replace is currently only used in InputfieldImage
+			if(strpos($replace, '?') !== false) {
+				list($replace, $unused) = explode('?', $replace);
+			}
 			$replaceFile = $this->value->getFile($replace);
 			if($replaceFile && $replaceFile instanceof Pagefile) {
 				$this->processInputDeleteFile($replaceFile);

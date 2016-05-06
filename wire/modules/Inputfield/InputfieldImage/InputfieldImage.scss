@@ -239,7 +239,8 @@ $itemPadding: 0.4em;
 		-webkit-filter: drop-shadow(0 0 5px rgba(0, 0, 0, 0.1));
 		filter: drop-shadow(0 0 5px rgba(0, 0, 0, 0.1));
 		left: 50%;
-		transform: translate(-50%, 0) perspective(1px) scale(1.01);
+		//transform: translate(-50%, 0) perspective(1px) scale(1.01);
+		transform: translate(-50%, 0);
 		margin-bottom: 12px;
 		background: #fff;
 		z-index: 110;
@@ -369,11 +370,6 @@ $itemPadding: 0.4em;
 		-webkit-filter: drop-shadow(0 1px 3px rgba(black, 0.2));
 		filter: drop-shadow(0 1px 3px rgba(black, 0.2));
 		background-color: white;
-		
-		@media screen and (max-width: 768px) {
-			display: block;
-			padding-top: 0.5em;
-		}
 	}
 
 	&__close {
@@ -427,12 +423,6 @@ $itemPadding: 0.4em;
 		min-height: 1em;
 		padding: 20px;
 		
-		@media screen and (max-width: 768px) {
-			display: block;
-			width: 100%; 
-			padding-bottom: 0;
-		}
-
 		& > div {
 			// Fix for Firefox not respecting aspect ratio on images
 			width: 100%;
@@ -460,21 +450,6 @@ $itemPadding: 0.4em;
 		padding: 20px;
 		flex-grow: 1;
 		
-		@media screen and (max-width: 768px) {
-			width: 100%; 
-			padding-top: 0;
-			h2 {
-				margin: 0;
-				display: block;
-				text-align: center;
-			}
-			.InputfieldImageEdit__buttons,
-			.InputfieldImageEdit__info {
-				display: block;
-				text-align: center;
-			}
-		}
-
 		input {
 			width: 100%;
 		}
@@ -512,7 +487,8 @@ $itemPadding: 0.4em;
 
 	&__info {
 		font-size: .9em;
-		color: #ddd;
+		color: #ccc;
+		white-space: nowrap;
 	}
 
 	&__buttons {
@@ -588,5 +564,35 @@ $itemPadding: 0.4em;
 		font-size: 1000px;
 		cursor: inherit;
 		width: 100%;
+	}
+}
+
+@media screen and (max-width: 768px) {
+	
+	.InputfieldImage .InputfieldImageEdit {
+
+		&__inner {
+			display: block;
+			padding-top: 0.5em;
+		}
+		&__imagewrapper {
+			display: block;
+			width: 100%;
+			padding-bottom: 0;
+		}
+		&__edit {
+			width: 100%;
+			padding-top: 0;
+			h2 {
+				margin: 0;
+				display: block;
+				text-align: center;
+			}
+			.InputfieldImageEdit__buttons,
+			.InputfieldImageEdit__info {
+				display: block;
+				text-align: center;
+			}
+		}
 	}
 }

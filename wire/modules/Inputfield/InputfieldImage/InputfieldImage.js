@@ -124,7 +124,9 @@ function InputfieldImage($) {
 		var options = magnificOptions;
 		options.callbacks = {
 			elementParse: function(item) {
-				item.src = $(item.el).attr('data-original');
+				var src = $(item.el).attr('data-original');
+				if(typeof src == "undefined" || !src) src = $(item.el).attr('src');
+				item.src = src;
 			}
 		};
 		options.gallery = {
@@ -220,6 +222,27 @@ function InputfieldImage($) {
 	};
 
 	/**
+	 * Window resize event
+	 * 
+	 */
+	function windowResize() {
+		updateGrid();
+		/*
+		$(".InputfieldImage.Inputfield").each(function() {
+			var width = $(this).width();
+			if(width <= 500) {
+				$(this).addClass('addInputfieldImageNarrow');
+			} else {
+				$(this).removeClass('rmInputfieldImageNarrow');
+			}
+		});
+		$(".addInputfieldImageNarrow").removeClass('addInputfieldImageNarrow').addClass('InputfieldImageNarrow');
+		$(".rmInputfieldImageNarrow").removeClass('rmInputfieldImageNarrow').removeClass('InputfieldImageNarrow');
+		*/
+			
+	}
+
+	/**
 	 * Updates outer class of item to match that of its "delete" checkbox
 	 *
 	 * @param $checkbox
@@ -245,7 +268,7 @@ function InputfieldImage($) {
 	}
 
 	/**
-	 * LostKobrakai: Can you describe this function?
+	 * Setup the InputfieldImageEdit panel
 	 *
 	 * @param $el
 	 * @param $edit
@@ -253,10 +276,11 @@ function InputfieldImage($) {
 	 */
 	function setup($el, $edit) {
 		var $img = $edit.find(".InputfieldImageEdit__image");
+		var $thumb = $el.find("img");
 		$img.attr({
-			src: $el.find("img").attr("data-original"),
-			"data-original": $el.find("img").attr("data-original"),
-			alt: $el.find("img").attr("alt")
+			src: $thumb.attr("data-original"),
+			"data-original": $thumb.attr("data-original"),
+			alt: $thumb.attr("alt")
 		});
 
 		var options = magnificOptions;
@@ -269,6 +293,7 @@ function InputfieldImage($) {
 			enabled: true
 		};
 		$edit
+			.attr('id', 'edit-' + $el.attr('id'))
 			.parents(".gridImages")
 			.find(".gridImage")
 			.not($el)
@@ -282,7 +307,7 @@ function InputfieldImage($) {
 	}
 
 	/**
-	 * LostKobrakai: Can you describe this function?
+	 * Tear down the InputfieldImageEdit panel
 	 *
 	 * @param $edit
 	 *
@@ -295,7 +320,7 @@ function InputfieldImage($) {
 	}
 
 	/**
-	 * LostKobrakai: Can you describe this function?
+	 * Close the InputfieldImageEdit panel
 	 *
 	 * @param $parent
 	 * @param $not
@@ -314,7 +339,7 @@ function InputfieldImage($) {
 		
 		if($edit.length) {
 			tearDown($edit);
-			$edit.removeClass("InputfieldImageEdit--active");
+			$edit.removeClass("InputfieldImageEdit--active").removeAttr('id');
 			$('#' + $edit.attr('data-for')).removeClass('gridImageEditing');
 		}
 		
@@ -361,7 +386,7 @@ function InputfieldImage($) {
 	function initGridEvents() {
 
 		// resize window event
-		$(window).resize(throttle(updateGrid, 200));
+		$(window).resize(throttle(windowResize, 200));
 
 		// click or double click trash event
 		$(document).on('click dblclick', '.gridImage__trash', function(e) {
@@ -374,7 +399,7 @@ function InputfieldImage($) {
 		$(document).on("change", ".gridImage__deletebox", function() {
 			updateDeleteClass($(this));
 		});
-
+		
 		// click on "edit" link event
 		$(document).on('click', '.gridImage__edit', function(e) {
 			
@@ -421,14 +446,24 @@ function InputfieldImage($) {
 		});
 
 		// close "edit" panel
-		$(".InputfieldImageEdit").on("click", ".InputfieldImageEdit__close", function(e) {
+		$(document).on("click", ".InputfieldImageEdit__close", function(e) {
 			closeEdit($(this).parents(".gridImages"), null);
 		});
+	
+		// disable cropping after Inputfield has changed since crop may cause InputfieldContent to be reloaded
+		// which could cause changes to be lost
+		$(document).on("change", ".InputfieldImage", function() {
+			$(this).find('.InputfieldImageButtonCrop').removeClass('pw-modal').addClass('ui-state-disabled');
+		}).on("click", ".InputfieldImageButtonCrop.ui-state-disabled", function(e) {
+			alert("This images field has changes. Please save them before cropping.");
+			return false;
+		}) 
 
 		// LostKobrakai: can you describe what this does?
 		$(".ImagesGrid").on("click", "button.pw-modal", function(e) {
 			e.preventDefault();
 		});
+		
 
 		/*
 		// Longclick .gridItem to open magnific popup
@@ -456,8 +491,7 @@ function InputfieldImage($) {
 	 */
 	function initInputfield($inputfield) {
 		var maxFiles = parseInt($inputfield.find(".InputfieldImageMaxFiles").val());
-		if($inputfield.hasClass('InputfieldRenderValue')) {
-			// return setupMagnificForRenderValue($el); // Lostkobrakai ($el not in scope, I changed to $this)
+		if($inputfield.hasClass('InputfieldRenderValueMode')) {
 			return setupMagnificForRenderValue($inputfield);
 		} else if(maxFiles == 1) {
 			$inputfield.addClass('InputfieldImageMax1');
@@ -530,10 +564,11 @@ function InputfieldImage($) {
 
 		// initialize each found item
 		$target.each(function(i) {
-			var $content = $(this).closest('.InputfieldContent');
-			if($content.hasClass('InputfieldFileInit')) return;
+			var $this = $(this);
+			var $content = $this.closest('.InputfieldContent');
+			if($this.hasClass('InputfieldImageInit')) return;
 			initHTML5Item($content, i);
-			$content.addClass('InputfieldFileInit');
+			$this.addClass('InputfieldImageInit');
 		}); 
 
 		/**
@@ -555,8 +590,9 @@ function InputfieldImage($) {
 			var $errorParent = $this.find('.InputfieldImageErrors').first();
 			
 			var fieldName = $this.find('.InputfieldImageUpload').data('fieldname');
-			fieldName = fieldName.slice(0, -2);
-			
+			fieldName = fieldName.slice(0, -2); // trim off the trailing "[]"
+
+			var $inputfield = $this.closest('.Inputfield.InputfieldImage');
 			var extensions = $this.find('.InputfieldImageUpload').data('extensions').toLowerCase();
 			var maxFilesize = $this.find('.InputfieldImageUpload').data('maxfilesize');
 			var filesUpload = $this.find("input[type=file]").get(0);
@@ -589,7 +625,6 @@ function InputfieldImage($) {
 					}
 				});
 			}
-			
 
 			/**
 			 * Render and return markup for an error item
@@ -624,6 +659,9 @@ function InputfieldImage($) {
 			 *
 			 */
 			function setupDropzone($el) {
+				
+				// Dropzone remains even after a 'reloaded' event, since it is the InputfieldContent container
+				if($el.hasClass('InputfieldImageDropzoneInit')) return;
 
 				var el = $el.get(0);
 
@@ -649,6 +687,8 @@ function InputfieldImage($) {
 					evt.stopPropagation();
 					return false;
 				}, false);
+			
+				$el.addClass('InputfieldImageDropzoneInit');
 			}
 
 			/**
@@ -663,11 +703,6 @@ function InputfieldImage($) {
 				var haltDrag = false; // true when drag should be halted
 				var timer = null; // for setTimeout
 				
-				function allowDropInPlace() {
-					// we disable drop-in-place when the "edit" panel is open
-					return $gridImages.find(".InputfieldImageEdit--active").length == 0;
-				}
-
 				function getCenterCoordinates($el) {
 					var offset = $el.offset();
 					var width = $el.width();
@@ -681,26 +716,33 @@ function InputfieldImage($) {
 						clientY: centerY
 					}
 				}
+				
+				function noDropInPlace() {
+					return $gridImages.find(".InputfieldImageEdit--active").length > 0;
+				}
 
 				function dragEnter(evt) {
-					haltDrag = false;
+					if(noDropInPlace()) return;
 					evt.preventDefault();
-					if(!allowDropInPlace()) return;
+					evt.stopPropagation();
+					haltDrag = false;
 					if($i == null) {
 						var gridSize = $gridImages.attr('data-gridsize') + 'px';
 						var $o = $("<div/>").addClass('gridImage__overflow').css({ width: gridSize, height: gridSize });
 						$i = $("<li/>").addClass('ImageOuter gridImage gridImagePlaceholder').append($o);
 						$gridImages.append($i);
 					}
+					// close editor if it is opened
 					var coords = getCenterCoordinates($i);
 					$i.simulate("mousedown", coords);
 				}
 				
 				function dragOver(evt) {
+					if(noDropInPlace()) return;
+					evt.preventDefault();
+					evt.stopPropagation();
 					haltDrag = false;
 					if($i == null) return;
-					evt.preventDefault();
-					if(!allowDropInPlace()) return;
 					// $('.gridImage', $gridImages).trigger('drag');
 					var coords = {
 						clientX: evt.originalEvent.clientX,
@@ -710,8 +752,10 @@ function InputfieldImage($) {
 				}
 				
 				function dragEnd(evt) {
+					if(noDropInPlace()) return;
+					evt.preventDefault();
+					evt.stopPropagation();
 					if($i == null) return false;
-					if(!allowDropInPlace()) return;
 					haltDrag = true;
 					if(timer) clearTimeout(timer);
 					timer = setTimeout(function() {
@@ -722,9 +766,11 @@ function InputfieldImage($) {
 				}
 				
 				function drop(evt) {
+					if(noDropInPlace()) return;
+					
+					// console.log(evt.originalEvent.dataTransfer.files);
 					
 					haltDrag = false;
-					if(!allowDropInPlace()) return;
 
 					var coords = {
 						clientX: evt.clientX,
@@ -733,26 +779,17 @@ function InputfieldImage($) {
 
 					$i.simulate("mouseup", coords);
 					
-					/*
-					 // var files = evt.dataTransfer.files;
-					for(var j = 0; j < files.length; j++) {
-						$i.clone()
-							.removeClass("gridImagePlaceholder")
-							//.text(files[j].name.substr(0, 12))
-							.insertAfter($i);
-					}
-					*/
-					
 					$uploadBeforeItem = $i.next('.gridImage');
 					$i.remove();
 					$i = null;
 				}
 			
-				if($gridImages.length) {
+				if($gridImages.length && !$gridImages.hasClass('gridImagesInitDropInPlace')) {
 					$gridImages.on('dragenter', dragEnter);
 					$gridImages.on('dragover', dragOver);
 					$gridImages.on('dragleave', dragEnd);
-					$gridImages[0].addEventListener('drop', drop);
+					$gridImages.on('drop', drop); 
+					$gridImages.addClass('gridImagesInitDropInPlace'); // not necessary
 				}
 			}
 			
@@ -788,13 +825,14 @@ function InputfieldImage($) {
 					$imageData = $('<div class="ImageData"></div>'),
 					$hover = $("<div class='gridImage__hover'><div class='gridImage__inner'></div></div>"),
 					$progressBar = $("<progress class='gridImage__progress' min='-1' max='100' value='0'></progress>"),
-					$edit = $('<a class="gridImage__edit" title="' + file.name + '"><span>' + labels.details + '</span></a>'),
+					$edit = $('<a class="gridImage__edit" title="' + file.name + '"><span>&nbsp;</span></a>'),
 					$spinner = $('<div class="gridImage__resize"><i class="fa fa-spinner fa-spin fa-2x fa-fw"></i></div>'),
 					img,
 					reader,
 					xhr,
 					fileData,
 					fileUrl = URL.createObjectURL(file),
+					$fileList = $inputfield.find(".gridImages"), 
 					singleMode = maxFiles == 1; 
 
 				$imgWrapper.append($img);
@@ -854,7 +892,7 @@ function InputfieldImage($) {
 					for(var n = 0; n < response.length; n++) {
 
 						var r = response[n];
-
+						
 						if(r.error) {
 							$errorParent.append(errorItem(r.message));
 							continue;
@@ -869,12 +907,12 @@ function InputfieldImage($) {
 
 						// look for replacements
 						if(r.overwrite) $item = $fileList.children('#' + $markup.attr('id'));
-						if(r.replace || singleMode) $item = $fileList.find('.InputfieldImageEdit:eq(0)');
+						if(r.replace || singleMode) $item = $fileList.children('.InputfieldImageEdit:eq(0)');
 						
 						if(uploadReplace.item && response.length == 1 && !singleMode) {
 							$item = uploadReplace.item;
-						}	
-
+						}
+					
 						// Insert the markup
 						if($item && $item.length) {
 							$item.replaceWith($markup);
@@ -913,10 +951,12 @@ function InputfieldImage($) {
 						if(maxFiles != 1) {
 							setupSortable($fileList);
 						} else {
-							setupMagnificForSingle($fileList.closest('.Inputfield'));
+							setupMagnificForSingle($inputfield);
 						}
 						$fileList.trigger('AjaxUploadDone'); // for things like fancybox that need to be re-init'd
 					}, 500);
+					
+					$inputfield.trigger('change');
 
 				}, false);
 		
@@ -944,8 +984,7 @@ function InputfieldImage($) {
 					$fileList.append($progressItem);
 				}
 				updateGrid();
-				var $inputfield = $fileList.closest('.Inputfield');
-				$inputfield.addClass('InputfieldStateChanged');
+				$inputfield.trigger('change');
 				var numFiles = $inputfield.find('.InputfieldFileItem').length;
 				if(numFiles == 1) {
 					$inputfield.removeClass('InputfieldFileEmpty').removeClass('InputfieldFileMultiple').addClass('InputfieldFileSingle');
@@ -970,9 +1009,9 @@ function InputfieldImage($) {
 					fileList.innerHTML = "No support for the File API in this web browser";
 					return;
 				}
-
+				
 				for(var i = 0, l = files.length; i < l; i++) {
-
+				
 					var extension = files[i].name.split('.').pop().toLowerCase();
 					var message;
 
@@ -992,6 +1031,7 @@ function InputfieldImage($) {
 					} else {
 						uploadFile(files[i]);
 					}
+					
 					if(maxFiles == 1) break;
 				}
 			}

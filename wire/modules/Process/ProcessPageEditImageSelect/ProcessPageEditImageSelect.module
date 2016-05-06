@@ -131,6 +131,8 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 			$this->fieldName = $fieldName; // original
 			if(strpos($fieldName, '_repeater') && preg_match('/_repeater\d+$/', $fieldName, $matches)) {
 				$fieldName = str_replace($matches[0], '', $fieldName);
+			} else if(strpos($fieldName, '_LPID')) {
+				list($fieldName, $lpid) = explode('_LPID', $fieldName);
 			}
 			$this->field = $this->wire('fields')->get($fieldName); 
 			if(!$this->field) throw new WireException("Unknown field $fieldName"); 

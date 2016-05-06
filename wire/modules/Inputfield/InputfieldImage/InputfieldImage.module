@@ -109,10 +109,10 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 			'variations' => $this->_('Variations'), 
 			'dimensions' => $this->_('Dimensions'), 
 			'filesize' => $this->_('Filesize'), 
-			'choose' => $this->_('Choose File'), 
+			'choose-file' => $this->_('Choose File'),
+			'choose-files' => $this->_('Choose Files'), 
 			'edit' => $this->_('Edit'),
-			'drag-drop-in' => $this->_('drop new images here or in place'), 
-			'details' => $this->_('Details'), // for JS
+			'drag-drop-in' => $this->_('drag and drop in new images above'), 
 			'na' => $this->_('N/A'), // for JS
 		));
 		
@@ -132,7 +132,6 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		$modules = $this->wire('modules');
 		$jqueryCore = $modules->get('JqueryCore');
 		$jqueryCore->use('simulate');
-		// $jqueryCore->use('longclick');
 		$modules->loadModuleFileAssets('InputfieldFile');
 		$modules->getInstall("JqueryMagnific");
 		
@@ -153,8 +152,8 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 				$this->useImageEditor = 0;
 			}
 		}
-		
-		$this->variations = $this->value->getAllVariations();
+	
+		if($this->value instanceof Pageimages) $this->variations = $this->value->getAllVariations();
 		
 		return parent::renderReady($parent, $renderValueMode);
 	}
@@ -181,7 +180,7 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 	 */
 	protected function ___renderList($value) {
 		
-		if(!$value) return '';
+		//if(!$value) return '';
 		$out = '';
 		$n = 0;
 	
@@ -250,6 +249,7 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		$extensions = $this->extensions;
 		if($this->unzip && !$this->maxFiles) $extensions .= ' zip';
 		$formatExtensions = $this->formatExtensions($extensions);
+		$chooseLabel = $this->labels['choose-file'];
 		
 		$out = 
 			"<div " . 
@@ -262,7 +262,8 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		$out .= "
 			<div class='InputMask ui-button ui-state-default'>
 				<span class='ui-button-text'>
-				<i class='icon icon-folder-open'></i>{$this->labels['choose']}</span>
+					<i class='fa fa-fw fa-folder-open-o'></i>$chooseLabel
+				</span>
 				<input $attrStr>
 			</div>
 			<span class='InputfieldImageValidExtensions detail'>$formatExtensions</span>
@@ -270,17 +271,14 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 			";
 
 		if(!$this->noAjax) {
-			
-			if($this->uploadOnlyMode) {
-				$label = $this->labels['drag-drop'];
-			} else {
-				$label = $this->labels['drag-drop-in'];
-			}
+
+			$dropLabel = $this->uploadOnlyMode ? $this->labels['drag-drop'] : $this->labels['drag-drop-in'];
 			$refreshLabel = $this->_('legacy thumbnails will be re-created on save');
+			
 			$out .= "
 				<span class='AjaxUploadDropHere description'>
 					<span>
-						<i class='fa fa-upload'></i>&nbsp;$label
+						<i class='fa fa-upload'></i>&nbsp;$dropLabel
 					</span>
 					<span class='InputfieldImageRefresh'>
 						<i class='fa fa-camera-retro'></i>&nbsp;$refreshLabel
@@ -444,7 +442,7 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		}
 
 		$attr['src'] = $thumb->URL;
-		$attr["data-original"] = $img->url;
+		$attr["data-original"] = $img->URL;
 		$attr['alt'] = $this->wire('sanitizer')->entities1($img->description);
 		$markup = "<img ";
 		foreach($attr as $key => $value) $markup .= "$key=\"$value\" ";
@@ -551,21 +549,27 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 				<input class='InputfieldFileSort' type='hidden' name='sort_$id' value='$n' />
 			";
 		} else {
-			$editableOut = "<p>" . $this->_("Not editable.") . "</p>";
+			$editableOut = '';
+			//$editableOut = "<p>" . $this->_("Not editable.") . "</p>";
 		}
-		
-		$out = "
-			<div class='ImageOuter InputfieldImageEdit InputfieldImageEditSingle'>
-				<div class='InputfieldImageEdit__inner'>
+	
+		$trashOut = '';
+		if(!$this->renderValueMode) $trashOut = "
 					<div class='InputfieldImageEdit__trash-single'>
 						<label for='' class='gridImage__trash gridImage__trash--single'>
 							<input class='gridImage__deletebox' type='checkbox' name='delete_$id' value='1' title='$deleteLabel' />
 							<span class='fa fa-trash-o'></span>
 						</label>
 					</div>
+		";
+		
+		$out = "
+			<div class='ImageOuter InputfieldImageEdit InputfieldImageEditSingle' id='file_$pagefile->hash'>
+				<div class='InputfieldImageEdit__inner'>
+					$trashOut
 					<div class='InputfieldImageEdit__imagewrapper'>
 						<div>
-							<img class='InputfieldImageEdit__image' src='$pagefile->url' alt='$description'>
+							<img class='InputfieldImageEdit__image' src='$pagefile->URL' alt='$description'>
 						</div>
 					</div>
 					<div class='InputfieldImageEdit__edit'>
@@ -605,7 +609,7 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		if($n) {}
 
 		$out = "
-			<button data-href='$editUrl' class='$buttonClass' $modalAttrs>
+			<button data-href='$editUrl' class='InputfieldImageButtonCrop $buttonClass' $modalAttrs>
 				<span class='ui-button-text'>
 					<span class='fa fa-crop'></span> $labels[crop]
 				</span>
@@ -728,17 +732,18 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 	 * 
 	 */
 	protected function isEditableInRendering($pagefile) {
-		$editable = (int) $this->useImageEditor;
-		if($editable) {
-			if($this->renderValueMode) {
-				$editable = false;
-			} else if($pagefile->ext == 'svg') {
-				$editable = false;
-			}
-			// if(strpos($this->name, '_repeater') && preg_match('/_repeater\d+$/', $this->name)) {
-			//   $editable = false;
-			// }
+		//$editable = (int) $this->useImageEditor;
+		//if($editable) {
+		if($this->renderValueMode) {
+			$editable = false;
+		} else if($pagefile->ext == 'svg') {
+			$editable = false;
+		} else {
+			$editable = true;
 		}
+		// if(strpos($this->name, '_repeater') && preg_match('/_repeater\d+$/', $this->name)) {
+		//   $editable = false;
+		// }
 		return $editable;
 	}
 

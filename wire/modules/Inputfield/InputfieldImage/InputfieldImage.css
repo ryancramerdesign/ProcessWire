@@ -161,7 +161,7 @@
     -webkit-filter: drop-shadow(0 0 5px rgba(0, 0, 0, 0.1));
     filter: drop-shadow(0 0 5px rgba(0, 0, 0, 0.1));
     left: 50%;
-    transform: translate(-50%, 0) perspective(1px) scale(1.01);
+    transform: translate(-50%, 0);
     margin-bottom: 12px;
     background: #fff;
     z-index: 110;
@@ -242,10 +242,6 @@
     -webkit-filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.2));
     filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.2));
     background-color: white; }
-    @media screen and (max-width: 768px) {
-      .InputfieldImageEdit__inner {
-        display: block;
-        padding-top: 0.5em; } }
   .InputfieldImageEdit__close {
     cursor: pointer;
     position: absolute;
@@ -286,11 +282,6 @@
     border-right: 1px solid #eee;
     min-height: 1em;
     padding: 20px; }
-    @media screen and (max-width: 768px) {
-      .InputfieldImageEdit__imagewrapper {
-        display: block;
-        width: 100%;
-        padding-bottom: 0; } }
     .InputfieldImageEdit__imagewrapper > div {
       width: 100%; }
     .InputfieldImageEdit__imagewrapper .detail {
@@ -308,18 +299,6 @@
     min-height: 100%;
     padding: 20px;
     flex-grow: 1; }
-    @media screen and (max-width: 768px) {
-      .InputfieldImageEdit__edit {
-        width: 100%;
-        padding-top: 0; }
-        .InputfieldImageEdit__edit h2 {
-          margin: 0;
-          display: block;
-          text-align: center; }
-        .InputfieldImageEdit__edit .InputfieldImageEdit__buttons,
-        .InputfieldImageEdit__edit .InputfieldImageEdit__info {
-          display: block;
-          text-align: center; } }
     .InputfieldImageEdit__edit input {
       width: 100%; }
   .InputfieldImageEdit__image {
@@ -347,7 +326,8 @@
     hyphens: auto; }
   .InputfieldImageEdit__info {
     font-size: .9em;
-    color: #ddd; }
+    color: #ccc;
+    white-space: nowrap; }
   .InputfieldImageEdit__buttons {
     margin: 1em 0 0.5em 0; }
     .InputfieldImageEdit__buttons button {
@@ -400,5 +380,25 @@
     font-size: 1000px;
     cursor: inherit;
     width: 100%; }
+
+@media screen and (max-width: 768px) {
+  .InputfieldImage .InputfieldImageEdit__inner {
+    display: block;
+    padding-top: 0.5em; }
+  .InputfieldImage .InputfieldImageEdit__imagewrapper {
+    display: block;
+    width: 100%;
+    padding-bottom: 0; }
+  .InputfieldImage .InputfieldImageEdit__edit {
+    width: 100%;
+    padding-top: 0; }
+    .InputfieldImage .InputfieldImageEdit__edit h2 {
+      margin: 0;
+      display: block;
+      text-align: center; }
+    .InputfieldImage .InputfieldImageEdit__edit .InputfieldImageEdit__buttons,
+    .InputfieldImage .InputfieldImageEdit__edit .InputfieldImageEdit__info {
+      display: block;
+      text-align: center; } }
 
 /*# sourceMappingURL=InputfieldImage.css.map */
