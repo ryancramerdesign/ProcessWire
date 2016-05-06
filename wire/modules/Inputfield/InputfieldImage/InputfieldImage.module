@@ -87,7 +87,7 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		if(!is_array($options)) $options = array();
 		$gridSize = empty($options['gridSize']) ? self::defaultGridSize : (int) $options['gridSize'];
 		if($gridSize < 100) $gridSize = self::defaultGridSize; // establish min of 100
-		if($gridSize >= (self::defaultGridSize * 2)) $gridSize = self::defaultGridSize; // establish max of 259
+		if($gridSize > (self::defaultGridSize * 2)) $gridSize = (self::defaultGridSize * 2); // establish max of 260
 		$this->set('gridSize', $gridSize); 
 		
 		// adminThumbScale is no longer in use (here in case descending module using it)
