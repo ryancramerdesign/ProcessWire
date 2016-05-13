@@ -4,6 +4,48 @@ $errorColor: #FC3A3F;
 $gridMargin: 0 0.6em 0.6em 0;
 $itemPadding: 0.4em;
 
+
+.InputfieldImage {
+	.InputfieldHeader {
+		.InputfieldImageListToggle {
+			// toggles between grid, left and list mode
+			float: right;
+			padding-right: 0.75em;
+			position: relative;
+
+			&--active {
+				opacity: 0.5;
+			}
+
+			&:first-child {
+				// offset from far right side
+				padding-right: 1em;
+			}
+		}
+		.InputfieldImageSizeSlider {
+			float: right;
+			width: 100px;
+			position: relative;
+			top: 8px;
+			right: 1em;
+
+			.ui-slider-handle {
+				outline: none;
+			}
+		}
+	}
+
+	&.InputfieldFileEmpty,
+	&.InputfieldStateCollapsed {
+		.InputfieldImageListToggle,
+		.InputfieldImageSizeSlider {
+			// prevents display of toggles and slider when there are no images visible
+			display: none;
+		}
+	}
+}
+
+// error listing
 .InputfieldImageErrors {
 	li {
 		margin-bottom: .5em;
@@ -14,6 +56,7 @@ $itemPadding: 0.4em;
 	}
 }
 
+// The <ul> element containing li.gridImage items and .InputfieldImageEdit
 .gridImages {
 	position: relative;
 	margin-right: -.6em;
@@ -21,7 +64,7 @@ $itemPadding: 0.4em;
 	list-style: none;
 }
 
-
+// An individual image grid item
 .gridImage {
 	list-style: none;
 	position: relative;
@@ -32,20 +75,24 @@ $itemPadding: 0.4em;
 		display: inline-block;
 		margin: $gridMargin;
 	}
+
 	box-shadow: 0 1px 3px rgba(black, 0.2);
 	border-radius: 2px;
 	background: #fff;
 	padding: $itemPadding;
 	vertical-align: top;
 	border: 1px dashed transparent; // to have the placeholder item the same size
-	
+
 	&__overflow {
 		width: 100%;
 		height: 100%;
 		overflow: hidden;
 		position: relative;
-		background: #eee;
-		background: radial-gradient(ellipse at center, rgba(black, 0.1) 0%, rgba(black, 0.3) 100%);
+		// the following creates a checkerboard pattern (for seeing transparency)
+		background-color: #fefefe;
+		background-image: linear-gradient(45deg, #cbcbcb 25%, transparent 25%, transparent 75%, #cbcbcb 75%, #cbcbcb), linear-gradient(45deg, #cbcbcb 25%, transparent 25%, transparent 75%, #cbcbcb 75%, #cbcbcb);
+		background-size: 16px 16px;
+		background-position: 0 0, 8px 8px;
 
 		& > img {
 			position: absolute;
@@ -55,26 +102,19 @@ $itemPadding: 0.4em;
 			-ms-transform: translate3d(-50%, -50%, 0);
 			transform: translate3d(-50%, -50%, 0);
 		}
-
-		// .gridImage:hover & > img{
-		//   -ms-transform: translate3d(-50%, -50%, 0) scale(.8);
-		//   transform: translate3d(-50%, -50%, 0) perspective(1px) scale(.8);
-		// }
 	}
-	
+
 	&.gridImagePlaceholder {
-		 .gridImage__overflow {
-			 background: #fff;
-		 }
+		.gridImage__overflow {
+			background: #fff;
+		}
 	}
-
 
 	&.ui-sortable-placeholder {
 		display: inline-block;
 		border-radius: 2px;
 		border: 1px dashed #ccc;
 		padding: $itemPadding;
-		//padding: calc($itemPadding);
 		visibility: visible !important;
 		vertical-align: top;
 		background-color: transparent;
@@ -142,24 +182,6 @@ $itemPadding: 0.4em;
 
 		&[value]::-webkit-progress-value {
 			background-color: $activeColor;
-
-			/*/ Arrow
-			  position: relative;
-			  &:after {
-				left: 100%;
-				top: 50%;
-				border: solid transparent;
-				content: " ";
-				height: 0;
-				width: 0;
-				position: absolute;
-				pointer-events: none;
-				border-color: rgba($activeColor, 0);
-				border-left-color: $activeColor;
-				border-width: 5px;
-				margin-top: -5px;
-			  }
-			  */
 		}
 
 		&[value]::-moz-progress-bar {
@@ -205,13 +227,14 @@ $itemPadding: 0.4em;
 	}
 
 	&__edit {
+		// The "Edit" link
 		position: absolute;
 		display: block;
 		height: 100%;
 		width: 100%;
 		line-height: 130px;
 		text-align: center;
-		color: white;
+		color: white !important;
 		font-size: 1.3em;
 		cursor: move;
 		text-shadow: 0px 0px 7px rgba(#3eb998, .7);
@@ -230,8 +253,9 @@ $itemPadding: 0.4em;
 			color: white;
 		}
 	}
-	
+
 	&__tooltip {
+		// tooltip that appears above a hovered .gridImage
 		pointer-events: none;
 		position: absolute;
 		bottom: 100%;
@@ -247,17 +271,17 @@ $itemPadding: 0.4em;
 		box-shadow: 0 0 1px rgba(black, 0.25);
 		opacity: 0;
 		transition: opacity .2s 02;
-		
+
 		.gridImage:hover & {
 			display: block;
 			opacity: 1;
 			transition: opacity .2s 1s;
 		}
-		
+
 		.InputfieldImageSorting & {
 			display: none !important;
 		}
-	
+
 		input {
 			pointer-events: none;
 		}
@@ -271,6 +295,10 @@ $itemPadding: 0.4em;
 				color: black;
 				font-weight: bold;
 				text-align: right;
+			}
+			th, td {
+				border: none !important;
+				background: white !important;
 			}
 		}
 
@@ -291,8 +319,7 @@ $itemPadding: 0.4em;
 	}
 
 	&.gridImageEditing {
-		// box-shadow: 0 3px 5px rgba(0,0,0,0.25);
-
+		// highlights the current image being edited
 		.gridImage__inner {
 			background: rgba($activeColor, .5);
 		}
@@ -320,6 +347,7 @@ $itemPadding: 0.4em;
 	}
 
 	&--delete {
+		// gridImage item marked for deletion
 		background-color: $deleteColor;
 
 		@at-root .InputfieldImageEditSingle.gridImage--delete {
@@ -353,6 +381,8 @@ $itemPadding: 0.4em;
 	}
 }
 
+// A type of item that appears in a ul.gridImages but is not itself a .gridImage.
+// It contains the image enlargement, file, edit buttons, and description/tags fields. 
 .InputfieldImageEdit {
 	position: relative;
 	display: none;
@@ -401,6 +431,7 @@ $itemPadding: 0.4em;
 	}
 
 	&__arrow {
+		// arrow that points up to the item being edited
 		bottom: 100%;
 		content: " ";
 		height: 0;
@@ -422,12 +453,12 @@ $itemPadding: 0.4em;
 		border-right: 1px solid #eee;
 		min-height: 1em;
 		padding: 20px;
-		
+
 		& > div {
 			// Fix for Firefox not respecting aspect ratio on images
 			width: 100%;
 		}
-		
+
 		.detail {
 			display: block;
 			text-align: center;
@@ -438,10 +469,11 @@ $itemPadding: 0.4em;
 			opacity: 0.7;
 		}
 	}
-	
+
 	&__replace img {
+		// dragging new img on top of old one
 		opacity: 0.5;
-	}	
+	}
 
 	&__edit {
 		display: inline-block;
@@ -449,7 +481,7 @@ $itemPadding: 0.4em;
 		min-height: 100%;
 		padding: 20px;
 		flex-grow: 1;
-		
+
 		input {
 			width: 100%;
 		}
@@ -483,6 +515,7 @@ $itemPadding: 0.4em;
 		-moz-hyphens: auto;
 		-webkit-hyphens: auto;
 		hyphens: auto;
+		cursor: pointer;
 	}
 
 	&__info {
@@ -497,10 +530,11 @@ $itemPadding: 0.4em;
 			margin-bottom: 0.5em;
 		}
 	}
-	
+
 }
 
-.ImageData {
+.InputfieldImage .ImageData {
+	// element in a .gridImage item that contains the details and editable content
 	display: none;
 }
 
@@ -524,14 +558,15 @@ $itemPadding: 0.4em;
 			display: none;
 			visibility: hidden;
 		}
-		
-		.InputfieldImageRefresh {
-			display: none;
-		}
+	}
+
+	.InputfieldImageRefresh {
+		margin-bottom: 0;
 	}
 }
 
-.InputMask {
+// element that surrounds the input[type=file] to make it appear as jQuery UI style button
+.InputfieldImage .InputMask {
 	position: relative;
 	overflow: hidden;
 	line-height: 1 !important;
@@ -540,7 +575,8 @@ $itemPadding: 0.4em;
 	border: none;
 
 	i {
-		font-size: 14px; // incase the font-size above is different than an optimal FA size.
+		// in case the font-size above is different than an optimal FA size.
+		font-size: 14px;
 		margin: 0 3px 0 0;
 	}
 
@@ -567,9 +603,16 @@ $itemPadding: 0.4em;
 	}
 }
 
-@media screen and (max-width: 768px) {
-	
-	.InputfieldImage .InputfieldImageEdit {
+// Narrow mode applies when width of Inputfield is under 500px
+//&.InputfieldImageNarrow {
+.InputfieldImageNarrow {
+
+	.InputfieldHeader .InputfieldImageSizeSlider {
+		width: 50px;
+	}
+
+	.InputfieldImageEdit {
+		// the image editor becomes stacked when narrow mode is active
 
 		&__inner {
 			display: block;
@@ -583,16 +626,276 @@ $itemPadding: 0.4em;
 		&__edit {
 			width: 100%;
 			padding-top: 0;
-			h2 {
-				margin: 0;
-				display: block;
-				text-align: center;
-			}
 			.InputfieldImageEdit__buttons,
 			.InputfieldImageEdit__info {
 				display: block;
 				text-align: center;
 			}
 		}
+		&__name {
+			margin: 0;
+			display: block;
+			text-align: center;
+		}
 	}
+
+	.InputfieldImageUpload {
+		.AjaxUploadDropHere {
+			display: none !important;
+		}
+	}
+
 }
+
+//&.InputfieldFileSingle .gridImages .gridImage img,
+//&.InputfieldRenderValueMode .gridImages .gridImage img {
+.InputfieldFileSingle .gridImages .gridImage img,
+.InputfieldRenderValueMode .gridImages .gridImage img {
+	cursor: zoom-in;
+}
+
+
+/*****************************************************************************************
+ * The "Edit All" mode is the "list" mode where edit inputs are showing for all images
+ * This is the opposite of the grid mode, but we use all the same elements from .gridImage
+ *
+ */
+
+//&.InputfieldImageEditAll {
+.InputfieldImageEditAll {
+
+	.gridImage {
+		display: block;
+		width: 100%;
+
+		// clearfix
+		&:before,
+		&:after {
+			content: "";
+			display: table;
+			border-collapse: collapse;
+		}
+		&:after {
+			clear: both;
+		}
+
+		&__overflow {
+			position: relative;
+			z-index: 2;
+			top: 0;
+			left: 0;
+			float: left;
+			background: initial;
+			display: block;
+			height: auto !important;
+			width: 23%; 
+			overflow: visible;
+			cursor: move;
+		
+			padding: 10px;
+			padding-right: 0;
+
+			& > img {
+				display: block;
+				position: static !important;
+				transition: none;
+				-ms-transform: none;
+				transform: none;
+				width: 100%;
+				max-width: 100% important;
+				height: initial !important;
+				cursor: move;
+			}
+		}
+
+		.ImageData {
+			position: relative;
+			float: left;
+			display: block;
+			width: 77%;
+			padding-left: 20px;
+			padding-right: 10px;
+			z-index: 3;
+
+			.InputfieldFileDescription {
+				margin-bottom: 0.5em;
+			}
+
+			.InputfieldImageEdit__name {
+				margin-bottom: 0;
+				margin-top: 1em;
+				position: relative;
+				z-index: 100;
+				cursor: pointer;
+			}
+
+			.InputfieldFileSort {
+				display: none;
+			}
+
+			input {
+				position: relative;
+				z-index: 4;
+			}
+		}
+
+		&.gridImagePlaceholder {
+			.gridImage__overflow {
+				background: #fff;
+			}
+		}
+
+		&__inner {
+			.gridImage__edit {
+				display: none;
+			}
+		}
+		&:hover .gridImage__inner {
+			background: initial;
+		}
+
+		.InputfieldImageEdit {
+			&__core {
+				input {
+					width: 100%;
+				}
+			}
+		}
+
+		&__resize {
+			margin-top: 10px;
+			color: $deleteColor;
+			text-shadow: none;
+		}
+
+		&__progress {
+			bottom: 10px;
+			margin-left: 10px; 
+		}
+		
+		&.gridImageUploading {
+			.gridImage__overflow {
+				margin-bottom: 10px; 
+			}
+			.gridImage__inner {
+				overflow: hidden;
+			}
+		}
+
+		&__trash {
+			/*
+			position: absolute;
+			background: white;
+			padding: .2em .6em;
+			color: #aaa;
+			cursor: pointer;
+			*/
+			z-index: 5;
+			display: block !important;
+			top: 0;
+			right: 0;
+
+			/*
+			& > input {
+				display: none;
+			}
+			*/
+		}
+		
+		&__edit {
+			display: none;
+		}
+
+		&__tooltip {
+			display: none !important;
+		}
+
+		&--delete {
+			background-color: $deleteColor;
+			border-bottom: 8px solid transparent;
+			height: 45px;
+			overflow: hidden;
+			
+			.gridImage__overflow {
+				display: none;
+			}
+			
+			.ImageData {
+				padding-left: 10px;
+				width: 100%;
+			}
+
+			.ImageData .InputfieldImageEdit__name {
+				color: rgba(255, 255, 255, 0.6);
+				margin-top: 3px;
+				text-decoration: line-through;
+			}
+
+			.InputfieldImageEdit__info {
+				color: rgba(255, 255, 255, 0.4);
+			}
+
+			.InputfieldImageEdit__buttons,
+			.InputfieldImageEdit__core,
+			.InputfieldImageEdit__additional {
+				display: none;
+			}
+
+			/*
+			& .gridImage__trash {
+				background-color: $deleteColor;
+				color: white;
+				display: block;
+
+				&:hover {
+					color: white;
+					background-color: $deleteColor;
+				}
+			}
+			*/
+
+			&:hover .gridImage__trash:hover {
+				color: white;
+				background-color: $deleteColor;
+			}
+
+			&:hover .gridImage__hover,
+			.gridImage__hover {
+				background: rgba(255, 255, 255, 0);
+			}
+			
+		} // &--delete
+	} // .gridImage
+
+	// Edit All narrow mode, we stack the image and editor features on top of each other
+	&.InputfieldImageNarrow {
+		.gridImage {
+			&__overflow {
+				display: block;
+				width: 100% !important;
+				height: auto !important;
+				padding: 0;
+
+				img {
+					width: 100% important;
+					height: auto !important;
+				}
+				
+			}
+			.ImageData {
+				padding: 0;
+				width: 100% !important;
+				display: block;
+				.InputfieldImageEdit__name {
+					margin-top: 0.5em;
+				}
+				.InputfieldImageEdit__name,
+				.InputfieldImageEdit__buttons,
+				.InputfieldImageEdit__info {
+					text-align: center;
+					display: block;
+				}
+			}
+		} // .gridImage
+	} // .InputfieldImageNarrow
+} // .InputfieldImageEditll

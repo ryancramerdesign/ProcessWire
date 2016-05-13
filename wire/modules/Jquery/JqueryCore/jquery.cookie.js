@@ -5,6 +5,8 @@
  * Dual licensed under the MIT and GPL licenses:
  * http://www.opensource.org/licenses/mit-license.php
  * http://www.gnu.org/licenses/gpl.html
+ * 
+ * Updates added by Ryan (2016) to support getting/setting cookie values that are objects. 
  *
  */
 
@@ -59,7 +61,10 @@ jQuery.cookie = function(name, value, options) {
         if (value === null) {
             value = '';
             options.expires = -1;
-        }
+        } else if(typeof value == "object") {
+			// added by RJC for object value cookie support
+			value = 'JSON' + JSON.stringify(value); 
+		}
         var expires = '';
         if (options.expires && (typeof options.expires == 'number' || options.expires.toUTCString)) {
             var date;
@@ -91,6 +96,13 @@ jQuery.cookie = function(name, value, options) {
                 }
             }
         }
+		// added by RJC to for object cookie value support
+		if(typeof cookieValue == "string") {
+			if(cookieValue.indexOf('JSON{') === 0 || cookieValue.indexOf('JSON[') === 0) {
+				cookieValue = cookieValue.substring(4);
+				cookieValue = JSON.parse(cookieValue);
+			}
+		}
         return cookieValue;
     }
 };

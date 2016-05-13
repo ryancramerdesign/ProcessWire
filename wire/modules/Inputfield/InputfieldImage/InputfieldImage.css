@@ -1,3 +1,24 @@
+.InputfieldImage .InputfieldHeader .InputfieldImageListToggle {
+  float: right;
+  padding-right: 0.75em;
+  position: relative; }
+  .InputfieldImage .InputfieldHeader .InputfieldImageListToggle--active {
+    opacity: 0.5; }
+  .InputfieldImage .InputfieldHeader .InputfieldImageListToggle:first-child {
+    padding-right: 1em; }
+.InputfieldImage .InputfieldHeader .InputfieldImageSizeSlider {
+  float: right;
+  width: 100px;
+  position: relative;
+  top: 8px;
+  right: 1em; }
+  .InputfieldImage .InputfieldHeader .InputfieldImageSizeSlider .ui-slider-handle {
+    outline: none; }
+.InputfieldImage.InputfieldFileEmpty .InputfieldImageListToggle,
+.InputfieldImage.InputfieldFileEmpty .InputfieldImageSizeSlider, .InputfieldImage.InputfieldStateCollapsed .InputfieldImageListToggle,
+.InputfieldImage.InputfieldStateCollapsed .InputfieldImageSizeSlider {
+  display: none; }
+
 .InputfieldImageErrors li {
   margin-bottom: .5em;
   margin-top: 0;
@@ -29,8 +50,10 @@
     height: 100%;
     overflow: hidden;
     position: relative;
-    background: #eee;
-    background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.3) 100%); }
+    background-color: #fefefe;
+    background-image: linear-gradient(45deg, #cbcbcb 25%, transparent 25%, transparent 75%, #cbcbcb 75%, #cbcbcb), linear-gradient(45deg, #cbcbcb 25%, transparent 25%, transparent 75%, #cbcbcb 75%, #cbcbcb);
+    background-size: 16px 16px;
+    background-position: 0 0, 8px 8px; }
     .gridImage__overflow > img {
       position: absolute;
       top: 50%;
@@ -93,24 +116,7 @@
     .gridImage__progress::-webkit-progress-bar {
       background-color: inherit; }
     .gridImage__progress[value]::-webkit-progress-value {
-      background-color: #3eb998;
-      /*/ Arrow
-        position: relative;
-        &:after {
-      	left: 100%;
-      	top: 50%;
-      	border: solid transparent;
-      	content: " ";
-      	height: 0;
-      	width: 0;
-      	position: absolute;
-      	pointer-events: none;
-      	border-color: rgba($activeColor, 0);
-      	border-left-color: $activeColor;
-      	border-width: 5px;
-      	margin-top: -5px;
-        }
-        */ }
+      background-color: #3eb998; }
     .gridImage__progress[value]::-moz-progress-bar {
       background-color: #3eb998; }
     .gridImage__progress[value='-1'] {
@@ -142,7 +148,7 @@
     width: 100%;
     line-height: 130px;
     text-align: center;
-    color: white;
+    color: white !important;
     font-size: 1.3em;
     cursor: move;
     text-shadow: 0px 0px 7px rgba(62, 185, 152, 0.7);
@@ -184,6 +190,9 @@
         color: black;
         font-weight: bold;
         text-align: right; }
+      .gridImage__tooltip table th, .gridImage__tooltip table td {
+        border: none !important;
+        background: white !important; }
     .gridImage__tooltip:after {
       top: 100%;
       left: 50%;
@@ -323,7 +332,8 @@
     -ms-hyphens: auto;
     -moz-hyphens: auto;
     -webkit-hyphens: auto;
-    hyphens: auto; }
+    hyphens: auto;
+    cursor: pointer; }
   .InputfieldImageEdit__info {
     font-size: .9em;
     color: #ccc;
@@ -333,7 +343,7 @@
     .InputfieldImageEdit__buttons button {
       margin-bottom: 0.5em; }
 
-.ImageData {
+.InputfieldImage .ImageData {
   display: none; }
 
 .InputfieldImageValidExtensions {
@@ -352,24 +362,24 @@
     .ie-no-drop .InputfieldImageUpload .AjaxUploadDropHere {
       display: none;
       visibility: hidden; }
-    .InputfieldImageUpload .AjaxUploadDropHere .InputfieldImageRefresh {
-      display: none; }
+  .InputfieldImageUpload .InputfieldImageRefresh {
+    margin-bottom: 0; }
 
-.InputMask {
+.InputfieldImage .InputMask {
   position: relative;
   overflow: hidden;
   line-height: 1 !important;
   cursor: pointer;
   font-size: 14px;
   border: none; }
-  .InputMask i {
+  .InputfieldImage .InputMask i {
     font-size: 14px;
     margin: 0 3px 0 0; }
-  .InputMask:hover {
+  .InputfieldImage .InputMask:hover {
     cursor: pointer; }
-  .InputMask:active {
+  .InputfieldImage .InputMask:active {
     box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2); }
-  .InputMask > input[type=file] {
+  .InputfieldImage .InputMask > input[type=file] {
     position: absolute;
     top: 0;
     left: 0;
@@ -381,24 +391,188 @@
     cursor: inherit;
     width: 100%; }
 
-@media screen and (max-width: 768px) {
-  .InputfieldImage .InputfieldImageEdit__inner {
+.InputfieldImageNarrow .InputfieldHeader .InputfieldImageSizeSlider {
+  width: 50px; }
+.InputfieldImageNarrow .InputfieldImageEdit__inner {
+  display: block;
+  padding-top: 0.5em; }
+.InputfieldImageNarrow .InputfieldImageEdit__imagewrapper {
+  display: block;
+  width: 100%;
+  padding-bottom: 0; }
+.InputfieldImageNarrow .InputfieldImageEdit__edit {
+  width: 100%;
+  padding-top: 0; }
+  .InputfieldImageNarrow .InputfieldImageEdit__edit .InputfieldImageEdit__buttons,
+  .InputfieldImageNarrow .InputfieldImageEdit__edit .InputfieldImageEdit__info {
     display: block;
-    padding-top: 0.5em; }
-  .InputfieldImage .InputfieldImageEdit__imagewrapper {
+    text-align: center; }
+.InputfieldImageNarrow .InputfieldImageEdit__name {
+  margin: 0;
+  display: block;
+  text-align: center; }
+.InputfieldImageNarrow .InputfieldImageUpload .AjaxUploadDropHere {
+  display: none !important; }
+
+.InputfieldFileSingle .gridImages .gridImage img,
+.InputfieldRenderValueMode .gridImages .gridImage img {
+  cursor: zoom-in; }
+
+/*****************************************************************************************
+ * The "Edit All" mode is the "list" mode where edit inputs are showing for all images
+ * This is the opposite of the grid mode, but we use all the same elements from .gridImage
+ *
+ */
+.InputfieldImageEditAll .gridImage {
+  display: block;
+  width: 100%; }
+  .InputfieldImageEditAll .gridImage:before, .InputfieldImageEditAll .gridImage:after {
+    content: "";
+    display: table;
+    border-collapse: collapse; }
+  .InputfieldImageEditAll .gridImage:after {
+    clear: both; }
+  .InputfieldImageEditAll .gridImage__overflow {
+    position: relative;
+    z-index: 2;
+    top: 0;
+    left: 0;
+    float: left;
+    background: initial;
     display: block;
-    width: 100%;
-    padding-bottom: 0; }
-  .InputfieldImage .InputfieldImageEdit__edit {
-    width: 100%;
-    padding-top: 0; }
-    .InputfieldImage .InputfieldImageEdit__edit h2 {
-      margin: 0;
+    height: auto !important;
+    width: 23%;
+    overflow: visible;
+    cursor: move;
+    padding: 10px;
+    padding-right: 0; }
+    .InputfieldImageEditAll .gridImage__overflow > img {
       display: block;
-      text-align: center; }
-    .InputfieldImage .InputfieldImageEdit__edit .InputfieldImageEdit__buttons,
-    .InputfieldImage .InputfieldImageEdit__edit .InputfieldImageEdit__info {
-      display: block;
-      text-align: center; } }
+      position: static !important;
+      transition: none;
+      -ms-transform: none;
+      transform: none;
+      width: 100%;
+      max-width: 100% important;
+      height: initial !important;
+      cursor: move; }
+  .InputfieldImageEditAll .gridImage .ImageData {
+    position: relative;
+    float: left;
+    display: block;
+    width: 77%;
+    padding-left: 20px;
+    padding-right: 10px;
+    z-index: 3; }
+    .InputfieldImageEditAll .gridImage .ImageData .InputfieldFileDescription {
+      margin-bottom: 0.5em; }
+    .InputfieldImageEditAll .gridImage .ImageData .InputfieldImageEdit__name {
+      margin-bottom: 0;
+      margin-top: 1em;
+      position: relative;
+      z-index: 100;
+      cursor: pointer; }
+    .InputfieldImageEditAll .gridImage .ImageData .InputfieldFileSort {
+      display: none; }
+    .InputfieldImageEditAll .gridImage .ImageData input {
+      position: relative;
+      z-index: 4; }
+  .InputfieldImageEditAll .gridImage.gridImagePlaceholder .gridImage__overflow {
+    background: #fff; }
+  .InputfieldImageEditAll .gridImage__inner .gridImage__edit {
+    display: none; }
+  .InputfieldImageEditAll .gridImage:hover .gridImage__inner {
+    background: initial; }
+  .InputfieldImageEditAll .gridImage .InputfieldImageEdit__core input {
+    width: 100%; }
+  .InputfieldImageEditAll .gridImage__resize {
+    margin-top: 10px;
+    color: #e83561;
+    text-shadow: none; }
+  .InputfieldImageEditAll .gridImage__progress {
+    bottom: 10px;
+    margin-left: 10px; }
+  .InputfieldImageEditAll .gridImage.gridImageUploading .gridImage__overflow {
+    margin-bottom: 10px; }
+  .InputfieldImageEditAll .gridImage.gridImageUploading .gridImage__inner {
+    overflow: hidden; }
+  .InputfieldImageEditAll .gridImage__trash {
+    /*
+    position: absolute;
+    background: white;
+    padding: .2em .6em;
+    color: #aaa;
+    cursor: pointer;
+    */
+    z-index: 5;
+    display: block !important;
+    top: 0;
+    right: 0;
+    /*
+    & > input {
+    	display: none;
+    }
+    */ }
+  .InputfieldImageEditAll .gridImage__edit {
+    display: none; }
+  .InputfieldImageEditAll .gridImage__tooltip {
+    display: none !important; }
+  .InputfieldImageEditAll .gridImage--delete {
+    background-color: #e83561;
+    border-bottom: 8px solid transparent;
+    height: 45px;
+    overflow: hidden;
+    			/*
+    			& .gridImage__trash {
+    				background-color: $deleteColor;
+    				color: white;
+    				display: block;
+    
+    				&:hover {
+    					color: white;
+    					background-color: $deleteColor;
+    				}
+    			}
+    			*/ }
+    .InputfieldImageEditAll .gridImage--delete .gridImage__overflow {
+      display: none; }
+    .InputfieldImageEditAll .gridImage--delete .ImageData {
+      padding-left: 10px;
+      width: 100%; }
+    .InputfieldImageEditAll .gridImage--delete .ImageData .InputfieldImageEdit__name {
+      color: rgba(255, 255, 255, 0.6);
+      margin-top: 3px;
+      text-decoration: line-through; }
+    .InputfieldImageEditAll .gridImage--delete .InputfieldImageEdit__info {
+      color: rgba(255, 255, 255, 0.4); }
+    .InputfieldImageEditAll .gridImage--delete .InputfieldImageEdit__buttons,
+    .InputfieldImageEditAll .gridImage--delete .InputfieldImageEdit__core,
+    .InputfieldImageEditAll .gridImage--delete .InputfieldImageEdit__additional {
+      display: none; }
+    .InputfieldImageEditAll .gridImage--delete:hover .gridImage__trash:hover {
+      color: white;
+      background-color: #e83561; }
+    .InputfieldImageEditAll .gridImage--delete:hover .gridImage__hover,
+    .InputfieldImageEditAll .gridImage--delete .gridImage__hover {
+      background: rgba(255, 255, 255, 0); }
+.InputfieldImageEditAll.InputfieldImageNarrow .gridImage__overflow {
+  display: block;
+  width: 100% !important;
+  height: auto !important;
+  padding: 0; }
+  .InputfieldImageEditAll.InputfieldImageNarrow .gridImage__overflow img {
+    width: 100% important;
+    height: auto !important; }
+.InputfieldImageEditAll.InputfieldImageNarrow .gridImage .ImageData {
+  padding: 0;
+  width: 100% !important;
+  display: block; }
+  .InputfieldImageEditAll.InputfieldImageNarrow .gridImage .ImageData .InputfieldImageEdit__name {
+    margin-top: 0.5em; }
+  .InputfieldImageEditAll.InputfieldImageNarrow .gridImage .ImageData .InputfieldImageEdit__name,
+  .InputfieldImageEditAll.InputfieldImageNarrow .gridImage .ImageData .InputfieldImageEdit__buttons,
+  .InputfieldImageEditAll.InputfieldImageNarrow .gridImage .ImageData .InputfieldImageEdit__info {
+    text-align: center;
+    display: block; }
 
 /*# sourceMappingURL=InputfieldImage.css.map */

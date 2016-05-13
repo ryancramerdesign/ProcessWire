@@ -551,13 +551,11 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 		}
 		
 		$changed = false; 
-		$languages = $this->noLang ? null : $this->wire('languages'); 
-		$keys = $languages ? array('tags') : array('description', 'tags'); 
-		
+	
+		// replace (currently only used by InputfieldImage)
 		$key = "replace_$id";
 		$replace = $input->$key;
 		if($replace) {
-			// note: replace is currently only used in InputfieldImage
 			if(strpos($replace, '?') !== false) {
 				list($replace, $unused) = explode('?', $replace);
 			}
@@ -567,6 +565,27 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 				$changed = true; 
 			}
 		}
+	
+		// rename (currently only used by InputfieldImage)
+		$key = "rename_$id";
+		$rename = $input->$key;
+		if(strlen($rename) && $rename != $pagefile->basename(false)) {
+			$name = $pagefile->basename();
+			$rename .= "." . $pagefile->ext();
+			// cleanBasename($basename, $originalize = false, $allowDots = true, $translate = false) 
+			$rename = $pagefile->pagefiles->cleanBasename($rename, true, true, true);
+			$message = sprintf($this->_('Renamed file "%1$s" to "%2$s"'), $name, $rename);
+			if($pagefile->rename($rename) !== false) {
+				$this->message($message);
+				$changed = true; 
+			} else {
+				$this->warning($this->_('Failed') . " - $message"); 
+			}
+		}
+	
+		// description and tags
+		$languages = $this->noLang ? null : $this->wire('languages');
+		$keys = $languages ? array('tags') : array('description', 'tags'); 
 
 		foreach($keys as $key) { 
 			if(isset($input[$key . '_' . $id])) { 

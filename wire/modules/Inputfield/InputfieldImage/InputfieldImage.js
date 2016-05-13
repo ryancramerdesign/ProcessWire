@@ -17,6 +17,12 @@ function InputfieldImage($) {
 		closeBtnInside: true
 	};
 
+	// data pulled from InputfieldImage cookie
+	var cookieData = null;
+	
+	// grid items to retry for sizing by setGridSize() methods	
+	var retryGridItems = [];
+
 	/**
 	 * Whether or not AJAX drag/drop upload is allowed?
 	 * 
@@ -30,7 +36,7 @@ function InputfieldImage($) {
 	}
 
 	/**
-	 * LostKobrakai: what does this function do?
+	 * Throttle the given function for a threshold
 	 *
 	 * @param fn
 	 * @param threshhold
@@ -80,17 +86,19 @@ function InputfieldImage($) {
 			$el.sortable('destroy');
 			// re-build sort indexes
 			$el.children("li").each(function(n) {
-				var $sort = $(this).find("input.InputfieldFileSort"); 
+				var $sort = $(this).find("input.InputfieldFileSort");
 				$sort.val(n);
 			});
 		}
-		$el.sortable({
-			items: "> .gridImage", 
+		var timer;
+		var sortableOptions = {
+			items: "> .gridImage",
 			start: function(e, ui) {
+				var size = getCookieData($el.closest('.Inputfield'), 'size');
 				ui.placeholder.append($("<div/>").css({
 					display: "block",
-					height: $el.data("gridsize") + "px",
-					width: $el.data("gridsize") + "px"
+					height: size + "px",
+					width: size + "px"
 				}));
 				// Prevent closing, if this really meant to be a click
 				timer = window.setTimeout(function() {
@@ -105,13 +113,15 @@ function InputfieldImage($) {
 					clearTimeout(timer);
 				}
 				$this.children("li").each(function(n) {
-					$(this).find(".InputfieldFileSort").val(n);
+					var $sort = $(this).find(".InputfieldFileSort");
+					if($sort.val() != n) $sort.val(n).change();
 				});
-				ui.item.find('.InputfieldFileSort').change();
 				$el.removeClass('InputfieldImageSorting');
 			},
 			cancel: ".InputfieldImageEdit"
-		});
+		};
+
+		$el.sortable(sortableOptions);
 	}
 
 	/**
@@ -121,7 +131,7 @@ function InputfieldImage($) {
 	 *
 	 */
 	function setupMagnificForRenderValue($el) {
-		var options = magnificOptions;
+		var options = $.extend(true, {}, magnificOptions);
 		options.callbacks = {
 			elementParse: function(item) {
 				var src = $(item.el).attr('data-original');
@@ -132,6 +142,7 @@ function InputfieldImage($) {
 		options.gallery = {
 			enabled: true
 		};
+		//console.log('setupMagnificForRenderValue');
 		$el.find("img").magnificPopup(options);
 	}
 	
@@ -142,7 +153,7 @@ function InputfieldImage($) {
 	 *
 	 */
 	function setupMagnificForSingle($el) {
-		var options = magnificOptions;
+		var options = $.extend(true, {}, magnificOptions);
 		options.callbacks = {
 			elementParse: function(item) {
 				item.src = $(item.el).attr('src');
@@ -166,26 +177,13 @@ function InputfieldImage($) {
 	}
 
 	/**
-	 * LostKobrakai: Can you describe this function?
+	 * Return the &__edit element inside an .InputfieldImageEdit 
 	 *
 	 * @param $edit
 	 *
 	 */
 	function findEditMarkup($edit) {
 		return $("#" + $edit.find(".InputfieldImageEdit__edit").attr("data-current"));
-	}
-
-	/**
-	 * Populates a 'data-per-row' attribute on $el containing number of images in row
-	 *
-	 * @param $el
-	 *
-	 */
-	function getImagesPerRow($el) {
-		var $itemWidth = $el.children().first().outerWidth(true),
-			$containerWidth = $el.width();
-
-		$el.attr("data-per-row", Math.floor($containerWidth / $itemWidth));
 	}
 
 	/**
@@ -205,21 +203,55 @@ function InputfieldImage($) {
 	}
 
 	/**
-	 * LostKobrakai: Can you describe this function?
+	 * Update the grid of images, adjusting placement of editor and number of images per row
 	 *
 	 */
-	var updateGrid = function() {
-		var a = function() {
+	function updateGrid($inputfield) {
+		if(typeof $inputfield == "undefined") {
+			var $gridImages = $(".gridImages");
+		} else {
+			var $gridImages = $inputfield.find(".gridImages");
+		}
+		$gridImages.each(function() {
 			var $grid = $(this),
 				$edit = findEditedElement($grid);
-
 			if($edit.length) {
-				getImagesPerRow($grid);
+				// getImagesPerRow($grid);
 				moveEdit(findEditMarkup($edit), $edit);
 			}
-		};
-		$(".gridImages").each(a);
+		});
 	};
+	
+	function checkInputfieldWidth($inputfield) {
+		
+		var narrowItems = [];
+		var wideItems = [];
+		var ni = 0, wi = 0;
+		var $inputfields;
+	
+		if(typeof $inputfield == "undefined") {
+			$inputfields = $(".InputfieldImage.Inputfield");
+		} else {
+			$inputfields = $inputfield;
+		}
+	
+		$inputfields.removeClass('InputfieldImageNarrow');
+		
+		$inputfields.each(function() {
+			var $item = $(this);
+			var width = $item.width();
+			if(width < 1) return;
+			if(width <= 500) {
+				narrowItems[ni] = $item;
+				ni++;
+			}
+		});
+		
+		for(var n = 0; n < ni; n++) {
+			var $item = narrowItems[n];	
+			$item.addClass('InputfieldImageNarrow');
+		}
+	}
 
 	/**
 	 * Window resize event
@@ -227,19 +259,7 @@ function InputfieldImage($) {
 	 */
 	function windowResize() {
 		updateGrid();
-		/*
-		$(".InputfieldImage.Inputfield").each(function() {
-			var width = $(this).width();
-			if(width <= 500) {
-				$(this).addClass('addInputfieldImageNarrow');
-			} else {
-				$(this).removeClass('rmInputfieldImageNarrow');
-			}
-		});
-		$(".addInputfieldImageNarrow").removeClass('addInputfieldImageNarrow').addClass('InputfieldImageNarrow');
-		$(".rmInputfieldImageNarrow").removeClass('rmInputfieldImageNarrow').removeClass('InputfieldImageNarrow');
-		*/
-			
+		checkInputfieldWidth();
 	}
 
 	/**
@@ -257,15 +277,15 @@ function InputfieldImage($) {
 	}
 
 	/**
-	 * LostKobrakai: this function doesn't appear to be in use–okay to remove?
+	 * 
 	 *
 	 * @param $el
 	 *
-	 */
 	function markForDeletion($el) {
 		$el.parents('.gridImage').toggleClass("gridImage--delete");
 		$el.find("input").prop("checked", inverseState);
 	}
+	 */
 
 	/**
 	 * Setup the InputfieldImageEdit panel
@@ -274,16 +294,21 @@ function InputfieldImage($) {
 	 * @param $edit
 	 *
 	 */
-	function setup($el, $edit) {
+	function setupEdit($el, $edit) {
+		
+		if($el.closest('.InputfieldImageEditAll').length) return;
+		
 		var $img = $edit.find(".InputfieldImageEdit__image");
 		var $thumb = $el.find("img");
+		
+		
 		$img.attr({
 			src: $thumb.attr("data-original"),
 			"data-original": $thumb.attr("data-original"),
 			alt: $thumb.attr("alt")
 		});
 
-		var options = magnificOptions;
+		var options = $.extend(true, {}, magnificOptions);
 		options.callbacks = {
 			elementParse: function(item) {
 				item.src = $(item.el).attr('data-original');
@@ -292,18 +317,21 @@ function InputfieldImage($) {
 		options.gallery = {
 			enabled: true
 		};
-		$edit
-			.attr('id', 'edit-' + $el.attr('id'))
-			.parents(".gridImages")
+		
+		$edit.attr('id', 'edit-' + $el.attr('id'));
+		// this part creates a gallery of all images
+		var $items = $edit.parents(".gridImages")
 			.find(".gridImage")
 			.not($el)
 			.find("img")
 			.add($img)
 			.magnificPopup(options);
+			//.addClass('magnificInit');
 
+		// move all of the .ImageData elements to the edit panel
 		$edit.find(".InputfieldImageEdit__edit")
 			.attr("data-current", $el.attr("id"))
-			.append($el.find(".ImageData").children().not(".InputfieldFileSort, .InputfieldFileReplace"));
+			.append($el.find(".ImageData").children().not(".InputfieldFileSort"));
 	}
 
 	/**
@@ -312,10 +340,12 @@ function InputfieldImage($) {
 	 * @param $edit
 	 *
 	 */
-	function tearDown($edit) {
+	function tearDownEdit($edit) {
 		$inputArea = $edit.find(".InputfieldImageEdit__edit");
-		if($inputArea.children().not(".InputfieldFileSort, .InputfieldFileReplace").length) {
-			$("#" + $inputArea.attr("data-current")).find(".ImageData").append($inputArea.children());
+		if($inputArea.children().not(".InputfieldFileSort").length) {
+			var $items = $inputArea.children();
+			//console.log('tearDown moving items back to #' + $inputArea.attr('data-current'));
+			$("#" + $inputArea.attr("data-current")).find(".ImageData").append($items);
 		}
 	}
 
@@ -338,7 +368,7 @@ function InputfieldImage($) {
 		}
 		
 		if($edit.length) {
-			tearDown($edit);
+			tearDownEdit($edit);
 			$edit.removeClass("InputfieldImageEdit--active").removeAttr('id');
 			$('#' + $edit.attr('data-for')).removeClass('gridImageEditing');
 		}
@@ -347,7 +377,7 @@ function InputfieldImage($) {
 	}
 
 	/**
-	 * LostKobrakai: Can you describe this function?
+	 * Move the edit panel, placing it correctly in the grid were necessary
 	 *
 	 * @param $el
 	 * @param $edit
@@ -356,12 +386,36 @@ function InputfieldImage($) {
 	function moveEdit($el, $edit) {
 		
 		if(!$el || !$el.length) return;
-		getImagesPerRow($el.parent());
+		
+		//getImagesPerRow($el.parent());
 
-		var $children = $el.parent().children().not(".InputfieldImageEdit"),
-			perRow = parseInt($el.parent().attr("data-per-row")),
-			index = $children.index($el);
+		var $children = $el.parent().children().not(".InputfieldImageEdit");
+		//var	perRow = parseInt($el.parent().attr("data-per-row"));
+		//var	index = $children.index($el);
+	
+		var lastTop = 0;
+		var found = false;
+		var $insertBeforeItem = null;
+	
+		$children.each(function() {
+			if($insertBeforeItem) return;
+			var $item = $(this);
+			var top = $item.offset().top;
+			if(found && top != lastTop) {
+				$insertBeforeItem = $item;
+			} else if($item.attr('id') == $el.attr('id')) {
+				found = true;
+			}
+			lastTop = top;
+		}); 
+	
+		if($insertBeforeItem) {
+			$edit.insertBefore($insertBeforeItem);
+		} else {
+			$edit.insertAfter($children.eq($children.length - 1));
+		}
 
+		/*
 		for(var i = 0; i < 30; i++) {
 			if(index % perRow !== perRow - 1) {
 				index++;
@@ -372,6 +426,7 @@ function InputfieldImage($) {
 
 		index = Math.min(index, $children.length - 1); // Do not excede number of items
 		$edit.insertAfter($children.eq(index));
+		*/
 
 		var $arrow = $edit.find(".InputfieldImageEdit__arrow");
 		if($arrow.length) $arrow.css("left", $el.position().left + ($el.outerWidth() / 2) + "px");
@@ -392,7 +447,11 @@ function InputfieldImage($) {
 		$(document).on('click dblclick', '.gridImage__trash', function(e) {
 			var $input = $(this).find("input");
 			$input.prop("checked", inverseState).change();
-			if(e.type == "dblclick") setDeleteStateOnAllItems($input);
+			if(e.type == "dblclick") {
+				setDeleteStateOnAllItems($input);
+				e.preventDefault();
+				e.stopPropagation();
+			}
 		});
 
 		// change of "delete" status for an item event
@@ -405,6 +464,7 @@ function InputfieldImage($) {
 			
 			var $el = $(this).closest(".gridImage");
 			if(!$el.length) return;
+			if($el.closest('.InputfieldImageEditAll').length) return false;
 			
 			var $all = $el.closest(".gridImages");
 			var $edit = $all.find(".InputfieldImageEdit");
@@ -415,32 +475,58 @@ function InputfieldImage($) {
 				
 			} else {
 				moveEdit($el, $edit);
-				tearDown($edit);
-				setup($el, $edit);
+				tearDownEdit($edit);
+				setupEdit($el, $edit);
 
 				$edit.addClass("InputfieldImageEdit--active").attr('data-for', $el.attr('id'));
 				$all.find('.gridImageEditing').removeClass('gridImageEditing');
 				$el.addClass('gridImageEditing');
 			}
+		
+		}).on('click', '.InputfieldImageEditAll img', function(e) {
+			e.stopPropagation();
+			e.preventDefault();
+			$.magnificPopup.close();
+			var options = $.extend(true, {}, magnificOptions);
+			var $img = $(this);
+			options['items'] = {
+				src: $img.attr('data-original'),
+				title: $img.attr('alt')
+			};
+			$.magnificPopup.open(options);
+			return true;
 		});
 
-		// LostKobrakai: can this be adjusted so it isn't triggered on all document click events?
-		// just seems like a lot of code to execute every time there is a click, and might be 
-		// better to narrow focus it in on only those applicable to InputfieldImage
 		$(document).on("click", function(e) {
 			var $el = $(e.target);
 
 			if($el.closest(".InputfieldImageEdit").length) {
 				closeEdit(null, $el.parents(".gridImages"));
+				
+			} else if($el.is("input") && $el.closest(".InputfieldImageEditAll").length) {
+				// clicked input in "edit all" mode, disable sortable, focus it then assign a blur event
+				$el.focus().one('blur', function() {
+					$el.closest('.gridImages').sortable('enable'); // re-enable sortable on blur
+				});
+				$el.closest('.gridImages').sortable('disable'); // disable sortable on focus
+				
 			} else if($el.closest(".gridImage__inner").length) {
 				closeEdit(null, $el.parents(".gridImages"));
+				
 			} else if($el.closest(".mfp-container").length) {
+				// magnific popup container
 				return;
+				
 			} else if($el.closest(".ui-dialog").length) {
+				// jQuery UI dialog
 				return;
+				
 			} else if($el.is(".mfp-close")) {
+				// magnific popup close button
 				return;
+				
 			} else {
+				// other
 				closeEdit(null, null);
 			}
 		});
@@ -449,22 +535,33 @@ function InputfieldImage($) {
 		$(document).on("click", ".InputfieldImageEdit__close", function(e) {
 			closeEdit($(this).parents(".gridImages"), null);
 		});
-	
-		// disable cropping after Inputfield has changed since crop may cause InputfieldContent to be reloaded
-		// which could cause changes to be lost
+		
+		// Warn about cropping after Inputfield has changed since crop may cause 
+		// InputfieldContent to be reloaded which could cause changes to be lost
 		$(document).on("change", ".InputfieldImage", function() {
-			$(this).find('.InputfieldImageButtonCrop').removeClass('pw-modal').addClass('ui-state-disabled');
+			$(this).find('.InputfieldImageButtonCrop:not(.pw-modal-dblclick)')
+				.addClass('pw-modal-dblclick ui-state-disabled');
+			
 		}).on("click", ".InputfieldImageButtonCrop.ui-state-disabled", function(e) {
-			alert("This images field has changes. Please save them before cropping.");
+			var $button = $(this);
+			var $list = $button.closest('.gridImages');
+			if(!$list.hasClass('gridImagesAlerted')) {
+				alert(ProcessWire.config.InputfieldImage.labels.changes);
+				$list.addClass('gridImagesAlerted');
+			}
+			setTimeout(function() {
+				$button.removeClass('ui-state-active');
+			}, 500);
 			return false;
-		}) 
+		});
 
-		// LostKobrakai: can you describe what this does?
 		$(".ImagesGrid").on("click", "button.pw-modal", function(e) {
 			e.preventDefault();
 		});
 		
-
+		setupEditableFilename();
+		checkInputfieldWidth();
+		
 		/*
 		// Longclick .gridItem to open magnific popup
 		// Stops working as soon as an "Edit" panel has been opened, and 
@@ -482,6 +579,378 @@ function InputfieldImage($) {
 		});
 		*/
 	}
+	
+	/**
+	 * Make the file basename editable
+	 *
+	 * @param $inputfield
+	 *
+	 */
+	function setupEditableFilename() {
+
+		$(document).on('click', '.InputfieldImageEdit__name', function(e) {
+
+			var $span = $(this).children('span');
+			var $input = $span.closest('.gridImage, .InputfieldImageEdit').find('.InputfieldFileRename');
+			var $list = $span.closest('.gridImages');
+
+			$list.sortable('disable');
+			$input.val($span.text());
+
+			$span.on('keypress', function(e) {
+				if(e.which == 13) {
+					$span.blur();
+					return false;
+				}
+				return true;
+			});
+
+			$span.attr('autocomplete', 'off')
+				.attr('autocorrect', 'off')
+				.attr('autocapitalize', 'off')
+				.attr('spellcheck', 'false');
+
+			$span.focus().on('blur', function() {
+				var val = $(this).text();
+				if($.trim(val).length < 1) {
+					$span.text($input.val());
+				} else if(val != $input.val()) {
+					$input.val(val).change();
+					$list.closest('.Inputfield').trigger('change');
+					//console.log('changed to: ' + val);
+				}
+				$span.off('keypress');
+				$list.sortable('enable');
+			});
+		});
+	}
+
+	/**
+	 * Set size of image thumbnails in "List" mode as a percent (between approximately 15% and 40%)
+	 * 
+	 * @param $inputfield
+	 * @param pct
+	 * 
+	 */
+	function setListSize($inputfield, pct) {
+		pct = Math.floor(pct);
+		$inputfield.find(".gridImage__overflow").each(function() {
+			var dataPct = 100 - pct; 
+			$(this).css('width', pct + '%');
+			$(this).siblings('.ImageData').css('width', dataPct + '%');
+		});
+		setCookieData($inputfield, 'listSize', pct);
+	}
+
+	/**
+	 * Set size of image thumbnails in grid
+	 * 
+	 * @param $inputfield
+	 * @param gridSize
+	 * @param ragged Whether to use ragged right or not (same as "left" mode)
+	 * 
+	 */
+	function setGridSize($inputfield, gridSize, ragged) {
+		
+		if(!gridSize) return;
+	
+		var size = gridSize + 'px';
+		var $gridImages = $inputfield.find('.gridImages');
+	
+		/*
+		if(typeof ragged == "undefined") {
+			ragged = getCookieData($inputfield, 'ragged'); 
+		}
+		*/
+		if(typeof ragged == "undefined" || ragged == null) ragged = $gridImages.attr('data-ragged') ? true : false;
+		
+		if(ragged) {
+			$gridImages.attr('data-ragged', 1);
+		} else {
+			$gridImages.removeAttr('data-ragged');
+		}
+		
+		$gridImages.find(".gridImage__overflow").each(function() {
+			setGridSizeItem($(this), gridSize, ragged);
+		});
+		
+		$gridImages.find(".gridImage__edit, .gridImage__resize").css('line-height', size); 
+		$gridImages.attr('data-size', gridSize);
+		setCookieData($inputfield, 'size', gridSize); 
+	
+		if(retryGridItems.length) setTimeout(function() {
+			while(retryGridItems.length) {
+				var $item = retryGridItems.pop();
+				setGridSizeItem($item, gridSize, ragged);
+			}
+		}, 150); 
+	}
+
+	/**
+	 * Update a gridImage__overflow item for the setGridSize() method
+	 * 
+	 * @param $item
+	 * @param gridSize
+	 * @param ragged
+	 * 
+	 */
+	function setGridSizeItem($item, gridSize, ragged) {
+		
+		if($item.hasClass('gridImage__overflow')) {
+			var $img = $item.children('img');	
+		} else if($item.is('img')) {
+			var $img = $item;
+			$item = $img.closest('.gridImage__overflow');
+		} else {
+			return;
+		}
+		
+		if(!gridSize) {
+			$img.removeAttr('width').removeAttr('height');
+			$item.width('auto').height('auto');
+			return;
+		}
+
+		var w = $img.width();
+		var h = $img.height();
+		//if(!w) w = gridSize; // parseInt($img.attr('data-w'));
+		//if(!h) h = gridSize; // parseInt($img.attr('data-h'));
+		
+		if(ragged) {
+			$img.attr('height', gridSize).removeAttr('width');
+		} else if(w >= h) {
+			$img.attr('height', gridSize).removeAttr('width');
+		} else if(h > w) {
+			$img.attr('width', gridSize).removeAttr('height');
+		} else {
+			$img.removeAttr('width').attr('height', gridSize);
+		}
+
+		var w = $img.width();
+		// if(!w) w = $img.attr('data-w');
+
+		if(w) {
+			$item.css({
+				width: (ragged ? w + 'px' : gridSize + 'px'),
+				height: gridSize + 'px'
+			});
+		} else {
+			var tries = $item.attr('data-tries');
+			if(!tries) tries = 0;
+			if(typeof tries == "undefined") tries = 0;
+			tries = parseInt(tries);
+			if(tries > 3) {
+				// no more attempts
+				$item.css({
+					width: gridSize + 'px',
+					height: gridSize + 'px'
+				});
+			} else {
+				retryGridItems.push($item);
+				$item.attr('data-tries', tries + 1); 
+			}
+		}
+	}
+
+	/**
+	 * Setup the toggle between image LIST (edit all) mode and image GRID mode
+	 * 
+	 * @param $target
+	 * 
+	 */
+	function setupImageListToggle($target) {
+		
+		if($target.find('.InputfieldImageListToggle').length) return;
+		
+		var $list = $("<a class='InputfieldImageListToggle' href='list'></a>").append("<i class='fa fa-th-list'></i>");
+		var $left = $("<a class='InputfieldImageListToggle' href='left'></a>").append("<i class='fa fa-tasks'></i>");
+		var $grid = $("<a class='InputfieldImageListToggle' href='grid'></a>").append("<i class='fa fa-th'></i>");
+		var activeClass = 'InputfieldImageListToggle--active';
+		var defaultMode = ''; 
+		//var $gridLg = $("<a class='InputfieldImageListToggle' href='grid-lg'></a>").append("<i class='fa fa-th-large'></i>");
+		//var gridSize = $target.find('.gridImages').attr('data-gridsize');
+		//var hrefPrev = '';
+		//var sizePrev = gridSize;
+		
+		var toggleClick = function(e) {
+			
+			var $a = $(this);
+			var $inputfield = $a.closest('.Inputfield');
+			var href = $a.attr('href');
+			var size;
+			
+			$a.parent().children('.' + activeClass).removeClass(activeClass);
+			$a.addClass(activeClass);
+			
+			if(href == 'list') {
+				if(!$inputfield.hasClass('InputfieldImageEditAll')) {
+					$inputfield.find(".InputfieldImageEdit--active .InputfieldImageEdit__close").click();
+					$inputfield.addClass('InputfieldImageEditAll');
+				}
+				size = getCookieData($inputfield, 'listSize');
+				setListSize($inputfield, size);
+				setCookieData($inputfield, 'mode', 'list');
+			} else if(href == 'left') {
+				$inputfield.removeClass('InputfieldImageEditAll');
+				size = getCookieData($inputfield, 'size');
+				setGridSize($inputfield, size, true);
+				setCookieData($inputfield, 'mode', 'left');
+				updateGrid();
+			} else if(href == 'grid') {
+				$inputfield.removeClass('InputfieldImageEditAll');
+				size = getCookieData($inputfield, 'size');
+				setGridSize($inputfield, size, false);
+				setCookieData($inputfield, 'mode', 'grid');
+			}
+
+			//hrefPrev = href; //hrefPrev == href && href != 'left' && href != 'list' ? '' : href;
+			//sizePrev = size;
+			setupSortable($inputfield.find('.gridImages'));
+			$a.blur();
+			
+			return false;
+		};
+		
+		$list.click(toggleClick);
+		$left.click(toggleClick);
+		$grid.click(toggleClick);
+		
+		if($target.hasClass('InputfieldImage')) {
+			$target.find('.InputfieldHeader').append($list).append($left).append($grid);
+			defaultMode = getCookieData($target, 'mode');
+		} else {
+			$(".InputfieldImage .InputfieldHeader", $target).append($list).append($left).append($grid);
+		}
+
+		if(defaultMode == 'list') {
+			$list.click();
+		} else if(defaultMode == 'left') {
+			$left.click();
+		} else {
+			// grid, already clicked
+		}
+	
+		/*
+		if($target.hasClass('InputfieldImageEditAll')) {
+			$list.addClass(activeClass);
+			//hrefPrev = 'list';
+		} else {
+			$grid.addClass(activeClass);
+			//hrefPrev = 'grid';
+		}
+		*/
+	}
+	
+	function setupSizeSlider($inputfield) {
+		
+		var $header = $inputfield.children('.InputfieldHeader');
+		if($header.children('.InputfieldImageSizeSlider').length) return;
+		
+		var $gridImages = $inputfield.find('.gridImages');
+		var gridSize = $gridImages.attr('data-gridsize'); 
+		var min = gridSize / 2;
+		var max = gridSize * 2;
+		var $slider = $('<span class="InputfieldImageSizeSlider"></span>');
+	
+		$header.append($slider);
+		
+		$slider.slider({
+			'min': min,
+			'max': max, 
+			'value': getCookieData($inputfield, 'size'),
+			'range': 'min',
+			'slide': function(event, ui) {
+				
+				var value = ui.value;
+				var minPct = 15;
+				var divisor = Math.floor(gridSize / minPct);
+				var v = value - min;
+				var listSize = Math.floor(minPct + (v / divisor));
+				
+				if($inputfield.hasClass('InputfieldImageEditAll')) {
+					setCookieData($inputfield, 'size', value);
+					setListSize($inputfield, listSize);
+				} else {
+					setCookieData($inputfield, 'listSize', listSize);
+					setGridSize($inputfield, value);
+				}
+			},
+			'start': function(event, ui) {
+				if($inputfield.find(".InputfieldImageEdit:visible").length) {
+					$inputfield.find(".InputfieldImageEdit__close").click();
+				}
+			}, 
+			'stop': function(event, ui) {
+				updateGrid($inputfield);
+			}
+		});
+	}
+
+	/**
+	 * Set cookie data for this Inputfield
+	 * 
+	 * @param $inputfield
+	 * @param property
+	 * @param value
+	 * 
+	 */
+	function setCookieData($inputfield, property, value) {
+		var data = getCookieData($inputfield); // get all InputfieldImage data
+		var id = $inputfield.attr('id');
+		var name = id ? id.replace('wrap_Inputfield_', '')  : '';
+		if(!name.length || typeof value == "undefined") return;
+		if(data[name][property] == value) return; // if already set with same value, exit now
+		data[name][property] = value; 
+		$.cookie('InputfieldImage', data);
+		cookieData = data;
+		//console.log('setCookieData(' + property + ', ' + value + ')');
+	}
+
+	/**
+	 * Get cookie data for this Inputfield
+	 * 
+	 * @param $inputfield
+	 * @param property
+	 * @returns {*}
+	 * 
+	 */
+	function getCookieData($inputfield, property) {
+		
+		if(cookieData && typeof property == "undefined") return cookieData;
+	
+		var id = $inputfield.attr('id'); 
+		var name = id ? id.replace('wrap_Inputfield_', '') : 'na';
+		var data = cookieData ? cookieData : $.cookie('InputfieldImage');
+		var value = null;	
+
+		if(!data) var data = {};
+	
+		// setup default values
+		if(typeof data[name] == "undefined") data[name] = {};
+		if(typeof data[name].size == "undefined") data[name].size = parseInt($inputfield.find('.gridImages').attr('data-size'));
+		if(typeof data[name].listSize == "undefined") data[name].listSize = 23;
+		if(typeof data[name].mode == "undefined") data[name].mode = 'grid';
+		//if(typeof data[name].ragged == "undefined") data[name].ragged = $inputfield.find('.gridImages').attr('data-ragged') ? true : false;
+		
+		if(cookieData == null) cookieData = data; // cache
+	
+		// determine what to return
+		if(typeof property == "undefined") {
+			// return all cookie data
+			value = data;
+		} else if(property === true) {
+			// return all data for $inputfield
+			value = data[name];
+		} else if(typeof data[name][property] != "undefined") {
+			// return just one property
+			value = data[name][property];
+		}
+		
+		//console.log('getCookieData(' + property + ') ...');
+		//console.log(value);
+		
+		return value;
+	}
 
 	/**
 	 * Initialize an .InputfieldImage for lightbox (magnific) and sortable
@@ -490,15 +959,46 @@ function InputfieldImage($) {
 	 * 
 	 */
 	function initInputfield($inputfield) {
+		
+		if($inputfield.hasClass('InputfieldStateCollapsed')) return;
+		
 		var maxFiles = parseInt($inputfield.find(".InputfieldImageMaxFiles").val());
-		if($inputfield.hasClass('InputfieldRenderValueMode')) {
-			return setupMagnificForRenderValue($inputfield);
-		} else if(maxFiles == 1) {
-			$inputfield.addClass('InputfieldImageMax1');
-			setupMagnificForSingle($inputfield);
-		} else {
-			setupSortable($inputfield.find('.gridImages'));
+		var $gridImages = $inputfield.find('.gridImages');
+		var size = getCookieData($inputfield, 'size');
+		var mode = getCookieData($inputfield, 'mode');
+		var ragged = mode == 'left' ? true : false;
+		
+		if(!size) size = $gridImages.attr('data-gridsize');
+		size = parseInt(size);
+		
+		//console.log('initInputfield');
+		//console.log($inputfield);
+		setGridSize($inputfield, size, ragged);
+		
+		if($inputfield.hasClass('InputfieldImageEditAll') || mode == 'list') {
+			var listSize = getCookieData($inputfield, 'listSize');
+			setListSize($inputfield, listSize);
 		}
+	
+		if(!$inputfield.hasClass('InputfieldImageInit')) {
+			$inputfield.addClass('InputfieldImageInit');
+			
+			if($inputfield.hasClass('InputfieldRenderValueMode')) {
+				return setupMagnificForRenderValue($inputfield);
+
+			} else if(maxFiles == 1) {
+				$inputfield.addClass('InputfieldImageMax1');
+				setupMagnificForSingle($inputfield);
+
+			} else {
+				setupSortable($gridImages);
+			}
+
+			setupImageListToggle($inputfield);
+			setupSizeSlider($inputfield);
+		}
+		
+		checkInputfieldWidth($inputfield);
 	}
 
 	/*** UPLOAD **********************************************************************************/
@@ -566,9 +1066,9 @@ function InputfieldImage($) {
 		$target.each(function(i) {
 			var $this = $(this);
 			var $content = $this.closest('.InputfieldContent');
-			if($this.hasClass('InputfieldImageInit')) return;
+			if($this.hasClass('InputfieldImageInitUpload')) return;
 			initHTML5Item($content, i);
-			$this.addClass('InputfieldImageInit');
+			$this.addClass('InputfieldImageInitUpload');
 		}); 
 
 		/**
@@ -604,17 +1104,17 @@ function InputfieldImage($) {
 
 			setupDropzone($this);
 			if(maxFiles != 1) setupDropInPlace($fileList);
-			setupDropHere();
+			//setupDropHere();
 
 			$fileList.children().addClass('InputfieldFileItemExisting'); // identify items that are already there
 
 			/**
 			 * Setup the .AjaxUploadDropHere 
 			 * 
-			 */
 			function setupDropHere() {
 				$dropHere = $this.find('.AjaxUploadDropHere');
-				$dropHere.show().click(function() {
+				$dropHere.show(); 
+					.click(function() {
 					var $i = $(this).find('.InputfieldImageRefresh');
 					if($i.is(":visible")) {
 						$i.hide().siblings('span').show();
@@ -625,6 +1125,7 @@ function InputfieldImage($) {
 					}
 				});
 			}
+			 */
 
 			/**
 			 * Render and return markup for an error item
@@ -727,8 +1228,13 @@ function InputfieldImage($) {
 					evt.stopPropagation();
 					haltDrag = false;
 					if($i == null) {
-						var gridSize = $gridImages.attr('data-gridsize') + 'px';
-						var $o = $("<div/>").addClass('gridImage__overflow').css({ width: gridSize, height: gridSize });
+						var gridSize = $gridImages.attr('data-size') + 'px';
+						var $o = $("<div/>").addClass('gridImage__overflow');
+						if($gridImages.closest('.InputfieldImageEditAll').length) {
+							$o.css({ width: '100%', height: gridSize });
+						} else {
+							$o.css({ width: gridSize, height: gridSize });
+						}
 						$i = $("<li/>").addClass('ImageOuter gridImage gridImagePlaceholder').append($o);
 						$gridImages.append($i);
 					}
@@ -818,22 +1324,25 @@ function InputfieldImage($) {
 					'</div>';
 				
 
-				var $progressItem = $('<li class="gridImage"></li>'),
+				var $progressItem = $('<li class="gridImage gridImageUploading"></li>'),
 					$tooltip = $(tooltipMarkup),
 					$imgWrapper = $('<div class="gridImage__overflow"></div>'),
-					$img = $('<img width="184" height="130" alt="">'), // LostKobrakai: where do these dimensions come from? Do we need to instead pull them from somewhere?
 					$imageData = $('<div class="ImageData"></div>'),
 					$hover = $("<div class='gridImage__hover'><div class='gridImage__inner'></div></div>"),
 					$progressBar = $("<progress class='gridImage__progress' min='-1' max='100' value='0'></progress>"),
 					$edit = $('<a class="gridImage__edit" title="' + file.name + '"><span>&nbsp;</span></a>'),
 					$spinner = $('<div class="gridImage__resize"><i class="fa fa-spinner fa-spin fa-2x fa-fw"></i></div>'),
-					img,
 					reader,
 					xhr,
 					fileData,
 					fileUrl = URL.createObjectURL(file),
 					$fileList = $inputfield.find(".gridImages"), 
-					singleMode = maxFiles == 1; 
+					singleMode = maxFiles == 1,
+					size = getCookieData($inputfield, 'size'), 
+					listSize = getCookieData($inputfield, 'listSize'), 
+					listMode = $inputfield.hasClass('InputfieldImageEditAll'), 
+					$img = $('<img height="' + size + '" alt="">');
+				// $img = $('<img width="184" height="130" alt="">');
 
 				$imgWrapper.append($img);
 				$hover.find(".gridImage__inner").append($edit);
@@ -844,10 +1353,15 @@ function InputfieldImage($) {
 					'<span class="InputfieldImageEdit__info">' + filesizeStr + '</span>')
 				);
 
-				$imgWrapper.css({
-					width: gridSize + "px",
-					height: gridSize + "px"
-				});
+				if(listMode) {
+					$imgWrapper.css('width', listSize + "%");
+					$imageData.css('width', (100 - listSize) + '%');
+				} else {
+					$imgWrapper.css({
+						width: size + "px",
+						height: size + "px"
+					});
+				}
 
 				$progressItem
 					.append($tooltip)
@@ -863,7 +1377,7 @@ function InputfieldImage($) {
 				img = new Image();
 				img.addEventListener('load', function() {
 					$tooltip.find(".dimensions").html(this.width + "&nbsp;&times;&nbsp;" + this.height);
-					var factor = Math.min(this.width, this.height) / gridSize;
+					var factor = Math.min(this.width, this.height) / size;
 					$img.attr({
 						width: this.width / factor,
 						height: this.height / factor
@@ -900,6 +1414,8 @@ function InputfieldImage($) {
 
 						var $item = null;
 						var $markup = $(r.markup).hide();
+						
+						
 
 						// IE 10 fix
 						var $input = $this.find('input[type=file]');
@@ -907,12 +1423,14 @@ function InputfieldImage($) {
 
 						// look for replacements
 						if(r.overwrite) $item = $fileList.children('#' + $markup.attr('id'));
-						if(r.replace || singleMode) $item = $fileList.children('.InputfieldImageEdit:eq(0)');
+						// if(r.replace || maxFiles == 1) $item = $fileList.children('.InputfieldImageEdit:eq(0)');
 						
-						if(uploadReplace.item && response.length == 1 && !singleMode) {
+						if(maxFiles == 1 || r.replace) {
+							$item = $fileList.children('.gridImage:eq(0)');
+						} else if(uploadReplace.item && response.length == 1) { // && !singleMode) {
 							$item = uploadReplace.item;
 						}
-					
+						
 						// Insert the markup
 						if($item && $item.length) {
 							$item.replaceWith($markup);
@@ -924,15 +1442,32 @@ function InputfieldImage($) {
 						} else {
 							$fileList.append($markup);
 						}
+						
 
 						// Show Markup
-						$markup.fadeIn().css("display", "");
+						if(listMode) {
+							$markup.find('.gridImage__overflow').css('width', listSize + '%');
+						} else {
+							$markup.find('.gridImage__overflow').css({
+								'height': size + 'px',
+								'width': size + 'px'
+							});
+							$markup.find('img').hide();
+						}
+						$markup.fadeIn(150, function() {
+							$markup.find('img').fadeIn();
+							if(listMode) {
+								setListSize($inputfield, listSize);
+							} else {
+								setGridSize($inputfield, size);
+							}
+						}).css("display", "");
 						$markup.addClass('InputfieldFileItemExisting');
 
 						if($item && $item.length) $markup.effect('highlight', 500);
 						if($progressItem.length) $progressItem.remove();
 						
-						if(uploadReplace.item && !singleMode) {
+						if(uploadReplace.item && maxFiles != 1) {
 							// re-open replaced item
 							$markup.find(".gridImage__edit").click();
 							$markup.find(".InputfieldFileReplace").val(uploadReplace.file);
@@ -956,13 +1491,15 @@ function InputfieldImage($) {
 						$fileList.trigger('AjaxUploadDone'); // for things like fancybox that need to be re-init'd
 					}, 500);
 					
-					$inputfield.trigger('change');
+					$inputfield.trigger('change').removeClass('InputfieldFileEmpty');
 
 				}, false);
 		
 				// close editor, if open
 				if(uploadReplace.edit) {
 					uploadReplace.edit.find('.InputfieldImageEdit__close').click();
+				} else if($inputfield.find(".InputfieldImageEdit:visible").length) {
+					$inputfield.find(".InputfieldImageEdit__close").click();
 				}
 
 				// Here we go
@@ -1101,8 +1638,15 @@ function InputfieldImage($) {
 			var $inputfield = $(this);
 			initInputfield($inputfield);
 			initUploadHTML5($inputfield);
+			//console.log('InputfieldImage reloaded');
+		}).on('wiretabclick', function(e, $newTab, $oldTab) {
+			$newTab.find(".InputfieldImage").each(function() {
+				initInputfield($(this));
+			});
+		}).on('opened', '.InputfieldImage', function() {
+			//console.log('InputfieldImage opened');
+			initInputfield($(this));
 		});
-
 	}
 	
 	init();

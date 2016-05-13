@@ -435,6 +435,7 @@ class Pagefiles extends WireArray {
 				$basename = $this->wire('sanitizer')->filename($basename, Sanitizer::translate); 
 			} else {
 				$basename = preg_replace('/[^-_.a-z0-9]/', '_', $basename);
+				$basename = $this->wire('sanitizer')->filename($basename);
 			}
 		}
 		

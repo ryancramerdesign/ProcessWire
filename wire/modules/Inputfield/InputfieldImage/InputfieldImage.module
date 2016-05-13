@@ -44,7 +44,7 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		return array(
 			'title' => __('Images', __FILE__), // Module Title
 			'summary' => __('One or more image uploads (sortable)', __FILE__), // Module Summary
-			'version' => 118,
+			'version' => 119,
 			'permanent' => true,
 		);
 	}
@@ -53,7 +53,13 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 	 * Default square grid item size
 	 * 
 	 */
-	const defaultGridSize = 130; 
+	const defaultGridSize = 130;
+
+	/**
+	 * Force render value mode for dev/debug purposes
+	 * 
+	 */
+	const debugRenderValue = false;
 
 	/**
 	 * Cached list of all image variations
@@ -81,7 +87,7 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		$this->set('minWidth', '');
 		$this->set('minHeight', '');
 
-		$this->set('itemClass', 'InputfieldImage gridImage ui-widget');
+		$this->set('itemClass', 'gridImage ui-widget');
 
 		$options = $this->wire('config')->adminThumbOptions;
 		if(!is_array($options)) $options = array();
@@ -114,10 +120,10 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 			'edit' => $this->_('Edit'),
 			'drag-drop-in' => $this->_('drag and drop in new images above'), 
 			'na' => $this->_('N/A'), // for JS
+			'changes' => $this->_('This images field may have unsaved changes that could be lost after this action. Please save before cropping, or double-click the button proceed anyway.'),
 		));
 		
 	}
-
 
 	/**
 	 * Called right before Inputfield render
@@ -128,12 +134,21 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 	 * 
 	 */
 	public function renderReady(Inputfield $parent = null, $renderValueMode = false) {
+
+		if(self::debugRenderValue) {
+			// force render value mode for dev/debugging purposes
+			$renderValueMode = true;
+			$this->renderValueMode = true;
+			$this->addClass('InputfieldRenderValueMode', 'wrapClass');
+		}
 		
 		$modules = $this->wire('modules');
 		$jqueryCore = $modules->get('JqueryCore');
 		$jqueryCore->use('simulate');
+		$jqueryCore->use('cookie');
 		$modules->loadModuleFileAssets('InputfieldFile');
 		$modules->getInstall("JqueryMagnific");
+		
 		
 		$this->wire('config')->js('InputfieldImage', array(
 			'labels' => $this->labels
@@ -192,11 +207,14 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 				$id = $this->pagefileId($pagefile);
 				$this->currentItem = $pagefile;
 
+				$out .= $this->renderItemWrap($this->renderItem($pagefile, $id, $n++));
+				/*
 				if($this->maxFiles != 1) {
 					$out .= $this->renderItemWrap($this->renderItem($pagefile, $id, $n++));
 				} else {
 					$out .= $this->renderSingleItem($pagefile, $id, $n++);
 				}
+				*/
 			}
 
 			if(!$this->renderValueMode) {
@@ -280,11 +298,19 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 					<span>
 						<i class='fa fa-upload'></i>&nbsp;$dropLabel
 					</span>
-					<span class='InputfieldImageRefresh'>
-						<i class='fa fa-camera-retro'></i>&nbsp;$refreshLabel
-						<input type='hidden' name='_refresh_thumbnails_$this->name' value='0' />
-					</span>
 				</span>";
+		}
+		
+		if($this->get('_hasLegacyThumbs')) {
+			$label = $this->_('There are older/low quality thumbnail preview images above – check this box to re-create them.');
+			$out .= "
+				<p class='InputfieldImageRefresh detail'>
+					<label>
+						<input type='checkbox' name='_refresh_thumbnails_$this->name' value='1' />
+						$label
+					</label>
+				</p>
+				";
 		}
 
 		$out .= "</div>";
@@ -346,31 +372,38 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 
 	protected function fileAddedGetMarkup(Pagefile $pagefile, $n) {
 		/** @var Pageimage $pagefile */
+		/*
 		$markup = $this->maxFiles == 1
 			? $this->renderSingleItem($pagefile, $this->pagefileId($pagefile), $n)
 			: $this->renderItemWrap($this->renderItem($pagefile, $this->pagefileId($pagefile), $n));
+		*/
+		$markup = $this->renderItemWrap($this->renderItem($pagefile, $this->pagefileId($pagefile), $n));
 		return $markup;
 	}
 
 	/**
 	 * Get thumbnail image info
 	 *
-	 * @param Pageimage $img
-	 * @param bool $remove
+	 * @param Pageimage $img Image to get thumb for
+	 * @param bool $useSizeAttributes Whether width and or height size attributes should be included in the <img> tag
+	 * @param bool $remove Specify true to remove legacy thumbnail file
 	 *
 	 * @return array of(
 	 *    'thumb' => Pageimage object,
 	 *    'attr' => associative array of image attributes
 	 *    'markup' => string of markup for <img>,
+	 *    'amarkup' => same as above but wrapped in <a> tag
 	 *    'error' => error message if applicable
+	 *    'title' => potential title attribute for <a> tag with image info 
 	 *    );
 	 *
 	 */
-	public function getAdminThumb(Pageimage $img, $remove = false) {
+	public function getAdminThumb(Pageimage $img, $useSizeAttributes = true, $remove = false) {
 
 		$thumb = $img;
 		$error = '';
 		$attr = array();
+		$is2x = false;
 
 		$thumbHeight = $thumb->height;
 		$thumbWidth = $thumb->width;
@@ -384,7 +417,7 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 			$imageSizerOptions['upscaling'] = true;
 			$adminThumbOptions = $this->wire('config')->adminThumbOptions;
 			$gridSize2x = $this->gridSize * 2;
-			if($adminThumbOptions['scale'] === 1.0) $gridSize2x = $this->gridSize; // force non-HiDPI
+			// if($adminThumbOptions['scale'] === 1.0) $gridSize2x = $this->gridSize; // force non-HiDPI
 			
 			// check if there is an existing thumbnail using pre-gridSize legacy settings
 			$h = (int) $adminThumbOptions['height'];
@@ -410,49 +443,63 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 					$thumbWidth = $this->gridSize;	
 					$thumbHeight = $this->gridSize;
 				}
+				$this->set('_hasLegacyThumbs', true);
+				$is2x = false;
 			} else {
 				// use new thumbnail size, 260px (scaled to 130px in output)
 				if($thumbWidth >= $thumbHeight && $thumbHeight > $gridSize2x) {
 					$thumb = $thumb->height($gridSize2x, $imageSizerOptions);
 					$thumbHeight = $this->gridSize;
-					$thumbWidth = 0; 
+					$thumbWidth = 0;
+					$is2x = true;
 				} else if($thumbWidth > $gridSize2x) {
 					$thumb = $thumb->width($gridSize2x, $imageSizerOptions);
 					$thumbWidth = $this->gridSize;
 					$thumbHeight = 0;
+					$is2x = true;
 				}
 			}
 
 			if($thumb->error) $error = $thumb->error;
 		}
 
-		
-		if($thumb->get('_requireHeight')) {
-			// _requireHeight set by InputfieldPageEditImageSelect
-			if(!$thumbHeight || $thumbHeight > $this->gridSize) $thumbHeight = $this->gridSize;
-			$attr['height'] = $thumbHeight;
-		} else if($thumbHeight && $thumbWidth) {
-			$attr['width'] = $thumbWidth;
-			$attr['height'] = $thumbHeight;
-		} else if($thumbHeight) { 
-			if(!$thumbHeight) $thumbHeight = $this->gridSize;
-			$attr['height'] = $thumbHeight;
-		} else if($thumbWidth) {
-			$attr['width'] = $thumbWidth;
+		if($useSizeAttributes) {
+			if($thumb->get('_requireHeight')) {
+				// _requireHeight set by InputfieldPageEditImageSelect
+				if(!$thumbHeight || $thumbHeight > $this->gridSize) $thumbHeight = $this->gridSize;
+				$attr['height'] = $thumbHeight;
+			} else if($thumbHeight && $thumbWidth) {
+				$attr['width'] = $thumbWidth;
+				$attr['height'] = $thumbHeight;
+			} else if($thumbHeight) {
+				if(!$thumbHeight) $thumbHeight = $this->gridSize;
+				$attr['height'] = $thumbHeight;
+			} else if($thumbWidth) {
+				$attr['width'] = $thumbWidth;
+			}
 		}
 
 		$attr['src'] = $thumb->URL;
-		$attr["data-original"] = $img->URL;
 		$attr['alt'] = $this->wire('sanitizer')->entities1($img->description);
+		//$attr['data-w'] = $is2x ? floor($thumb->width() / 2) : $thumb->width();
+		//$attr['data-h'] = $is2x ? floor($thumb->height() / 2) : $thumb->height();
+		$attr["data-original"] = $img->URL;
 		$markup = "<img ";
 		foreach($attr as $key => $value) $markup .= "$key=\"$value\" ";
 		$markup .= " />";
+		
+		$title = $img->basename() . " ({$img->width}x{$img->height}) $img->filesizeStr";
+		if($attr['alt']) $title .= ": $attr[alt]";
+		
+		$amarkup = "<a href='$img->url' title='$title'>$markup</a>";
 
 		$a = array(
 			'thumb' => $thumb,
 			'attr' => $attr,
 			'markup' => $markup,
+			'amarkup' => $amarkup, 
 			'error' => $error,
+			'title' => $title, 
 		);
 		return $a;
 	}
@@ -470,12 +517,13 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 	protected function ___renderItem($pagefile, $id, $n) {
 
 		$sanitizer = $this->wire('sanitizer');
-		$thumb = $this->getAdminThumb($pagefile);
+		$thumb = $this->getAdminThumb($pagefile, false);
 		$fileStats = str_replace(' ', '&nbsp;', $pagefile->filesizeStr) . ", {$pagefile->width}&times;{$pagefile->height} ";
 		$gridSize = $this->gridSize;
-		
+
+		// <div class='gridImage__overflow' style='width: {$gridSize}px; height: {$gridSize}px'>
 		$out = $this->getTooltip($pagefile) . "
-			<div class='gridImage__overflow' style='width: {$gridSize}px; height: {$gridSize}px'>
+			<div class='gridImage__overflow'>
 				$thumb[markup]
 			</div>
 			";
@@ -506,15 +554,23 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 						</a>
 					</div>
 				</div>
+			";
+
+			// @todo move the following to separate method shared by the renderSingle 
+			$ext = $pagefile->ext();
+			$basename = $pagefile->basename(false);
+				
+			$out .= "
 				<div class='ImageData'>
-					<h2 class='InputfieldImageEdit__name'>$pagefile->name</h2>
+					<h2 class='InputfieldImageEdit__name'><span contenteditable='true'>$basename</span>.$ext</h2>
 					<span class='InputfieldImageEdit__info'>$fileStats</span>
 					<div class='InputfieldImageEdit__errors'>$error</div>
-					<div class='InputfieldImageEdit__buttons'>$buttons</div>
+					<div class='InputfieldImageEdit__buttons'><small>$buttons</small></div>
 					<div class='InputfieldImageEdit__core'>$description</div>
 					<div class='InputfieldImageEdit__additional'>$additional</div>
 					<input class='InputfieldFileSort' type='text' name='sort_$id' value='$n' />
-					<input class='InputfieldFileReplace' type='hidden' name='replace_$id' value='' />
+					<input class='InputfieldFileReplace' type='hidden' name='replace_$id' />
+					<input class='InputfieldFileRename' type='hidden' name='rename_$id' />
 				</div>
 			";
 		}
@@ -547,6 +603,8 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 				<div class='InputfieldImageEdit__core'>$descriptionField</div>
 				<div class='InputfieldImageEdit__additional'>$additional</div>
 				<input class='InputfieldFileSort' type='hidden' name='sort_$id' value='$n' />
+				<input class='InputfieldFileReplace' type='hidden' name='replace_$id' />
+				<input class='InputfieldFileRename' type='hidden' name='rename_$id' />
 			";
 		} else {
 			$editableOut = '';
@@ -554,7 +612,7 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		}
 	
 		$trashOut = '';
-		if(!$this->renderValueMode) $trashOut = "
+		if($editable && !$this->renderValueMode) $trashOut = "
 					<div class='InputfieldImageEdit__trash-single'>
 						<label for='' class='gridImage__trash gridImage__trash--single'>
 							<input class='gridImage__deletebox' type='checkbox' name='delete_$id' value='1' title='$deleteLabel' />
@@ -625,6 +683,24 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 
 		return $out;
 	}
+
+	/**
+	 * Render non-editable value
+	 * 
+	 * @return string
+	 * 
+	public function ___renderValue() {
+		$value = $this->value;
+		if(!$value instanceof Pageimages) return '';
+		$out = '';
+		foreach($value as $img) {
+			$info = $this->getAdminThumb($img);
+			$out .= $info['amarkup'];
+			
+		}
+		return $out; 
+	}
+	 */
 
 	/**
 	 * Render any additional fields (for hooks)
@@ -893,7 +969,7 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		parent::___processInput($input);
 		if((int) $this->wire('input')->post("_refresh_thumbnails_$this->name")) {
 			foreach($this->value as $img) {
-				$this->getAdminThumb($img, true);
+				$this->getAdminThumb($img, false, true);
 			}
 			$this->message($this->_('Recreated all legacy thumbnails') . " - $this->name"); 
 		}

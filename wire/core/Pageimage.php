@@ -172,16 +172,6 @@ class Pageimage extends Pagefile {
 	}
 
 	/**
-	 * Returns the basename of this image file (filename without path, i.e. myfile.jpg)
-	 * 
-	 * @return string
-	 *
-	 */
-	public function basename() {
-		return parent::get('basename'); 
-	}
-
-	/**
 	 * Get a property from this Pageimage
 	 * 
 	 * #pw-internal

@@ -485,10 +485,15 @@ class Pagefile extends WireData {
 
 	/**
 	 * Returns the basename of this Pagefile (name and extension, without disk path). 
+	 * 
+	 * @param bool $ext Specify false to exclude the extension (default=true)
+	 * @return string
 	 *
 	 */
-	public function basename() {
-		return parent::get('basename'); 
+	public function basename($ext = true) {
+		$basename = parent::get('basename'); 
+		if(!$ext) $basename = basename($basename, "." . $this->ext());
+		return $basename;
 	}
 
 	/**
@@ -800,7 +805,7 @@ class Pagefile extends WireData {
 		$basename = $this->pagefiles->cleanBasename($basename, true); 
 		if(rename($this->filename, $this->pagefiles->path . $basename)) {
 			$this->set('basename', $basename); 
-			return $basename; 
+			return $this->basename();
 		}
 		return false; 
 	}
