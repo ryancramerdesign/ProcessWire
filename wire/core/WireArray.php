@@ -67,6 +67,16 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	protected $itemsAdded = array();
 
 	/**
+	 * Prevent addition of duplicates?
+	 * 
+	 * Applies only to non-associative WireArray types.
+	 * 
+	 * @var bool
+	 * 
+	 */
+	protected $duplicateChecking = true;
+
+	/**
 	 * Is the given item valid for storange in this array?
 	 * 
 	 * Template method that descending classes may use to validate items added to this WireArray
@@ -245,15 +255,18 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 		}
 
 		$key = null;
-		if(($key = $this->getItemKey($item)) !== null) {
-			if(isset($this->data[$key])) unset($this->data[$key]); // avoid two copies of the same item, re-add it to the end 
+		if($this->duplicateChecking && ($key = $this->getItemKey($item)) !== null) {
+			// avoid two copies of the same item, re-add it to the end 
+			if(isset($this->data[$key])) unset($this->data[$key]); 
 			$this->data[$key] = $item; 
 		} else {
 			$this->data[] = $item;
+			end($this->data);
+			$key = key($this->data);
 		}
 
 		$this->trackChange("add", null, $item); 
-		$this->trackAdd($item); 
+		$this->trackAdd($item, $key); 
 		return $this;
 	}
 
@@ -404,7 +417,7 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 
 		$this->trackChange($key, isset($this->data[$key]) ? $this->data[$key] : null, $value); 
 		$this->data[$key] = $value; 
-		$this->trackAdd($value); 
+		$this->trackAdd($value, $key); 
 		return $this; 
 	}
 
@@ -889,16 +902,20 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 			}
 		}
 
-		if(($key = $this->getItemKey($item)) !== null) {
+		if($this->duplicateChecking && ($key = $this->getItemKey($item)) !== null) {
+			// item already present
 			$a = array($key => $item); 
 			$this->data = $a + $this->data; // UNION operator for arrays
 			// $this->data = array_merge($a, $this->data); 
 		} else { 
+			// new item
 			array_unshift($this->data, $item); 
+			reset($this->data);
+			$key = key($this->data);
 		}
 		//if($item instanceof Wire) $item->setTrackChanges();
 		$this->trackChange('prepend', null, $item); 
-		$this->trackAdd($item); 
+		$this->trackAdd($item, $key); 
 		return $this; 
 	}
 
@@ -954,10 +971,12 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	 *
 	 */
 	public function shift() {
+		reset($this->data);
+		$key = key($this->data);
 		$item = array_shift($this->data); 
 		if(is_null($item)) return $item;
 		$this->trackChange('shift', $item, null);
-		$this->trackRemove($item); 
+		$this->trackRemove($item, $key); 
 		return $item; 
 	}
 
@@ -988,10 +1007,12 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	 *
 	 */
 	public function pop() {
+		end($this->data);
+		$key = key($this->data);
 		$item = array_pop($this->data); 
 		if(is_null($item)) return $item;
 		$this->trackChange('pop', $item, null);
-		$this->trackRemove($item); 
+		$this->trackRemove($item, $key); 
 		return $item; 
 	}
 
@@ -1115,7 +1136,7 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 			$item = $this->data[$key];
 			unset($this->data[$key]); 
 			$this->trackChange("remove", $item, null); 
-			$this->trackRemove($item); 
+			$this->trackRemove($item, $key); 
 			
 		}
 
@@ -1396,7 +1417,8 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 				} else {
 					$value = (string) $this->getItemPropertyValue($item, $selector->field);
 				}
-				if($not === $selector->matches($value)) {
+				if($not === $selector->matches($value) && isset($this->data[$key])) {
+					$this->trackRemove($this->data[$key], $key);
 					unset($this->data[$key]);
 				}
 			}
@@ -1404,7 +1426,9 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 
 		// if $limit has been given, tell sort the amount of rows that will be used
 		if(count($sort)) $this->_sort($sort, $limit ? $start+$limit : null); 
-		if($start || $limit) $this->data = array_slice($this->data, $start, $limit, true);
+		if($start || $limit) {
+			$this->data = array_slice($this->data, $start, $limit, true);
+		}
 
 		$this->trackChange("filterData:$selectors"); 
 		return $this; 
@@ -1707,21 +1731,23 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 
 	/**
 	 * Track an item added
-	 * 
+	 *
 	 * @param Wire|mixed $item
+	 * @param int|string $key 
  	 *
 	 */
-	protected function trackAdd($item) {
+	protected function trackAdd($item, $key) {
 		if($this->trackChanges()) $this->itemsAdded[] = $item;
 	}
 
 	/**
 	 * Track an item removed
-	 * 
+	 *
 	 * @param Wire|mixed $item
+	 * @param int|string $key
  	 *
 	 */
-	protected function trackRemove($item) {
+	protected function trackRemove($item, $key) {
 		if($this->trackChanges()) $this->itemsRemoved[] = $item; 
 	}
 
@@ -2184,6 +2210,19 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 		}
 	
 		return $result === null ? $this : $result;
+	}
+
+	/**
+	 * Set the current duplicate checking state
+	 * 
+	 * Applies only to non-associative WireArray types. 
+	 * 
+	 * @param bool $value True to enable dup check, false to disable
+	 * 
+	 */
+	public function setDuplicateChecking($value) {
+		if(!$this->usesNumericKeys()) return;
+		$this->duplicateChecking = (bool) $value;
 	}
 
 	/**

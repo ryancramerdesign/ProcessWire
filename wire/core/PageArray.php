@@ -36,6 +36,32 @@ class PageArray extends PaginatedArray implements WirePaginatable {
 	protected $selectors = null;
 
 	/**
+	 * Options that were passed to $pages->find() that led to this PageArray, when applicable.
+	 * 
+	 * Applies only for lazy loading result sets.
+	 * 
+	 * @var array
+	 * 
+	 */
+	protected $finderOptions = array();
+
+	/**
+	 * Is this a lazy-loaded PageArray?
+	 * 
+	 * @var bool
+	 * 
+	 */
+	protected $lazyLoad = false;
+
+	/**
+	 * Index of item keys of page_id => data key
+	 * 
+	 * @var array
+	 * 
+	 */
+	protected $keyIndex = array();
+
+	/**
 	 * Template mehod that descendant classes may use to validate items added to this WireArray
 	 * 
 	 * #pw-internal
@@ -61,6 +87,45 @@ class PageArray extends PaginatedArray implements WirePaginatable {
 	 */
 	public function isValidKey($key) {
 		return ctype_digit("$key");
+	}
+
+	/**
+	 * Get the array key for the given Page item
+	 *
+	 * This method is used internally by the add() and prepend() methods.
+	 *
+	 * #pw-internal
+	 *
+	 * @param Page $item Page to get key for
+	 * @return string|int|null Found key, or null if not found.
+	 *
+	 */
+	public function getItemKey($item) {
+		if(!$item instanceof Page) return null;	
+		
+		// first see if we can determine key from our index
+		$id = $item->id;
+		if(isset($this->keyIndex[$id])) {
+			// given item exists in this PageArray (or at least has)
+			$key = $this->keyIndex[$id];
+			if(isset($this->data[$key])) {
+				$page = $this->data[$key];
+				if($page->id === $id) {
+					// found it
+					return $key; 
+				}
+			}
+			// if this point is reached, then index needs to be rebuilt
+			// because either item is no longer here, or has moved
+			$this->keyIndex = array();
+			foreach($this->data as $key => $page) {
+				$this->keyIndex[$page->id] = $key;
+			}
+			return isset($this->keyIndex[$id]) ? $this->keyIndex[$id] : null;
+		} else {
+			// page is not present here
+			return null;
+		}
 	}
 
 	/**
@@ -123,19 +188,10 @@ class PageArray extends PaginatedArray implements WirePaginatable {
 	 * @return bool True if the index or Page exists here, false if not. 
 	 */  
 	public function has($key) {
-
-		if(is_int($key) || is_string($key)) return parent::has($key); 
-
-		$has = false; 
-
 		if(is_object($key) && $key instanceof Page) {
-			foreach($this as $k => $pg) {
-				$has = ($pg->id == $key->id); 
-				if($has) break;
-			}
+			return $this->getItemKey($key) !== null;
 		}
-
-		return $has; 
+		return parent::has($key); 
 	}
 
 
@@ -227,18 +283,12 @@ class PageArray extends PaginatedArray implements WirePaginatable {
 	 */
 	public function remove($key) {
 
-		// if a Page object has been passed, determine it's key
+		// if a Page object has been passed, determine its key
 		if($this->isValidItem($key)) {
-			foreach($this->data as $k => $pg) {
-				if($pg->id == $key->id) {
-					$key = $k; 
-					break;
-				}
-			}
+			$key = $this->getItemKey($key);
 		} 
-
 		if($this->has($key)) {
-			parent::remove($key); 
+			parent::remove($key);
 			$this->numTotal--;
 		}
 
@@ -515,6 +565,7 @@ class PageArray extends PaginatedArray implements WirePaginatable {
 	 *
 	 */
 	public function getIterator() {
+		if($this->lazyLoad) return new PageArrayIterator($this->data, $this->finderOptions);	
 		return parent::getIterator();
 	}
 
@@ -575,6 +626,57 @@ class PageArray extends PaginatedArray implements WirePaginatable {
 		return $info;
 	}
 
+	/**
+	 * Get or set $options array used by $pages->find() for this PageArray
+	 * 
+	 * #pw-internal
+	 * 
+	 * @param array $options
+	 * @return array
+	 * 
+	 */
+	public function finderOptions(array $options = array()) {
+		$this->finderOptions = $options;
+		return $this->finderOptions;
+	}
+
+	/**
+	 * Get or set Lazy loading state of this PageArray
+	 * 
+	 * #pw-internal
+	 * 
+	 * @param bool|null $lazy
+	 * @return bool
+	 * 
+	 */
+	public function _lazy($lazy = null) {
+		if(is_bool($lazy)) $this->lazyLoad = $lazy;
+		return $this->lazyLoad;
+	}
+
+	/**
+	 * Track an item added
+	 *
+	 * @param Wire|mixed $item
+	 * @param int|string $key 
+	 *
+	 */
+	protected function trackAdd($item, $key) {
+		parent::trackAdd($item, $key);
+		$this->keyIndex[$item->id] = $key;
+	}
+
+	/**
+	 * Track an item removed
+	 *
+	 * @param Wire|mixed $item
+	 * @param int|string $key
+	 *
+	 */
+	protected function trackRemove($item, $key) {
+		parent::trackRemove($item, $key);
+		unset($this->keyIndex[$item->id]);
+	}
 }
 
 

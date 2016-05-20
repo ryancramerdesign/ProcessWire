@@ -15,6 +15,8 @@
  * Database class provides a layer on top of mysqli
  * 
  * #pw-summary All database operations in ProcessWire are performed via this PDO-style database class.
+ * 
+ * @method void unknownColumnError($column) #pw-internal
  *
  */
 class WireDatabasePDO extends Wire implements WireDatabase {
@@ -24,6 +26,14 @@ class WireDatabasePDO extends Wire implements WireDatabase {
 	 *
 	 */
 	protected $queryLog = array();
+
+	/**
+	 * Max queries allowedin the query log (set from $config->dbQueryLogMax)
+	 * 
+	 * @var int
+	 * 
+	 */
+	protected $queryLogMax = 500;
 
 	/**
 	 * Whether queries will be logged
@@ -103,6 +113,7 @@ class WireDatabasePDO extends Wire implements WireDatabase {
 			);
 		$database = new WireDatabasePDO($dsn, $username, $password, $driver_options); 
 		$database->setDebugMode($config->debug);
+		$config->wire($database);
 		return $database;
 	}
 
@@ -123,6 +134,7 @@ class WireDatabasePDO extends Wire implements WireDatabase {
 		$this->pdoConfig['pass'] = $password; 
 		$this->pdoConfig['options'] = $driver_options; 
 		$this->pdo();
+		$this->queryLogMax = (int) $this->wire('config')->dbQueryLogMax;
 	}
 
 	/**
@@ -338,7 +350,7 @@ class WireDatabasePDO extends Wire implements WireDatabase {
 		if(is_object($statement) && $statement instanceof \PDOStatement) {
 			return $this->execute($statement);
 		}
-		$this->queryLog($statement, $note); 
+		if($this->debugMode) $this->queryLog($statement, $note); 
 		return $this->pdo()->exec($statement);
 	}
 	
@@ -451,8 +463,21 @@ class WireDatabasePDO extends Wire implements WireDatabase {
 	 */
 	public function queryLog($sql = '', $note = '') {
 		if(empty($sql)) return $this->queryLog;
-		$this->queryLog[] = $sql . ($note ? " -- $note" : "");
-		return true;
+		if($this->debugMode) {
+			if(count($this->queryLog) > $this->queryLogMax) {
+				if(isset($this->queryLog['error'])) {
+					$qty = (int) $this->queryLog['error'];
+				} else {
+					$qty = 0;
+				}
+				$qty++;
+				$this->queryLog['error'] = "$qty additional queries omitted because \$config->dbQueryLogMax = $this->queryLogMax";
+			} else {
+				$this->queryLog[] = $sql . ($note ? " -- $note" : "");
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**

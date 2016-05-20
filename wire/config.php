@@ -30,6 +30,8 @@
  * 10. Runtime 
  * 11. System
  * 
+ * @var Config $config
+ * 
  */
 
 if(!defined("PROCESSWIRE")) die();
@@ -772,7 +774,13 @@ $config->dbPort = 3306;
  */
 $config->dbSocket = '';
 
-
+/**
+ * Maximum number of queries WireDatabasePDO will log in memory (when $config->debug is enabled)
+ * 
+ * @var int
+ * 
+ */
+$config->dbQueryLogMax = 500;
 
 
 

@@ -91,6 +91,14 @@ class Pages extends Wire {
 	protected $sortfields;
 
 	/**
+	 * Current debug state
+	 * 
+	 * @var bool
+	 * 
+	 */
+	protected $debug = false;
+
+	/**
 	 * Runtime debug log of Pages class activities, see getDebugLog()
 	 *
 	 */
@@ -133,6 +141,7 @@ class Pages extends Wire {
 		$this->cacher = $this->wire(new PagesLoaderCache($this));
 		$this->trasher = null;
 		$this->editor = null;
+		$this->debug = $wire->config->debug;
 	}
 	
 	/**
@@ -173,7 +182,11 @@ class Pages extends Wire {
 	}
 
 	/**
-	 * Given a Selector string, return the Page objects that match in a PageArray. 
+	 * Given a Selector string, return the Page objects that match in a PageArray.
+	 * 
+	 * - This is one of the most commonly used API methods in ProcessWire. 
+	 * - If you only need to find one page, use the `Pages::get()` or `Pages::findOne()` method instead (and note the difference). 
+	 * - If you need to find a huge quantity of pages (like thousands) without limit or pagination, look at the `Pages::findMany()` method. 
 	 * 
 	 * ~~~~~
 	 * // Find all pages using template "building" with 25 or more floors
@@ -194,12 +207,14 @@ class Pages extends Wire {
 	 *  - `caller` (string): Optional name of calling function, for debugging purposes, i.e. pages.count
 	 *  - `include` (string): Optional inclusion mode of 'hidden', 'unpublished' or 'all'. Default=none. Typically you would specify this 
 	 *     directly in the selector string, so the option is mainly useful if your first argument is not a string. 
+	 *  - `lazy` (bool): Specify true to force lazy loading. This is the same as using the Pages::findMany() method (default=false).
 	 *  - `loadOptions` (array): Optional assoc array of options to pass to getById() load options.
 	 * @return PageArray Pages that matched the given selector.
 	 * 
 	 * Non-visible pages are excluded unless an "include=x" mode is specified in the selector
 	 * (where "x" is "hidden", "unpublished" or "all"). If "all" is specified, then non-accessible
 	 * pages (via access control) can also be included.
+	 * @see Pages::findOne(), Pages::findMany(), Pages::get()
 	 *
 	 */
 	public function ___find($selector, $options = array()) {
@@ -207,7 +222,7 @@ class Pages extends Wire {
 	}
 
 	/**
-	 * Like find() but returns only the first match as a Page object (not PageArray)
+	 * Like find() but returns only the first match as a Page object (not PageArray).
 	 * 
 	 * This is functionally similar to the `get()` method except that its default behavior is to
 	 * filter for access control and hidden/unpublished/etc. states, in the same way that the
@@ -225,11 +240,54 @@ class Pages extends Wire {
 	 * @param array|string $options See $options for $pages->find()
 	 * @return Page|NullPage Returns a Page on success, or a NullPage (having id=0) on failure
 	 * @since 3.0.0
-	 * @see Pages::get(), Pages::find()
+	 * @see Pages::get(), Pages::find(), Pages::findMany()
 	 *
 	 */
 	public function findOne($selector, $options = array()) {
 		return $this->loader->findOne($selector, $options);
+	}
+
+	/**
+	 * Like find(), but with “lazy loading” to support giant result sets without running of memory.
+	 * 
+	 * When using this method, you can retrieve tens of thousands, or hundreds of thousands of pages 
+	 * or more, without needing a pagination "limit" in your selector. Individual pages are loaded
+	 * and unloaded in chunks as you iterate them, making it possible to iterate all pages without
+	 * running out of memory. This is useful for performing some kind of calculation on all pages or
+	 * other tasks like that. Note however that if you are building something from the result set
+	 * that consumes more memory for each page iterated (like concatening a string of page titles 
+	 * or something), then you could still run out of memory there. 
+	 *
+	 * The example below demonstrates use of this method. Note that attempting to do the same using
+	 * the regular `$pages->find()` would run out of memory, as it's unlikely the server would have
+	 * enough memory to store 20k pages in memory at once. 
+	 * 
+	 * ~~~~~
+	 * // Calculating a total from 20000 pages
+	 * $totalCost = 0;
+	 * $items = $pages->findMany("template=foo"); // 20000 pages
+	 * foreach($items as $item) {
+	 *   $totalCost += $item->cost; 
+	 * }
+	 * echo "Total cost is: $totalCost";
+	 * ~~~~~
+	 * 
+	 * #pw-group-retrieval
+	 *
+	 * @param $selector
+	 * @param array $options
+	 * @return PageArray
+	 * @since 3.0.19
+	 * @see Pages::find(), Pages::findOne()
+	 *
+	 */
+	public function findMany($selector, $options = array()) {
+		$debug = $this->debug;
+		if($debug) $this->debug(false);
+		$options['lazy'] = true;
+		$matches = $this->loader->find($selector, $options);
+		if($debug) $this->debug($debug);
+		return $matches;
 	}
 
 	/**
@@ -524,6 +582,7 @@ class Pages extends Wire {
 	 * - `findTemplates` (boolean): Determine which templates will be used (when no template specified) for more specific autojoins. (default=true)
 	 * - `pageClass` (string): Class to instantiate Page objects with. Leave blank to determine from template. (default=auto-detect)
 	 * - `pageArrayClass` (string): PageArray-derived class to store pages in (when 'getOne' is false). (default=PageArray)
+	 * - `page` (Page|null): Existing Page object to populate (also requires the getOne option to be true). (default=null)
 	 * 
 	 * **Use the `$options` array for potential speed optimizations:**
 	 * 
@@ -938,7 +997,7 @@ class Pages extends Wire {
 	 *
 	 */
 	public function debugLog($action = '', $details = '', $result = '') {
-		if(!$this->wire('config')->debug) return;
+		if(!$this->debug) return;
 		$this->debugLog[] = array(
 			'time' => microtime(),
 			'action' => (string) $action, 
@@ -1019,7 +1078,9 @@ class Pages extends Wire {
 	 * 
 	 * #pw-internal
 	 *
-	 * @param array $options Optionally specify array('pageClass' => 'YourPageClass')
+	 * @param array $options Optionally specify array of any of the following:
+	 *   - `pageClass` (string): Class to use for Page object (default='Page').
+	 *   - `template` (Template|id|string): Template to use. 
 	 * @return Page
 	 *
 	 */
@@ -1029,15 +1090,19 @@ class Pages extends Wire {
 		if($this->wire('config')->compat2x && strpos($class, "\\") === false) {
 			if(class_exists("\\$class")) $class = "\\$class";
 		}
-		$class = wireClassName($class, true);
 		if(isset($options['template'])) {
 			$template = $options['template'];
 			if(!is_object($template)) {
 				$template = empty($template) ? null : $this->wire('templates')->get($template);
 			}
+			if($template && empty($options['pageClass']) && $template->pageClass) {
+				$class = $template->pageClass;
+				if(!wireClassExists($class)) $class = 'Page';
+			}	
 		} else {
 			$template = null;
 		}
+		$class = wireClassName($class, true);
 		$page = $this->wire(new $class($template));
 		if(!$page instanceof Page) $page = $this->wire(new Page($template));
 		return $page;
@@ -1154,6 +1219,24 @@ class Pages extends Wire {
 	public function trasher() {
 		if(is_null($this->trasher)) $this->trasher = $this->wire(new PagesTrash($this));
 		return $this->trasher;
+	}
+
+	/**
+	 * Get or set debug state
+	 * 
+	 * #pw-internal
+	 *
+	 * @param bool|null $debug
+	 * @return bool
+	 *
+	 */
+	public function debug($debug = null) {
+		$value = $this->debug;
+		if(!is_null($debug)) {
+			$this->debug = (bool) $debug;
+			$this->loader->debug($debug);
+		}
+		return $value;
 	}
 
 	/***********************************************************************************************************************

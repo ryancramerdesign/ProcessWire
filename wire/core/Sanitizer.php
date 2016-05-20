@@ -446,7 +446,7 @@ class Sanitizer extends Wire {
 	 * #pw-group-strings
 	 * #pw-group-pages
 	 * 
-	 * @param $value Value to sanitize
+	 * @param string $value Value to sanitize
 	 * @return string Sanitized value
 	 *
 	 */

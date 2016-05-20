@@ -48,6 +48,8 @@
  * @property string $timezone Current timezone using PHP timeline options: http://php.net/manual/en/timezones.php #pw-group-date-time
  * 
  * @property string $sessionName Default session name to use (default='wire') #pw-group-session
+ * @property string $sessionNameSecure Session name when on HTTPS. Used when the sessionCookieSecure option is enabled (default). When blank (default), it will assume sessionName + 's'. #pw-group-session
+ * @property bool|int $sessionCookieSecure Use secure cookies when on HTTPS? When enabled, separate sessions will be maintained for HTTP vs. HTTPS. Good for security but tradeoff is login session may be lost when switching (default=1 or true).
  * @property int $sessionExpireSeconds How many seconds of inactivity before session expires? #pw-group-session
  * @property bool $sessionChallenge Should login sessions have a challenge key? (for extra security, recommended) #pw-group-session
  * @property bool $sessionFingerprint Should login sessions be tied to IP and user agent? May conflict with dynamic IPs. #pw-group-session
@@ -94,6 +96,7 @@
  * @property bool $dbLowercaseTables Force any created field_* tables to be lowercase. #pw-group-database
  * @property string $dbEngine Database engine (MyISAM or InnoDB) #pw-group-database
  * @property string $dbPath MySQL database exec path (Path to mysqldump) #pw-group-database
+ * @property int $dbQueryLogMax Maximum number of queries WireDatabasePDO will log in memory, when debug mode is enabled (default=1000). #pw-group-database
  * 
  * @property array $pageList Settings specific to Page lists. #pw-group-modules
  * @property array $pageEdit Settings specific to Page editors. #pw-group-modules
@@ -114,6 +117,7 @@
  * @property string $userAuthHashType Default is 'sha1' - used only if Blowfish is not supported by the system. #pw-group-session
  * 
  * @property bool $internal This is automatically set to FALSE when PW is externally bootstrapped. #pw-group-runtime
+ * @property bool $external This is automatically set to TRUE when PW is externally bootstrapped. #pw-internal
  * @property bool $cli This is automatically set to TRUE when PW is booted as a command line (non HTTP) script. #pw-group-runtime
  * @property string $versionName This is automatically populated with the current PW version name (i.e. 2.5.0 dev) #pw-group-runtime
  * @property int $inputfieldColumnWidthSpacing Used by some admin themes to commmunicate to InputfieldWrapper at runtime. #pw-internal

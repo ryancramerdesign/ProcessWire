@@ -350,6 +350,18 @@ class Page extends WireData implements \Countable, WireMatchable {
 	protected $isLoaded = true;
 
 	/**
+	 * Lazy load state of page
+	 * 
+	 * - int: Page is pending lazy loading, and not yet populated.
+	 * - false: Page is not lazy loading.
+	 * - true: Page was lazy loading and has already loaded. 
+	 * 
+	 * @var bool
+	 * 
+	 */
+	protected $lazyLoad = false;
+
+	/**
 	 * Is this page allowing it's output to be formatted?
 	 *
 	 * If so, the page may not be saveable because calls to $page->get(field) are returning versions of 
@@ -897,6 +909,9 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 *
 	 */
 	public function get($key) {
+
+		// if lazy load pending, load the page now
+		if(is_int($this->lazyLoad) && $this->lazyLoad && $key != 'id') $this->_lazy(true);
 
 		if(is_array($key)) $key = implode('|', $key);
 		if(isset(self::$basePropertiesAlternates[$key])) $key = self::$basePropertiesAlternates[$key];
@@ -3302,6 +3317,59 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 */
 	public function getPagesManager() {
 		return $this->wire('pages');
+	}
+
+	
+	/**
+	 * Get lazy loading state, set lazy load state, or trigger the page to load
+	 * 
+	 * $page->_lazy() to return current lazy loading state (which is page ID or boolean). 
+	 * $page->_lazy(123) to set the page as a lazy loading page and establish its id (replacing 123 with actual ID). 
+	 * $page->_lazy(true) to trigger the page to load. 
+	 * 
+	 * #pw-internal
+	 * 
+	 * @param int|bool|null $lazy Specify one of the following: 
+	 *  - Page ID to establish it as lazy loading. 
+	 *  - Boolean true to trigger load of the page.
+	 *  - Omit to just return the lazy load value. 
+	 * @return bool|int Returns one of the following: 
+	 *  - Page ID if lazy load pending.
+	 *  - Boolean true if lazy loading and already loaded. 
+	 *  - If load was requested in arguments, then returns true on success, false on fail.
+	 * @throws WireException
+	 * 
+	 */
+	public function _lazy($lazy = null) {
+		
+		if(is_null($lazy)) {
+			// return current state
+			return $this->lazyLoad;
+			
+		} else if(is_int($lazy)) {
+			// set state (page ID)
+			if($lazy > 0 && !$this->lazyLoad) {
+				$this->lazyLoad = $lazy;
+				$this->set('id', $lazy);
+			}
+			return true;
+			
+		} else if($lazy === true) {
+			// load page
+			if(!is_int($this->lazyLoad) || $this->lazyLoad < 1) return false;
+			$this->lazyLoad = true;
+			$pages = $this->wire('pages');
+			$page = $pages->getById($this->id, array(
+				'cache' => false,
+				'getOne' => true,
+				'page' => $this // This. Just This.
+			));
+			if(!$page->id) return false;
+			return true;
+			
+		} else {
+			throw new WireException("Invalid arguments to Page::lazy()");
+		}
 	}
 }
 
