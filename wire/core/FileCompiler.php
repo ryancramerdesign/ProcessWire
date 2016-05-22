@@ -609,6 +609,7 @@ class FileCompiler extends Wire {
 	
 		// update PW procedural function calls
 		$functions = get_defined_functions();
+		$hasFunctionExists = strpos($data, 'function_exists') !== false; 
 		
 		foreach($functions['user'] as $function) {
 			
@@ -616,16 +617,22 @@ class FileCompiler extends Wire {
 			/** @noinspection PhpUnusedLocalVariableInspection */
 			list($ns, $function) = explode('\\', $function, 2); // reduce to just function name
 			if(stripos($data, $function) === false) continue; // if function name not mentioned in data, quick exit
+			$functionName = '\\' . __NAMESPACE__ . '\\' . $function;
 		
 			$n = 0;
 			while(preg_match_all('/^(.*?[()!;,@\[=\s.])' . $function . '\s*\(/im', $data, $matches)) {
 				foreach($matches[0] as $key => $fullMatch) {
 					$open = $matches[1][$key];
 					if(strpos($open, 'function') !== false) continue; // skip function defined with same name
-					$functionName = '\\' . __NAMESPACE__ . '\\' . $function;
 					$data = str_replace($fullMatch, $open . $functionName . '(', $data);
 				}
 				if(++$n > 5) break;
+			}
+		
+			if($hasFunctionExists) {
+				$find = 'function_exists\s*\(\s*["\']' . $function . '["\']\s*\)';
+				$repl = "function_exists('$functionName')";
+				$data = preg_replace("/$find/i", $repl, $data);
 			}
 		}
 		

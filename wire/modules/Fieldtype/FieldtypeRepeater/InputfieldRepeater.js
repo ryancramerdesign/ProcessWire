@@ -112,7 +112,10 @@ function InputfieldRepeaterItemOpened(e) {
 		$content.slideDown('fast', function() {
 			$spinner.removeClass('fa-spin fa-spinner').addClass('fa-arrows');
 		});
-		$inputfields.find('.Inputfield').trigger('reloaded', ['InputfieldRepeaterItemEdit']);
+		setTimeout(function() {
+			$inputfields.find('.Inputfield').trigger('reloaded', ['InputfieldRepeaterItemEdit']);
+		}, 50);
+			
 	});
 }
 

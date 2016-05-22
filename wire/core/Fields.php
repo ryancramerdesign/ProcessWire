@@ -8,7 +8,9 @@
  * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
  * https://processwire.com
  * 
- * @method Field get($key)
+ * #pw-summary Manages all custom fields in ProcessWire
+ * 
+ * @method Field|null get($key) Get a field by name or id
  *
  */
 
@@ -85,6 +87,8 @@ class Fields extends WireSaveableItems {
 
 	/**
 	 * Construct and load the Fields
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	public function init() {
@@ -94,6 +98,8 @@ class Fields extends WireSaveableItems {
 
 	/**
 	 * Per WireSaveableItems interface, return a blank instance of a Field
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	public function makeBlankItem() {
@@ -102,6 +108,10 @@ class Fields extends WireSaveableItems {
 
 	/**
 	 * Per WireSaveableItems interface, return all available Field instances
+	 * 
+	 * #pw-internal
+	 * 
+	 * @return FieldsArray
 	 *
 	 */
 	public function getAll() {
@@ -110,6 +120,8 @@ class Fields extends WireSaveableItems {
 
 	/**
 	 * Per WireSaveableItems interface, return the table name used to save Fields
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	public function getTable() {
@@ -118,6 +130,8 @@ class Fields extends WireSaveableItems {
 
 	/**
 	 * Return the name that fields should be initially sorted by
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	public function getSort() {
@@ -126,6 +140,13 @@ class Fields extends WireSaveableItems {
 
 	/**
 	 * Save a Field to the database
+	 * 
+	 * ~~~~~
+	 * // Modify a field label and save it
+	 * $field = $fields->get('title');
+	 * $field->label = 'Title or Headline';
+	 * $fields->save($field); 
+	 * ~~~~~
 	 *
 	 * @param Field|Saveable $item The field to save
 	 * @return bool True on success, false on failure
@@ -184,7 +205,7 @@ class Fields extends WireSaveableItems {
 
 	/**
 	 * Check that the given Field's table exists and create it if it doesn't
-	 *
+	 * 
  	 * @param Field $field
 	 *
 	 */
@@ -208,6 +229,8 @@ class Fields extends WireSaveableItems {
 	 * Check that all fields in the system have their tables installed
 	 *
 	 * This enables you to re-create field tables when migrating over entries from the Fields table manually (via SQL dumps or the like)
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	public function checkFieldTables() {
@@ -216,8 +239,10 @@ class Fields extends WireSaveableItems {
 
 	/**
 	 * Delete a Field from the database
+	 * 
+	 * This method will throw a WireException if you attempt to delete a field that is currently in use (i.e. assigned to one or more fieldgroups). 
 	 *
-	 * @param Field|Saveable $item Item to save
+	 * @param Field|Saveable $item Field to delete
 	 * @return bool True on success, false on failure
 	 * @throws WireException
 	 *
@@ -251,7 +276,7 @@ class Fields extends WireSaveableItems {
 	/**
 	 * Create and return a cloned copy of the given Field
 	 *
-	 * @param Field|Saveable $item Item to clone
+	 * @param Field|Saveable $item Field to clone
 	 * @param string $name Optionally specify name for new cloned item
 	 * @return bool|Saveable $item Returns the new clone on success, or false on failure
 	 * @throws WireException
@@ -279,6 +304,8 @@ class Fields extends WireSaveableItems {
 
 	/**
 	 * Save the context of the given field for the given fieldgroup
+	 * 
+	 * #pw-advanced
 	 *
 	 * @param Field $field Field to save context for
 	 * @param Fieldgroup $fieldgroup Context for when field is in this fieldgroup
@@ -393,8 +420,10 @@ class Fields extends WireSaveableItems {
 
 	/**
 	 * Change a field's type
-	 *
-	 * @param Field $field1 Field with the new type
+	 * 
+	 * #pw-hooker
+	 * 
+	 * @param Field $field1 Field with the new type already assigned
 	 * @param bool $keepSettings Whether or not to keep custom $data settings (default=false)
 	 * @throws WireException
 	 * @return bool
@@ -502,6 +531,8 @@ class Fields extends WireSaveableItems {
 	 * 
 	 * If you need to remove a field from a Fieldgroup, use Fieldgroup::remove(), and this
 	 * method will be call automatically at the appropriate time when save the fieldgroup. 
+	 * 
+	 * #pw-hooker
 	 *
 	 * @param Field $field
 	 * @param Template $template
@@ -602,10 +633,10 @@ class Fields extends WireSaveableItems {
 	 *
 	 * @param Field $field
 	 * @param array $options Optionally specify one of the following options:
-	 * 	template: Specify a Template object, ID or name to isolate returned rows specific to pages using that template.
-	 * 	page: Specify a Page object, ID or path to isolate returned rows specific to that page.
-	 * 	getPageIDs: Specify boolean true to make it return an array of matching Page IDs rather than a count. 
-	 * @return int|array Returns array only if getPageIDs option set. 
+	 *  - `template` (template|int|string): Specify a Template object, ID or name to isolate returned rows specific to pages using that template.
+	 *  - `page` (Page|int|string): Specify a Page object, ID or path to isolate returned rows specific to that page.
+	 *  - `getPageIDs` (bool): Specify boolean true to make it return an array of matching Page IDs rather than a count. 
+	 * @return int|array Returns array only if getPageIDs option set, otherwise returns count of pages. 
 	 * @throws WireException If given option for page or template doesn't resolve to actual page/template.
 	 *
 	 */
@@ -619,12 +650,12 @@ class Fields extends WireSaveableItems {
 	 *
 	 * @param Field $field
 	 * @param array $options Optionally specify any of the following options:
-	 * 	template: Specify a Template object, ID or name to isolate returned rows specific to pages using that template. 
-	 * 	page: Specify a Page object, ID or path to isolate returned rows specific to that page. 
-	 * 	countPages: Specify boolean true to make it return a page count rather than a row count (default=false). 
-	 * 		There will only potential difference between rows and pages counts with multi-value fields. 
-	 * 	getPageIDs: Specify boolean true to make it return an array of matching Page IDs rather than a count (overrides countPages).
-	 * @return int|array Returns array only if getPageIDs option set. 
+	 *  - `template` (Template|int|string): Specify a Template object, ID or name to isolate returned rows specific to pages using that template. 
+	 *  - `page` (Page|int|string): Specify a Page object, ID or path to isolate returned rows specific to that page. 
+	 *  - `countPages` (bool): Specify boolean true to make it return a page count rather than a row count (default=false). 
+	 * 	  There will only be potential difference between rows and pages counts with multi-value fields. 
+	 *  - `getPageIDs` (bool): Specify boolean true to make it return an array of matching Page IDs rather than a count (overrides countPages).
+	 * @return int|array Returns array only if getPageIDs option set, otherwise returns a count of rows. 
 	 * @throws WireException If given option for page or template doesn't resolve to actual page/template.
 	 *
 	 */
@@ -737,6 +768,8 @@ class Fields extends WireSaveableItems {
 	 * Is the given field name native/permanent to the database?
 	 * 
 	 * This is deprecated, please us $fields->isNative($name) instead. 
+	 * 
+	 * #pw-internal
 	 *
 	 * @param string $name
 	 * @return bool
@@ -749,9 +782,11 @@ class Fields extends WireSaveableItems {
 
 	/**
 	 * Is the given field name native/permanent to the database?
+	 * 
+	 * Such fields are disallowed from being used for custom field names. 
 	 *
-	 * @param string $name
-	 * @return bool
+	 * @param string $name Field name you want to check
+	 * @return bool True if field is native (and thus should not be used) or false if it's okay to use
 	 *
 	 */
 	public function isNative($name) {
@@ -762,6 +797,8 @@ class Fields extends WireSaveableItems {
 
 	/**
 	 * Add a new name to be recognized as a native field name
+	 * 
+	 * #pw-internal
 	 *
 	 * @param string $name
 	 *
@@ -791,6 +828,8 @@ class Fields extends WireSaveableItems {
 	 *
 	 * This provides the back-end to the Field::viewable() and Field::editable() methods.
 	 * This method is for internal use, please instead use the Field::viewable() or Field::editable() methods.
+	 * 
+	 * #pw-internal
 	 * 
 	 * @param Field|int|string Field to check
 	 * @param string $permission Specify either 'view' or 'edit'
@@ -834,6 +873,8 @@ class Fields extends WireSaveableItems {
 	/**
 	 * Hook called when a field has changed type
 	 * 
+	 * #pw-hooker
+	 * 
 	 * @param Field|Saveable $item
 	 * @param Fieldtype $fromType
 	 * @param Fieldtype $toType
@@ -843,6 +884,8 @@ class Fields extends WireSaveableItems {
 
 	/**
 	 * Hook called right before a field is about to change type
+	 * 
+	 * #pw-hooker
 	 * 
 	 * @param Field|Saveable $item
 	 * @param Fieldtype $fromType

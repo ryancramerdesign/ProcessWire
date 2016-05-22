@@ -3,7 +3,7 @@
 /**
  * ProcessWire Fieldtypes
  *
- * Maintains a collection of Fieldtype modules.
+ * #pw-summary Maintains a collection of Fieldtype modules.
  * 
  * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
  * https://processwire.com

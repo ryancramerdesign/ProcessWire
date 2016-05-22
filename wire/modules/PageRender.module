@@ -540,6 +540,15 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 	
 		if(is_null($value) && $fieldName) $value = $page->getFormatted($fieldName);
 		if(is_null($value)) return '';
+
+		if($fieldName) {
+			$field = $page->getField($fieldName);
+			if(!$field) $field = $this->wire('fields')->get($fieldName);
+			$fieldtypeName = $field && $field->type ? $field->type->className() : '';
+		} else {
+			$field = null;
+			$fieldtypeName = '';
+		}
 		
 		$path = $this->wire('config')->paths->fieldTemplates;
 		$files = array();
@@ -551,7 +560,7 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 			$hasLeadingSlash = strpos($file, '/') === 0;
 			$file = trim($file, '/');
 			if(substr($file, -4) == '.php') $file = substr($file, 0, -4);
-			
+
 			if($hasLeadingSlash && $file) {
 				// VERY SPECIFIC
 				// use only what was specified
@@ -568,13 +577,13 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 				$file = str_replace('..', '', $file);
 				// i.e. fields/custom_dir/custom_name.php
 				$files[] = $file;
-				
+
 			} else if($hasTrailingSlash && $fieldName) {
 				// GROUP DIRECTORY
 				// specifies a group name, referring to a directory, i.e. "group_name/"
 				// i.e. fields/custom_name/field_name.php
 				$files[] = "$file/$fieldName";
-				
+
 			} else if($fieldName) {
 				// FIELD DIRECTORY WITH CUSTOM NAMED RENDER FILE
 				// i.e. fields/field_name/custom_name.php
@@ -583,19 +592,22 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 				// GROUP DIRECTORY WITH FIELD NAMED RENDER FILE
 				// i.e. fields/field_name/custom_name.php
 				$files[] = "$file/$fieldName";
-		
+
 				// CUSTOM NAMED RENDER FILE ONLY (NO GROUP)
 				// i.e. fields/custom_name.php
 				$files[] = $file;
 			} else {
 				$files[] = $file;
 			}
+
 		} else if($fieldName) {
 			// no render file was specified, check for possible template context files
-			
-			// FIELD DIRECTORY WITH TEMPLATE NAME
-			// i.e. fields/field_name/template_name.php
-			$files[] = "$fieldName/{$page->template->name}";
+
+			if(strpos($fieldtypeName, 'Repeater') === false) {
+				// FIELD DIRECTORY WITH TEMPLATE NAME
+				// i.e. fields/field_name/template_name.php
+				$files[] = "$fieldName/{$page->template->name}";
+			}
 			
 			// TEMPLATE DIRECTORY WITH FIELD NAME
 			// i.e. fields/template_name/field_name.php
@@ -628,13 +640,6 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 			}
 		}
 	
-		if($fieldName) {
-			$field = $page->getField($fieldName);
-			if(!$field) $field = $this->wire('fields')->get($fieldName);
-		} else {
-			$field = null;
-		}
-		
 		if($this->wire('config')->templateCompile) {
 			$renderFile = $this->wire('files')->compile($renderFile, array('skipIfNamespace' => true));
 		}

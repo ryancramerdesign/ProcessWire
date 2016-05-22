@@ -255,6 +255,22 @@ class PageFinder extends Wire {
 	 * 
 	 * @param Selectors $selectors
 	 * @param array $options
+	 *  - `findOne` (bool): Specify that you only want to find 1 page and don't need info for pagination (default=false).
+	 *  - `findHidden` (bool): Specify that it's okay for hidden pages to be included in the results (default=false). 
+	 *  - `findUnpublished` (bool): Specify that it's okay for hidden AND unpublished pages to be included in the results (default=false).
+	 *  - `findTrash` (bool): Specify that it's okay for hidden AND unpublished AND trashed pages to be included in the results (default=false).
+	 *  - `findAll` (bool): Specify that no page should be excluded - results can include unpublished, trash, system, no-access pages, etc. (default=false)
+	 *  - `getTotal` (bool|null): Whether the total quantity of matches should be determined and accessible from getTotal() method call. 
+	 *     - null: determine automatically (default is disabled when limit=1, enabled in all other cases).
+	 *     - true: always calculate total.
+	 *     - false: never calculate total.
+	 *  - `getTotalType` (string): Method to use to get total, specify 'count' or 'calc' (default='calc').
+	 *  - `returnQuery` (bool): When true, only the DatabaseQuery object is returned by find(), for internal use. (default=false)
+	 *  - `loadPages` (bool): This is an optimization used by the Pages::find() method, but we observe it here as we may be able to apply 
+	 *     some additional optimizations in certain cases. For instance, if loadPages=false, then we can skip retrieval of IDs and omit 
+	 *     sort fields. (default=true)
+	 *  - `returnVerbose` (bool): When true, this function returns array of arrays containing page ID, parent ID, template ID and score.
+	 *     When false, returns only an array of page IDs. True is required by most usage from Pages class. False is only for specific cases. 
 	 * @return array|DatabaseQuerySelect
 	 * @throws PageFinderException
 	 *
@@ -305,19 +321,17 @@ class PageFinder extends Wire {
 			if($options['loadPages']) {
 				/** @noinspection PhpAssignmentInConditionInspection */
 				while($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
-
-					// determine score for this row
-					$score = 0;
-					foreach($row as $k => $v) if(strpos($k, '_score') === 0) {
-						$score += $v;
-						unset($row[$k]);
-
-					}
-					if($options['returnVerbose']) { 
+					if($options['returnVerbose']) {
+						// determine score for this row
+						$score = 0;
+						foreach($row as $k => $v) if(strpos($k, '_score') === 0) {
+							$score += $v;
+							unset($row[$k]);
+						}
 						$row['score'] = $score; // @todo do we need this anymore?
 						$matches[] = $row;
 					} else {
-						$matches[] = $row['id']; 
+						$matches[] = (int) $row['id']; 
 					}
 				}
 			}
@@ -953,6 +967,7 @@ class PageFinder extends Wire {
 	 *
 	 */
 	protected function getQueryAllowedTemplates(DatabaseQuerySelect $query, $options) {
+		if($options) {}
 		
 		// if access checking is disabled then skip this
 		if(!$this->checkAccess) return;
@@ -1091,6 +1106,7 @@ class PageFinder extends Wire {
 	 * @return string
 	 */
 	protected function ___getQueryAllowedTemplatesWhere(DatabaseQuerySelect $query, $where) {
+		if($query) {}
 		return $where;
 	}
 
@@ -1110,14 +1126,14 @@ class PageFinder extends Wire {
 			$lc = substr($value, -1); 
 			$value = trim($value, "-+"); 
 			$subValue = '';
-			$terValue = ''; // not currently used, here for future use
+			// $terValue = ''; // not currently used, here for future use
 
 			if(strpos($value, ".")) {
 				list($value, $subValue) = explode(".", $value, 2); // i.e. some_field.title
 				if(strpos($subValue, ".")) {
 					list($subValue, $terValue) = explode(".", $subValue, 2);
-					if(strpos($terValue, ".")) throw new PageFinderSyntaxException("$value.$subValue.$terValue not supported");
 					$terValue = $this->wire('sanitizer')->fieldName($terValue);
+					if(strpos($terValue, ".")) throw new PageFinderSyntaxException("$value.$subValue.$terValue not supported");
 				}
 				$subValue = $this->wire('sanitizer')->fieldName($subValue);
 			}
@@ -1599,6 +1615,11 @@ class PageFinder extends Wire {
 
 	/**
 	 * Match a number of children count
+	 * 
+	 * @param DatabaseQuerySelect $query
+	 * @param Selector $selector
+	 * @return string
+	 * @throws WireException
 	 *
 	 */
 	protected function getQueryNumChildren(DatabaseQuerySelect $query, $selector) {
@@ -1663,6 +1684,9 @@ class PageFinder extends Wire {
 
 	/**
 	 * Arrange the order of field names where necessary
+	 * 
+	 * @param array $fields
+	 * @return array
 	 *
 	 */
 	protected function arrangeFields(array $fields) {
@@ -1689,6 +1713,8 @@ class PageFinder extends Wire {
 
 	/**
 	 * Returns the limit placed upon the last find() operation, or 0 if no limit was specified
+	 * 
+	 * @return int
 	 *
 	 */
 	public function getLimit() {
@@ -1697,6 +1723,8 @@ class PageFinder extends Wire {
 
 	/**
 	 * Returns the start placed upon the last find() operation
+	 * 
+	 * @return int
 	 *
 	 */
 	public function getStart() {
@@ -1705,6 +1733,8 @@ class PageFinder extends Wire {
 
 	/**
 	 * Returns the parent ID, if it was part of the selector
+	 * 
+	 * @return int
 	 *
 	 */
 	public function getParentID() {
@@ -1713,6 +1743,8 @@ class PageFinder extends Wire {
 
 	/**
 	 * Returns the templates ID, if it was part of the selector
+	 * 
+	 * @return int
 	 *
 	 */
 	public function getTemplatesID() {
@@ -1721,6 +1753,8 @@ class PageFinder extends Wire {
 
 	/**
 	 * Return array of the options provided to PageFinder, as well as those determined at runtime
+	 * 
+	 * @return array
 	 *
 	 */
 	public function getOptions() {

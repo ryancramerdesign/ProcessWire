@@ -8,93 +8,110 @@
  * 1. Providing get/set access to the Page's properties
  * 2. Accessing the related hierarchy of pages (i.e. parents, children, sibling pages)
  * 
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * ProcessWire 3.x (development), Copyright 2016 by Ryan Cramer
  * https://processwire.com
+ * 
+ * #pw-summary Class used by all Page objects in ProcessWire.
+ * #pw-summary-languages Multi-language methods require these core modules: `LanguageSupport`, `LanguageSupportFields`, `LanguageSupportPageNames`. 
+ * #pw-summary-system Most system properties directly correspond to columns in the `pages` database table. 
+ * #pw-order-groups common,traversal,manipulation,date-time,access,output-rendering,status,constants,languages,system,advanced,hooks
+ * #pw-use-constants
  *
  * @link http://processwire.com/api/variables/page/ Offical $page Documentation
  * @link http://processwire.com/api/selectors/ Official Selectors Documentation
  *
- * @property int $id The numbered ID of the current page
- * @property string $name The name assigned to the page, as it appears in the URL
- * @property string $namePrevious Previous name, if changed. Blank if not. 
+ * @property int $id The numbered ID of the current page #pw-group-system
+ * @property string $name The name assigned to the page, as it appears in the URL #pw-group-system #pw-group-common
+ * @property string $namePrevious Previous name, if changed. Blank if not. #pw-advanced 
  * @property string $title The page's title (headline) text
- * @property string $path The page's URL path from the homepage (i.e. /about/staff/ryan/)
- * @property string $url The page's URL path from the server's document root (may be the same as the $page->path)
- * @property string $httpUrl Same as $page->url, except includes protocol (http or https) and hostname.
- * @property Page|string|int $parent The parent Page object or a NullPage if there is no parent. For assignment, you may also use the parent path (string) or id (integer). 
- * @property Page|null $parentPrevious Previous parent, if parent was changed.
- * @property int $parent_id The numbered ID of the parent page or 0 if homepage or NullPage.
- * @property PageArray $parents All the parent pages down to the root (homepage). Returns a PageArray.
- * @property Page $rootParent The parent page closest to the homepage (typically used for identifying a section)
+ * @property string $path The page's URL path from the homepage (i.e. /about/staff/ryan/) 
+ * @property string $url The page's URL path from the server's document root
+ * @property string $httpUrl Same as $page->url, except includes scheme (http or https) and hostname.
+ * @property Page|string|int $parent The parent Page object or a NullPage if there is no parent. For assignment, you may also use the parent path (string) or id (integer). #pw-group-traversal
+ * @property Page|null $parentPrevious Previous parent, if parent was changed. #pw-group-traversal
+ * @property int $parent_id The numbered ID of the parent page or 0 if homepage or not assigned. #pw-group-system
+ * @property int $templates_id The numbered ID of the template usedby this page. #pw-group-system
+ * @property PageArray $parents All the parent pages down to the root (homepage). Returns a PageArray. #pw-group-common #pw-group-traversal
+ * @property Page $rootParent The parent page closest to the homepage (typically used for identifying a section) #pw-group-traversal
  * @property Template|string $template The Template object this page is using. The template name (string) may also be used for assignment.
- * @property Template|null $templatePrevious Previous template, if template was changed. 
- * @property Fieldgroup $fields All the Fields assigned to this page (via it's template, same as $page->template->fields). Returns a Fieldgroup.
- * @property int $numChildren The number of children (subpages) this page has, with no exclusions (fast).
- * @property int $numVisibleChildren The number of visible children (subpages) this page has. Excludes unpublished, no-access, hidden, etc.
- * @property PageArray $children All the children (subpages) of this page. Returns a PageArray. See also $page->children($selector).
- * @property Page $child The first child of this page. Returns a Page. See also $page->child($selector).
- * @property PageArray $siblings All the sibling pages of this page. Returns a PageArray. See also $page->siblings($selector).
- * @property Page $next This page's next sibling page, or NullPage if it is the last sibling. See also $page->next($pageArray).
- * @property Page $prev This page's previous sibling page, or NullPage if it is the first sibling. See also $page->prev($pageArray).
- * @property int $created Unix timestamp of when the page was created
- * @property int $modified Unix timestamp of when the page was last modified
- * @property int $published Unix timestamp of when the page was last published
- * @property int $created_users_id ID of created user
+ * @property Template|null $templatePrevious Previous template, if template was changed. #pw-advanced
+ * @property Fieldgroup $fields All the Fields assigned to this page (via its template). Returns a Fieldgroup. #pw-advanced
+ * @property int $numChildren The number of children (subpages) this page has, with no exclusions (fast). #pw-group-traversal
+ * @property int $numVisibleChildren The number of visible children this page has. Excludes unpublished, no-access, hidden, etc. #pw-group-traversal
+ * @property PageArray $children All the children of this page. Returns a PageArray. See also $page->children($selector). #pw-group-traversal
+ * @property Page|NullPage $child The first child of this page. Returns a Page. See also $page->child($selector). #pw-group-traversal
+ * @property PageArray $siblings All the sibling pages of this page. Returns a PageArray. See also $page->siblings($selector). #pw-group-traversal
+ * @property Page $next This page's next sibling page, or NullPage if it is the last sibling. See also $page->next($pageArray). #pw-group-traversal
+ * @property Page $prev This page's previous sibling page, or NullPage if it is the first sibling. See also $page->prev($pageArray). #pw-group-traversal
+ * @property int $created Unix timestamp of when the page was created. #pw-group-common #pw-group-date-time #pw-group-system
+ * @property string $createdStr Date/time when the page was created (formatted date/time string). #pw-group-date-time
+ * @property int $modified Unix timestamp of when the page was last modified. #pw-group-common #pw-group-date-time #pw-group-system
+ * @property string $modifiedStr Date/time when the page was last modified (formatted date/time string). #pw-group-date-time
+ * @property int $published Unix timestamp of when the page was published. #pw-group-common #pw-group-date-time #pw-group-system
+ * @property string $publishedStr Date/time when the page was published (formatted date/time string). #pw-group-date-time
+ * @property int $created_users_id ID of created user. #pw-group-system
  * @property User $createdUser The user that created this page. Returns a User or a NullUser.
- * @property int $modified_users_id ID of last modified user
+ * @property int $modified_users_id ID of last modified user. #pw-group-system
  * @property User $modifiedUser The user that last modified this page. Returns a User or a NullUser.
- * @property PagefilesManager $filesManager
- * @property bool $outputFormatting Whether output formatting is enabled or not. 
- * @property int $sort Sort order of this page relative to siblings (applicable when manual sorting is used).  
- * @property string $sortfield Field that a page is sorted by relative to its siblings (default=sort, which means drag/drop manual)
- * @property null|array _statusCorruptedFields Field names that caused the page to have Page::statusCorrupted status. 
- * @property int $status Page status flags
- * @property int|null $statusPrevious Previous status, if status was changed. 
- * @property string statusStr Returns space-separated string of status names active on this page.
- * @property Fieldgroup $fieldgroup Shorter alias for $page->template->fieldgroup
- * @property string $editUrl
- * @property string $editURL
- * @property PageRender $render May be used for field markup rendering like $page->render->title.
+ * @property PagefilesManager $filesManager The object instance that manages files for this page. #pw-advanced
+ * @property bool $outputFormatting Whether output formatting is enabled or not. #pw-advanced
+ * @property int $sort Sort order of this page relative to siblings (applicable when manual sorting is used). #pw-group-system
+ * @property string $sortfield Field that a page is sorted by relative to its siblings (default="sort", which means drag/drop manual) #pw-group-system
+ * @property null|array _statusCorruptedFields Field names that caused the page to have Page::statusCorrupted status. #pw-internal
+ * @property int $status Page status flags. #pw-group-system #pw-group-status
+ * @property int|null $statusPrevious Previous status, if status was changed. #pw-group-status
+ * @property string statusStr Returns space-separated string of status names active on this page. #pw-group-status
+ * @property Fieldgroup $fieldgroup Fieldgroup used by page template. Shorter alias for $page->template->fieldgroup (same as $page->fields) #pw-advanced
+ * @property string $editUrl URL that this page can be edited at. #pw-group-advanced
+ * @property string $editURL Alias of $editUrl. #pw-internal
+ * @property PageRender $render May be used for field markup rendering like $page->render->title. #pw-advanced
  * 
- * @property bool|null $_hasAutogenName Internal runtime use, set by Pages class when page as auto-generated name.
- * @property bool|null $_forceSaveParents Internal runtime/debugging use, force a page to refresh its pages_parents DB entries on save().
+ * @property bool|null $_hasAutogenName Internal runtime use, set by Pages class when page as auto-generated name. #pw-internal
+ * @property bool|null $_forceSaveParents Internal runtime/debugging use, force a page to refresh its pages_parents DB entries on save(). #pw-internal
  * 
  * Methods added by PageRender.module: 
  * -----------------------------------
- * @method string|mixed render() Returns rendered page markup. If given a $fieldName argument, it behaves same as the renderField() method.
+ * @method string|mixed render($fieldName = '') Returns rendered page markup. If given a $fieldName argument, it behaves same as the renderField() method. #pw-group-output-rendering
  * 
  * Methods added by PagePermissions.module: 
  * ----------------------------------------
- * @method bool viewable($fieldName = '') Returns true if the page (and optionally field) is viewable by the current user, false if not. 
- * @method bool editable($fieldName = '') Returns true if the page (and optionally field) is editable by the current user, false if not. 
- * @method bool publishable() Returns true if the page is publishable by the current user, false if not. 
- * @method bool listable() Returns true if the page is listable by the current user, false if not. 
- * @method bool deleteable() Returns true if the page is deleteable by the current user, false if not. 
- * @method bool deletable() Alias of deleteable().
- * @method bool trashable() Returns true if the page is trashable by the current user, false if not. 
- * @method bool addable($pageToAdd = null) Returns true if the current user can add children to the page, false if not. Optionally specify the page to be added for additional access checking. 
- * @method bool moveable($newParent = null) Returns true if the current user can move this page. Optionally specify the new parent to check if the page is moveable to that parent. 
- * @method bool sortable() Returns true if the current user can change the sort order of the current page (within the same parent). 
+ * @method bool viewable($field = '') Returns true if the page (and optionally field) is viewable by the current user, false if not. #pw-group-access
+ * @method bool editable($field = '') Returns true if the page (and optionally field) is editable by the current user, false if not. #pw-group-access
+ * @method bool publishable() Returns true if the page is publishable by the current user, false if not. #pw-group-access
+ * @method bool listable() Returns true if the page is listable by the current user, false if not. #pw-group-access
+ * @method bool deleteable() Returns true if the page is deleteable by the current user, false if not. #pw-group-access
+ * @method bool deletable() Alias of deleteable(). #pw-group-access
+ * @method bool trashable() Returns true if the page is trashable by the current user, false if not. #pw-group-access
+ * @method bool addable($pageToAdd = null) Returns true if the current user can add children to the page, false if not. Optionally specify the page to be added for additional access checking. #pw-group-access
+ * @method bool moveable($newParent = null) Returns true if the current user can move this page. Optionally specify the new parent to check if the page is moveable to that parent. #pw-group-access
+ * @method bool sortable() Returns true if the current user can change the sort order of the current page (within the same parent). #pw-group-access
  *
  * Methods added by LanguageSupport.module (not installed by default) 
  * -----------------------------------------------------------------
- * @method Page setLanguageValue($language, $fieldName, $value) Set value for field in language (requires LanguageSupport module). $language may be ID, language name or Language object.
- * @method Page getLanguageValue($language, $fieldName) Get value for field in language (requires LanguageSupport module). $language may be ID, language name or Language object. 
+ * @method Page setLanguageValue($language, $field, $value) Set value for field in language (requires LanguageSupport module). $language may be ID, language name or Language object. Field should be field name (string). #pw-group-languages
+ * @method Page getLanguageValue($language, $field) Get value for field in language (requires LanguageSupport module). $language may be ID, language name or Language object. Field should be field name (string). #pw-group-languages
+ * 
+ * Methods added by LanguageSupportPageNames.module (not installed by default)
+ * ---------------------------------------------------------------------------
+ * @method string localName($language = null) Return the page name in the current user's language, or specify $language argument (Language object, name, or ID). #pw-group-languages
+ * @method string localPath($language = null) Return the page path in the current user's language, or specify $language argument (Language object, name, or ID). #pw-group-languages
+ * @method string localUrl($language = null) Return the page URL in the current user's language, or specify $language argument (Language object, name, or ID). #pw-group-languages
+ * @method string localHttpUrl($language = null) Return the page URL (including scheme and hostname) in the current user's language, or specify $language argument (Language object, name, or ID). #pw-group-languages
  * 
  * Methods added by ProDrafts.module (if installed)
  * ------------------------------------------------
- * @method ProDraft|\ProDraft|int|string|Page|array draft($key = null, $value = null)
+ * @method ProDraft|\ProDraft|int|string|Page|array draft($key = null, $value = null) Helper method for drafts (added by ProDrafts). #pw-advanced
  * 
  * Hookable methods
  * ----------------
- * @method mixed getUnknown($key) Last stop to find a property that we haven't been able to locate.
- * @method Page rootParent() Get parent closest to homepage.
- * @method void loaded() Called when page is loaded.
- * @method void setEditor(WirePageEditor $editor)
- * @method string getIcon()
- * @method string getMarkup($key) Return the markup value for a given field name or {tag} string.
- * @method string|mixed renderField($fieldName, $file = '') Returns rendered field markup, optionally with file relative to templates/fields/
- * @method string|mixed renderValue($value, $file) Returns rendered markup for $value using $file relative to templates/fields/
+ * @method mixed getUnknown($key) Last stop to find a property that we haven't been able to locate. Hook this method to provide a handler. #pw-hooker
+ * @method Page rootParent() Get parent closest to homepage. #pw-internal
+ * @method void loaded() Called when page is loaded. #pw-internal
+ * @method void setEditor(WirePageEditor $editor) #pw-internal
+ * @method string getIcon() #pw-internal
+ * @method string getMarkup($key) Return the markup value for a given field name or {tag} string. #pw-internal
+ * @method string|mixed renderField($fieldName, $file = '') Returns rendered field markup, optionally with file relative to templates/fields/. #pw-internal
+ * @method string|mixed renderValue($value, $file) Returns rendered markup for $value using $file relative to templates/fields/. #pw-internal
  *
  */
 
@@ -111,20 +128,101 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 * The status levels 16384 and above can safely be changed as needed as they are runtime only. 
 	 *
 	 */
-	const statusOn = 1; 			// base status for all pages
-	const statusLocked = 4; 		// page locked for changes. Not enforced by the core, but checked by Process modules. 
-	const statusSystemID = 8; 		// page is for the system and may not be deleted or have it's id changed (everything else, okay)
-	const statusSystem = 16; 		// page is for the system and may not be deleted or have it's id, name, template or parent changed
-	const statusDraft = 64; 		// page has pending draft changes
-	const statusVersions = 128;		// page has version data available
-	const statusTemp = 512;			// page is temporary and 1+ day old unpublished pages with this status may be automatically deleted
-	const statusHidden = 1024;		// page is excluded selector methods like $pages->find() and $page->children() unless status is specified, like "status&1"
-	const statusUnpublished = 2048; // page is not published and is not renderable. 
+
+	/**
+	 * Base status for pages in use (assigned automatically)
+	 * #pw-internal
+	 * 
+	 */
+	const statusOn = 1;
+
+	/**
+	 * Indicates page is locked for changes (name: "locked")
+	 * 
+	 */
+	const statusLocked = 4;
+
+	/**
+	 * Page is for the system and may not be deleted or have its id changed (name: "system-id").
+	 * #pw-internal
+	 * 
+	 */
+	const statusSystemID = 8;
+
+	/**
+	 * Page is for the system and may not be deleted or have its id, name, template or parent changed (name: "system"). 
+	 * #pw-internal
+	 * 
+	 */
+	const statusSystem = 16;
+
+	/**
+	 * Page has pending draft changes (name: "draft"). 
+	 * #pw-internal
+	 * 
+	 */
+	const statusDraft = 64;
+
+	/**
+	 * Page has version data available (name: "versions").
+	 * #pw-internal
+	 * 
+	 */
+	const statusVersions = 128;
+
+	/**
+	 * Page is temporary. 1+ day old unpublished pages with this status may be automatically deleted (name: "temp"). 
+	 * #pw-internal
+	 * 
+	 */
+	const statusTemp = 512;
+
+	/**
+	 * Page is hidden and excluded from page finding methods unless overridden by selector (name: "hidden"). 
+	 * 
+	 */
+	const statusHidden = 1024;
+
+	/**
+	 * Page is unpublished (not publicly visible) and excluded from page finding methods unless overridden (name: "unpublished").
+	 * 
+	 */
+	const statusUnpublished = 2048;
+
+	/**
+	 * Page is in the trash.
+	 * #pw-internal
+	 * 
+	 */
 	const statusTrash = 8192; 		// page is in the trash
-	const statusDeleted = 16384; 	// page is deleted (runtime only)
-	const statusSystemOverride = 32768; // page is in a state where system flags may be overridden
-	const statusCorrupted = 131072; // page was corrupted at runtime and is NOT saveable: see setFieldValue() and $outputFormatting. (runtime)
-	const statusMax = 9999999;		// number to use for max status comparisons, runtime only
+
+	/**
+	 * Page is deleted (runtime status only, as deleted pages aren't saved in the database)
+	 * #pw-internal
+	 * 
+	 */
+	const statusDeleted = 16384;
+
+	/**
+	 * Page is in a state where system flags may be overridden (runtime only)
+	 * #pw-internal
+	 * 
+	 */
+	const statusSystemOverride = 32768;
+
+	/**
+	 * Page was corrupted at runtime and is NOT saveable.
+	 * #pw-internal
+	 * 
+	 */
+	const statusCorrupted = 131072;
+
+	/**
+	 * Maximum possible page status, to use only for runtime comparisons - do not assign this to a page.
+	 * #pw-internal
+	 * 
+	 */
+	const statusMax = 9999999;
 	
 	/**
 	 * Status string shortcuts, so that status can be specified as a word
@@ -250,6 +348,18 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 *
 	 */
 	protected $isLoaded = true;
+
+	/**
+	 * Lazy load state of page
+	 * 
+	 * - int: Page is pending lazy loading, and not yet populated.
+	 * - false: Page is not lazy loading.
+	 * - true: Page was lazy loading and has already loaded. 
+	 * 
+	 * @var bool
+	 * 
+	 */
+	protected $lazyLoad = false;
 
 	/**
 	 * Is this page allowing it's output to be formatted?
@@ -527,9 +637,22 @@ class Page extends WireData implements \Countable, WireMatchable {
 
 	/**
 	 * Set the value of a page property
+	 * 
+	 * You can set properties to a page using either `$page->set('property', $value);` or `$page->property = $value;`. 
+	 * 
+	 * ~~~~~
+	 * // Set the page title using set() method
+	 * $page->set('title', 'About Us'); 
+	 * 
+	 * // Set the page title directly (equivalent to the above)
+	 * $page->title = 'About Us';
+	 * ~~~~~
+	 * 
+	 * #pw-group-common
+	 * #pw-group-manipulation
 	 *
-	 * @param string $key Property to set
-	 * @param mixed $value
+	 * @param string $key Name of property to set
+	 * @param mixed $value Value to set
 	 * @return Page Reference to this Page
 	 * @see __set
 	 * @throws WireException
@@ -630,9 +753,13 @@ class Page extends WireData implements \Countable, WireMatchable {
 	}
 
 	/**
-	 * Set a value to a page without tracking changes and without exceptions
-	 *
-	 * Otherwise same as set()
+	 * Quietly set the value of a page property. 
+	 * 
+	 * Set a value to a page without tracking changes and without exceptions.
+	 * Otherwise same as set().
+	 * 
+	 * #pw-advanced
+	 * #pw-group-manipulation
 	 *
 	 * @param string $key
 	 * @param mixed $value
@@ -651,8 +778,10 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 * 
 	 * Enables setting a value when page has no template assigned, for example. 
 	 * 
-	 * @param $key
-	 * @param $value
+	 * #pw-internal
+	 * 
+	 * @param string $key
+	 * @param mixed $value
 	 * @return $this
 	 * 
 	 */
@@ -666,6 +795,8 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 * This may not be called when outputFormatting is on. 
 	 *
 	 * This is for internal use. API should generally use the set() method, but this is kept public for the minority of instances where it's useful.
+	 * 
+	 * #pw-internal
 	 *
 	 * @param string $key
 	 * @param mixed $value
@@ -745,14 +876,42 @@ class Page extends WireData implements \Countable, WireMatchable {
 	}
 
 	/**
-	 * Get the value of a requested Page property
+	 * Get the value of a Page property (see details for several options)
+	 * 
+	 * This method can accept a simple property name, and also much more: 
+	 * 
+	 * - You can retrieve a value using either `$page->get('property');` or `$page->property`. 
+	 * - Get the first populated property by specifying multiple properties separated by a pipe, i.e. `headline|title`. 
+	 * - Get multiple properties in a string by specifying a string `{property}` tags, i.e. `{title}: {summary}`. 
+	 * - Specify a selector string to get the first matching child page, i.e. `created>=today`.
+	 * - This method can also retrieve sub-properties of object properties, i.e. `parent.title`.
+	 * 
+	 * ~~~~~
+	 * // retrieve the title using get…
+	 * $title = $page->get('title');
+	 * 
+	 * // …or retrieve using direct access
+	 * $title = $page->title;
+	 * 
+	 * // retrieve headline if populated, otherwise title
+	 * $headline = $page->get('headline|title'); 
+	 * 
+	 * // retrieve title, created date, and summary, formatted in a string
+	 * $str = $page->get('{createdStr}: {title} - {summary}'); 
+	 * 
+	 * // example of getting a sub-property: title of parent page
+	 * $title = $page->get('parent.title'); 
+	 * ~~~~~
 	 *
-	 * @param string $key
-	 * @return mixed
-	 * @see __get
+	 * @param string $key Name of property, format string or selector, per the details above. 
+	 * @return mixed Value of found property, or NULL if not found. 
+	 * @see __get()
 	 *
 	 */
 	public function get($key) {
+
+		// if lazy load pending, load the page now
+		if(is_int($this->lazyLoad) && $this->lazyLoad && $key != 'id') $this->_lazy(true);
 
 		if(is_array($key)) $key = implode('|', $key);
 		if(isset(self::$basePropertiesAlternates[$key])) $key = self::$basePropertiesAlternates[$key];
@@ -847,11 +1006,13 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 * Get a Field object in context or NULL if not valid for this page
 	 * 
 	 * Field in context is only returned when output formatting is on.
-	 * @todo determine if we can always retrieve in context regardless of output formatting.
+	 * 
+	 * #pw-advanced
 	 * 
 	 * @param string|int|Field $field
 	 * @return Field|null
 	 * @throws WireException if given invalid argument
+	 * @todo determine if we can always retrieve in context regardless of output formatting.
 	 * 
 	 */
 	public function getField($field) {
@@ -874,6 +1035,8 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 * objects may have some properties that are different from the Field outside of 
 	 * the context of this page. 
 	 * 
+	 * #pw-advanced
+	 * 
 	 * @return FieldsArray of Field objects
 	 * 
 	 */
@@ -895,8 +1058,10 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 * 
 	 * Note that this only indicates validity, not whether the field is populated.
 	 * 
-	 * @param int|string|Field $field
-	 * @return bool
+	 * #pw-advanced
+	 * 
+	 * @param int|string|Field $field Field name, object or ID to chck
+	 * @return bool True if valid, false if not. 
 	 * 
 	 */
 	public function hasField($field) {
@@ -936,6 +1101,8 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 * Hookable method called when a request to a field was made that didn't match anything
 	 *
 	 * Hooks that want to inject something here should hook after and modify the $event->return.
+	 * 
+	 * #pw-hooker
 	 *
 	 * @param string $key Name of property.
 	 * @return null|mixed Returns null if property not known, or a value if it is.
@@ -952,6 +1119,8 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 * Typically these resolve to objects, and the subfield is pulled from the object.
 	 * Currently we only allow this dot syntax when output formatting is off. This limitation may be removed
 	 * but we have to consider potential security implications before doing so.
+	 * 
+	 * #pw-internal
 	 *
 	 * @param string $key Property name in field.subfield format
 	 * @return null|mixed Returns null if not found or invalid. Returns property value on success.
@@ -972,7 +1141,7 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 * A Multi Key is a string with multiple field names split by pipes, i.e. headline|title
 	 *
 	 * Example: browser_title|headline|title - Return the value of the first field that is non-empty
-	 *
+	 * 
 	 * @param string $multiKey
 	 * @param bool $getKey Specify true to get the first matching key (name) rather than value
 	 * @return null|mixed Returns null if no values match, or if there aren't multiple keys split by "|" chars
@@ -1067,14 +1236,16 @@ class Page extends WireData implements \Countable, WireMatchable {
 	/**
 	 * Return the markup value for a given field name or {tag} string
 	 *
-	 * 1. If given a field name (or name.subname or name1|name2|name3) it will return the
-	 * markup value as defined by the fieldtype.
-	 *
-	 * 2. If given a string with field names referenced in {tags}, it will populate those
-	 * tags and return the populated string.
+	 * 1. If given a field name (or `name.subname` or `name1|name2|name3`) it will return the
+	 *    markup value as defined by the fieldtype.
+	 * 2. If given a string with field names referenced in `{tags}`, it will populate those
+	 *    tags and return the populated string.
+	 * 
+	 * #pw-advanced
 	 *
 	 * @param string $key Field name or markup string with field {name} tags in it
 	 * @return string
+	 * @see Page::getText()
 	 *
 	 */
 	public function ___getMarkup($key) {
@@ -1141,10 +1312,13 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 * 
 	 * Returned value is entity encoded, unless $entities argument is false. 
 	 * 
-	 * @param string $key
-	 * @param bool $oneLine Specify true if returned value must be on single line
+	 * #pw-advanced
+	 * 
+	 * @param string $key Field name or string with field {name} tags in it.
+	 * @param bool $oneLine Specify true if returned value must be on single line.
 	 * @param bool|null $entities True to entity encode, false to not. Null for auto, which follows page's outputFormatting state.
 	 * @return string
+	 * @see Page::getMarkup()
 	 * 
 	 */
 	public function getText($key, $oneLine = false, $entities = null) {
@@ -1162,10 +1336,21 @@ class Page extends WireData implements \Countable, WireMatchable {
 	}
 
 	/**
-	 * Get the raw/unformatted value of a field, regardless of what $this->outputFormatting is set at
+	 * Get the unformatted value of a field, regardless of output formatting state
+	 * 
+	 * When a page's output formatting state is off, `$page->get('property')` or `$page->property` will
+	 * produce the same result as this method call. 
+	 * 
+	 * ~~~~~
+	 * // Get the 'body' field without any text formatters applied
+	 * $body = $page->getUnformatted('body');
+	 * ~~~~~
+	 * 
+	 * #pw-advanced
 	 * 
 	 * @param string $key Field or property name to retrieve
 	 * @return mixed
+	 * @see Page::getFormatted(), Page::of()
 	 *
 	 */
 	public function getUnformatted($key) {
@@ -1177,10 +1362,21 @@ class Page extends WireData implements \Countable, WireMatchable {
 	}
 
 	/**
-	 * Get the formatted value of a field, regardless of what $this->outputFormatting is set at
+	 * Get the formatted value of a field, regardless of output formatting state
+	 * 
+	 * When a page's output formatting state is on, `$page->get('property')` or `$page->property` will
+	 * produce the same result as this method call. 
+	 * 
+	 * ~~~~~
+	 * // Get the formatted 'body' field (text formatters applied)
+	 * $body = $page->getFormatted('body');
+	 * ~~~~~
+	 * 
+	 * #pw-advanced
 	 *
 	 * @param string $key Field or property name to retrieve
 	 * @return mixed
+	 * @see Page::getUnformatted(), Page::of()
 	 *
 	 */
 	public function getFormatted($key) {
@@ -1192,10 +1388,11 @@ class Page extends WireData implements \Countable, WireMatchable {
 	}
 
 	/**
-	 * @see get
+	 * Direct access get method
 	 * 
 	 * @param string $key
 	 * @return mixed
+	 * @see get()
 	 *
 	 */
 	public function __get($key) {
@@ -1203,10 +1400,11 @@ class Page extends WireData implements \Countable, WireMatchable {
 	}
 
 	/**
-	 * @see set
+	 * Direct access set method
 	 * 
 	 * @param string $key
 	 * @param mixed $value
+	 * @see set()
 	 *
 	 */
 	public function __set($key, $value) {
@@ -1215,9 +1413,26 @@ class Page extends WireData implements \Countable, WireMatchable {
 
 
 	/**
-	 * Set the 'status' setting, with some built-in protections
+	 * Set the status setting, with some built-in protections
 	 * 
-	 * @param int|array|string Status value, array of status names or values, or status name string
+	 * This method is also used when you set status directly, i.e. `$page->status = $value;`.
+	 * 
+	 * ~~~~~
+	 * // set status to unpublished
+	 * $page->setStatus('unpublished');
+	 * 
+	 * // set status to hidden and unpublished
+	 * $page->setStatus('hidden, unpublished');
+	 * 
+	 * // set status to hidden + unpublished using Page constant bitmask
+	 * $page->setStatus(Page::statusHidden | Page::statusUnpublished); 
+	 * ~~~~~
+	 * 
+	 * #pw-advanced
+	 * #pw-group-manipulation
+	 * 
+	 * @param int|array|string Status value, array of status names or values, or status name string.
+	 * @see Page::addStatus(), Page::removeStatus()
 	 *
 	 */
 	protected function setStatus($value) {
@@ -1263,10 +1478,23 @@ class Page extends WireData implements \Countable, WireMatchable {
 	}
 
 	/**
-	 * Set the page name
+	 * Set the page name, optionally for specific language
 	 * 
-	 * @param string $value
-	 * @param Language|string|int|null $language Set language for name (can also be string in format "name1234")
+	 * ~~~~~
+	 * // Set page name (default language)
+	 * $page->setName('my-page-name');
+	 * 
+	 * // This is equivalent to the above
+	 * $page->name = 'my-page-name'; 
+	 * 
+	 * // Set page name for Spanish language
+	 * $page->setName('la-cerveza', 'es'); 
+	 * ~~~~~
+	 * 
+	 * #pw-group-manipulation
+	 * 
+	 * @param string $value Page name that you want to set
+	 * @param Language|string|int|null $language Set language for name (can also be language name or string in format "name1234")
 	 * @return $this
 	 *
 	 */
@@ -1337,9 +1565,18 @@ class Page extends WireData implements \Countable, WireMatchable {
 	}
 
 	/**
-	 * Set this Page's Template object
+	 * Set this Page's Template 
 	 * 
-	 * @param Template|int|string $tpl
+	 * ~~~~~
+	 * // The following 3 lines are equivalent
+	 * $page->setTemplate('basic-page');
+	 * $page->template = 'basic-page';
+	 * $page->templates = $templates->get('basic-page'); 
+	 * ~~~~~
+	 * 
+	 * #pw-internal
+	 * 
+	 * @param Template|int|string $tpl May be Template object, name or ID.
 	 * @return $this
 	 * @throws WireException if given invalid arguments or template not allowed for page
 	 *
@@ -1360,6 +1597,8 @@ class Page extends WireData implements \Countable, WireMatchable {
 
 	/**
 	 * Set this page's parent Page
+	 * 
+	 * #pw-internal
 	 * 
 	 * @param Page $parent
 	 * @return $this
@@ -1383,7 +1622,7 @@ class Page extends WireData implements \Countable, WireMatchable {
 
 	/**
 	 * Set either the createdUser or the modifiedUser 
-	 *
+	 * 
 	 * @param User|int|string $user User object or integer/string representation of User
 	 * @param string $userType Must be either 'created' or 'modified' 
 	 * @return $this
@@ -1422,14 +1661,22 @@ class Page extends WireData implements \Countable, WireMatchable {
 	}
 
 	/**
-	 * Find Pages in the descendent hierarchy
+	 * Find pages matching given selector in the descendent hierarchy
 	 *
-	 * Same as Pages::find() except that the results are limited to descendents of this Page
+	 * This is the same as `Pages::find()` except that the results are limited to descendents of this Page.
+	 * 
+	 * ~~~~~
+	 * // Find all unpublished pages underneath the current page
+	 * $items = $page->find("status=unpublished"); 
+	 * ~~~~~
 	 *
-	 * @param string|array $selector Selector string
+	 * #pw-group-common
+	 * #pw-group-traversal
+	 *
+	 * @param string|array $selector Selector string or array
 	 * @param array $options Same as the $options array passed to $pages->find(). 
 	 * @return PageArray
-	 * @see Pages::find
+	 * @see Pages::find()
 	 *
 	 */
 	public function find($selector = '', $options = array()) {
@@ -1443,11 +1690,29 @@ class Page extends WireData implements \Countable, WireMatchable {
 	}
 
 	/**
-	 * Return this page's children pages, optionally filtered by a selector
+	 * Return this page’s children, optionally filtered by a selector
+	 * 
+	 * By default, hidden, unpublished and no-access pages are excluded unless `include=x` (where "x" is desired status) is specified. 
+	 * If a selector isn't needed, children can also be accessed directly by property with `$page->children`.
+	 * 
+	 * ~~~~~
+	 * // Render navigation for all child pages below this one
+	 * foreach($page->children() as $child) {
+	 *   echo "<li><a href='$child->url'>$child->title</a></li>";
+	 * }
+	 * ~~~~~         
+	 * ~~~~~
+	 * // Retrieve just the 3 newest children
+	 * $newest = $page->children("limit=3, sort=-created");
+	 * ~~~~~
+	 * 
+	 * #pw-group-common
+	 * #pw-group-traversal
 	 *
-	 * @param string $selector Selector to use, or omit to return all children
-	 * @param array $options Options per Pages::find
-	 * @return PageArray
+	 * @param string $selector Selector to use, or omit to return all children.
+	 * @param array $options Optional options to modify behavior, the same as those provided to Pages::find.
+	 * @return PageArray Children that matched the selector, or all children (if no selector given)
+	 * @see Page::child(), Page::find(), Page::numChildren(), Page::hasChildren()
 	 *
 	 */
 	public function children($selector = '', $options = array()) {
@@ -1455,17 +1720,28 @@ class Page extends WireData implements \Countable, WireMatchable {
 	}
 
 	/**
-	 * Return number of children, optionally with conditions
+	 * Return number of all children, optionally with conditions
 	 *
-	 * Use this over $page->numChildren property when you want to specify a selector, or when you want the result to
+	 * Use this over the `$page->numChildren` property when you want to specify a selector, or when you want the result to
 	 * include only visible children. See the options for the $selector argument. 
+	 * 
+	 * When you want to retrieve all children with no exclusions or conditions, use the `$page->numChildren` property instead. 
+	 * 
+	 * ~~~~~
+	 * // Find how many children were modified in the last week
+	 * $qty = $page->numChildren("modified>='-1 WEEK'");
+	 * ~~~~~
+	 * 
+	 * #pw-group-common
+	 * #pw-group-traversal
 	 *
 	 * @param bool|string|array $selector 
-	 *	When not specified, result includes all children without conditions, same as $page->numChildren property.
-	 *	When a string or array, a selector is assumed and quantity will be counted based on selector.
-	 * 	When boolean true, number includes only visible children (excludes unpublished, hidden, no-access, etc.)
-	 *	When boolean false, number includes all children without conditions, including unpublished, hidden, no-access, etc.
+	 * - When not specified, result includes all children without conditions, same as $page->numChildren property.
+	 * - When a string or array, a selector is assumed and quantity will be counted based on selector.
+	 * - When boolean true, number includes only visible children (excludes unpublished, hidden, no-access, etc.)
+	 * - When boolean false, number includes all children without conditions, including unpublished, hidden, no-access, etc.
 	 * @return int Number of children
+	 * @see Page::hasChildren(), Page::children(), Page::child()
 	 *
 	 */
 	public function numChildren($selector = null) {
@@ -1474,15 +1750,29 @@ class Page extends WireData implements \Countable, WireMatchable {
 	}
 
 	/**
-	 * Similar to numChildren except that default behavior is to exclude non-visible children.
+	 * Return the number of visible children, optionally with conditions
 	 * 
-	 * This method may be more convenient for front-end navigation use than the numChildren() method. 
+	 * This method is similar to `$page->numChildren()` except that the default behavior is to exclude non-visible children.
+	 * 
+	 * This method may be more convenient for front-end navigation use than the `$page->numChildren()` method because
+	 * it only includes the count of visible children. By visible, we mean children that are not hidden, unpublished,
+	 * or non-accessible due to access control. 
+	 * 
+	 * ~~~~~
+	 * // Determine if we should show navigation to children
+	 * if($page->hasChildren()) {
+	 *   // Yes, we should show navigation to children
+	 * }
+	 * ~~~~~
+	 * 
+	 * #pw-group-common
+	 * #pw-group-traversal
 	 * 
 	 * @param bool|string|array $selector
-	 *	When not specified, result is quantity of visible children (excludes unpublished, hidden, no-access, etc.)
-	 *	When a string or array, a selector is assumed and quantity will be counted based on selector.
-	 * 	When boolean true, number includes only visible children (this is the default behavior, so no need to specify this value).
-	 *	When boolean false, number includes all children without conditions, including unpublished, hidden, no-access, etc.
+	 * - When not specified, result is quantity of visible children (excludes unpublished, hidden, no-access, etc.)
+	 * - When a string or array, a selector is assumed and quantity will be counted based on selector.
+	 * - When boolean true, number includes only visible children (this is the default behavior, so no need to specify this value).
+	 * - When boolean false, number includes all children without conditions, including unpublished, hidden, no-access, etc.
 	 * @return int Number of children
 	 * 
 	 */
@@ -1491,13 +1781,23 @@ class Page extends WireData implements \Countable, WireMatchable {
 	}
 
 	/**
-	 * Return the page's first single child that matches the given selector. 
+	 * Return the page’s first single child that matches the given selector. 
 	 *
-	 * Same as children() but returns a Page object or NullPage (with id=0) rather than a PageArray
+	 * Same as `$page->children()` but returns a single Page object or NullPage (with id=0) rather than a PageArray.
+	 * Meaning, this method will only ever return one Page. 
+	 * 
+	 * ~~~~~
+	 * // Get the newest created child page
+	 * $newestChild = $page->child("sort=-created"); 
+	 * ~~~~~
+	 * 
+	 * #pw-group-common
+	 * #pw-group-traversal
 	 *
 	 * @param string|array $selector Selector to use, or blank to return the first child. 
-	 * @param array $options Options per Pages::find
+	 * @param array $options Optional options per Pages::find
 	 * @return Page|NullPage
+	 * @see Page::children()
 	 *
 	 */
 	public function child($selector = '', $options = array()) {
@@ -1505,9 +1805,24 @@ class Page extends WireData implements \Countable, WireMatchable {
 	}
 
 	/**
-	 * Return this page's parent Page, or the closest parent matching the given selector.
-	 *
-	 * @param string|array $selector Optional selector string. When used, it returns the closest parent matching the selector. 
+	 * Return this page’s parent Page, or–if given a selector–the closest matching parent.
+	 * 
+	 * Omit all arguments if you just want to retrieve the parent of this page, which would be the same as the 
+	 * `$page->parent` property. To retrieve the closest parent matching your selector, specify either a selector
+	 * string or array. 
+	 * 
+	 * ~~~~~
+	 * // Retrieve the parent
+	 * $parent = $page->parent();
+	 * 
+	 * // Retrieve the closest parent using template "products"
+	 * $parent = $page->parent("template=products"); 
+	 * ~~~~~
+	 * 
+	 * #pw-group-common
+	 * #pw-group-traversal
+	 * 
+	 * @param string|array $selector Optional selector. When used, it returns the closest parent matching the selector. 
 	 * @return Page Returns a Page or a NullPage when there is no parent or the selector string did not match any parents.
 	 *
 	 */
@@ -1520,10 +1835,27 @@ class Page extends WireData implements \Countable, WireMatchable {
 	}
 
 	/**
-	 * Return this page's parent pages, or the parent pages matching the given selector.
+	 * Return this page’s parent pages, or the parent pages matching the given selector.
+	 * 
+	 * This method returns all parents of this page, in order. If a selector is specified, they
+	 * will be filtered by the selector. 
+	 * 
+	 * ~~~~~
+	 * // Render breadcrumbs 
+	 * foreach($page->parents() as $parent) {
+	 *   echo "<li><a href='$parent->url'>$parent->title</a></li>";
+	 * }
+	 * ~~~~~
+	 * ~~~~~
+	 * // Return all parents, excluding the homepage
+	 * $parents = $page->parents("template!=home"); 
+	 * ~~~~~
+	 * 
+	 * #pw-group-common
+	 * #pw-group-traversal
 	 *
-	 * @param string|array $selector Optional selector string to filter parents by
-	 * @return PageArray
+	 * @param string|array $selector Optional selector string to filter parents by.
+	 * @return PageArray All parent pages, or those matching the given selector. 
 	 *
 	 */
 	public function parents($selector = '') {
@@ -1531,7 +1863,11 @@ class Page extends WireData implements \Countable, WireMatchable {
 	}
 
 	/**
-	 * Return all parents from current till the one matched by $selector
+	 * Return all parents from current page till the one matched by $selector
+	 * 
+	 * This duplicates the jQuery parentsUntil() function in ProcessWire. 
+	 * 
+	 * #pw-group-traversal
 	 *
 	 * @param string|Page|array $selector May either be a selector sor Page to stop at. Results will not include this. 
 	 * @param string|array $filter Optional selector to filter matched pages by
@@ -1543,10 +1879,13 @@ class Page extends WireData implements \Countable, WireMatchable {
 	}
 
 	/**
-	 * Like parent() but includes the current Page in the possible pages that can be matched
- 	 *
-	 * Note also that unlike parent() a $selector is required.
-	 *
+	 * Find the closest parent page matching your selector
+	 * 
+	 * This is like `$page->parent()` but includes the current Page in the possible pages that can be matched,
+	 * and the $selector argument is required. 
+	 * 
+	 * #pw-group-traversal
+	 * 
 	 * @param string|array $selector Selector string to match. 
 	 * @return Page|NullPage $selector Returns the current Page or closest parent matching the selector. Returns NullPage when no match.
 	 *
@@ -1559,7 +1898,20 @@ class Page extends WireData implements \Countable, WireMatchable {
 	/**
 	 * Get the lowest-level, non-homepage parent of this page
 	 *
-	 * rootParents typically comprise the first level of navigation on a site. 
+	 * The rootParents typically comprise the first level of navigation on a site, and in many cases are considered
+	 * the "section" pages of the site. 
+	 * 
+	 * ~~~~~
+	 * // Determine if we are in the "products" section of the site
+	 * if($page->rootParent()->template == 'products') {
+	 *   // we are in the products section
+	 * } else {
+	 *   // we are in some other section of the site
+	 * }
+	 * ~~~~~
+	 * 
+	 * #pw-group-common
+	 * #pw-group-traversal
 	 *
 	 * @return Page 
 	 *
@@ -1569,15 +1921,39 @@ class Page extends WireData implements \Countable, WireMatchable {
 	}
 
 	/**
-	 * Return this Page's sibling pages, optionally filtered by a selector. 
+	 * Return this Page’s sibling pages, optionally filtered by a selector. 
 	 *
-	 * Note that the siblings include the current page. To exclude the current page, specify "id!=$page". 
+	 * To exclude the current page in list of siblings, specify boolean false for first or second argument. 
+	 * 
+	 * ~~~~~
+	 * // Get all sibling pages 
+	 * $siblings = $page->siblings(); 
+	 * 
+	 * // Get all siblings having the "product-featured" template, sorted by name
+	 * $featured = $page->siblings("template=product-featured, sort=name");
+	 * ~~~~~
+	 * 
+	 * #pw-group-traversal
 	 *
-	 * @param string|array $selector Optional selector to filter siblings by.
+	 * @param string|array|bool $selector Optional selector to filter siblings by, or omit for all siblings. 
+	 * @param bool $includeCurrent Specify false to exclude current page in the returned siblings (default=true). 
+	 *   If no $selector argument is given, this argument may optionally be specified as the first argument. 
 	 * @return PageArray
 	 *
 	 */
-	public function siblings($selector = '') {
+	public function siblings($selector = '', $includeCurrent = true) {
+		if(is_bool($selector)) {
+			$includeCurrent = $selector; 
+			$selector = '';
+		}
+		if(!$includeCurrent) {
+			if(is_array($selector)) {
+				$selector[] = array('id', '!=', $this->id);
+			} else {
+				if(strlen($selector)) $selector .= ", ";	
+				$selector .= "id!=$this->id";
+			}
+		}
 		return $this->traversal()->siblings($this, $selector); 
 	}
 
@@ -1587,11 +1963,18 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 * If given a PageArray of siblings (containing the current) it will return the next sibling relative to the provided PageArray.
 	 *
 	 * Be careful with this function when the page has a lot of siblings. It has to load them all, so this function is best
-	 * avoided at large scale, unless you provide your own already-reduced siblings list (like from pagination)
+	 * avoided at large scale, unless you provide your own already-reduced siblings list (like from pagination).
 	 *
-	 * When using a selector, note that this method operates only on visible children. If you want something like "include=all"
-	 * or "include=hidden", they will not work in the selector. Instead, you should provide the siblings already retrieved with
+	 * When using a selector, note that this method operates only on visible children. If you want something like `include=all`
+	 * or `include=hidden`, they will not work in the selector. Instead, you should provide the siblings already retrieved with
 	 * one of those modifiers, and provide those siblings as the second argument to this function.
+	 * 
+	 * ~~~~~
+	 * // Get the next newest sibling
+	 * $sibling = $page->next("created>$page->created"); 
+	 * ~~~~~
+	 * 
+	 * #pw-group-traversal
 	 *
 	 * @param string|array $selector Optional selector. When specified, will find nearest next sibling that matches. 
 	 * @param PageArray $siblings Optional siblings to use instead of the default. May also be specified as first argument when no selector needed.
@@ -1604,6 +1987,8 @@ class Page extends WireData implements \Countable, WireMatchable {
 
 	/**
 	 * Return all sibling pages after this one, optionally matching a selector
+	 * 
+	 * #pw-group-traversal
 	 *
 	 * @param string|array $selector Optional selector. When specified, will filter the found siblings.
 	 * @param PageArray $siblings Optional siblings to use instead of the default. 
@@ -1616,6 +2001,8 @@ class Page extends WireData implements \Countable, WireMatchable {
 
 	/**
 	 * Return all sibling pages after this one until matching the one specified 
+	 * 
+	 * #pw-group-traversal
 	 *
 	 * @param string|Page|array $selector May either be a selector or Page to stop at. Results will not include this. 
 	 * @param string|array $filter Optional selector to filter matched pages by
@@ -1638,6 +2025,8 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 * When using a selector, note that this method operates only on visible children. If you want something like "include=all"
 	 * or "include=hidden", they will not work in the selector. Instead, you should provide the siblings already retrieved with
 	 * one of those modifiers, and provide those siblings as the second argument to this function.
+	 * 
+	 * #pw-group-traversal
 	 *
 	 * @param string|array $selector Optional selector. When specified, will find nearest previous sibling that matches. 
 	 * @param PageArray|null $siblings Optional siblings to use instead of the default. May also be specified as first argument when no selector needed.
@@ -1650,6 +2039,8 @@ class Page extends WireData implements \Countable, WireMatchable {
 
 	/**
 	 * Return all sibling pages before this one, optionally matching a selector
+	 * 
+	 * #pw-group-traversal
 	 *
 	 * @param string|array $selector Optional selector. When specified, will filter the found siblings.
 	 * @param PageArray|null $siblings Optional siblings to use instead of the default. 
@@ -1662,6 +2053,8 @@ class Page extends WireData implements \Countable, WireMatchable {
 
 	/**
 	 * Return all sibling pages before this one until matching the one specified 
+	 * 
+	 * #pw-group-traversal
 	 *
 	 * @param string|Page|array $selector May either be a selector or Page to stop at. Results will not include this. 
 	 * @param string|array $filter Optional selector to filter matched pages by
@@ -1675,15 +2068,29 @@ class Page extends WireData implements \Countable, WireMatchable {
 
 
 	/**
-	 * Save this page to the database. 
-	 *
-	 * To hook into this (___save), use 'Pages::save' 
-	 * To hook into a field-only save, use 'Pages::saveField'
+	 * Save the entire page to the database, or just a field from it
+	 * 
+	 * This is the same as calling `$pages->save($page);` or `$pages->saveField($page, $field)`, but calling directly
+	 * on the $page like this may be more convenient in many instances.
+	 * 
+	 * If you want to hook into the save operation, hook into one of the many Pages class hooks referenced in the 'See Also' section.
+	 * 
+	 * ~~~~~
+	 * // Save the page
+	 * $page->save();
+	 * 
+	 * // Save just the 'title' field from the page
+	 * $page->save('title');
+	 * ~~~~~
+	 * 
+	 * #pw-group-common
+	 * #pw-group-manipulation
 	 *
 	 * @param Field|string $field Optional field to save (name of field or Field object)
-	 * @param array $options See Pages::save for options. You may also specify $options as the first argument if no $field is needed.
-	 * @return bool true on success false on fail
+	 * @param array $options See Pages::save() documentation for options. You may also specify $options as the first argument if no $field is needed.
+	 * @return bool Returns true on success false on fail
 	 * @throws WireException on database error
+	 * @see Pages::save(), Pages::saveField(), Pages::saveReady(), Pages::saveFieldReady(), Pages::saved(), Pages::fieldSaved()
 	 *
 	 */
 	public function save($field = null, array $options = array()) {
@@ -1702,15 +2109,41 @@ class Page extends WireData implements \Countable, WireMatchable {
 	}
 	
 	/**
-	 * Set a field value (or array of fields and values) and save the page
+	 * Quickly set field value(s) and save to database 
+	 * 
+	 * You can specify a single vield and value, or an array of fields and values. 
 	 *
 	 * This method does not need output formatting to be turned off first, so make sure that whatever
-	 * value(s) you set are not formatted values!
+	 * value(s) you set are not formatted values.
+	 * 
+	 * ~~~~~
+	 * // Set and save the summary field
+	 * $page->setAndSave('summary', 'When nothing is done, nothing is left undone.');
+	 * ~~~~~
+	 * ~~~~~
+	 * // Set and save multiple fields
+	 * $page->setAndSave([
+	 *   'title' => 'It is Friday again',
+	 *   'subtitle' => 'Here is another new blog post',
+	 *   'body' => 'Hope you all have a great weekend!'
+	 * ]);
+	 * ~~~~~
+	 * ~~~~~
+	 * // Update a 'last_login' field after every user login
+	 * $session->addHookAfter('loginSuccess', function($event) {
+	 *   $user = $event->arguments(0);
+	 *   $user->setAndSave('last_login', time());
+	 * });
+	 * ~~~~~
+	 * 
+	 * #pw-group-manipulation
+	 * #pw-links [Blog post about setAndSave](https://processwire.com/blog/posts/processwire-2.6.9-core-updates-and-new-procache-version/#new-page-gt-setandsave-method)
 	 *
-	 * @param array|string $key Field or property name to set, or array of (key => value)
+	 * @param array|string $key Field or property name to set, or array of one or more ['property' => $value].
 	 * @param string|int|bool|object $value Value to set, or omit if you provided an array in first argument.
-	 * @param array $options Additional options, as specified with Pages::save()
-	 * @return bool
+	 * @param array $options See Pages::save() for additional $options that may be specified. 
+	 * @return bool Returns true on success, false on failure
+	 * @see Pages::save()
 	 *
 	 */
 	public function setAndSave($key, $value = null, array $options = array()) {
@@ -1736,25 +2169,50 @@ class Page extends WireData implements \Countable, WireMatchable {
 	}
 
 	/**
-	 * Delete this page from the Database
+	 * Delete this page from the database
+	 * 
+	 * This is the same as calling `$pages->delete($page)`.
 	 *
-	 * Throws WireException if action not allowed. 
-	 * See Pages::delete for a hookable version. 
+	 * ~~~~~
+	 * // Delete pages named "delete-me" that don't have children
+	 * $items = $pages->find("name=delete-me, numChildren=0");
+	 * foreach($items as $item) {
+	 *   $item->delete();
+	 * }
+	 * ~~~~~
+	 * ~~~~~
+	 * // Delete a page and recursively all of its children, grandchildren, etc. 
+	 * $item = $pages->get('/some-page/'); 
+	 * $item->delete(true);
+	 * ~~~~~
+	 * 
+	 * #pw-group-manipulation
 	 *
-	 * @return bool True on success
+	 * @param bool $recursive If set to true, then this will attempt to delete all children too.
+	 * @return bool True on success, false on failure.
+	 * @throws WireException when attempting to delete a page with children and $recursive option is not specified.
+	 * @see Pages::delete()
 	 *
 	 */
-	public function delete() {
-		return $this->wire('pages')->delete($this); 
+	public function delete($recursive = false) {
+		return $this->wire('pages')->delete($this, $recursive); 
 	}
 
 	/**
 	 * Move this page to the trash
+	 * 
+	 * This is the same as calling `$pages->trash($page)`.
+	 * 
+	 * ~~~~~
+	 * // Trash a page
+	 * $item = $pages->get('/some-page/');
+	 * $item->trash();
+	 * ~~~~~
+	 * 
+	 * #pw-group-manipulation
 	 *
-	 * Throws WireException if action is not allowed. 
-	 * See Pages::trash for a hookable version. 
-	 *
-	 * @return bool True on success
+	 * @return bool True on success, false on failure
+	 * @throws WireException
 	 *
 	 */
 	public function trash() {
@@ -1762,12 +2220,28 @@ class Page extends WireData implements \Countable, WireMatchable {
 	}
 	
 	/**
-	 * Returns number of children page has, fulfilling \Countable interface
-	 *
-	 * When output formatting is on, returns only number of visible children.
-	 * When output formatting is off, returns number of all children.
-	 *
-	 * @return int
+	 * Returns number of children page has, affected by output formatting mode.
+	 * 
+	 * - When output formatting is on, returns only number of visible children,
+	 *   making the return value the same as the `Page::hasChildren()` method. 
+	 * 
+	 * - When output formatting is off, returns number of all children without exclusion,
+	 *   making the return value teh same as the `Page::numChildren()` method. 
+	 * 
+	 * ~~~~~
+	 * // Get number of visible children, like $page->hasChildren()
+	 * $page->of(true); // enable output formatting
+	 * $numVisible = $page->count();
+	 * 
+	 * // Get number of all children, like $page->numChildren()
+	 * $page->of(false); // disable output formatting
+	 * $numTotal = $page->count();
+	 * ~~~~~
+	 * 
+	 * #pw-advanced
+	 * 
+	 * @return int Quantity of children
+	 * @see Page::hasChildren(), Page::numChildren()
 	 *
 	 */
 	public function count() {
@@ -1776,7 +2250,21 @@ class Page extends WireData implements \Countable, WireMatchable {
 	}
 
 	/**
-	 * Allow iteration of the properties with foreach(), fulfilling \IteratorAggregate interface.
+	 * Enables iteration of the page's properties and fields with PHP’s foreach()
+	 * 
+	 * This fulfills PHP's IteratorAggregate interface, enabling you to interate all of the page's properties and fields. 
+	 * 
+	 * ~~~~~
+	 * // List all properties and fields from the page
+	 * foreach($page as $name => $value) {
+	 *   echo "<h3>$name</h3>";
+	 *   echo "<p>$value</p>"; 
+	 * }
+	 * ~~~~~
+	 * 
+	 * #pw-advanced
+	 * 
+	 * @return \ArrayObject
 	 *
 	 */
 	public function getIterator() {
@@ -1790,13 +2278,40 @@ class Page extends WireData implements \Countable, WireMatchable {
 	}
 
 	/**
-	 * Has the Page (or optionally one of it's fields) changed since it was loaded?
+	 * Has the Page changed since it was loaded?
 	 *
-	 * Assumes that Pages has turned on this Page's change tracking with a call to setTrackChanges(). 
-	 * Pages that are new (i.e. don't yet exist in the DB) always return true. 
+	 * To check if only a specific property on the page has changed, specify the property/field name as the first argument. 
+	 * This method assumes that change tracking is enabled for the Page (as it is by default). 
+	 * Pages that are new (i.e. don't yet exist in the database) always return true. 
+	 * 
+	 * #pw-group-manipulation
+	 * 
+	 * ~~~~~
+	 * // Check if page has any changes
+	 * if($page->isChanged()) {
+	 *   // There are changes to this page
+	 *   $changes = $page->getChanges();
+	 * }
+	 * ~~~~~
+	 * ~~~~~
+	 * // When page is about to be saved, update summary when body has changed
+	 * $this->addHookBefore('Pages::saveReady', function($event) {
+	 *   $page = $event->arguments('page'); 
+	 *   if($page->isChanged('body')) {
+	 *     // get first 300 chars from body
+	 *     $summary = substr($page->body, 0, 300);
+	 *     // truncate to position of last period
+	 *     $period = strrpos($summary, '.'); 
+	 *     if($period) $summary = substr($summary, 0, $period);
+	 *     // populate to the page, so that summary is also saved
+	 *     $page->summary = $summary;
+	 *   }
+	 * });
+	 * ~~~~~
 	 * 
 	 * @param string $what If specified, only checks the given property for changes rather than the whole page. 
 	 * @return bool 
+	 * @see Wire::setTrackChanges(), Wire::getChanges(), Wire::trackChange()
 	 *
 	 */
 	public function isChanged($what = '') {
@@ -1820,9 +2335,17 @@ class Page extends WireData implements \Countable, WireMatchable {
 
 	/**
 	 * Clears out any tracked changes and turns change tracking ON or OFF
+	 * 
+	 * Use this method when you want to clear a list of tracked changes on the page. Note that any changes are still
+	 * present, but ProcessWire no longer knows they had been changed. Meaning, the changes won't be available to 
+	 * the `$page->isChanged()` and `$page->getChanges()` methods, and the changes might be skipped over if/when 
+	 * the page is saved. 
+	 * 
+	 * #pw-group-manipulation
 	 *
 	 * @param bool $trackChanges True to turn change tracking ON, or false to turn OFF. Default of true is assumed. 
 	 * @return $this
+	 * @see Page::isChanged(), Page::getChanges(), Page::trackChanges()
 	 *
 	 */
 	public function resetTrackChanges($trackChanges = true) {
@@ -1835,6 +2358,8 @@ class Page extends WireData implements \Countable, WireMatchable {
 
 	/**
 	 * Returns the Page's ID in a string
+	 * 
+	 * @return string
 	 *
 	 */
 	public function __toString() {
@@ -1842,7 +2367,23 @@ class Page extends WireData implements \Countable, WireMatchable {
 	}
 
 	/**
-	 * Returns the Page's path from the site root. 
+	 * Returns the Page’s path from the ProcessWire installation root. 
+	 * 
+	 * The path is always indicated from the ProcessWire installation root. Meaning, if the installation is 
+	 * running from a subdirectory, then the path does not include that subdirectory, whereas the url does. 
+	 * Note that path and url are identical if installation is not running from a subdirectory. 
+	 * 
+	 * #pw-hookable
+	 * #pw-group-common
+	 * 
+	 * ~~~~~
+	 * // Difference between path and url on site running from subdirectory /my-site/
+	 * echo $page->path(); // outputs: /about/contact/
+	 * echo $page->url();  // outputs: /my-site/about/contact/
+	 * ~~~~~
+	 * 
+	 * @return string Returns the page path, for example: `/about/contact/`
+	 * @see Page::url(), Page::httpUrl()
 	 *
 	 */
 	public function path() {
@@ -1855,6 +2396,8 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 * The method we're using here by having a real path() function above is slightly quicker than just letting 
 	 * PW's hook handler handle it all. We're taking this approach since path() is a function that can feasibly
 	 * be called hundreds or thousands of times in a request, so we want it as optimized as possible.
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	protected function ___path() {
@@ -1866,12 +2409,33 @@ class Page extends WireData implements \Countable, WireMatchable {
 	}
 
 	/**
-	 * Like path() but comes from server document root (which may or may not be different)
+	 * Returns the URL to the page
 	 *
-	 * Does not include urlSegment, if applicable. 
-	 * Does not include protocol and hostname -- use httpUrl() for that.
+	 * - This method can also be accessed by property `$page->url` (without parenthesis). 
+	 * 
+	 * - Like `$page->path()` but comes from server document root. Path and url are identical if 
+	 *   installation is not running from a subdirectory. 
+	 * 
+	 * - Use `$page->httpUrl()` if you need the URL to include scheme and hostname. 
+	 * 
+	 * - **Need to hook this method?** While it's not directly hookable, it does use the `$page->path()`
+	 *   method, which *is* hookable. As a result, you can affect the output of the url() method by
+	 *   hooking the path() method instead. 
 	 *
-	 * @see path
+	 * ~~~~~
+	 * // Using $page->url to output navigation
+	 * foreach($page->children as $child) {
+	 *   echo "<li><a href='$child->url'>$child->title</a></li>";
+	 * }
+	 * ~~~~~
+	 * ~~~~~
+	 * // Difference between url() and path() on site running from subdirectory /my-site/
+	 * echo $page->url();  // outputs: /my-site/about/contact/
+	 * echo $page->path(); // outputs: /about/contact/
+	 * ~~~~~
+	 * 
+	 * @return string Returns page URL, for example: `/my-site/about/contact/`
+	 * @see Page::path(), Page::httpUrl(), Page::editUrl(), Page::localUrl()
 	 *
 	 */
 	public function url() {
@@ -1881,9 +2445,23 @@ class Page extends WireData implements \Countable, WireMatchable {
 	}
 
 	/**
-	 * Like URL, but includes the protocol and hostname
+	 * Returns the URL to the page, including scheme and hostname
 	 * 
-	 * @return string
+	 * - This method is just like the `$page->url()` method except that it also includes scheme and hostname.
+	 * 
+	 * - This method can also be accessed at the property `$page->httpUrl` (without parenthesis). 
+	 * 
+	 * - It is desirable to use this method when some page templates require https while others don't.  
+	 *   This ensures local links will always point to pages with the proper scheme. For other cases, it may
+	 *   be preferable to use `$page->url()` since it produces shorter output. 
+	 * 
+	 * ~~~~~
+	 * // Generating a link to this page using httpUrl
+	 * echo "<a href='$page->httpUrl'>$page->title</a>"; 
+	 * ~~~~~
+	 * 
+	 * @return string Returns full URL to page, for example: `https://processwire.com/about/`
+	 * @see Page::url(), Page::localHttpUrl()
 	 *
 	 */
 	public function httpUrl() {
@@ -1901,7 +2479,18 @@ class Page extends WireData implements \Countable, WireMatchable {
 	/**
 	 * Return the URL necessary to edit this page
 	 * 
-	 * @return string
+	 * - We recommend checking that the page is editable before outputting the editUrl(). 
+	 * - This method can also be accessed by property at `$page->editUrl` (without parenthesis). 
+	 * 
+	 * ~~~~~~
+	 * if($page->editable()) {
+	 *   echo "<a href='$page->editUrl'>Edit this page</a>";
+	 * }
+	 * ~~~~~~
+	 * 
+	 * #pw-group-advanced
+	 * 
+	 * @return string URL for editing this page
 	 * 
 	 */
 	public function editUrl() {
@@ -1916,6 +2505,8 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 * Get the output TemplateFile object for rendering this page (internal use only)
 	 *
 	 * You can retrieve the results of this by calling $page->out or $page->output
+	 * 
+	 * #pw-internal
 	 *
 	 * @param bool $forceNew Forces it to return a new (non-cached) TemplateFile object (default=false)
 	 * @return TemplateFile
@@ -1939,25 +2530,33 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 * 
 	 * Shorter aliases of this method include:
 	 * 
-	 *   $page->render(fieldName, file); 
-	 *   $page->render->fieldName;
-	 *   $page->_fieldName_;
+	 * - `$page->render('fieldName', $file);`
+	 * - `$page->render->fieldName;`
+	 * - `$page->_fieldName_;`
 	 * 
-	 * This method expects that there is a file in /site/templates/fields/ to render the field with:
+	 * This method expects that there is a file in `/site/templates/fields/` to render the field with:
 	 * 
-	 *   /site/templates/fields/fieldName.php
-	 *   /site/templates/fields/fieldName.templateName.php 
-	 *   /site/templates/fields/fieldName/$file.php (using $file argument)
-	 *   /site/templates/fields/$file.php
-	 *   /site/templates/fields/$file/fieldName.php (using $file argument, must have trailing slash)
-	 *   /site/templates/fields/$file.fieldName.php (using $file argument, must have trailing period)
+	 * - `/site/templates/fields/fieldName.php`
+	 * - `/site/templates/fields/fieldName.templateName.php`
+	 * - `/site/templates/fields/fieldName/$file.php` (using $file argument)
+	 * - `/site/templates/fields/$file.php` (using $file argument)
+	 * - `/site/templates/fields/$file/fieldName.php` (using $file argument, must have trailing slash)
+	 * - `/site/templates/fields/$file.fieldName.php` (using $file argument, must have trailing period)
 	 * 
-	 * Note that the examples aboe using $file require that the $file argument is specified. 
+	 * Note that the examples above showing $file require that the `$file` argument is specified. 
 	 * 
-	 * @param string $fieldName May be any custom field name or native page property
-	 * @param string $file Optionally specify file (in site/templates/fields/) to render with (may omit .php extension)
+	 * ~~~~~
+	 * // Render output for the 'images' field (assumes you have implemented an output file)
+	 * echo $page->renderField('images');
+	 * ~~~~~
+	 * 
+	 * #pw-group-output-rendering
+	 * 
+	 * @param string $fieldName May be any custom field name or native page property.
+	 * @param string $file Optionally specify file (in site/templates/fields/) to render with (may omit .php extension).
 	 * @param mixed|null $value Optionally specify value to render, otherwise it will be pulled from this $page. 
-	 * @return mixed|string
+	 * @return mixed|string Returns the rendered value of the field
+	 * @see Page::render(), Page::renderValue()
 	 * 
 	 */
 	public function ___renderField($fieldName, $file = '', $value = null) {
@@ -1967,13 +2566,21 @@ class Page extends WireData implements \Countable, WireMatchable {
 	}
 
 	/**
-	 * Render given $value using given site/templates/fields/ markup file
+	 * Render given $value using /site/templates/fields/ markup file
 	 * 
-	 * See the documentation for the renderField() method above for information about the $file argument. 
+	 * See the documentation for the `Page::renderField()` method for information about the `$file` argument. 
+	 * 
+	 * ~~~~~
+	 * // Render a value using site/templates/fields/my-images.php custom output template
+	 * $images = $page->images;
+	 * echo $page->renderValue($images, 'my-images'); 
+	 * ~~~~~
+	 * 
+	 * #pw-group-output-rendering
 	 *
-	 * @param mixed $value
+	 * @param mixed $value Value to render
 	 * @param string $file Optionally specify file (in site/templates/fields/) to render with (may omit .php extension)
-	 * @return mixed|string
+	 * @return mixed|string Returns rendered value
 	 *
 	 */
 	public function ___renderValue($value, $file = '') {
@@ -1981,10 +2588,16 @@ class Page extends WireData implements \Countable, WireMatchable {
 	}
 
 	/**
-	 * Return a Inputfield object that contains all the custom Inputfield objects required to edit this page
+	 * Return all Inputfield objects necessary to edit this page
 	 * 
-	 * @param string $fieldName Optional field to limit to, typically the name of a fieldset or tab
-	 * @return null|InputfieldWrapper
+	 * This method returns an InputfieldWrapper object that contains all the custom Inputfield objects 
+	 * required to edit this page. You may also specify a `$fieldName` argument to limit what is contained
+	 * in the returned InputfieldWrapper. 
+	 * 
+	 * #pw-advanced
+	 * 
+	 * @param string $fieldName Optional field to limit to, typically the name of a fieldset or tab.
+	 * @return null|InputfieldWrapper Returns an InputfieldWrapper array of Inputfield objects, or NULL on failure. 
 	 *
 	 */
 	public function getInputfields($fieldName = '') {
@@ -1994,20 +2607,55 @@ class Page extends WireData implements \Countable, WireMatchable {
 	/**
 	 * Does this page have the given status?
 	 * 
-	 * @param int|string $statusFlag Status number of string representation (hidden, locked, unpublished)
-	 * @return bool
+	 * This method is the preferred way to check if a page has a particular status. 
+	 * The status may be specified as one of the `Page::status` constants or a string representing
+	 * one of the constants, i.e. `hidden`, `unpublished`, `locked`, and so on.
+	 * 
+	 * ~~~~~
+	 * // check if page has hidden status using status name
+	 * if($page->hasStatus('hidden')) { ... }
+	 * 
+	 * // check if page has hidden status using status constant
+	 * if($page->hasStatus(Page::statusHidden)) { ... }
+	 * 
+	 * // There are also method shortcuts, i.e. 
+	 * if($page->isHidden()) { ... }
+	 * if($page->isUnpublished()) { ... }
+	 * if($page->isLocked()) { ... }
+	 * ~~~~~
+	 * 
+	 * #pw-group-status
+	 * #pw-group-common
+	 * 
+	 * @param int|string $status Status flag constant or string representation (hidden, locked, unpublished, etc.)
+	 * @return bool Returns true if page has the given status, or false if it doesn't. 
+	 * @see Page::addStatus(), Page::removeStatus(), Page::isHidden(), Page::isUnpublished(), Page::isLocked()
 	 * 
 	 */
-	public function hasStatus($statusFlag) {
-		if(is_string($statusFlag) && isset(self::$statuses[$statusFlag])) $statusFlag = self::$statuses[$statusFlag]; 
-		return (bool) ($this->status & $statusFlag);
+	public function hasStatus($status) {
+		if(is_string($status) && isset(self::$statuses[$status])) $status = self::$statuses[$status]; 
+		return (bool) ($this->status & $status);
 	}
 
 	/**
-	 * Add the specified status flag to this page's status
+	 * Add the specified status to this page
+	 * 
+	 * This is the preferred way to add a new status to a page. There is also a corresponding `Page::removeStatus()` method. 
+	 * 
+	 * ~~~~~
+	 * // Add hidden status to the page using status name
+	 * $page->addStatus('hidden'); 
+	 * 
+	 * // Add hidden status to the page using status constant
+	 * $page->addStatus(Page::statusHidden); 
+	 * ~~~~~
+	 * 
+	 * #pw-group-status
+	 * #pw-group-manipulation
 	 *
-	 * @param int|string $statusFlag Status number of string representation (hidden, locked, unpublished)
+	 * @param int|string $statusFlag Status flag constant or string representation (hidden, locked, unpublished, etc.)
 	 * @return $this
+	 * @see Page::removeStatus(), Page::hasStatus()
 	 *
 	 */
 	public function addStatus($statusFlag) {
@@ -2018,11 +2666,25 @@ class Page extends WireData implements \Countable, WireMatchable {
 	}
 
 	/** 
-	 * Remove the specified status flag from this page's status
+	 * Remove the specified status from this page
 	 *
-	 * @param int|string $statusFlag Status flag integer or string representation (hidden, unpublished, locked)
+	 * This is the preferred way to remove a status from a page. There is also a corresponding `Page::addStatus()` method. 
+	 * 
+	 * ~~~~~
+	 * // Remove hidden status from the page using status name
+	 * $page->removeStatus('hidden');
+	 *  
+	 * // Remove hidden status from the page using status constant
+	 * $page->removeStatus(Page::statusHidden);
+	 * ~~~~~
+	 * 
+	 * #pw-group-status
+	 * #pw-group-manipulation
+	 *
+	 * @param int|string $statusFlag Status flag constant or string representation (hidden, locked, unpublished, etc.)
 	 * @return $this
-	 * @throws WireException
+	 * @throws WireException If you attempt to remove `Page::statusSystem` or `Page::statusSystemID` statuses without first adding `Page::statusSystemOverride` status.
+	 * @see Page::addStatus(), Page::hasStatus()
 	 *
 	 */
 	public function removeStatus($statusFlag) {
@@ -2040,16 +2702,21 @@ class Page extends WireData implements \Countable, WireMatchable {
 	}
 	
 	/**
-	 * Given a Selectors object or a selector string, return whether this Page matches it
-	 * 
-	 * Implements WireMatchable interface
+	 * Given a selector, return whether or not this Page matches it
 	 *
-	 * @param string|Selectors $s
-	 * @return bool
+	 * ~~~~~
+	 * if($page->matches("created>=" . strtotime("today"))) {
+	 *   echo "This page was created today";
+	 * }
+	 * ~~~~~
+	 * 
+	 * @param string|Selectors|array $selector Selector to compare against (string, Selectors object, or array).
+	 * @return bool Returns true if this page matches, or false if it doesn't. 
 	 *
 	 */
-	public function matches($s) {
-		return $this->comparison()->matches($this, $s);
+	public function matches($selector) {
+		// This method implements the WireMatchable interface
+		return $this->comparison()->matches($this, $selector);
 	}
 
 	/**
@@ -2057,6 +2724,8 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 *
 	 * See status flag constants at top of Page class.
 	 * You may also use status names: hidden, locked, unpublished, system, systemID
+	 * 
+	 * #pw-internal
 	 *
 	 * @param int|string|Selectors $status Status number, status name, or Template name or selector string/object
 	 * @return bool
@@ -2069,6 +2738,8 @@ class Page extends WireData implements \Countable, WireMatchable {
 
 	/**
 	 * Does this page have a 'hidden' status?
+	 * 
+	 * #pw-group-status
 	 *
 	 * @return bool
 	 *
@@ -2079,6 +2750,8 @@ class Page extends WireData implements \Countable, WireMatchable {
 
 	/**
 	 * Does this page have a 'unpublished' status?
+	 * 
+	 * #pw-group-status
 	 *
 	 * @return bool
 	 *
@@ -2089,6 +2762,8 @@ class Page extends WireData implements \Countable, WireMatchable {
 	
 	/**
 	 * Does this page have a 'locked' status?
+	 * 
+	 * #pw-group-status
 	 *
 	 * @return bool
 	 *
@@ -2100,6 +2775,8 @@ class Page extends WireData implements \Countable, WireMatchable {
 	/**
 	 * Is this Page new? (i.e. doesn't yet exist in DB)
 	 * 
+	 * #pw-internal
+	 * 
 	 * @return bool
 	 *
 	 */
@@ -2109,6 +2786,8 @@ class Page extends WireData implements \Countable, WireMatchable {
 
 	/**
 	 * Is the page fully loaded? (or optionally a field)
+	 * 
+	 * #pw-internal
 	 * 
 	 * @param string|null $fieldName Optionally request if a specified field is already loaded in the page
 	 * @return bool
@@ -2121,6 +2800,8 @@ class Page extends WireData implements \Countable, WireMatchable {
 
 	/**
 	 * Is this Page in the trash?
+	 * 
+	 * #pw-group-status
 	 *
 	 * @return bool
 	 *
@@ -2139,6 +2820,9 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 *
 	 * This is a state that persists regardless of user, so has nothing to do with the current user.
 	 * To be public, the page must be published and have guest view access.
+	 * 
+	 * #pw-advanced
+	 * #pw-hookable
 	 *
 	 * @return bool True if public, false if not
 	 *
@@ -2148,7 +2832,7 @@ class Page extends WireData implements \Countable, WireMatchable {
 	}
 
 	/**
-	 * Implementation for the above isPublic function
+	 * Hookable implementation for the above isPublic function
 	 * 
 	 * @return bool
 	 * 
@@ -2163,11 +2847,38 @@ class Page extends WireData implements \Countable, WireMatchable {
 	/**
 	 * Get or set current status
 	 * 
+	 * - When manipulating status, you may prefer to use the `$page->addStatus()` and `$page->removeStatus()` methods instead.
+	 * 
+	 * - Use this `status()` method when you want to set multiple statuses at once, or when you want to get status rather than set it.
+	 * 
+	 * - You can also get or set status directly, by manipulating the `$page->status` property. 
+	 * 
+	 * ~~~~~
+	 * // Get the current status as bitmask
+	 * $status = $page->status();
+	 * 
+	 * // Get an array of status names assigned to page
+	 * $statuses = $page->status(true);
+	 * 
+	 * // Set status by Page constant bitmask
+	 * $page->status(Page::statusHidden | Page::statusUnpublished); 
+	 * 
+	 * // Set status by name
+	 * $page->status('unpublished');
+	 * 
+	 * // Set status by names
+	 * $page->status(['hidden', 'unpublished']); 
+	 * ~~~~~
+	 * 
+	 * #pw-group-manipulation
+	 * #pw-group-status
+	 * 
 	 * @param bool|int $value Optionally specify one of the following:
-	 * 	- boolean true: to return an array of status names (indexed by status number)
-	 * 	- integer|string|array: status number(s) or status name(s) to set the current page status (same as $page->status = $value)
-	 * @param int|null $status If you specified true for first arg, optionally specify status value you want to use (if not the current).
-	 * @return int|array|$this If setting status, $this is returned. If getting status: current status or array of status names.
+	 *  - `true` (boolean): To return an array of status names (indexed by status number).
+	 *  - `integer|string|array`: Status number(s) or status name(s) to set the current page status (same as $page->status = $value)
+	 * @param int|null $status If you specified `true` for first argument, optionally specify status value you want to use (if not the current).
+	 * @return int|array|$this If setting status, `$this` is returned. If getting status: current status or array of status names is returned.
+	 * @see Page::addStauts(), Page::removeStatus(), Page::hasStatus()
 	 * 
 	 */
 	public function status($value = false, $status = null) {
@@ -2186,6 +2897,8 @@ class Page extends WireData implements \Countable, WireMatchable {
 
 	/**
 	 * Set the value for isNew, i.e. doesn't exist in the DB (internal use only)
+	 * 
+	 * #pw-internal
 	 *
 	 * @param bool @isNew
 	 * @return $this
@@ -2201,6 +2914,8 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 *
 	 * Pages::getById sets this once it has completed loading the page
 	 * This method also triggers the loaded() method that hooks may listen to
+	 * 
+	 * #pw-internal
 	 *
 	 * @param bool $isLoaded
 	 * @return $this
@@ -2252,19 +2967,35 @@ class Page extends WireData implements \Countable, WireMatchable {
 
 	/**
 	 * For hooks to listen to, triggered when page is loaded and ready
+	 * 
+	 * #pw-hooker
 	 *
 	 */
 	public function ___loaded() { }
 
 
 	/**
-	 * Set if this page's output is allowed to be filtered by runtime formatters. 
+	 * Set output formatting state of page
+	 * 
+	 * The output formatting state determines if a page's output is allowed to be filtered by runtime formatters. 
+	 * Pages used for output should have output formatting on. Pages you intend to manipulate and save should 
+	 * have it off. 
+	 * 
+	 * ~~~~~
+	 * // Set output formatting state off, for page manipulation
+	 * $page->setOutputFormatting(false); 
+	 * $page->title = 'About Us';
+	 * $page->save();
 	 *
-	 * Pages used for output should have it on. 
-	 * Pages you intend to manipulate and save should have it off. 
+	 * // You can also use this shorter version 
+	 * $page->of(false); 
+	 * ~~~~~
+	 * 
+	 * #pw-internal
 	 *
-	 * @param bool @outputFormatting Optional, default true
+	 * @param bool $outputFormatting Optional, default true
 	 * @return $this
+	 * @see Page::outputFormatting(), Page::of()
 	 *
 	 */
 	public function setOutputFormatting($outputFormatting = true) {
@@ -2273,9 +3004,12 @@ class Page extends WireData implements \Countable, WireMatchable {
 	}
 
 	/**
-	 * Return true if outputFormatting is on, false if not. 
+	 * Return true if output formatting is on, false if not. 
+	 * 
+	 * #pw-internal
 	 *
-	 * @return bool
+	 * @return bool True if output formatting is ON, false if OFF.
+	 * @see Page::of(), Page::setOutputFormatting()
 	 *
 	 */
 	public function outputFormatting() {
@@ -2283,13 +3017,29 @@ class Page extends WireData implements \Countable, WireMatchable {
 	}
 
 	/**
-	 * Shorter version of setOutputFormatting() and outputFormatting() function
+	 * Get or set the current output formatting state of the page
+	 * 
+	 * - Always returns the current output formatting state: true if ON, or false if OFF.
+	 * 
+	 * - To set the current output formatting state, provide a boolean true to turn it ON, or boolean false to turn it OFF.
+	 * 
+	 * - Pages used for front-end output should have output formatting turned ON. 
+	 * 
+	 * - Pages that you are manipulating and saving should have output formatting turned OFF. 
 	 *
-	 * Always returns the current state of outputFormatting like the outputFormatting() function (and unlike setOutputFormatting())
-	 * You may optionally specify a boolean value for $outputFormatting which will set the current state, like setOutputFormatting().
+	 * ~~~~~ 
+	 * // Set output formatting state off, for page manipulation
+	 * $page->of(false);
+	 * $page->title = 'About Us';
+	 * $page->save();
+	 * ~~~~~
 	 *
-	 * @param bool $outputFormatting If specified, sets outputFormatting ON or OFF. If not specified, outputFormatting status does not change. 
-	 * @return bool outputFormatting state (before this function call, if it was changed)
+	 * #pw-group-common
+	 * #pw-group-output-rendering
+	 * #pw-group-manipulation
+	 *
+	 * @param bool $outputFormatting If specified, sets output formatting state ON or OFF. If not specified, nothing is changed. 
+	 * @return bool Current output formatting state (before this function call, if it was changed)
 	 *
 	 */
 	public function of($outputFormatting = null) {
@@ -2299,9 +3049,11 @@ class Page extends WireData implements \Countable, WireMatchable {
 	}
 
 	/**
-	 * Return instance of PagefileManager specific to this Page
+	 * Return instance of PagefilesManager specific to this Page
+	 * 
+	 * #pw-group-advanced
 	 *
-	 * @return PageFilesManager
+	 * @return PagefilesManager
 	 *
 	 */
 	public function filesManager() {
@@ -2312,6 +3064,8 @@ class Page extends WireData implements \Countable, WireMatchable {
 
 	/**
 	 * Prepare the page and it's fields for removal from runtime memory, called primarily by Pages::uncache()
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	public function uncache() {
@@ -2350,9 +3104,11 @@ class Page extends WireData implements \Countable, WireMatchable {
 	}
 
 	/**
-	 * Returns the parent page that has the template from which we get our role/access settings from
+	 * Returns the page from which role/access settings are inherited from
+	 * 
+	 * #pw-group-access
 	 *
-	 * @param string $type Specify one of 'view', 'edit', 'add', or 'create' (default='view')
+	 * @param string $type Optionally specify one of 'view', 'edit', 'add', or 'create' (default='view')
 	 * @return Page|NullPage Returns NullPage if none found
 	 *
 	 */
@@ -2361,10 +3117,12 @@ class Page extends WireData implements \Countable, WireMatchable {
 	}
 
 	/**
-	 * Returns the template from which we get our role/access settings from
+	 * Returns the template from which role/access settings are inherited from
+	 * 
+	 * #pw-group-access
 	 *
-	 * @param string $type Specify one of 'view', 'edit', 'add', or 'create' (default='view')
-	 * @return Template|null Returns null if none	
+	 * @param string $type Optionally specify one of 'view', 'edit', 'add', or 'create' (default='view')
+	 * @return Template|null Returns Template object or NULL if none	
 	 *
 	 */
 	public function getAccessTemplate($type = 'view') {
@@ -2372,13 +3130,15 @@ class Page extends WireData implements \Countable, WireMatchable {
 	}
 	
 	/**
-	 * Return the PageArray of roles that have access to this page
+	 * Return Roles (PageArray) that have access to this page
 	 *
 	 * This is determined from the page's template. If the page's template has roles turned off, 
-	 * then it will go down the tree till it finds usable roles to use. 
+	 * then it will go down the tree till it finds usable roles to use and inherit from. 
+	 * 
+	 * #pw-group-access
 	 *
 	 * @param string $type May be 'view', 'edit', 'create' or 'add' (default='view')
-	 * @return PageArray
+	 * @return PageArray of Role objects
 	 *
 	 */
 	public function getAccessRoles($type = 'view') {
@@ -2388,7 +3148,9 @@ class Page extends WireData implements \Countable, WireMatchable {
 	/**
 	 * Returns whether this page has the given access role
 	 *
-	 * Given access role may be a role name, role ID or Role object
+	 * Given access role may be a role name, role ID or Role object.
+	 * 
+	 * #pw-group-access
 	 *
 	 * @param string|int|Role $role 
 	 * @param string $type May be 'view', 'edit', 'create' or 'add' (default is 'view')
@@ -2424,7 +3186,7 @@ class Page extends WireData implements \Countable, WireMatchable {
 
 	/**
 	 * Is $value1 equal to $value2?
-	 *
+	 * 
 	 * @param string $key Name of the key that triggered the check (see WireData::set)
 	 * @param mixed $value1
 	 * @param mixed $value2
@@ -2502,6 +3264,8 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 *
 	 * This enables string shortcuts to be used for statuses elsewhere in ProcessWire
 	 * 
+	 * #pw-internal
+	 * 
 	 * @return array
 	 *
 	 */
@@ -2512,6 +3276,8 @@ class Page extends WireData implements \Countable, WireMatchable {
 	/**
 	 * Tells the page what Process it is being edited by, or simply that it's being edited
 	 * 
+	 * #pw-internal
+	 * 
 	 * @param WirePageEditor $editor
 	 * 
 	 */
@@ -2521,6 +3287,8 @@ class Page extends WireData implements \Countable, WireMatchable {
 
 	/**
 	 * Get the icon name associated with this Page (if applicable)
+	 * 
+	 * #pw-internal
 	 * 
 	 * @todo add recognized page icon field to core
 	 * 
@@ -2542,11 +3310,66 @@ class Page extends WireData implements \Countable, WireMatchable {
 	/**
 	 * Return the API variable used for managing pages of this type
 	 * 
+	 * #pw-internal
+	 * 
 	 * @return Pages|PagesType
 	 * 
 	 */
 	public function getPagesManager() {
 		return $this->wire('pages');
+	}
+
+	
+	/**
+	 * Get lazy loading state, set lazy load state, or trigger the page to load
+	 * 
+	 * $page->_lazy() to return current lazy loading state (which is page ID or boolean). 
+	 * $page->_lazy(123) to set the page as a lazy loading page and establish its id (replacing 123 with actual ID). 
+	 * $page->_lazy(true) to trigger the page to load. 
+	 * 
+	 * #pw-internal
+	 * 
+	 * @param int|bool|null $lazy Specify one of the following: 
+	 *  - Page ID to establish it as lazy loading. 
+	 *  - Boolean true to trigger load of the page.
+	 *  - Omit to just return the lazy load value. 
+	 * @return bool|int Returns one of the following: 
+	 *  - Page ID if lazy load pending.
+	 *  - Boolean true if lazy loading and already loaded. 
+	 *  - If load was requested in arguments, then returns true on success, false on fail.
+	 * @throws WireException
+	 * 
+	 */
+	public function _lazy($lazy = null) {
+		
+		if(is_null($lazy)) {
+			// return current state
+			return $this->lazyLoad;
+			
+		} else if(is_int($lazy)) {
+			// set state (page ID)
+			if($lazy > 0 && !$this->lazyLoad) {
+				$this->lazyLoad = $lazy;
+				$this->set('id', $lazy);
+			}
+			return true;
+			
+		} else if($lazy === true) {
+			// load page
+			if(!is_int($this->lazyLoad) || $this->lazyLoad < 1) return false;
+			$this->lazyLoad = true;
+			$pages = $this->wire('pages');
+			$page = $pages->getById($this->id, array(
+				'cache' => false,
+				'getOne' => true,
+				'page' => $this // This. Just This.
+			));
+			if(!$page->id) return false;
+			return true;
+			
+		} else {
+			throw new WireException("Invalid arguments to Page::lazy()");
+		}
 	}
 }
 

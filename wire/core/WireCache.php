@@ -3,11 +3,16 @@
 /**
  * ProcessWire WireCache
  *
- * Simple cache or storing strings (encoded or otherwise) and serves as $cache API var
- *
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
- * https://processwire.com
+ * Simple cache for storing strings (encoded or otherwise) and serves as $cache API var
  * 
+ * ProcessWire 3.x (development), Copyright 2016 by Ryan Cramer
+ * https://processwire.com
+ *
+ * #pw-summary Provides easy, persistent caching of markup, strings, arrays or PageArray objects. 
+ * #pw-summary-constants These constants are used for the `$expire` argument of get() and save() cache methods. 
+ * #pw-use-constants
+ * 
+ * @todo add support for a deleteAll() option that can delete non-system caches
  *
  */
 
@@ -17,17 +22,58 @@ class WireCache extends Wire {
 	 * Expiration constants that may be supplied to WireCache::save $seconds argument. 
 	 * 
 	 */
+
+	/**
+	 * Cache should never expire (unless manually cleared). 
+	 * 
+	 */
 	const expireNever = '2010-04-08 03:10:10';
+
+	/**
+	 * Cache should expire when a given resource (Page or Template) is saved. 
+	 * 
+	 */
 	const expireSave = '2010-01-01 01:01:01';
-	const expireSelector = '2010-01-02 02:02:02'; // used internally when selector is specified
+
+	/**
+	 * Used internally when a selector is specified. 
+	 * #pw-internal
+	 * 
+	 */
+	const expireSelector = '2010-01-02 02:02:02';
+
+	/**
+	 * Cache should expire now
+	 * 
+	 */
 	const expireNow = 0;
-	const expireHourly = 3600; 
+
+	/**
+	 * Cache should expire once per hour
+	 * 
+	 */
+	const expireHourly = 3600;
+
+	/**
+	 * Cache should expire once per day
+	 */
 	const expireDaily = 86400;
+
+	/**
+	 * Cache should expire once per week
+	 * 
+	 */
 	const expireWeekly = 604800;
+
+	/**
+	 * Cache should expire once per month
+	 * 
+	 */
 	const expireMonthly = 2419200;
 
 	/**
-	 * Date format used by our DB queries
+	 * Date format used by our database queries
+	 * #pw-internal
 	 * 
 	 */
 	const dateFormat = 'Y-m-d H:i:s';
@@ -444,9 +490,9 @@ class WireCache extends Wire {
 	}
 
 	/**
-	 * Delete the cache identified by $name
+	 * Delete/clear the cache(s) identified by $name
 	 * 
-	 * @param string $name Name of cache, or partial name with wildcard (i.e. "MyCache*")
+	 * @param string $name Name of cache, or partial name with wildcard (i.e. "MyCache*") to clear multiple caches. 
 	 * @return bool True on success, false on failure
 	 * 
 	 */

@@ -80,7 +80,7 @@ class ImageSizerEngineGD extends ImageSizerEngine {
 	protected function processResize($srcFilename, $dstFilename, $fullWidth, $fullHeight, $finalWidth, $finalHeight) {
 		
 		$this->modified = false;
-		$this->imageDepth = $this->info['bits'];
+		if(isset($this->info['bits'])) $this->imageDepth = $this->info['bits'];
 		$this->imageFormat = strtoupper(str_replace('image/', '', $this->info['mime']));
 
 		if(!in_array($this->imageFormat, $this->validSourceImageFormats())) {

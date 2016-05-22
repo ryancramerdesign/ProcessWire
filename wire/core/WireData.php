@@ -7,8 +7,19 @@
  * It provides get and set access to properties internally stored in a $data array. 
  * Otherwise it is identical to the Wire class. 
  * 
- * This file is licensed under the MIT license
- * https://processwire.com/about/license/mit/
+ * #pw-summary WireData is the base data-storage class used by many ProcessWire object types and most modules.
+ * #pw-body =
+ * WireData is very much like its parent `Wire` class with the fundamental difference being that it is designed
+ * for runtime data storage. It provides this primarily through the built-in `get()` and `set()` methods for
+ * getting and setting named properties to WireData objects. The most common example of a WireData object is
+ * `Page`, the type used for all pages in ProcessWire. 
+ * 
+ * Properties set to a WireData object can also be set or accessed directly, like `$item->property` or using 
+ * array access like `$item[$property]`. If you `foreach()` a WireData object, the default behavior is to
+ * iterate all of the properties/values present within it. 
+ * #pw-body
+ * 
+ * May also be accessed as array. 
  * 
  * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
  * https://processwire.com
@@ -24,11 +35,25 @@ class WireData extends Wire implements \IteratorAggregate, \ArrayAccess {
 	protected $data = array(); 
 
 	/**
-	 * Set a value 
+	 * Set a value to this object’s data
+	 * 
+	 * ~~~~~
+	 * // Set a value for a property
+	 * $item->set('foo', 'bar');
+	 * 
+	 * // Set a property value directly
+	 * $item->foo = 'bar';
+	 * 
+	 * // Set a property using array access
+	 * $item['foo'] = 'bar';
+	 * ~~~~~
+	 * 
+	 * #pw-group-manipulation
 	 *
-	 * @param string $key
-	 * @param mixed $value
+	 * @param string $key Name of property you want to set
+	 * @param mixed $value Value of property
 	 * @return $this
+	 * @see WireData::setQuietly(), WireData::get()
 	 *
 	 */
 	public function set($key, $value) {
@@ -43,14 +68,17 @@ class WireData extends Wire implements \IteratorAggregate, \ArrayAccess {
 	}
 
 	/**
-	 * Same as set() but triggers no change tracking or hooks
+	 * Same as set() but without change tracking
 	 *
-	 * If trackChanges is false, then this is no different than set().
-	 * If trackChanges is true, then the value will be set but not recorded in the changes list.
+	 * - If `$this->trackChanges()` is false, then this is no different than set(), since changes aren't being tracked. 
+	 * - If `$this->trackChanges()` is true, then the value will be set quietly (i.e. not recorded in the changes list).
+	 * 
+	 * #pw-group-manipulation
 	 *
-	 * @param string $key
-	 * @param mixed $value
+	 * @param string $key Name of property you want to set
+	 * @param mixed $value Value of property
 	 * @return $this
+	 * @see Wire::trackChanges(), WireData::set()
 	 *
 	 */
 	public function setQuietly($key, $value) {
@@ -66,24 +94,32 @@ class WireData extends Wire implements \IteratorAggregate, \ArrayAccess {
 	 *
 	 * This template method provided so that descending classes can optionally determine 
  	 * whether a change should be tracked. 
+	 * 
+	 * #pw-internal
 	 *
-	 * @param string $key Name of the key that triggered the check (see WireData::set)
-	 * @param mixed $value1
-	 * @param mixed $value2
-	 * @return bool
+	 * @param string $key Name of the property/key that triggered the check (see `WireData::set()`)
+	 * @param mixed $value1 Comparison value
+	 * @param mixed $value2 A second comparison value
+	 * @return bool True if values are equal, false if not
 	 *
 	 */
 	protected function isEqual($key, $value1, $value2) {
+		if($key) {} // intentional to avoid unused argument notice
 		// $key intentionally not used here, but may be used by descending classes
 		return $value1 === $value2; 	
 	}
 
 	/**
 	 * Set an array of key=value pairs
+	 * 
+	 * This is the same as the `WireData::set()` method except that it can set an array
+	 * of properties at once.
+	 * 
+	 * #pw-group-manipulation
 	 *
-	 * @param array $data
+	 * @param array $data Associative array of where the keys are property names, and values are… values.
 	 * @return $this
-	 * @see set()
+	 * @see WireData::set()
 	 *
 	 */
 	public function setArray(array $data) {
@@ -104,13 +140,28 @@ class WireData extends Wire implements \IteratorAggregate, \ArrayAccess {
 	}
 
 	/**
-	 * Provides direct reference access to retrieve values in the $data array
+	 * Retrieve the value for a previously set property, or retrieve an API variable
 	 *
-	 * If the given $key is an object, it will cast it to a string. 
-	 * If the given key is a string with "|" pipe characters in it, it will try all till it finds a value. 
+	 * - If the given $key is an object, it will cast it to a string. 
+	 * - If the given $key is a string with "|" pipe characters in it, it will try all till it finds a non-empty value. 
+	 * - If given an API variable name, it will return that API variable unless the class has direct access API variables disabled.
+	 * 
+	 * ~~~~~
+	 * // Retrieve the value of a property
+	 * $value = $item->get("some_property"); 
+	 * 
+	 * // Retrieve the value of the first non-empty property:
+	 * $value = $item->get("property1|property2|property2"); 
+	 * 
+	 * // Retrieve a value using array access
+	 * $value = $item["some_property"];
+	 * ~~~~~
+	 * 
+	 * #pw-group-retrieval
 	 *
- 	 * @param string|object $key
-	 * @return mixed|null Returns null if the key was not found. 
+ 	 * @param string|object $key Name of property you want to retrieve. 
+	 * @return mixed|null Returns value of requested property, or null if the property was not found. 
+	 * @see WireData::set()
 	 *
 	 */
 	public function get($key) {
@@ -127,23 +178,34 @@ class WireData extends Wire implements \IteratorAggregate, \ArrayAccess {
 	}
 
 	/**
-	 * Like get() or set() but will only get/set from $this->data
+	 * Get or set a low-level data value
 	 * 
-	 * To use as a get() simply specify no $value. To use as a set(), specify a value.
-	 * If you omit a $key and $value, this method will return the entire data array.
-	 * 
-	 * The benefit of this method over get() is that it excludes API vars and potentially
+	 * Like get() or set() but will only get/set from the WireData's protected $data array. 
+	 * This is used to bypass any extra logic a class may have added to its get() or set() 
+	 * methods. The benefit of this method over get() is that it excludes API vars and potentially
 	 * other things (defined by descending classes) that you may not want. 
 	 * 
-	 * The benefit of this method over set() is that you dictate you only want it to set
-	 * the value in the $this->data container, and not potentially elsewhere, if it matters
-	 * in the descending class.
+	 * - To get a value, simply omit the $value argument.
+	 * - To set a value, specify both the $key and $value arguments. 
+	 * - If you omit a $key and $value, this method will return the entire data array.
 	 * 
-	 * @param string $key Property you want to get or set
-	 * @param mixed $value Optionally specify a value if you want to set rather than get
-	 * @return mixed|null|$this Returns value if geting a value or null if not found.
-	 * 	If you intead specify a value to set, it always returns $this.  
+	 * #pw-group-manipulation
+	 * #pw-group-retrieval
 	 * 
+	 * ~~~~~
+	 * // Set a property
+	 * $item->data('some_property', 'some value'); 
+	 * 
+	 * // Get the value of a previously set property
+	 * $value = $item->data('some_property'); 
+	 * ~~~~~
+	 * 
+	 * @param string $key Property you want to get or set.
+	 * @param mixed $value Optionally specify a value if you want to set rather than get.
+	 * @return mixed|null|$this Returns one of the following: 
+	 *   - `mixed` - Actual value if getting a previously set value. 
+	 *   - `null` - If you are attempting to get a value that has not been set. 
+	 *   - `$this` - If you are setting a value.
 	 */
 	public function data($key = null, $value = null) {
 		if(is_null($key)) return $this->data;
@@ -156,12 +218,14 @@ class WireData extends Wire implements \IteratorAggregate, \ArrayAccess {
 	}
 
 	/**
-	 * Returns the full $data array
+	 * Returns the full array of properties set to this object
 	 * 
 	 * If descending classes also store data in other containers, they may want to
 	 * override this method to include that data as well.
 	 * 
-	 * @return array
+	 * #pw-group-retrieval
+	 * 
+	 * @return array Returned array is associative and indexed by property name. 
 	 *
 	 */
 	public function getArray() {
@@ -172,6 +236,8 @@ class WireData extends Wire implements \IteratorAggregate, \ArrayAccess {
 	 * Get a property via dot syntax: field.subfield (static)
 	 *
 	 * Static version for internal core use. Use the non-static getDot() instead.
+	 * 
+	 * #pw-internal
 	 *
 	 * @param string $key 
 	 * @param Wire $from The instance you want to pull the value from
@@ -223,10 +289,16 @@ class WireData extends Wire implements \IteratorAggregate, \ArrayAccess {
 	/**
 	 * Get a property via dot syntax: field.subfield.subfield
 	 *
-	 * Some classes of WireData may choose to add a call to this as part of their 
+	 * Some classes descending WireData may choose to add a call to this as part of their 
 	 * get() method as a syntax convenience.
+	 * 
+	 * ~~~~~
+	 * $value = $item->get("parent.title"); 
+	 * ~~~~~
+	 * 
+	 * #pw-group-retrieval
 	 *
-	 * @param string $key 
+	 * @param string $key Name of property you want to retrieve in "a.b" or "a.b.c" format
 	 * @return null|mixed Returns value if found or null if not
 	 *
 	 */
@@ -259,9 +331,15 @@ class WireData extends Wire implements \IteratorAggregate, \ArrayAccess {
 	}
 
 	/**
-	 * Remove a given $key from the $data array
+	 * Remove a previously set property
+	 * 
+	 * ~~~~~
+	 * $item->remove('some_property'); 
+	 * ~~~~~
+	 * 
+	 * #pw-group-manipulation
 	 *
-	 * @param string $key
+	 * @param string $key Name of property you want to remove
 	 * @return $this
 	 *
 	 */
@@ -273,7 +351,15 @@ class WireData extends Wire implements \IteratorAggregate, \ArrayAccess {
 	}
 
 	/**
-	 * Make the $data array iterable through this object, per the \IteratorAggregate interface
+	 * Enables the object data properties to be iterable as an array
+	 * 
+	 * ~~~~~
+	 * foreach($item as $key => $value) {
+	 *   // ...
+	 * }
+	 * ~~~~~
+	 * 
+	 * #pw-group-retrieval
 	 * 
 	 * @return \ArrayObject
 	 *
@@ -283,10 +369,18 @@ class WireData extends Wire implements \IteratorAggregate, \ArrayAccess {
 	}
 
 	/**
-	 * Does this WireData have the given property in it's $data?
+	 * Does this object have the given property?
+	 * 
+	 * ~~~~~
+	 * if($item->has('some_property')) {
+	 *   // the item has some_property
+	 * }
+	 * ~~~~~
+	 * 
+	 * #pw-group-retrieval
 	 *
-	 * @param string $key	
-	 * @return bool
+	 * @param string $key Name of property you want to check.
+	 * @return bool True if it has the property, false if not.
 	 *
 	 */
 	public function has($key) {
@@ -294,14 +388,23 @@ class WireData extends Wire implements \IteratorAggregate, \ArrayAccess {
 	}
 
 	/**
-	 * Take the current item and append the given items, returning a new WireArray
+	 * Take the current item and append the given item(s), returning a new WireArray
 	 *
-	 * This is for syntactic convenience, i.e. 
-	 * if($page->and($page->parents)->has("featured=1")) { ... }
+	 * This is for syntactic convenience in fluent interfaces. 
+	 * ~~~~~
+	 * if($page->and($page->parents)->has("featured=1")) { 
+	 *    // page or one of its parents has a featured property with value of 1
+	 * }
+	 * ~~~~~
+	 * 
+	 * #pw-group-retrieval
 	 *
-	 * @param WireArray|WireData|string $items May be a WireData, WireArray or gettable property from this object that returns a WireData|WireArray.
-	 * @return WireArray
-	 * @throws WireException If invalid argument supplied
+	 * @param WireArray|WireData|string $items May be any of the following: 
+	 *   - `WireData` object (or derivative)
+	 *   - `WireArray` object (or derivative)
+	 *   - Name of any property from this object that returns one of the above. 
+	 * @return WireArray Returns a WireArray of this object *and* the one(s) given. 
+	 * @throws WireException If invalid argument supplied.
 	 *
 	 */
 	public function ___and($items) {
@@ -330,6 +433,8 @@ class WireData extends Wire implements \IteratorAggregate, \ArrayAccess {
 	/**
 	 * Ensures that isset() and empty() work for this classes properties. 
 	 * 
+	 * #pw-internal
+	 * 
 	 * @param string $key
 	 * @return bool
 	 *
@@ -340,6 +445,8 @@ class WireData extends Wire implements \IteratorAggregate, \ArrayAccess {
 
 	/**
 	 * Ensures that unset() works for this classes data. 
+	 * 
+	 * #pw-internal
 	 * 
 	 * @param string $key
 	 *
@@ -352,6 +459,8 @@ class WireData extends Wire implements \IteratorAggregate, \ArrayAccess {
 	 * Sets an index in the WireArray.
 	 *
 	 * For the ArrayAccess interface.
+	 * 
+	 * #pw-internal
 	 *
 	 * @param int|string $key Key of item to set.
 	 * @param int|string|array|object $value Value of item.
@@ -363,6 +472,8 @@ class WireData extends Wire implements \IteratorAggregate, \ArrayAccess {
 
 	/**
 	 * Returns the value of the item at the given index, or false if not set.
+	 * 
+	 * #pw-internal
 	 *
 	 * @param int|string $key Key of item to retrieve.
 	 * @return int|string|array|object Value of item requested, or false if it doesn't exist.
@@ -377,6 +488,8 @@ class WireData extends Wire implements \IteratorAggregate, \ArrayAccess {
 	 * Unsets the value at the given index.
 	 *
 	 * For the ArrayAccess interface.
+	 * 
+	 * #pw-internal
 	 *
 	 * @param int|string $key Key of the item to unset.
 	 * @return bool True if item existed and was unset. False if item didn't exist.
@@ -396,6 +509,8 @@ class WireData extends Wire implements \IteratorAggregate, \ArrayAccess {
 	 * Determines if the given index exists in this WireData.
 	 *
 	 * For the ArrayAccess interface.
+	 * 
+	 * #pw-internal
 	 *
 	 * @param int|string $key Key of the item to check for existence.
 	 * @return bool True if the item exists, false if not.

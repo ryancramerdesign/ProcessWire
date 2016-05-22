@@ -211,6 +211,8 @@ class InputfieldCKEditor extends InputfieldTextarea {
 	public function renderReady(Inputfield $parent = null, $renderValueMode = false) {
 
 		static $loaded = false;
+		static $stylesSets = array();
+		
 		$class = $this->className();
 		$config = $this->wire('config');
 		$baseURL = $config->urls->$class; 
@@ -257,7 +259,10 @@ class InputfieldCKEditor extends InputfieldTextarea {
 		if(empty($stylesSet)) $stylesSet = "mystyles:/wire/modules/Inputfield/InputfieldCKEditor/mystyles.js";
 		if(strpos($stylesSet, ':') !== false) {
 			list($k, $v) = explode(':', $stylesSet);
-			$settings['stylesSet'] = "$k:" . $this->pathFromRoot($v, strpos($v, '/wire/') === false);
+			if(!in_array($k, $stylesSets)) {
+				$settings['stylesSet'] = "$k:" . $this->pathFromRoot($v, strpos($v, '/wire/') === false);
+				$stylesSets[] = $k;
+			}
 		}
 
 		foreach($this->findPlugins() as $name => $file) {
