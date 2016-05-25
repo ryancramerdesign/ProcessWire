@@ -10,6 +10,7 @@
  * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
  * https://processwire.com
  * 
+ * @todo add support for "custom: OR-group" option (https://processwire.com/talk/topic/13116-or-selecters-for-different-fields/)
  * @todo support changes to a "title|body%=about" selector, so that a change to "title" row also updates the value for the "body" row. 
  * @todo update to support "sort=sort" as "sort" is not currently a selectable option
  * 
@@ -322,11 +323,16 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			'<' => $this->_('Less Than'),
 			'>=' => $this->_('Greater Than or Equal'),
 			'<=' => $this->_('Less Than or Equal'),
-			'%=' => $this->_('Contains Text'), 
-			'*=' => $this->_('Contains Phrase'), 
-			'~=' => $this->_('Contains Words'), 
-			'^=' => $this->_('Starts With'), 
-			'$=' => $this->_('Ends With'), 
+			'%=' => $this->_('Contains Text'),
+			'*=' => $this->_('Contains Phrase'),
+			'~=' => $this->_('Contains Words'),
+			'^=' => $this->_('Starts With'),
+			'$=' => $this->_('Ends With'),
+			'!%=' => $this->_('Does Not Contain Text'), 
+			'!*=' => $this->_('Does Not Contain Phrase'), 
+			'!~=' => $this->_('Does Not Contain Words'),
+			'!^=' => $this->_('Does Not Start With'),
+			'!$=' => $this->_('Does Not End With'),
 			'.=' => $this->_('Ascending By'), 
 			'.=-' => $this->_('Descending By'), 
 			'@=' => $this->_('Has'),
@@ -342,7 +348,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		// with fieldtype's getSelectorInfo() method, which takes precedence
 		$this->operatorsByType = array(
 			'name' => array('=', '!=', '%='), 
-			'text' => array('%=', '*=', '~=', '^=', '$=', '=', '!=', '=""', '!=""'), 
+			'text' => array('%=', '!%=', '*=', '!*=', '~=', '!~=', '^=', '!^=', '$=', '!$=', '=', '!=', '=""', '!=""'), 
 			'autocomplete' => array('=', '!='), 
 			'number' => array('=', '!=', '<', '>', '<=', '>=', '=""', '!=""'), 
 			'datetime' => array('=', '!=', '<', '>', '<=', '>='), 
@@ -1701,7 +1707,10 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 					if($valueNum > 0) $rowClass .= " has-or-value";
 					if($fieldNum > 0 || $valueNum > 0) $orChecked = true; 
 					if(!strlen($value) && $quote) $value = "$quote{$value}$quote";
-					$opval = $this->renderOpval(($field2 ? $field2 : $field1), '', $selector->operator, $value, $orChecked); 
+					$operator = $selector->operator;
+					// convert to not operator when finding a not selector
+					if($selector->not && isset($this->operators["!$selector->operator"])) $operator = "!$selector->operator";
+					$opval = $this->renderOpval(($field2 ? $field2 : $field1), '', $operator, $value, $orChecked); 
 					$rows .= $this->renderRow($select, $select2, $opval, $rowClass); 			
 				}
 			}
