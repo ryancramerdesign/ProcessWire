@@ -3,30 +3,38 @@
 /**
  * ProcessWire Pagefile
  *
- * Represents a single file item attached to a page, typically via a FieldtypeFile field.
+ * #pw-summary Represents a single file item attached to a page, typically via a File Fieldtype.
+ * #pw-summary-traversal For the most part you’ll want to traverse from the parent `Pagefiles` object than these methods.
+ * #pw-summary-manipulation Remember to follow up any manipulations with a `$pages->save()` call. 
+ * #pw-summary-tags Be sure to see the `Pagefiles::getTag()` and `Pagesfiles::findTag()` methods, which enable you retrieve files by tag.
+ * #pw-body =
+ * Pagefile objects are contained by a `Pagefiles` object. 
+ * #pw-body
  * 
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * ProcessWire 3.x (development), Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
- * @property string $url URL to the file on the server	
- * @property string $URL Same as $url property but with cache buster appended.
- * @property string $filename full disk path to the file on the server
- * @property string $name Returns the filename without the path (basename)
- * @property string $basename Returns the filename without the path (alias of name)
- * @property string $description value of the file's description field (text). Note you can also set this property directly.
- * @property string $tags value of the file's tags field (text). Note you can also set this property directly.
- * @property string $ext file's extension (i.e. last 3 or so characters)
- * @property int $filesize file size, number of bytes
- * @property int $modified timestamp of when pagefile (file, description or tags) was last modified.
- * @property int $mtime timestamp of when file (only) was last modified. 
- * @property int $created timestamp of when file was created
- * @property string $filesizeStr file size as a formatted string
- * @property Pagefiles $pagefiles the WireArray that contains this file
- * @property Page $page the $page that contains this file
- * @property Field $field the $field that contains this file
+ * @property-read string $url URL to the file on the server. 
+ * @property-read string $URL Same as $url property but with browser cache busting query string appended that represents the file's modification time. #pw-group-other
+ * @property-read string $filename full disk path to the file on the server. 
+ * @property-read string $name Returns the filename without the path, same as the "basename" property.
+ * @property-read string $hash Get a unique hash (for the page) representing this Pagefile.
+ * @property-read string $tagsArray Get file tags as an array. #pw-group-tags @since 3.0.17 
+ * @property string $basename Returns the filename without the path.
+ * @property string $description Value of the file’s description field (string), if enabled. Note you can also set this property directly.
+ * @property string $tags Value of the file’s tags field (string), if enabled. #pw-group-tags
+ * @property string $ext File’s extension (i.e. last 3 or so characters) 
+ * @property int $filesize File size (number of bytes).
+ * @property int $modified Unix timestamp of when Pagefile (file, description or tags) was last modified. #pw-group-date-time
+ * @property int $mtime Unix timestamp of when file (only) was last modified. #pw-group-date-time
+ * @property int $created Unix timestamp of when file was created. #pw-group-date-time
+ * @property string $filesizeStr File size as a formatted string, i.e. “123 Kb”. 
+ * @property Pagefiles $pagefiles The Pagefiles WireArray that contains this file. #pw-group-other
+ * @property Page $page The Page object that this file is part of. #pw-group-other
+ * @property Field $field The Field object that this file is part of. #pw-group-other
  * 
- * @method install($filename)
- * @method httpUrl()
+ * @method void install($filename)
+ * @method string httpUrl()
  *
  */
 
@@ -46,9 +54,14 @@ class Pagefile extends WireData {
 
 	/**
 	 * Construct a new Pagefile
+	 * 
+	 * ~~~~~
+	 * // Construct a new Pagefile, assumes that $page->files is a FieldtypeFile Field
+	 * $pagefile = new Pagefile($page->files, '/path/to/file.pdf'); 
+	 * ~~~~~
 	 *
-	 * @param Pagefiles $pagefiles 
-	 * @param string $filename Full path and filename to this pagefile
+	 * @param Pagefiles $pagefiles The Pagefiles WireArray that will contain this file. 
+	 * @param string $filename Full path and filename to this Pagefile.
 	 *
 	 */
 	public function __construct(Pagefiles $pagefiles, $filename) {
@@ -64,10 +77,12 @@ class Pagefile extends WireData {
 
 
 	/**
-	 * Set the filename associated with this Pagefile
+	 * Set the filename associated with this Pagefile.
 	 *
 	 * No need to call this as it's already called from the constructor. 
 	 * This exists so that Pagefile/Pageimage descendents can create cloned variations, if applicable. 
+	 * 
+	 * #pw-internal
 	 *
 	 * @param string $filename
 	 *
@@ -89,9 +104,12 @@ class Pagefile extends WireData {
 	/**
 	 * Install this Pagefile
 	 *
-	 * Implies copying the file to the correct location (if not already there), and populating it's name
+	 * Implies copying the file to the correct location (if not already there), and populating its name.
+	 * The given $filename may be local (path) or external (URL). 
+	 * 
+	 * #pw-hooker
 	 *
-	 * @param string $filename Full path and filename of file to install
+	 * @param string $filename Full path and filename of file to install, or http/https URL to pull file from.
 	 * @throws WireException
 	 *
 	 */
@@ -131,7 +149,9 @@ class Pagefile extends WireData {
 	/**
 	 * Sets a value in this Pagefile
 	 *
-	 * Externally, this would be used to set the file's basename or description
+	 * Externally, this would be used to set the file’s basename or description
+	 * 
+	 * #pw-internal
 	 *
 	 * @param string $key
 	 * @param mixed $value
@@ -139,12 +159,17 @@ class Pagefile extends WireData {
 	 *
 	 */
 	public function set($key, $value) {
+		
 		if($key == 'basename') $value = $this->pagefiles->cleanBasename($value, false); 
 		if($key == 'description') return $this->setDescription($value); 
-		if($key == 'tags') $value = $this->wire('sanitizer')->text($value);
 		if($key == 'modified') $value = ctype_digit("$value") ? (int) $value : strtotime($value); 
-		if($key == 'created') $value = ctype_digit("$value") ? (int) $value : strtotime($value); 
+		if($key == 'created') $value = ctype_digit("$value") ? (int) $value : strtotime($value);
 
+		if($key == 'tags') {
+			$this->tags($value);
+			return $this;
+		}
+		
 		if(strpos($key, 'description') === 0 && preg_match('/^description(\d+)$/', $value, $matches)) {
 			// check if a language description is being set manually by description123 where 123 is language ID
 			$languages = $this->wire('languages'); 
@@ -216,14 +241,36 @@ class Pagefile extends WireData {
 	}
 
 	/**
-	 * Get default description (no args), get description for a specific language (specify) or all languages (true)
-	 *
+	 * Get or set the file’s description (with multi-language support). 
+	 * 
+	 * When not in a multi-language environment, you can still use this method but we recommend using the simpler method of just
+	 * getting/seting the `Pagefile::$description` property directly instead. 
+	 * 
+	 * ~~~~~
+	 * // Get a Pagefile to work with
+	 * $pagefile = $page->files->first();
+	 * 
+	 * // Setting description
+	 * $pagefile->description('en', 'Setting English description');
+	 * $pagefile->description('de', 'Setting German description');
+	 * 
+	 * // Getting description for current language (whatever it happens to be)
+	 * echo $pagefile->description();
+	 * 
+	 * // Getting description for language "de"
+	 * echo $pagefile->description('de');
+	 * ~~~~~
+	 * 
+	 * #pw-group-common
+	 * #pw-group-manipulation
+	 * 
 	 * @param null|bool|Language
-	 *	Omit arguments or specify null to return description for current user language
-	 *	Specify a Language object to return description for that language, or to set the description for that language (if using 2nd argument)
-	 * 	Specify boolean true to return JSON string with all languages (if langauges not applicable, regular string returned)
-	 *	Specify boolean true to set JSON string (in $value argument) with all languages 
-	 * @param null|string Specify only when you are setting rather than getting a value. Specify the string description value. 
+	 * - To GET in current user language: Omit arguments or specify null.
+	 * - To GET in another language: Specify a Language name, id or object.
+	 * - To GET in all languages as a JSON string: Specify boolean true (if LanguageSupport not installed, regular string returned).
+	 * - To SET for a language: Specify a language name, id or object, plus the $value as the 2nd argument.
+	 * - To SET in all languages as a JSON string: Specify boolean true, plus the JSON string $value as the 2nd argument (internal use only).
+	 * @param null|string $value Specify only when you are setting (single language) rather than getting a value.
 	 * @return string
 	 *
 	 */
@@ -289,6 +336,8 @@ class Pagefile extends WireData {
 
 	/**
 	 * Get a value from this Pagefile
+	 * 
+	 * #pw-internal
 	 *
 	 * @param string $key
 	 * @return mixed Returns null if value does not exist
@@ -312,6 +361,9 @@ class Pagefile extends WireData {
 			case 'filesizeStr':
 				// 'basename' property intentionally excluded 
 				$value = $this->$key();
+				break;
+			case 'tagsArray': 
+				$value = $this->tags(true);
 				break;
 			case 'URL':
 				// nocache url
@@ -343,7 +395,9 @@ class Pagefile extends WireData {
 	}
 
 	/**
-	 * Return the next Pagefile in the Pagefiles, or NULL if at the end
+	 * Return the next sibling Pagefile in the parent Pagefiles, or NULL if at the end.
+	 * 
+	 * #pw-group-traversal
 	 *
 	 * @return Pagefile|null
 	 *	
@@ -353,7 +407,9 @@ class Pagefile extends WireData {
 	}
 
 	/**
-	 * Return the previous Pagefile in the Pagefiles, or NULL if at the beginning
+	 * Return the previous sibling Pagefile in the parent Pagefiles, or NULL if at the beginning.
+	 * 
+	 * #pw-group-traversal
 	 *
 	 * @return Pagefile|null
 	 *	
@@ -363,9 +419,20 @@ class Pagefile extends WireData {
 	}
 
 	/**
-	 * Return the web accessible URL to this Pagefile
+	 * Return the web accessible URL to this Pagefile.
+	 * 
+	 * ~~~~~
+	 * // Example of using the url method/property
+	 * foreach($page->files as $file) {
+	 *   echo "<li><a href='$file->url'>$file->description</a></li>";
+	 * }
+	 * ~~~~~
+	 * 
+	 * #pw-hooks
+	 * #pw-common
 	 * 
 	 * @return string
+	 * @see Pagefile:httpUrl()
 	 *
 	 */
 	public function url() {
@@ -383,9 +450,10 @@ class Pagefile extends WireData {
 	}
 	
 	/**
-	 * Return the web accessible URL (with schema and hostname) to this Pagefile
+	 * Return the web accessible URL (with scheme and hostname) to this Pagefile.
 	 * 
 	 * @return string
+	 * @see Pagefile::url()
 	 *
 	 */
 	public function ___httpUrl() {
@@ -395,7 +463,10 @@ class Pagefile extends WireData {
 	}
 
 	/**
-	 * Returns the disk path to the Pagefile
+	 * Returns the full disk path name filename to the Pagefile.
+	 * 
+	 * #pw-hooks
+	 * #pw-common
 	 * 
 	 * @return string
 	 *
@@ -413,25 +484,238 @@ class Pagefile extends WireData {
 	}
 
 	/**
-	 * Returns the basename of this Pagefile
-	 *
-	 */
-	public function basename() {
-		return parent::get('basename'); 
-	}
-
-	/**
-	 * Returns the value of the tags field
-	 *
+	 * Returns the basename of this Pagefile (name and extension, without disk path). 
+	 * 
+	 * @param bool $ext Specify false to exclude the extension (default=true)
 	 * @return string
 	 *
 	 */
-	public function tags() {
-		return parent::get('tags'); 
+	public function basename($ext = true) {
+		$basename = parent::get('basename'); 
+		if(!$ext) $basename = basename($basename, "." . $this->ext());
+		return $basename;
+	}
+
+	/**
+	 * Get or set the "tags" property, when in use. 
+	 * 
+	 * ~~~~~
+	 * $file = $page->files->first();
+	 * $tags = $file->tags(); // Get tags string
+	 * $tags = $file->tags(true); // Get tags array
+	 * $file->tags("foo bar baz"); // Set tags to be these 3 tags
+	 * $tags->tags(["foo", "bar", "baz"]); // Same as above, using array
+	 * ~~~~~
+	 * 
+	 * #pw-group-tags
+	 * #pw-group-manipulation
+	 *
+	 * @param bool|string|array $value Specify one of the following:
+	 *   - Omit to simply return the tags as a string. 
+	 *   - Boolean true if you want to return tags as an array (rather than string). 
+	 *   - Boolean false to return tags as an array, with lowercase enforced. 
+	 *   - String or array if you are setting the tags.
+	 * @return string|array Returns the current tags as a string or an array. 
+	 *   When an array is returned, it is an associative array where the key and value are both the tag (keys are always lowercase).
+	 * @see Pagefile::addTag(), Pagefile::hasTag(), Pagefile::removeTag()
+	 *
+	 */
+	public function tags($value = null) {
+		if(is_bool($value)) {
+			// return array of tags
+			$tags = parent::get('tags');
+			$tags = str_replace(array(',', '|'), ' ', $tags);
+			$_tags = explode(' ', $tags);
+			$tags = array();
+			foreach($_tags as $key => $tag) {
+				$tag = trim($tag);
+				if($value === false) $tag = strtolower($tag); // force lowercase
+				if(!strlen($tag)) continue;
+				$tags[strtolower($tag)] = $tag;
+			}
+		} else if($value !== null) {
+			// set tags
+			if(is_array($value)) $value = implode(' ', $value); // convert to string
+			$value = $this->wire('sanitizer')->text($value);
+			if(strpos($value, "\t") !== false) $value = str_replace("\t", " ", $value);
+			// collapse extra whitespace
+			while(strpos($value, "  ") !== false) $value = str_replace("  ", " ", $value);
+			parent::set('tags', $value);	
+			$tags = $value; 
+		} else {
+			// just get tags string
+			$tags = parent::get('tags');
+		}
+		
+		return $tags;
+	}
+	
+	/**
+	 * Does this file have the given tag(s)?
+	 *
+	 * ~~~~~
+	 * $file = $page->files->first();
+	 * 
+	 * if($file->hasTag('foobar')) {
+	 *   // file has the "foobar" tag
+	 * }
+	 *
+	 * if($file->hasTag("foo|baz")) {
+	 *   // file has either the foo OR baz tag
+	 * }
+	 * 
+	 * if($file->hasTag("foo,baz")) {
+	 *  // file has both the foo AND baz tags (since 3.0.17)
+	 * }
+	 * ~~~~~
+	 *
+	 * #pw-changelog 3.0.17 Added support for AND mode, where multiple tags can be specified and all must be present to return true.
+	 * #pw-changelog 3.0.17 OR mode now returns found tag rather than boolean true.
+	 * #pw-group-tags
+	 *
+	 * @param string $tag Specify one of the following:
+	 *  - Single tag without whitespace.
+	 *  - Multiple tags separated by a "|" to determine if Pagefile has at least one of the tags.
+	 *  - Multiple tags separated by a comma to determine if Pagefile has all of the tags. (since 3.0.17)
+	 * @return bool|string True if it has the given tag(s), false if not.
+	 * - If multiple tags were specified separated by a "|", then if at least one was present, this method returns the found tag.
+	 * - If multiple tags were specified separated by a space or comma, and all tags are present, it returns true. (since 3.0.17)
+	 * @see Pagefile::tags(), Pagefile::addTag(), Pagefile::removeTag()
+	 *
+	 */
+	public function hasTag($tag) {
+
+		$tags = $this->tags(false); // all tags in array, lowercase
+		if(empty($tags)) return false;
+		$modeAND = null;
+		$tag = trim(strtolower($tag));
+		
+		if(strpos($tag, '|') !== false) {
+			$findTags = explode('|', $tag);
+			$modeAND = false;
+		} else if(strpos($tag, ',') !== false) {
+			$findTags = explode(',', $tag);
+			$modeAND = true;
+		} else {
+			$findTags = array($tag);
+		}
+
+		$numTags = 0;
+		$numFound = 0;
+		$tagFound = '';
+
+		foreach($findTags as $tag) {
+			$tag = trim($tag);
+			if(!strlen($tag)) continue;
+			$tag = str_replace(' ', '_', $tag);
+			$numTags++;
+			if(isset($tags[$tag])) {
+				$numFound++;
+				if($modeAND === false) {
+					$tagFound = $tag;
+					break;
+				}
+			}
+		}
+
+		if($modeAND === false) {
+			// OR mode: must have at least one of given tags, and we return the found tag
+			return $numFound > 0 ? $tagFound : false;
+
+		} else if($modeAND === true) {
+			// AND mode: must have all of the given tags
+			return $numFound == $numTags;
+		}
+
+		// single tag
+		return $numFound > 0;
+	}
+
+	/**
+	 * Add the given tag to this file’s tags (if not already present)
+	 * 
+	 * ~~~~~
+	 * $file = $page->files->first();
+	 * $file->addTag('foo'); // add single tag 
+	 * $file->addTag('foo,bar,baz'); // add multiple tags
+	 * $file->addTag(['foo', 'bar', 'baz']); // same as above, using array
+	 * ~~~~~
+	 * 
+	 * #pw-group-tags
+	 * #pw-group-manipulation
+	 * 
+	 * @param string|array $tag Tag to add, or array of tags to add, or CSV string of tags to add.
+	 * @return $this
+	 * @since 3.0.17
+	 * @see Pagefile::tags(), Pagefile::hasTag(), Pagefile::removeTag()
+	 * 
+	 */
+	public function addTag($tag) {
+		if(is_array($tag)) {
+			$addTags = $tag;
+		} else if(strpos($tag, ',') !== false) {
+			$addTags = explode(',', $tag);
+		} else {
+			$addTags = array($tag);
+		}
+		$tags = $this->tags(true);	
+		$numAdded = 0;
+		foreach($addTags as $tag) {
+			if($this->hasTag($tag)) continue; 
+			$tag = $this->wire('sanitizer')->text(trim($tag));
+			$tag = str_replace(' ', '_', $tag);
+			$tags[strtolower($tag)] = $tag;
+			$numAdded++;
+		}
+		if($numAdded) $this->tags($tags); 
+		return $this;
+	}
+
+	/**
+	 * Remove the given tag from this file’s tags (if present)
+	 * 
+	 * ~~~~~
+	 * $file = $page->files->first();
+	 * $file->removeTag('foo'); // remove single tag
+	 * $file->removeTag('foo,bar,baz'); // remove multiple tags
+	 * $file->removeTag(['foo', 'bar', 'baz']); // same as above, using array
+	 * ~~~~~
+	 * 
+	 * #pw-group-tags
+	 * #pw-group-manipulation
+	 *
+	 * @param string $tag Tag to remove, or array of tags to remove, or CSV string of tags to remove. 
+	 * @return $this
+	 * @since 3.0.17
+	 * @see Pagefile::tags(), Pagefile::hasTag(), Pagefile::addTag()
+	 *
+	 */
+	public function removeTag($tag) {
+		$tags = $this->tags(true);
+		if(!count($tags)) return $this; // no tags to remove
+		if(is_array($tag)) {
+			$removeTags = $tag;
+		} else if(strpos($tag, ',') !== false) {
+			$removeTags = explode(',', $tag); 
+		} else {
+			$removeTags = array($tag);
+		}
+		$numRemoved = 0;
+		foreach($removeTags as $tag) {
+			$tag = strtolower(trim($tag));
+			$tag = str_replace(' ', '_', $tag);
+			if(!isset($tags[$tag])) continue;
+			unset($tags[strtolower($tag)]);
+			$numRemoved++;
+		}
+		if($numRemoved) $this->tags($tags); 
+		return $this; 		
 	}
 
 	/**
 	 * Has the output already been formatted?
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	public function formatted() {
@@ -439,7 +723,7 @@ class Pagefile extends WireData {
 	}
 
 	/**
-	 * Returns the filesize in number of bytes
+	 * Returns the filesize in number of bytes.
 	 *
 	 * @return int
 	 *
@@ -449,7 +733,7 @@ class Pagefile extends WireData {
 	}
 
 	/**
-	 * Returns the filesize in a formatted, output-ready string
+	 * Returns the filesize in a formatted, output-ready string (i.e. "123 kB")
 	 *
 	 * @return string
 	 *
@@ -459,7 +743,9 @@ class Pagefile extends WireData {
 	}
 
 	/**
-	 * Returns the Pagefile's extension
+	 * Returns the file’s extension - "pdf", "jpg", etc.
+	 * 
+	 * @return string
 	 *
 	 */
 	public function ext() {
@@ -467,7 +753,9 @@ class Pagefile extends WireData {
 	}
 
 	/**
-	 * When dereferenced as a string, a Pagefile returns it's basename
+	 * When dereferenced as a string, a Pagefile returns its basename
+	 * 
+	 * @return string
 	 *
 	 */
 	public function __toString() {
@@ -475,7 +763,11 @@ class Pagefile extends WireData {
 	}
 
 	/**
-	 * Return a unique MD5 hash representing this Pagefile
+	 * Return a unique MD5 hash representing this Pagefile.
+	 * 
+	 * This hash can be counted on to be unique among all files on a given page, regardless of field. 
+	 * 
+	 * @return string
 	 *
 	 */
 	public function hash() {
@@ -487,6 +779,10 @@ class Pagefile extends WireData {
 
 	/**
 	 * Delete the physical file on disk, associated with this Pagefile
+	 * 
+	 * #pw-internal Public API should use removal methods from the parent Pagefiles. 
+	 * 
+	 * @return bool True on success, false on fail
 	 *
 	 */
 	public function unlink() {
@@ -495,24 +791,29 @@ class Pagefile extends WireData {
 	}
 
 	/**
-	 * Rename this file to $basename
-	 *
- 	 * @param string $basename
-	 * @return string|bool Returns basename on success, or boolean false if rename failed
+	 * Rename this file 
+	 * 
+	 * Remember to follow this up with a `$page->save()` for the page that the file lives on. 
+	 * 
+	 * #pw-group-manipulation
+	 * 
+ 	 * @param string $basename New name to use. Must be just the file basename (no path). 
+	 * @return string|bool Returns new name (basename) on success, or boolean false if rename failed.
 	 *
 	 */
 	public function rename($basename) {
 		$basename = $this->pagefiles->cleanBasename($basename, true); 
 		if(rename($this->filename, $this->pagefiles->path . $basename)) {
 			$this->set('basename', $basename); 
-			return $basename; 
+			return $this->basename();
 		}
 		return false; 
 	}
 
-
 	/**
 	 * Copy this file to the new specified path
+	 * 
+	 * #pw-internal
 	 *
 	 * @param string $path Path (not including basename)
 	 * @return mixed result of copy() function
@@ -525,38 +826,11 @@ class Pagefile extends WireData {
 	}
 
 	/**
-	 * Does this file have the given tag?
-	 *
-	 * @param string $tag one-word tag
-	 * @return bool
-	 *
-	 */
-	public function hasTag($tag) {
-
-		$tags = $this->tags; 
-		if(empty($tags)) return false;
-
-		if(strpos($tags, ',') !== false) $tags = str_replace(',', ' ', $tags);
-		$tags = explode(' ', strtolower($tags)); 
-
-		if(strpos($tag, '|') !== false) $findTags = explode('|', strtolower($tag)); 
-			else $findTags = array(strtolower($tag)); 
-
-		$found = false; 
-		foreach($findTags as $tag) {
-			if(in_array($tag, $tags)) {
-				$found = true; 
-				break;
-			}
-		}
-
-		return $found; 
-	}
-
-	/**
-	 * Implement the hook that is called when a property changes (from Wire)
+	 * Hook called a property changes (from Wire)
 	 *
 	 * Alert the $pagefiles of the change 
+	 * 
+	 * #pw-internal
 	 * 
 	 * @param string $what
 	 * @param mixed $old
@@ -574,6 +848,8 @@ class Pagefile extends WireData {
 	/**
 	 * Set the parent array container
 	 * 
+	 * #pw-internal
+	 * 
 	 * @param Pagefiles $pagefiles
 	 * @return $this
 	 *
@@ -584,7 +860,11 @@ class Pagefile extends WireData {
 	}
 
 	/**
+	 * Get or set the temporary status of the Pagefile
+	 * 
 	 * Returns true if this Pagefile is temporary, not yet published. Or use this to set the temp status. 
+	 * 
+	 * #pw-internal
 	 * 
 	 * @param bool $set Optionally set the temp status to true or false
 	 * @return bool
@@ -593,7 +873,5 @@ class Pagefile extends WireData {
 	public function isTemp($set = null) {
 		return $this->pagefiles->isTemp($this, $set); 
 	}
-
-
 }
 

@@ -5,7 +5,10 @@
  *
  * Provides the base class for Textformatting Modules
  * 
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * #pw-summary A simple module type that provides formatting of text fields. 
+ * #pw-body Please see the base `Module` interface for all potential methods that a Textformatter module can have. 
+ * 
+ * ProcessWire 3.x (development), Copyright 2016 by Ryan Cramer
  * https://processwire.com
  * 
  * This file is licensed under the MIT license
@@ -36,22 +39,21 @@ abstract class Textformatter extends WireData implements Module {
 	 */
 
 	/**
-	 * Format the given text string
-	 *
-	 * @param string $str
+	 * Format the given text string, outside of specific Page or Field context.
+	 * 
+	 * @param string $str String is provided as a reference, so is modified directly (not returned). 
 	 *
 	 */
-	public function format(&$str) {
-	}
+	public function format(&$str) { }
 
 	/**
 	 * Format the given text string with Page and Field provided.
 	 *
-	 * Override this function completely when providing your own text formatter. No need to call the parent.
+	 * Module developers may override this function completely when providing your own text formatter. No need to call the parent.
 	 *
 	 * @param Page $page
 	 * @param Field $field
-	 * @param mixed $value
+	 * @param string|mixed $value Value is provided as a reference, so is modified directly (not returned). 
 	 *
 	 */
 	public function formatValue(Page $page, Field $field, &$value) {
@@ -62,24 +64,32 @@ abstract class Textformatter extends WireData implements Module {
 	 * Optional method to initialize the module. 
 	 *
 	 * This is called after ProcessWire's API is fully ready for use and hooks
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	public function init() { }
 
 	/**
 	 * Perform any installation procedures specific to this module, if needed. 
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	public function ___install() { }
 
 	/**
 	 * Perform any uninstall procedures specific to this module, if needed. 
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	public function ___uninstall() { }
 
 	/**
 	 * Only one instatance of a textformatter is loaded at runtime
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	public function isSingular() {
@@ -88,6 +98,8 @@ abstract class Textformatter extends WireData implements Module {
 
 	/**
 	 * Textformatters are not autoload, in that they don't load until requested by the api. 
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	public function isAutoload() {

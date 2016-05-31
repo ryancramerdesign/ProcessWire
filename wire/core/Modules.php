@@ -13,6 +13,8 @@
  * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
  * https://processwire.com
  * 
+ * #pw-summary Loads and manages all modules in ProcessWire. 
+ * 
  * @todo Move all module information methods to a ModulesInfo class
  * @todo Move all module loading methods to a ModulesLoad class
  * 
@@ -20,9 +22,10 @@
  * @method null|Module install($class, $options = array())
  * @method bool|int delete($class)
  * @method bool uninstall($class)
- * @method bool saveModuleConfigData($className, array $configData)
- * @method InputfieldWrapper|null getModuleConfigInputfields($moduleName, InputfieldWrapper $form = null)
- * @method void moduleVersionChanged(Module $module, $fromVersion, $toVersion)
+ * @method bool saveModuleConfigData($className, array $configData) Alias of saveConfig() method #pw-internal
+ * @method bool saveConfig($class, array $data) 
+ * @method InputfieldWrapper|null getModuleConfigInputfields($moduleName, InputfieldWrapper $form = null)  #pw-internal
+ * @method void moduleVersionChanged(Module $module, $fromVersion, $toVersion) #pw-internal
  *
  */
 
@@ -279,6 +282,8 @@ class Modules extends WireArray {
 	/**
 	 * Get the ModulesDuplicates instance
 	 * 
+	 * #pw-internal
+	 * 
 	 * @return ModulesDuplicates
 	 * 
 	 */
@@ -289,6 +294,8 @@ class Modules extends WireArray {
 
 	/**
 	 * Add another modules path, must be called before init()
+	 * 
+	 * #pw-internal
 	 *
 	 * @param string $path 
 	 *
@@ -299,6 +306,8 @@ class Modules extends WireArray {
 
 	/**
 	 * Return all assigned module root paths
+	 * 
+	 * #pw-internal
 	 *
 	 * @return array of modules paths, with index 0 always being the core modules path.
 	 *
@@ -311,6 +320,8 @@ class Modules extends WireArray {
 	 * Initialize modules
 	 * 
 	 * Must be called after construct before this class is ready to use
+	 * 
+	 * #pw-internal
 	 * 
 	 * @see load()
 	 * 
@@ -329,6 +340,8 @@ class Modules extends WireArray {
 	/**
 	 * Modules class accepts only Module instances, per the WireArray interface
 	 * 
+	 * #pw-internal
+	 * 
 	 * @param Wire $item
 	 * @return bool
  	 *
@@ -340,6 +353,8 @@ class Modules extends WireArray {
 	/**
 	 * The key/index used for each module in the array is it's class name, per the WireArray interface
 	 * 
+	 * #pw-internal
+	 * 
 	 * @param Wire $item
 	 * @return int|string
  	 *
@@ -350,6 +365,8 @@ class Modules extends WireArray {
 
 	/**
 	 * There is no blank/generic module type, so makeBlankItem returns null
+	 * 
+	 * #pw-internal
  	 *
 	 */
 	public function makeBlankItem() {
@@ -358,6 +375,8 @@ class Modules extends WireArray {
 
 	/**
 	 * Make a new/blank WireArray
+	 * 
+	 * #pw-internal
  	 *
 	 */
 	public function makeNew() {
@@ -367,6 +386,8 @@ class Modules extends WireArray {
 
 	/**
 	 * Make a new populated copy of a WireArray containing all the modules
+	 * 
+	 * #pw-internal
 	 *
 	 * @return WireArray
  	 *
@@ -381,6 +402,8 @@ class Modules extends WireArray {
 
 	/**
 	 * Initialize all the modules that are loaded at boot
+	 * 
+	 * #pw-internal
 	 * 
 	 * @param null|array|Modules $modules
 	 * @param array $completed
@@ -649,6 +672,8 @@ class Modules extends WireArray {
 	 * This is to indicate to them that the API environment is fully ready and $page is in fuel.
 	 *
  	 * This is triggered by ProcessPageView::ready
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	public function triggerReady() {
@@ -1056,18 +1081,29 @@ class Modules extends WireArray {
 	}
 
 	/**
-	 * Get the requsted Module or NULL if it doesn't exist. 
+	 * Get the requested Module 
 	 *
-	 * If the module is a ModulePlaceholder, then it will be converted to the real module (included, instantiated, init'd) .
-	 * If the module is not installed, but is installable, it will be installed, instantiated, and init'd. 
-	 * This method is the only one guaranteed to return a real [non-placeholder] module. 
+	 * - If the module is not installed, but is installable, it will be installed, instantiated, and initialized.
+	 *   If you don't want that behavior, call `$modules->isInstalled('ModuleName')` as a conditional first. 
+	 * - You can also get/load a module by accessing it directly, like `$modules->ModuleName`.
+	 * - To get a module with additional options, use `$modules->getModule($name, $options)` instead. 
+	 * 
+	 * ~~~~~
+	 * // Get the MarkupAdminDataTable module
+	 * $table = $modules->get('MarkupAdminDataTable'); 
+	 * 
+	 * // You can also do this
+	 * $table = $modules->MarkupAdminDataTable;
+	 * ~~~~~
 	 *
-	 * @param string|int $key Module className or database ID
-	 * @return Module|Inputfield|Fieldtype|Process|Textformatter|null
+	 * @param string|int $key Module name (also accepts database ID)
+	 * @return Module|null Returns a Module or null if not found
 	 * @throws WirePermissionException If module requires a particular permission the user does not have
+	 * @see Modules::getModule(), Modules::isInstalled()
 	 *
 	 */
 	public function get($key) {
+		// If the module is a ModulePlaceholder, then it will be converted to the real module (included, instantiated, initialized).
 		return $this->getModule($key);
 	}
 
@@ -1094,17 +1130,26 @@ class Modules extends WireArray {
 	}
 
 	/**
-	 * Get the requested Module or NULL if it doesn't exist + specify one or more options
+	 * Get the requested Module (with options)
 	 * 
-	 * @param string|int $key Module className or database ID
-	 * @param array $options Optional settings to change load behavior:
-	 * 	- noPermissionCheck: Specify true to disable module permission checks (and resulting exception). 
-	 *  - noInstall: Specify true to prevent a non-installed module from installing from this request.
-	 *  - noInit: Specify true to prevent the module from being initialized. 
-	 *  - noSubstitute: Specify true to prevent inclusion of a substitute module. 
-	 * 	- noCache: Specify true to prevent module instance from being cached for later getModule() calls.
-	 * @return Module|null
+	 * This is the same as `$modules->get()` except that you can specify additional options to modify default behavior.
+	 * These are the options you can speicfy in the `$options` array argument:
+	 * 
+	 *  - `noPermissionCheck` (bool): Specify true to disable module permission checks (and resulting exception).
+	 *  - `noInstall` (bool): Specify true to prevent a non-installed module from installing from this request.
+	 *  - `noInit` (bool): Specify true to prevent the module from being initialized.
+	 *  - `noSubstitute` (bool): Specify true to prevent inclusion of a substitute module.
+	 *  - `noCache` (bool): Specify true to prevent module instance from being cached for later getModule() calls.
+	 * 
+	 * If the module is not installed, but is installable, it will be installed, instantiated, and initialized.
+	 * If you don't want that behavior, call `$modules->isInstalled('ModuleName')` as a condition first, OR specify 
+	 * true for the `noInstall` option in the `$options` argument.
+	 * 
+	 * @param string|int $key Module name or database ID.
+	 * @param array $options Optional settings to change load behavior, see method description for details. 
+	 * @return Module|null Returns ready-to-use module or NULL if not found.
 	 * @throws WirePermissionException If module requires a particular permission the user does not have
+	 * @see Modules::get()
 	 *
 	 */
 	public function getModule($key, array $options = array()) {
@@ -1172,13 +1217,15 @@ class Modules extends WireArray {
 	/**
 	 * Check if user has permission for given module
 	 * 
-	 * @param string|object $moduleName
+	 * #pw-internal
+	 * 
+	 * @param string|object $moduleName Module instance or module name
 	 * @param User $user Optionally specify different user to consider than current.
 	 * @param Page $page Optionally specify different page to consider than current.
 	 * @param bool $strict If module specifies no permission settings, assume no permission.
-	 * 	Default (false) is to assume permission when module doesn't say anything about it. 
-	 * 	Process modules (for instance) generally assume no permission when it isn't specifically defined 
-	 * 	(though this method doesn't get involved in that, leaving you to specify $strict instead). 
+	 *   - Default (false) is to assume permission when module doesn't say anything about it. 
+	 *   - Process modules (for instance) generally assume no permission when it isn't specifically defined 
+	 *     (though this method doesn't get involved in that, leaving you to specify $strict instead). 
 	 * 
 	 * @return bool
 	 * 
@@ -1229,6 +1276,8 @@ class Modules extends WireArray {
 	 * This is exactly the same as get() except that this one will rebuild the modules cache if
 	 * it doesn't find the module at first. If the module is on the file system, this
 	 * one will return it in some instances that a regular get() can't. 
+	 * 
+	 * #pw-internal
 	 *
 	 * @param string|int $key Module className or database ID
 	 * @return Module|null
@@ -1245,6 +1294,8 @@ class Modules extends WireArray {
 
 	/**
 	 * Include the file for a given module, but don't instantiate it 
+	 * 
+	 * #pw-internal
 	 *
 	 * @param ModulePlaceholder|Module|string Expects a ModulePlaceholder or className
 	 * @param string $file Optionally specify the module filename if you already know it
@@ -1360,13 +1411,16 @@ class Modules extends WireArray {
 	}
 
 	/**
-	 * Find modules based on a selector string and ensure any ModulePlaceholders are loaded in the returned result
-	 *
-	 * @param string $selector
-	 * @return Modules
+	 * Find modules based on a selector string 
+	 * 
+	 * #pw-internal Almost always recommend using findByPrefix() instead
+	 * 
+	 * @param string $selector Selector string
+	 * @return Modules WireArray of found modules, instantiated and ready-to-use
 	 *	
 	 */
 	public function find($selector) {
+		// ensures any ModulePlaceholders are loaded in the returned result.
 		$a = parent::find($selector); 
 		if($a) {
 			foreach($a as $key => $value) {
@@ -1377,11 +1431,23 @@ class Modules extends WireArray {
 	}
 
 	/**
-	 * Find modules matching the given prefix 
+	 * Find modules matching the given prefix (i.e. “Inputfield”)
 	 * 
-	 * @param string $prefix Specify prefix, i.e. Process, Fieldtype, Inputfield, etc.
+	 * By default this method returns module class names matching the given prefix. 
+	 * To instead retrieve instantiated (ready-to-use) modules, specify boolean true
+	 * for the second argument. 
+	 * 
+	 * ~~~~~
+	 * // Retrieve array of all Textformatter module names
+	 * $items = $modules->findByPrefix('Textformatter'); 
+	 * 
+	 * // Retrieve array of all Textformatter modules (ready to use)
+	 * $items = $modules->findByPrefix('Textformatter', true); 
+	 * ~~~~~
+	 * 
+	 * @param string $prefix Specify prefix, i.e. "Process", "Fieldtype", "Inputfield", etc.
 	 * @param bool $instantiate Specify true to return Module instances, or false to return class names (default=false)
-	 * @return array of module class names or Module objects. In either case, array indexes are class names.
+	 * @return array Returns array of module class names or Module objects. In either case, array indexes are class names.
 	 * 
 	 */
 	public function findByPrefix($prefix, $instantiate = false) {
@@ -1399,9 +1465,11 @@ class Modules extends WireArray {
 	}
 
 	/**
-	 * Get an array of all modules that aren't currently installed
+	 * Get an associative array [name => path] for all modules that aren’t currently installed.
+	 * 
+	 * #pw-internal
 	 *
-	 * @return array Array of elements with $className => $pathname
+	 * @return array Array of elements with $moduleName => $pathName
 	 *
 	 */
 	public function getInstallable() {
@@ -1409,10 +1477,10 @@ class Modules extends WireArray {
 	}
 
 	/**
-	 * Is the given class name installed?
+	 * Is the given module name installed?
 	 *
-	 * @param string $class Just a ModuleClassName, or optionally: ModuleClassName>=1.2.3 (operator and version)
-	 * @return bool
+	 * @param string $class Just a module class name, or optionally: `ModuleClassName>=1.2.3` (operator and version)
+	 * @return bool True if installed, false if not
 	 *
 	 */
 	public function isInstalled($class) {
@@ -1450,16 +1518,17 @@ class Modules extends WireArray {
 		}
 	
 		return $installed;
-		
 	}
 
 
 	/**
-	 * Is the given class name not installed?
+	 * Is the given module name installable? (i.e. not already installed)
+	 * 
+	 * #pw-internal
 	 *
-	 * @param string $class
+	 * @param string $class Module class name
 	 * @param bool $now Is module installable RIGHT NOW? This makes it check that all dependencies are already fulfilled (default=false)
-	 * @return bool
+	 * @return bool True if module is installable, false if not
  	 *
 	 */
 	public function isInstallable($class, $now = false) {
@@ -1473,13 +1542,15 @@ class Modules extends WireArray {
 	}
 	
 	/**
-	 * Install the given class name
+	 * Install the given module name
+	 * 
+	 * #pw-group-manipulation
 	 *
-	 * @param string $class
-	 * @param array|bool $options Associative array of: 
-	 * 	- dependencies (boolean, default=true): When true, dependencies will also be installed where possible. Specify false to prevent installation of uninstalled modules. 
-	 * 	- resetCache (boolean, default=true): When true, module caches will be reset after installation. 
-	 * @return null|Module Returns null if unable to install, or instantiated Module object if successfully installed. 
+	 * @param string $class Module name (class name)
+	 * @param array|bool $options Optional associative array that can contain any of the following:
+	 *  - `dependencies` (boolean): When true, dependencies will also be installed where possible. Specify false to prevent installation of uninstalled modules. (default=true)
+	 *  - `resetCache` (boolean): When true, module caches will be reset after installation. (default=true)
+	 * @return null|Module Returns null if unable to install, or ready-to-use Module object if successfully installed. 
 	 * @throws WireException
 	 *
 	 */
@@ -1632,6 +1703,8 @@ class Modules extends WireArray {
 
 	/**
 	 * Returns whether the module can be uninstalled
+	 * 
+	 * #pw-internal
 	 *
 	 * @param string|Module $class
 	 * @param bool $returnReason If true, the reason why it can't be uninstalled with be returned rather than boolean false.
@@ -1683,6 +1756,8 @@ class Modules extends WireArray {
 
 	/**
 	 * Returns whether the module can be deleted (have it's files physically removed)
+	 * 
+	 * #pw-internal
 	 *
 	 * @param string|Module $class
 	 * @param bool $returnReason If true, the reason why it can't be removed will be returned rather than boolean false.
@@ -1720,8 +1795,10 @@ class Modules extends WireArray {
 
 	/**
 	 * Delete the given module, physically removing its files
+	 * 
+	 * #pw-group-manipulation
 	 *
-	 * @param string $class
+	 * @param string $class Module name (class name)
 	 * @return bool|int
 	 * @throws WireException If module can't be deleted, exception will be thrown containing reason. 
 	 *
@@ -1840,9 +1917,11 @@ class Modules extends WireArray {
 
 
 	/**
-	 * Uninstall the given class name
+	 * Uninstall the given module name
+	 * 
+	 * #pw-group-manipulation
 	 *
-	 * @param string $class
+	 * @param string $class Module name (class name)
 	 * @return bool
 	 * @throws WireException
 	 *
@@ -1944,6 +2023,8 @@ class Modules extends WireArray {
 	/**
 	 * Get flags for the given module
 	 * 
+	 * #pw-internal
+	 * 
 	 * @param int|string|Module $class Module to add flag to
 	 * @return int|false Returns integer flags on success, or boolean false on fail
 	 * 
@@ -1965,6 +2046,8 @@ class Modules extends WireArray {
 	/**
 	 * Set module flags
 	 * 
+	 * #pw-internal
+	 * 
 	 * @param $class
 	 * @param $flags
 	 * @return bool
@@ -1985,6 +2068,8 @@ class Modules extends WireArray {
 
 	/**
 	 * Add or remove a flag from a module
+	 * 
+	 * #pw-internal
 	 * 
 	 * @param $class int|string|Module $class Module to add flag to
 	 * @param $flag int Flag to add (see flags* constants)
@@ -2011,6 +2096,8 @@ class Modules extends WireArray {
 
 	/**
 	 * Return an array of other module class names that are uninstalled when the given one is
+	 * 
+	 * #pw-internal
 	 * 
 	 * The opposite of this function is found in the getModuleInfo array property 'installs'. 
 	 * Note that 'installs' and uninstalls may be different, as only modules in the 'installs' list
@@ -2046,8 +2133,10 @@ class Modules extends WireArray {
 
 	/**
 	 * Returns the database ID of a given module class, or 0 if not found
+	 * 
+	 * #pw-internal
 	 *
-	 * @param string|Module $class
+	 * @param string|Module $class Module or module name
 	 * @return int
 	 *
 	 */
@@ -2080,13 +2169,14 @@ class Modules extends WireArray {
 	/**
 	 * Returns the module's class name. 
 	 *
-	 * Given a numeric database ID, returns the associated module class name or false if it doesn't exist
-	 *
-	 * Given a Module or ModulePlaceholder instance, returns the Module's class name. 
-	 *
+	 * - Given a numeric database ID, returns the associated module class name or false if it doesn't exist
+	 * - Given a Module or ModulePlaceholder instance, returns the Module's class name. 
+	 *  
 	 * If the module has a className() method then it uses that rather than PHP's get_class().
 	 * This is important because of placeholder modules. For example, get_class would return 
 	 * 'ModulePlaceholder' rather than the correct className for a Module.
+	 * 
+	 * #pw-internal
 	 *
 	 * @param string|int|Module
 	 * @param bool $withNamespace Specify true to include the namespace in the class
@@ -2278,24 +2368,70 @@ class Modules extends WireArray {
 	}
 
 	/**
-	 * Returns the standard array of information for a Module
+	 * Returns an associative array of information for a Module
+	 * 
+	 * The array returned by this method includes the following: 
+	 * 
+	 *  - `id` (int): module database ID.
+	 *  - `name` (string): module class name.
+	 *  - `title` (string): module title.
+	 *  - `version` (int): module version.
+	 *  - `icon` (string): Optional icon name (excluding the "fa  - ") part.
+	 *  - `requires` (array): module names required by this module.
+	 *  - `requiresVersions` (array): required module versions–module name is key, value is array($operator, $version).
+	 *  - `installs` (array): module names that this module installs.
+	 *  - `permission` (string): permission name required to execute this module.
+	 *  - `autoload` (bool): true if module is autoload, false if not.
+	 *  - `singular` (bool): true if module is singular, false if not.
+	 *  - `created` (int): unix  - timestamp of date/time module added to system (for uninstalled modules, it is the file date).
+	 *  - `installed` (bool): is the module currently installed? (boolean, or null when not determined)
+	 *  - `configurable` (bool|int): true or positive number when the module is configurable.
+	 *  - `namespace` (string): PHP namespace that module lives in.
 	 *
-	 * @param string|Module|int $module May be class name, module instance, or module ID
+	 *  The following properties are also included when "verbose" mode is requested. When not in verbose mode, these properties are present but blank:
+	 *
+	 *  - `versionStr` (string): formatted module version string.
+	 *  - `file` (string): module filename from PW installation root, or false when it can't be found.
+	 *  - `core` (bool): true when module is a core module, false when not.
+	 *  - `author` (string): module author, when specified.
+	 *  - `summary` (string): summary of what this module does.
+	 *  - `href` (string): URL to module details (when specified).
+	 *  - `permissions` (array): permissions installed by this module, associative array ('permission  - name' => 'Description').
+	 *  - `page` (array): definition of page to create for Process module (see Process class)
+	 *
+	 *  The following properties appear only for "Process" modules. See the Process class for more details:
+	 *
+	 *  - `nav` (array): navigation definition
+	 *  - `useNavJSON` (bool): whether the Process module provides JSON navigation
+	 *  - `permissionMethod` (string|callable): method to call to determine permission
+	 *  - `page` (array): definition of page to create for Process module
+	 * 
+	 * ~~~~~
+	 * // example of getting module info
+	 * $moduleInfo = $modules->getModuleInfo('InputfieldCKEditor'); 
+	 * 
+	 * // example of getting verbose module info
+	 * $moduleInfo = $modules->getModuleInfoVerbose('MarkupAdminDataTable');
+	 * ~~~~~
+	 * 
+	 * @param string|Module|int $class May be class name, module instance, or module ID
 	 * @param array $options Optional options to modify behavior of what gets returned
-	 *  - verbose: Makes the info also include summary, author, file, core, href, versionStr (they will be usually blank without this option specified)
-	 * 	- noCache: prevents use of cache to retrieve the module info
-	 *  - noInclude: prevents include() of the module file, applicable only if it hasn't already been included
-	 * @return array
+	 *  - `verbose` (bool): Makes the info also include additional properties (they will be usually blank without this option specified).
+	 *  - `noCache` (bool): prevents use of cache to retrieve the module info.
+	 *  - `noInclude` (bool): prevents include() of the module file, applicable only if it hasn't already been included.
+	 * @return array Associative array of module information
 	 * @throws WireException when a module exists but has no means of returning module info
+	 * @see Modules::getModuleInfoVerbose()
 	 * @todo move all getModuleInfo methods to their own ModuleInfo class and break this method down further. 
 	 *	
 	 */
-	public function getModuleInfo($module, array $options = array()) {
-		
+	public function getModuleInfo($class, array $options = array()) {
+	
 		if(!isset($options['verbose'])) $options['verbose'] = false; 
 		if(!isset($options['noCache'])) $options['noCache'] = false;
 		
 		$info = array();
+		$module = $class;
 		$moduleName = $this->getModuleClass($module); 
 		$moduleID = (string) $this->getModuleID($module); // typecast to string for cache
 		$fromCache = false;  // was the data loaded from cache?
@@ -2477,7 +2613,7 @@ class Modules extends WireArray {
 			$info['name'] = $moduleName; // module name
 
 			// module configurable?
-			$configurable = $this->isConfigurableModule($moduleName, false);
+			$configurable = $this->isConfigurable($moduleName, false);
 			if($configurable === true || is_int($configurable) && $configurable > 1) {
 				// configurable via ConfigurableModule interface
 				// true=static, 2=non-static, 3=non-static $data, 4=non-static wrap,
@@ -2536,24 +2672,38 @@ class Modules extends WireArray {
 	}
 
 	/**
-	 * Returns the verbose array of information for a Module
+	 * Returns a verbose array of information for a Module
+	 * 
+	 * This is the same as what's returned by `Modules::getModuleInfo()` except that it has the following additional properties:
+	 * 
+	 *  - `versionStr` (string): formatted module version string.
+	 *  - `file` (string): module filename from PW installation root, or false when it can't be found.
+	 *  - `core` (bool): true when module is a core module, false when not.
+	 *  - `author` (string): module author, when specified.
+	 *  - `summary` (string): summary of what this module does.
+	 *  - `href` (string): URL to module details (when specified).
+	 *  - `permissions` (array): permissions installed by this module, associative array ('permission  - name' => 'Description').
+	 *  - `page` (array): definition of page to create for Process module (see Process class)
 	 *
-	 * @param string|Module|int $module May be class name, module instance, or module ID
-	 * @param array $options Optional options to modify behavior of what gets returned
-	 * 	- noCache: prevents use of cache to retrieve the module info
-	 *  - noInclude: prevents include() of the module file, applicable only if it hasn't already been included
-	 * @return array
+	 * @param string|Module|int $class May be class name, module instance, or module ID
+	 * @param array $options Optional options to modify behavior of what gets returned:
+	 *  - `noCache` (bool): prevents use of cache to retrieve the module info
+	 *  - `noInclude` (bool): prevents include() of the module file, applicable only if it hasn't already been included
+	 * @return array Associative array of module information
 	 * @throws WireException when a module exists but has no means of returning module info
+	 * @see Modules::getModuleInfo()
 	 *
 	 */
-	public function getModuleInfoVerbose($module, array $options = array()) {
+	public function getModuleInfoVerbose($class, array $options = array()) {
 		$options['verbose'] = true; 
-		$info = $this->getModuleInfo($module, $options); 
+		$info = $this->getModuleInfo($class, $options); 
 		return $info;
 	}
 
 	/**
 	 * Get an array of all unique, non-default, non-root module namespaces mapped to directory names
+	 * 
+	 * #pw-internal
 	 * 
 	 * @return array
 	 * 
@@ -2574,10 +2724,12 @@ class Modules extends WireArray {
 	/**
 	 * Get the namespace for the given module
 	 * 
+	 * #pw-internal
+	 * 
 	 * @param string|Module $moduleName
 	 * @param array $options
-	 * 	- file (string): Module path/file, as an optimization 
-	 * 	- noCache (bool): Specify true to force reload namespace info directly from module file
+	 * 	- `file` (string): Known module path/file, as an optimization.
+	 * 	- `noCache` (bool): Specify true to force reload namespace info directly from module file.
 	 * @return null|string Returns namespace, or NULL if unable to determine. Namespace is ready to use in a string (i.e. has trailing slashes)
 	 * 
 	 */
@@ -2625,6 +2777,8 @@ class Modules extends WireArray {
 	/**
 	 * Get the namespace used in the given .php or .module file
 	 * 
+	 * #pw-internal
+	 * 
 	 * @param string $file
 	 * @return string Includes leading and trailing backslashes where applicable
 	 * 
@@ -2637,6 +2791,8 @@ class Modules extends WireArray {
 
 	/**
 	 * Get the class defined in the file (or optionally the 'extends' or 'implements')
+	 * 
+	 * #pw-internal
 	 * 
 	 * @param string $file
 	 * @return array Returns array with these indexes:
@@ -2695,34 +2851,58 @@ class Modules extends WireArray {
 			}
 		}
 		
-		
 		return $value; 
+	}
+
+	/**
+	 * Alias of getConfig() for backwards compatibility
+	 * 
+	 * #pw-internal
+	 * 
+	 * @param string|Module $className
+	 * @return array
+	 * 
+	 */
+	public function getModuleConfigData($className) {
+		return $this->getConfig($className);
 	}
 	
 	/**
-	 * Given a class name, return an array of configuration data specified for the Module
+	 * Given a module name, return an associative array of configuration data for it
+	 * 
+	 * - Applicable only for modules that support configuration.
+	 * - Configuration data is stored encoded in the database "modules" table "data" field.
+	 * 
+	 * ~~~~~~
+	 * // Getting, modifying and saving module config data
+	 * $data = $modules->getConfig('HelloWorld');
+	 * $data['greeting'] = 'Hello World! How are you today?';
+	 * $modules->saveConfig('HelloWorld', $data);
+	 * ~~~~~~
 	 *
-	 * Corresponds to the modules.data table in the database
-	 *
-	 * Applicable only for modules that implement the ConfigurableModule interface
-	 *
-	 * @param string|Module $className
-	 * @return array
+	 * #pw-group-configuration
+	 * #pw-changelog 3.0.16 Changed from more verbose name `getModuleConfigData()`, which can still be used. 
+	 * 
+	 * @param string|Module $class
+	 * @return array Module configuration data
+	 * @see Modules::saveConfig()
+	 * @since 3.0.16 Use method getModuleConfigData() with same arguments for prior versions (can also be used on any version).
 	 *
 	 */
-	public function getModuleConfigData($className) {
+	public function getConfig($class) {
 
+		$className = $class;
 		if(is_object($className)) $className = wireClassName($className->className(), false);
 		if(!$id = $this->moduleIDs[$className]) return array();
 		if(!isset($this->configData[$id])) return array(); // module has no config data
 		if(is_array($this->configData[$id])) return $this->configData[$id]; 
 
 		// first verify that module doesn't have a config file
-		$configurable = $this->isConfigurableModule($className); 
+		$configurable = $this->isConfigurable($className); 
 		if(!$configurable) return array();
 		
 		$database = $this->wire('database'); 
-		$query = $database->prepare("SELECT data FROM modules WHERE id=:id", "modules.getModuleConfigData($className)"); // QA
+		$query = $database->prepare("SELECT data FROM modules WHERE id=:id", "modules.getConfig($className)"); // QA
 		$query->bindValue(":id", (int) $id, \PDO::PARAM_INT); 
 		$query->execute();
 		$data = $query->fetchColumn(); 
@@ -2735,20 +2915,29 @@ class Modules extends WireArray {
 
 		return $data; 	
 	}
+	
+	/**
+	 * Alias of getConfig() for backwards compatibility
+	 *
+	 * @param string|Module $className
+	 * @return array
+	 *
+	 */
 
 	/**
 	 * Get the path + filename (or optionally URL) for this module
 	 * 
-	 * @param string|Module $className Module class name or object instance
-	 * @param array|bool $options array with any of the following:
-	 * 	- getURL (bool): Specify true if you want to get the URL rather than file path (default=false). 
-	 * 	- fast (bool): Specify true to omit file_existss() checks (default=false). 
-	 * 	Note: If you specify a boolean for the $options argument, it is assumed to be the $getURL property.
+	 * @param string|Module $class Module class name or object instance
+	 * @param array|bool $options Options to modify default behavior:
+	 * 	- `getURL` (bool): Specify true if you want to get the URL rather than file path (default=false). 
+	 * 	- `fast` (bool): Specify true as optimization to omit file_exists() checks (default=false). 
+	 * 	- Note: If you specify a boolean for the $options argument, it is assumed to be the $getURL property.
 	 * @return bool|string Returns string of module file, or false on failure. 
 	 * 
 	 */
-	public function getModuleFile($className, $options = array()) {
+	public function getModuleFile($class, $options = array()) {
 
+		$className = $class;
 		if(is_bool($options)) $options = array('getURL' => $options);
 		if(!isset($options['getURL'])) $options['getURL'] = false;
 		if(!isset($options['fast'])) $options['fast'] = false;
@@ -2856,37 +3045,73 @@ class Modules extends WireArray {
 	/**
 	 * Is the given module configurable?
 	 * 
-	 * External configuration file: 
-	 * ============================
-	 * Returns string of full path/filename to ModuleName.config.php file if configurable via separate file. 
+	 * This method can be used to simply determine if a module is configurable (yes or no), or more specifically
+	 * how it is configurable. 
 	 * 
-	 * ModuleConfig interface:
-	 * =======================
-	 * Returns boolean true if module is configurable via the static getModuleConfigInputfields method.
-	 * Returns integer 2 if module is configurable via the non-static getModuleConfigInputfields and requires no arguments.
-	 * Returns integer 3 if module is configurable via the non-static getModuleConfigInputfields and requires $data array.
-	 * Returns integer 4 if module is configurable via the non-static getModuleConfigInputfields and requires InputfieldWrapper argument.
-	 * Returns integer 19 if module is configurable via non-static getModuleConfigArray method.
-	 * Returns integer 20 if module is configurable via static getModuleConfigArray method.
+	 * ~~~~~
+	 * // Determine IF a module is configurable
+	 * if($modules->isConfigurable('HelloWorld')) {
+	 *   // Module is configurable
+	 * } else {
+	 *   // Module is NOT configurable
+	 * }
+	 * ~~~~~
+	 * ~~~~~
+	 * // Determine HOW a module is configurable
+	 * $configurable = $module->isConfigurable('HelloWorld');
+	 * if($configurable === true) {
+	 *   // configurable in a way compatible with all past versions of ProcessWire
+	 * } else if(is_string($configurable)) {
+	 *   // configurable via an external configuration file
+	 *   // file is identifed in $configurable variable
+	 * } else if(is_int($configurable)) {
+	 *   // configurable via a method in the class
+	 *   // the $configurable variable contains a number with specifics
+	 * } else {
+	 *   // module is NOT configurable
+	 * }
+	 * ~~~~~
 	 * 
-	 * Not configurable:
-	 * =================
-	 * Returns boolean false if not configurable
+	 * ### Return value details
 	 * 
-	 * @param Module|string $className
-	 * @param bool $useCache This accepts a few options: 
-	 * 	- Specify boolean true to allow use of cache when available (default behavior). 
-	 * 	- Specify boolean false to disable retrieval of this property from getModuleInfo (forces a new check).
-	 * 	- Specify string 'interface' to check only if module implements ConfigurableModule interface. 
-	 * 	- Specify string 'file' to check only if module has a separate configuration class/file.
-	 * @return bool|string See details about return values above. 
+	 * #### If module is configurable via external configuration file:
+	 * 
+	 * - Returns string of full path/filename to `ModuleName.config.php` file 
+	 * 
+	 * #### If module is configurable because it implements a configurable module interface:
+	 * 
+	 * - Returns boolean `true` if module is configurable via the static `getModuleConfigInputfields()` method.
+	 *   This particular method is compatible with all past versions of ProcessWire. 
+	 * - Returns integer `2` if module is configurable via the non-static `getModuleConfigInputfields()` and requires no arguments.
+	 * - Returns integer `3` if module is configurable via the non-static `getModuleConfigInputfields()` and requires `$data` array.
+	 * - Returns integer `4` if module is configurable via the non-static `getModuleConfigInputfields()` and requires `InputfieldWrapper` argument.
+	 * - Returns integer `19` if module is configurable via non-static `getModuleConfigArray()` method.
+	 * - Returns integer `20` if module is configurable via static `getModuleConfigArray()` method.
+	 * 
+	 * #### If module is not configurable:
+	 * 
+	 * - Returns boolean `false` if not configurable
+	 * 
+	 * *This method is named isConfigurableModule() in ProcessWire versions prior to to 3.0.16.*
+	 * 
+	 * #pw-group-configuration
+	 * 
+	 * @param Module|string $class Module name
+	 * @param bool $useCache Use caching? This accepts a few options: 
+	 * 	- Specify boolean `true` to allow use of cache when available (default behavior). 
+	 * 	- Specify boolean `false` to disable retrieval of this property from getModuleInfo (forces a new check).
+	 * 	- Specify string `interface` to check only if module implements ConfigurableModule interface. 
+	 * 	- Specify string `file` to check only if module has a separate configuration class/file.
+	 * @return bool|string|int See details about return values in method description. 
+	 * @since 3.0.16
 	 * 
 	 * @todo all ConfigurableModule methods need to be split out into their own class (ConfigurableModules?)
 	 * @todo this method has two distinct parts (file and interface) that need to be split in two methods.
 	 * 
 	 */
-	public function isConfigurableModule($className, $useCache = true) {
-	
+	public function isConfigurable($class, $useCache = true) {
+
+		$className = $class;
 		$moduleInstance = null;
 		$namespace = $this->getModuleNamespace($className);
 		if(is_object($className)) {
@@ -3050,6 +3275,20 @@ class Modules extends WireArray {
 	}
 
 	/**
+	 * Alias of isConfigurable() for backwards compatibility
+	 * 
+	 * #pw-internal
+	 * 
+	 * @param $className
+	 * @param bool $useCache
+	 * @return mixed
+	 * 
+	 */
+	public function isConfigurableModule($className, $useCache = true) {
+		return $this->isConfigurable($className, $useCache); 
+	}
+
+	/**
 	 * Populate configuration data to a ConfigurableModule
 	 *
 	 * If the Module has a 'setConfigData' method, it will send the array of data to that. 
@@ -3062,9 +3301,9 @@ class Modules extends WireArray {
 	 */
 	protected function setModuleConfigData(Module $module, $data = null) {
 
-		$configurable = $this->isConfigurableModule($module); 
+		$configurable = $this->isConfigurable($module); 
 		if(!$configurable) return false;
-		if(!is_array($data)) $data = $this->getModuleConfigData($module);
+		if(!is_array($data)) $data = $this->getConfig($module);
 
 		$nsClassName = '\\' . $module->className(true);
 		$moduleName = $module->className(false);
@@ -3124,26 +3363,57 @@ class Modules extends WireArray {
 	}
 
 	/**
-	 * Given a module class name and an array of configuration data, save it for the module
-	 *
-	 * @param string|Module $className
+	 * Alias of saveConfig() for backwards compatibility
+	 * 
+	 * #pw-internal
+	 * 
+	 * @param $className
 	 * @param array $configData
-	 * @return bool True on success
-	 * @throws WireException
-	 *
+	 * @return mixed
+	 * 
 	 */
 	public function ___saveModuleConfigData($className, array $configData) {
+		return $this->saveConfig($className, $configData);
+	}
+
+	/**
+	 * Save provided configuration data for the given module
+	 * 
+	 * - Applicable only for modules that support configuration.
+	 * - Configuration data is stored encoded in the database "modules" table "data" field.
+	 * 
+	 * ~~~~~~
+	 * // Getting, modifying and saving module config data
+	 * $data = $modules->getConfig('HelloWorld');
+	 * $data['greeting'] = 'Hello World! How are you today?';
+	 * $modules->saveConfig('HelloWorld', $data);
+	 * ~~~~~~
+	 * 
+	 * #pw-group-configuration
+	 * #pw-group-manipulation
+	 * #pw-changelog 3.0.16 Changed name from the more verbose saveModuleConfigData(), which will still work.
+	 *
+	 * @param string|Module $class Module or module name
+	 * @param array $data Associative array of configuration data
+	 * @return bool True on success, false on failure
+	 * @throws WireException
+	 * @see Modules::getConfig()
+	 * @since 3.0.16 Use method saveModuleConfigData() with same arguments for prior versions (can also be used on any version).
+	 *
+	 */
+	public function ___saveConfig($class, array $data) {
+		$className = $class;
 		if(is_object($className)) $className = $className->className();
 		$moduleName = wireClassName($className, false);
 		if(!$id = $this->moduleIDs[$moduleName]) throw new WireException("Unable to find ID for Module '$moduleName'");
 
 		// ensure original duplicates info is retained and validate that it is still current
-		$configData = $this->duplicates()->getDuplicatesConfigData($moduleName, $configData); 
+		$data = $this->duplicates()->getDuplicatesConfigData($moduleName, $data); 
 		
-		$this->configData[$id] = $configData; 
-		$json = count($configData) ? wireEncodeJSON($configData, true) : '';
+		$this->configData[$id] = $data; 
+		$json = count($data) ? wireEncodeJSON($data, true) : '';
 		$database = $this->wire('database'); 	
-		$query = $database->prepare("UPDATE modules SET data=:data WHERE id=:id", "modules.saveModuleConfigData($moduleName)"); // QA
+		$query = $database->prepare("UPDATE modules SET data=:data WHERE id=:id", "modules.saveConfig($moduleName)"); // QA
 		$query->bindValue(":data", $json, \PDO::PARAM_STR);
 		$query->bindValue(":id", (int) $id, \PDO::PARAM_INT); 
 		$result = $query->execute();
@@ -3154,6 +3424,8 @@ class Modules extends WireArray {
 	/**
 	 * Get the Inputfields that configure the given module or return null if not configurable
 	 * 
+	 * #pw-internal
+	 * 
 	 * @param string|Module|int $moduleName
 	 * @param InputfieldWrapper|null $form Optionally specify the form you want Inputfields appended to.
 	 * @return InputfieldWrapper|null
@@ -3162,15 +3434,15 @@ class Modules extends WireArray {
 	public function ___getModuleConfigInputfields($moduleName, InputfieldWrapper $form = null) {
 		
 		$moduleName = $this->getModuleClass($moduleName);
-		$configurable = $this->isConfigurableModule($moduleName);
+		$configurable = $this->isConfigurable($moduleName);
 		if(!$configurable) return null;
 		
 		if(is_null($form)) $form = $this->wire(new InputfieldWrapper());
-		$data = $this->getModuleConfigData($moduleName);
+		$data = $this->getConfig($moduleName);
 		$fields = null;
 		
 		// check for configurable module interface
-		$configurableInterface = $this->isConfigurableModule($moduleName, "interface");
+		$configurableInterface = $this->isConfigurable($moduleName, "interface");
 		if($configurableInterface) {
 			if(is_int($configurableInterface) && $configurableInterface > 1 && $configurableInterface < 20) {
 				// non-static 
@@ -3221,7 +3493,7 @@ class Modules extends WireArray {
 		}
 		
 		// check for file-based config
-		$file = $this->isConfigurableModule($moduleName, "file");
+		$file = $this->isConfigurable($moduleName, "file");
 		if(!$file || !is_string($file) || !is_file($file)) return $form;
 	
 		$config = null;
@@ -3288,6 +3560,8 @@ class Modules extends WireArray {
  	 *
 	 * Note that isSingular() and isAutoload() are not deprecated for ModulePlaceholder, so the Modules
 	 * class isn't going to stop looking for them. 
+	 * 
+	 * #pw-internal
 	 *
 	 * @param Module|string $module Module instance or class name
 	 * @return bool 
@@ -3314,6 +3588,8 @@ class Modules extends WireArray {
 
 	/**
 	 * Is the given module Autoload (automatically loaded at runtime)?
+	 * 
+	 * #pw-internal
 	 *
 	 * @param Module|string $module Module instance or class name
 	 * @return bool|string|null Returns string "conditional" if conditional autoload, true if autoload, or false if not. Or null if unavailable. 
@@ -3358,6 +3634,8 @@ class Modules extends WireArray {
 	
 	/**
 	 * Returns whether the modules have been initialized yet
+	 * 
+	 * #pw-internal
 	 *
  	 * @return bool
 	 *
@@ -3370,6 +3648,8 @@ class Modules extends WireArray {
 	 * Does the given module name resolve to a module in the system (installed or uninstalled)
 	 * 
 	 * If given module name also includes a namespace, then that namespace will be validated as well. 
+	 * 
+	 * #pw-internal
 	 * 
 	 * @param string|Module $moduleName With or without namespace
 	 * @return bool
@@ -3414,6 +3694,8 @@ class Modules extends WireArray {
 	/**
 	 * Is the given namespace a unique recognized module namespace? If yes, returns the path to it. If not, returns boolean false;
 	 * 
+	 * #pw-internal
+	 * 
 	 * @param string $namespace
 	 * @return bool|string
 	 * 
@@ -3425,7 +3707,11 @@ class Modules extends WireArray {
 	}
 	
 	/**
-	 * Refresh the cache that stores module files by recreating it
+	 * Refresh the modules cache
+	 * 
+	 * This forces the modules file and information cache to be re-created. 
+	 * 
+	 * #pw-group-manipulation
 	 *
 	 */
 	public function ___refresh() {
@@ -3440,6 +3726,8 @@ class Modules extends WireArray {
 
 	/**
 	 * Alias of refresh method for backwards compatibility
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	public function resetCache() {
@@ -3448,6 +3736,8 @@ class Modules extends WireArray {
 
 	/**
 	 * Return an array of module class names that require the given one
+	 * 
+	 * #pw-internal
 	 * 
 	 * @param string $class
 	 * @param bool $uninstalled Set to true to include modules dependent upon this one, even if they aren't installed.
@@ -3479,6 +3769,8 @@ class Modules extends WireArray {
 	 * Default behavior is to return all listed requirements, whether they are currently met by
 	 * the environment or not. Specify TRUE for the 2nd argument to return only requirements
 	 * that are not currently met. 
+	 * 
+	 * #pw-internal
 	 * 
 	 * @param string $class
 	 * @param bool $onlyMissing Set to true to return only required modules/versions that aren't 
@@ -3564,6 +3856,8 @@ class Modules extends WireArray {
 
 	/**
 	 * Compare one module version to another, returning TRUE if they match the $operator or FALSE otherwise
+	 * 
+	 * #pw-internal
 	 *
 	 * @param int|string $currentVersion May be a number like 123 or a formatted version like 1.2.3
 	 * @param int|string $requiredVersion May be a number like 123 or a formatted version like 1.2.3
@@ -3640,6 +3934,8 @@ class Modules extends WireArray {
 	 * Excludes modules that are required but already installed. 
 	 * Excludes uninstalled modules that $class indicates it handles via it's 'installs' getModuleInfo property.
 	 * 
+	 * #pw-internal
+	 * 
 	 * @param string $class
 	 * @return array()
 	 *
@@ -3654,6 +3950,8 @@ class Modules extends WireArray {
 	 * Excludes modules that the given one says it handles via it's 'installs' getModuleInfo property.
 	 * Module class names in returned array include operator and version in the string. 
 	 * 
+	 * #pw-internal
+	 * 
 	 * @param string $class
 	 * @return array()
 	 *
@@ -3664,6 +3962,8 @@ class Modules extends WireArray {
 	
 	/**
 	 * Return array of dependency errors for given module name
+	 * 
+	 * #pw-internal
 	 *
 	 * @param $moduleName
 	 * @return array If no errors, array will be blank. If errors, array will be of strings (error messages)
@@ -3701,6 +4001,8 @@ class Modules extends WireArray {
 
 	/**
 	 * Given a module version number, format it in a consistent way as 3 parts: 1.2.3 
+	 * 
+	 * #pw-internal
 	 * 
 	 * @param $version int|string
 	 * @return string
@@ -4034,7 +4336,7 @@ class Modules extends WireArray {
 				}
 			
 				if(is_null($info['configurable'])) {
-					$info['configurable'] = $this->isConfigurableModule($module, false);
+					$info['configurable'] = $this->isConfigurable($module, false);
 				}
 				
 				if($moduleID) $this->updateModuleFlags($moduleID, $info);
@@ -4137,6 +4439,8 @@ class Modules extends WireArray {
 
 	/**
 	 * Return a log of module construct, init and ready times, active only when debug mode is on ($this->debug)
+	 * 
+	 * #pw-internal
 	 *
 	 * @return array
 	 *
@@ -4147,6 +4451,8 @@ class Modules extends WireArray {
 
 	/**
 	 * Substitute one module for another, to be used only when $moduleName doesn't exist. 
+	 * 
+	 * #pw-internal
 	 *
 	 * @param string $moduleName Module class name that may need a substitute
 	 * @param string $substituteName Module class name you want to substitute when $moduleName isn't found.
@@ -4165,6 +4471,8 @@ class Modules extends WireArray {
 	 * Substitute modules for other modules, to be used only when $moduleName doesn't exist.
 	 * 
 	 * This appends existing entries rather than replacing them. 
+	 * 
+	 * #pw-internal
 	 *
 	 * @param array $substitutes Array of module name => substitute module name
 	 *
@@ -4174,10 +4482,12 @@ class Modules extends WireArray {
 	}
 
 	/**
-	 * Load module related CSS and JS files
+	 * Load module related CSS and JS files (where applicable)
 	 * 
-	 * Applies only to modules that carry class-named CSS and/or JS files,
-	 * such as Process, Inputfield and ModuleJS modules. 
+	 * - Applies only to modules that carry class-named CSS and/or JS files, such as Process, Inputfield and ModuleJS modules. 
+	 * - Assets are populated to `$config->styles` and `$config->scripts`.
+	 * 
+	 * #pw-internal
 	 * 
 	 * @param Module|int|string $module Module object or class name
 	 * @return array Returns number of files that were added
@@ -4237,6 +4547,8 @@ class Modules extends WireArray {
 	/**
 	 * Save to the modules log
 	 * 
+	 * #pw-internal
+	 * 
 	 * @param string $str Message to log
 	 * @param string $moduleName
 	 * @return WireLog
@@ -4248,7 +4560,17 @@ class Modules extends WireArray {
 		if($moduleName && strpos($str, $moduleName) === false) $str .= " (Module: $moduleName)";
 		return $this->___log($str, array('name' => 'modules')); 
 	}
-	
+
+	/**
+	 * Record and log error message
+	 * 
+	 * #pw-internal
+	 * 
+	 * @param array|Wire|string $text
+	 * @param int $flags
+	 * @return $this
+	 * 
+	 */
 	public function error($text, $flags = 0) {
 		$this->log($text); 
 		return parent::error($text, $flags); 

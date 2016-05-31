@@ -1102,8 +1102,14 @@ function InputfieldStates($target) {
 	});
 
 	// confirm changed forms that user navigates away from before submitting
-	$(document).on('change', '.InputfieldFormConfirm :input', function() {
-		$(this).closest('.Inputfield').addClass('InputfieldStateChanged');
+	$(document).on('change', '.InputfieldFormConfirm :input, .InputfieldFormConfirm .Inputfield', function() {
+		var $this = $(this);	
+		if($this.hasClass('Inputfield')) {
+			$this.addClass('InputfieldStateChanged');
+			return false;
+		} else {
+			$this.closest('.Inputfield').addClass('InputfieldStateChanged');
+		}
 	});
 	$(document).on('submit', '.InputfieldFormConfirm', function() {
 		$(this).addClass('InputfieldFormSubmitted');
@@ -1252,10 +1258,19 @@ jQuery(document).ready(function($) {
 			url = url.replace(/\?id=\d+/, '?id=' + pageID);
 			fieldName = fieldName.replace(/_repeater\d+$/, '');
 		}
-		url += '&field=' + fieldName + '&reloadInputfieldAjax=' + fieldName;
+		url += url.indexOf('?') > -1 ? '&' : '?';
+		url += 'field=' + fieldName + '&reloadInputfieldAjax=' + fieldName;
 		consoleLog('Inputfield reload: ' + fieldName); 
 		$.get(url, function(data) {
-			var $content = $(data).find("#" + $t.attr('id')).children(".InputfieldContent");
+			var id = $t.attr('id');
+			var $content = $(data).find("#" + id).children(".InputfieldContent");
+			if(!$content.length && id.indexOf('_repeater') > -1) {
+				id = 'wrap_Inputfield_' + fieldName;	
+				$content = $(data).find("#" + id).children(".InputfieldContent");
+				if(!$content.length) {
+					console.log("Unable to find #" + $t.attr('id') + " in response from " + url);
+				}
+			}
 			$t.children(".InputfieldContent").html($content.html());
 			if(typeof jQuery.ui != 'undefined') $t.effect("highlight", 1000); 
 			$t.trigger('reloaded', [ 'reload' ]); 

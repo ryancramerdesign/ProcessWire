@@ -4,6 +4,8 @@
  * ProcessWire Session
  *
  * Start a session with login/logout capability 
+ * 
+ * #pw-summary Maintains sessions in ProcessWire, authentication, persistent variables, notices and redirects.
  *
  * This should be used instead of the $_SESSION superglobal, though the $_SESSION superglobal can still be 
  * used, but it's in a different namespace than this. A value set in $_SESSION won't appear in $session
@@ -82,6 +84,8 @@ class Session extends Wire implements \IteratorAggregate {
 	 * Start the session and set the current User if a session is active
 	 *
 	 * Assumes that you have already performed all session-specific ini_set() and session_name() calls 
+	 * 
+	 * @param ProcessWire $wire
 	 *
 	 */
 	public function __construct(ProcessWire $wire) {
@@ -122,7 +126,7 @@ class Session extends Wire implements \IteratorAggregate {
 	 *
 	 * Provided here in any case anything wants to hook in before session_start()
 	 * is called to provide an alternate save handler.
-	 *
+	 * 
 	 */
 	protected function ___init() {
 		
@@ -161,6 +165,8 @@ class Session extends Wire implements \IteratorAggregate {
 	 * Checks if the session is valid based on a challenge cookie and fingerprint
 	 *
 	 * These items may be disabled at the config level, in which case this method always returns true
+	 * 
+	 * #pw-hooker
  	 *
 	 * @param int $userID
 	 * @return bool
@@ -254,10 +260,31 @@ class Session extends Wire implements \IteratorAggregate {
 
 	/**
 	 * Get a session variable
-	 *
-	 * @param string|object $key Key to get, or object if namespace
-	 * @param string $_key Key to get if first argument is namespace, omit otherwise
-	 * @return mixed
+	 * 
+	 * - This method returns the value of the requested session variable, or NULL if it's not present. 
+	 * - You can optionally use a namespace with this method, to avoid collisions with other session variables. 
+	 *   But if using namespaces we recommended using the dedicated getFor() and setFor() methods instead. 
+	 * - You can also get or set non-namespaced session values directly (see examples). 
+	 * 
+	 * ~~~~~
+	 * // Set value "Bob" to session variable named "firstName"
+	 * $session->set('firstName', 'Bob'); 
+	 * 
+	 * // You can retrieve the firstName now, or any later request
+	 * $firstName = $session->get('firstName');
+	 * 
+	 * // outputs: Hello Bob
+	 * echo "Hello $firstName"; 
+	 * ~~~~~
+	 * ~~~~~
+	 * // Setting and getting a session value directly
+	 * $session->firstName = 'Bob';
+	 * $firstName = $session->firstName;
+	 * ~~~~~
+	 * 
+	 * @param string|object $key Name of session variable to retrieve (or object if using namespaces)
+	 * @param string $_key Name of session variable to get if first argument is namespace, omit otherwise.
+	 * @return mixed Returns value of seession variable, or NULL if not found. 
 	 *
 	 */
 	public function get($key, $_key = null) {
@@ -281,9 +308,9 @@ class Session extends Wire implements \IteratorAggregate {
 	}
 
 	/**
-	 * Get all session variables
+	 * Get all session variables in an associative array
  	 *
-	 * @param $ns Optional namespace
+	 * @param object|string $ns Optional namespace
 	 * @return array
 	 *
 	 */
@@ -295,8 +322,28 @@ class Session extends Wire implements \IteratorAggregate {
 	/**
 	 * Set a session variable
 	 * 
-	 * @param string|object $key Key to set OR object for namespace
-	 * @param string|mixed $value Value to set OR key if first argument is namespace
+	 * - You can optionally use a namespace with this method, to avoid collisions with other session variables.
+	 *   But if using namespaces we recommended using the dedicated getFor() and setFor() methods instead.
+	 * - You can also get or set non-namespaced session values directly (see examples).
+	 *
+	 * ~~~~~
+	 * // Set value "Bob" to session variable named "firstName"
+	 * $session->set('firstName', 'Bob');
+	 *
+	 * // You can retrieve the firstName now, or any later request
+	 * $firstName = $session->get('firstName');
+	 *
+	 * // outputs: Hello Bob
+	 * echo "Hello $firstName";
+	 * ~~~~~
+	 * ~~~~~
+	 * // Setting and getting a session value directly
+	 * $session->firstName = 'Bob';
+	 * $firstName = $session->firstName;
+	 * ~~~~~
+	 * 
+	 * @param string|object $key Name of session variable to set (or object for namespace)
+	 * @param string|mixed $value Value to set (or name of variable, if first argument is namespace)
 	 * @param mixed $_value Value to set if first argument is namespace. Omit otherwise.
  	 * @return $this
 	 *
@@ -312,9 +359,14 @@ class Session extends Wire implements \IteratorAggregate {
 
 	/**
 	 * Get a session variable within a given namespace
+	 * 
+	 * ~~~~~
+	 * // Retrieve namespaced session value
+	 * $firstName = $session->getFor($this, 'firstName'); 
+	 * ~~~~~
 	 *
-	 * @param string|object $ns namespace string or object
-	 * @param string $key Specify blank string to return all vars in the namespace
+	 * @param string|object $ns Namespace string or object
+	 * @param string $key Specify variable name to retrieve, or blank string to return all variables in the namespace.
 	 * @return mixed
 	 *
 	 */
@@ -329,11 +381,16 @@ class Session extends Wire implements \IteratorAggregate {
 	/**
 	 * Set a session variable within a given namespace
 	 * 
-	 * To remove a namespace, call $session->remove(namespace)
+	 * To remove a namespace, use `$session->remove($namespace)`.
+	 * 
+	 * ~~~~~
+	 * // Set a session value for a namespace
+	 * $session->setFor($this, 'firstName', 'Bob'); 
+	 * ~~~~~
 	 *
-	 * @param string|object $ns namespace string or object
-	 * @param string $key
-	 * @param mixed $value Specify null to unset key
+	 * @param string|object $ns Namespace string or object.
+	 * @param string $key Name of session variable you want to set.
+	 * @param mixed $value Value you want to set, or specify null to unset.
 	 * @return $this
 	 *
 	 */
@@ -347,12 +404,23 @@ class Session extends Wire implements \IteratorAggregate {
 	}
 
 	/**
-	 * Unsets a session variable
+	 * Unset a session variable
+	 * 
+	 * ~~~~~
+	 * // Unset a session var
+	 * $session->remove('firstName'); 
+	 * 
+	 * // Unset a session var in a namespace
+	 * $session->remove($this, 'firstName');
+	 * 
+	 * // Unset all session vars in a namespace
+	 * $session->remove($this, true); 
+	 * ~~~~~
 	 *
- 	 * @param string|object $key or namespace string/object
-	 * @param string|bool|null $_key Omit this argument unless first argument is a namespace. 
-	 * 	If first argument is namespace and you want to remove a property from the namespace, provide key here. 
-	 * 	If first argument is namespace and you want to remove all properties from the namespace, provide boolean TRUE. 
+ 	 * @param string|object $key Name of session variable you want to remove (or namespace string/object)
+	 * @param string|bool|null $_key Omit this argument unless first argument is a namespace. Otherwise specify one of: 
+	 *  - If first argument is namespace and you want to remove a property from the namespace, provide key here. 
+	 * 	- If first argument is namespace and you want to remove all properties from the namespace, provide boolean TRUE. 
 	 * @return $this
 	 *
 	 */
@@ -370,8 +438,8 @@ class Session extends Wire implements \IteratorAggregate {
 	/**
 	 * Unset a session variable within a namespace
 	 * 
-	 * @param $ns
-	 * @param $key
+	 * @param string|object $ns Namespace
+	 * @param string $key Provide name of variable to remove, or boolean true to remove all in namespace. 
 	 * @return $this
 	 * 
 	 */
@@ -400,7 +468,7 @@ class Session extends Wire implements \IteratorAggregate {
 	}
 
 	/**
-	 * Provide $session->variable get access
+	 * Provide non-namespaced $session->variable get access
 	 * 
 	 * @param string $key
 	 * @return SessionCSRF|mixed|null
@@ -411,7 +479,7 @@ class Session extends Wire implements \IteratorAggregate {
 	}
 
 	/**
-	 * Provide $session->variable = variable set access
+	 * Provide non-namespaced $session->variable = variable set access
 	 * 
 	 * @param string $key
 	 * @param mixed $value
@@ -423,7 +491,15 @@ class Session extends Wire implements \IteratorAggregate {
 	}
 
 	/**
-	 * Allow iteration of session variables, i.e. foreach($session as $key => $var) {} 
+	 * Allow iteration of session variables
+	 * 
+	 * ~~~~~
+	 * foreach($session as $key => $value) {
+     *    echo "<li>$key: $value</li>";	
+	 * } 
+	 * ~~~~~
+	 * 
+	 * @return \ArrayObject
 	 *
 	 */
 	public function getIterator() {
@@ -433,9 +509,14 @@ class Session extends Wire implements \IteratorAggregate {
 	/**
 	 * Get the IP address of the current user
 	 * 
+	 * ~~~~~
+	 * $ip = $session->getIP();
+	 * echo $ip; // outputs 111.222.333.444
+	 * ~~~~~
+	 * 
 	 * @param bool $int Return as a long integer for DB storage? (default=false)
 	 * @param bool|int $useClient Give preference to client headers for IP? HTTP_CLIENT_IP and HTTP_X_FORWARDED_FOR (default=false)
-	 * 	Specify integer 2 to include potentially multiple CSV separated IPs (when provided by client).
+	 * 	Specify integer 2 to include potential multiple CSV separated IPs (when provided by client).
 	 * @return string|int Returns string by default, or integer if $int argument indicates to.
 	 *
 	 */
@@ -468,13 +549,24 @@ class Session extends Wire implements \IteratorAggregate {
 	/**
 	 * Login a user with the given name and password
 	 *
-	 * Also sets them to the current user
+	 * Also sets them to the current user.
+	 * 
+	 * ~~~~~
+	 * $u = $session->login('bob', 'laj3939$a');
+	 * if($u) {
+	 *   echo "Welcome Bob";
+	 * } else {
+	 *   echo "Sorry Bob";
+	 * }
+	 * ~~~~~
+	 * 
+	 * #pw-group-authentication
 	 *
-	 * @param string|User $name May be user name or User object
-	 * @param string $pass Raw, non-hashed password
-	 * @param bool $force Specify boolean true to login user without requiring a password ($pass argument can be blank, or anything)
-	 * 	You can also use the $session->forceLogin($user) method to force a login without a password. 
-	 * @return User Return the $user if the login was successful or null if not. 
+	 * @param string|User $name May be user name or User object.
+	 * @param string $pass Raw, non-hashed password.
+	 * @param bool $force Specify boolean true to login user without requiring a password ($pass argument can be blank, or anything).
+	 * 	You can also use the `$session->forceLogin($user)` method to force a login without a password. 
+	 * @return User|null Return the $user if the login was successful or null if not. 
 	 *
 	 */
 	public function ___login($name, $pass, $force = false) {
@@ -543,6 +635,13 @@ class Session extends Wire implements \IteratorAggregate {
 	/**
 	 * Login a user without requiring a password
 	 * 
+	 * ~~~~~
+	 * // login bob without knowing his password
+	 * $u = $session->forceLogin('bob'); 
+	 * ~~~~~
+	 * 
+	 * #pw-group-authentication
+	 * 
 	 * @param string|User $user Username or User object
 	 * @return User|null Returns User object on success, or null on failure
 	 * 
@@ -553,6 +652,8 @@ class Session extends Wire implements \IteratorAggregate {
 
 	/**
 	 * Login success method for hooks
+	 * 
+	 * #pw-hooker
 	 *
 	 * @param User $user
 	 *
@@ -560,18 +661,27 @@ class Session extends Wire implements \IteratorAggregate {
 	protected function ___loginSuccess(User $user) { 
 		$this->log("Successful login for '$user->name'"); 
 	}
-	
+
+	/**
+	 * Login failure method for hooks
+	 * 
+	 * #pw-hooker
+	 * 
+	 * @param string $name Attempted login name
+	 * @param string $reason Reason for login failure
+	 * 
+	 */
 	protected function ___loginFailure($name, $reason) { 
 		$this->log("Error: Failed login for '$name' - $reason"); 
 	}
 
 	/**
-	 * Allow the user $name to login?
+	 * Allow the user $name to login? Provided for use by hooks. 
 	 *
-	 * Provided for use by hooks. 
+	 * #pw-hooker
 	 * 
-	 * @param string $name
-	 * @return bool
+	 * @param string $name User login name
+	 * @return bool True if allowed to login, false if not (hooks may modify this)
 	 *
 	 */
 	public function ___allowLogin($name) {
@@ -580,9 +690,11 @@ class Session extends Wire implements \IteratorAggregate {
 
 	/**
 	 * Return true or false whether the user authenticated with the supplied password
+	 * 
+	 * #pw-hooker
 	 *
-	 * @param User $user 
-	 * @param string $pass
+	 * @param User $user User attempting to login
+	 * @param string $pass Password they are attempting to login with
 	 * @return bool
 	 *
 	 */
@@ -592,6 +704,17 @@ class Session extends Wire implements \IteratorAggregate {
 
 	/**
 	 * Logout the current user, and clear all session variables
+	 * 
+	 * ~~~~~
+	 * // logout user when "?logout=1" in URL query string
+	 * if($input->get('logout')) {
+	 *   $session->logout();
+	 *	 // good to redirect somewhere else after a login or logout
+	 *   $session->redirect('/'); 
+	 * }
+	 * ~~~~~
+	 * 
+	 * #pw-group-authentication
 	 *
 	 * @return $this
 	 *
@@ -619,8 +742,10 @@ class Session extends Wire implements \IteratorAggregate {
 
 	/**
 	 * Logout success method for hooks
+	 * 
+	 * #pw-hooker 
 	 *
-	 * @param User $user
+	 * @param User $user User that logged in
 	 *
 	 */
 	protected function ___logoutSuccess(User $user) { 
@@ -631,6 +756,11 @@ class Session extends Wire implements \IteratorAggregate {
 	 * Redirect this session to another URL.
 	 * 
 	 * Execution halts within this function after redirect has been issued. 
+	 * 
+	 * ~~~~~
+	 * // redirect to homepage
+	 * $session->redirect('/'); 
+	 * ~~~~~
 	 * 
 	 * @param string $url URL to redirect to
 	 * @param bool $http301 Should this be a permanent (301) redirect? (default=true). If false, it is a 302 temporary redirect.
@@ -667,13 +797,17 @@ class Session extends Wire implements \IteratorAggregate {
 	/**
 	 * Manually close the session, before program execution is done
 	 * 
+	 * #pw-internal
+	 * 
 	 */
 	public function close() {
 		session_write_close();
 	}
 
 	/**
-	 * Queue a notice (message/error) to be shown the next time this ession class is instantiated
+	 * Queue a notice (message/error) to be shown the next time this session class is instantiated
+	 * 
+	 * #pw-internal
 	 * 
 	 * @param string $text
 	 * @param string $type One of "message", "error" or "warning"
@@ -690,10 +824,12 @@ class Session extends Wire implements \IteratorAggregate {
 
 
 	/**
-	 * Queue a message to appear the next time session is instantiated
+	 * Queue a message to appear on the next pageview
 	 * 
-	 * @param string $text
-	 * @param int $flags See Notice::flags
+	 * #pw-group-notices
+	 * 
+	 * @param string $text Message to queue
+	 * @param int $flags Optional flags, See Notice::flags
 	 * @return $this
 	 *
 	 */
@@ -703,9 +839,11 @@ class Session extends Wire implements \IteratorAggregate {
 	}
 
 	/**
-	 * Queue an error to appear the next time session is instantiated
+	 * Queue an error to appear on the next pageview
+	 * 
+	 * #pw-group-notices
 	 *
-	 * @param string $text
+	 * @param string $text Error to queue
 	 * @param int $flags See Notice::flags
 	 * @return $this
 	 * 
@@ -716,9 +854,11 @@ class Session extends Wire implements \IteratorAggregate {
 	}
 
 	/**
-	 * Queue a warning to appear the next time session is instantiated
+	 * Queue a warning to appear the next pageview
+	 * 
+	 * #pw-group-notices
 	 *
-	 * @param string $text
+	 * @param string $text Warning to queue
 	 * @param int $flags See Notice::flags
 	 * @return $this
 	 *
@@ -736,6 +876,8 @@ class Session extends Wire implements \IteratorAggregate {
 	 *
 	 * Keep track of session history, if $config->sessionHistory is used.
 	 * It can be retrieved with the $session->getHistory() method.
+	 * 
+	 * #pw-internal
 	 * 
 	 * @todo add extra gc checks
 	 *
@@ -778,14 +920,29 @@ class Session extends Wire implements \IteratorAggregate {
 	/**
 	 * Get the session history (if enabled)
 	 * 
-	 * Applicable only if $config->sessionHistory > 0.
+	 * Applicable only if `$config->sessionHistory > 0`.
 	 * 
-	 * @return array of history entries: 
-	 * 	pageViewNum => array(
-	 * 		'url' => 'http://domain.com/path/to/page/', 
-	 * 		'page' => 123, 
-	 * 		'time' => 12345678
-	 * 	); 
+	 * ~~~~~
+	 * $history = $session->getHistory();
+	 * print_r($history);
+	 * // outputs the following:
+	 * array(
+	 *   0  => array(
+	 * 		'url' => 'http://domain.com/path/to/page/', // URL
+	 * 		'page' => 1234, // page ID
+	 * 		'time' => 234993498, // unix timestamp 
+	 *   ), 
+	 *   1 => array(
+	 *      // ... 
+	 *   ),
+	 *   2 => array(
+	 *      // ...
+	 *   ), 
+	 *   ...
+	 * );
+	 * ~~~~~
+	 * 
+	 * @return array Array of arrays containing history entries. 
 	 * 
 	 */
 	public function getHistory() {
@@ -796,6 +953,11 @@ class Session extends Wire implements \IteratorAggregate {
 
 	/**
 	 * Remove queued notices
+	 * 
+	 * Call this after displaying queued message, error or warning notices. 
+	 * This prevents them from re-appearing on the next request.
+	 * 
+	 * #pw-group-notices
 	 * 
 	 */
 	public function removeNotices() {

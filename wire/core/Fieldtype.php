@@ -5,7 +5,17 @@
  *
  * Abstract base class from which all Fieldtype modules are descended from.
  * 
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * #pw-summary Fieldtype is a module type used to represent a type of field. All Fieldtype modules descend from this.
+ * #pw-order-groups loading,saving,finding,formatting,configuration,creating,deleting,other
+ * #pw-body = 
+ * Almost all methods in a Fieldtype are primarily of concern to module developers, as Fieldtype modules do not
+ * have a public API (most of the time). Instead, they provide methods used by `Page` and `Field` objects (and related)
+ * to work with the field data. Most Fieldtype modules only need to implement a few methods like 
+ * `Fieldtype::sanitizeValue()` (which is required) and `Fieldtype::getDatabaseSchema()`, as the default implementation
+ * of most other methods provided in this Fieldtype class accounts for most situations already. 
+ * #pw-body
+ * 
+ * ProcessWire 3.x (development), Copyright 2016 by Ryan Cramer
  * https://processwire.com
  * 
  * 
@@ -13,6 +23,7 @@
  * ================
  * @method InputfieldWrapper getConfigInputfields(Field $field)
  * @method InputfieldWrapper getConfigAdvancedInputfields(Field $field)
+ * @method array getConfigArray(Field $field)
  * @method array getConfigAllowContext(Field $field)
  * @method array exportConfigData(Field $field, array $data)
  * @method array importConfigData(Field $field, array $data)
@@ -35,7 +46,9 @@
  * @method void install()
  * @method void uninstall()
  * 
- * @property bool $_exportMode True when Fieldtype is exporting config data, false otherwise. 
+ * @property bool $_exportMode True when Fieldtype is exporting config data, false otherwise.  #pw-internal
+ * @property string $name Name of Fieldtype module. #pw-group-other
+ * @property string $shortName Short name of Fieldtype, which excludes the "Fieldtype" prefix. #pw-group-other
  * 
  */
 abstract class Fieldtype extends WireData implements Module {
@@ -56,6 +69,8 @@ abstract class Fieldtype extends WireData implements Module {
 
 	/**
 	 * Per Module interface, this template method is called when all system classes are loaded and ready for API usage
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	public function init() { }
@@ -63,6 +78,8 @@ abstract class Fieldtype extends WireData implements Module {
 
 	/**
 	 * Fieldtype modules are singular, in that only one instance is needed per request
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	public function isSingular() {
@@ -71,6 +88,8 @@ abstract class Fieldtype extends WireData implements Module {
 
 	/**
 	 * Fieldtype modules are not automatically loaded, they are only loaded when requested
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	public function isAutoload() {
@@ -79,6 +98,8 @@ abstract class Fieldtype extends WireData implements Module {
 
 	/**
 	 * Should this Fieldtype only be allowed for new fields in advanced mode?
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	public function isAdvanced() {
@@ -86,45 +107,51 @@ abstract class Fieldtype extends WireData implements Module {
 	}
 
 	/**
-	 * Return new instance of the Inputfield associated with this Fieldtype
-	 *
-	 * Abstract Template Method: child classes should override this. Code snippet is for example purposes only. 
-	 *
-	 * Page and Field are provided as params in case the Fieldtype needs them for any custom population with the Inputfield.
-	 * However, most Fieldtypes won't need them since Inputfield objects don't have any Page dependencies (!)
-	 * The Field class handles setting all standard Inputfield attributes rather than this method to reduce code duplication in Inputfield modules. 
-	 *
-	 * (!) See FieldtypeFile for an example that uses both Page and Field params. 
-	 *
-	 * @param Page $page 
-	 * @param Field $field
+	 * Return new instance of the Inputfield module associated with this Fieldtype.
+	 * 
+	 * #pw-group-other
+	 * 
+	 * @param Page $page Page that the Inputfield will be for
+	 * @param Field $field Field that the Inputfield will be for
 	 * @return Inputfield
 	 *
 	 */
 	public function getInputfield(Page $page, Field $field) {
-		// TODO make this abstract
+		
+		// Abstract Template Method: child classes should override this. Code snippet is for example purposes only. 
+		// 
+		// Page and Field are provided as arguments in case the Fieldtype needs them for any custom population with the Inputfield.
+	 	// However, most Fieldtypes won't need them since Inputfield objects don't have any Page dependencies (!).
+	    // The Field class handles setting all standard Inputfield attributes rather than this method to reduce code duplication
+		// in Inputfield modules. 
+		// 
+		// (!) See `FieldtypeFile` for an example that uses both Page and Field params. 
+		
 		$inputfield = $this->wire('modules')->get('InputfieldText'); 
 		$inputfield->class = $this->className();
 		return $inputfield; 
 	}
 
 	/**
-	 * Get any inputfields used for configuration of this Fieldtype.
+	 * Get any Inputfields used for configuration of this Fieldtype.
 	 *
-	 * This is in addition any configuration fields supplied by the Inputfield.
+	 * This is in addition to any configuration fields supplied by the Inputfield.
 	 *
 	 * Classes implementing this method should call upon this parent method to obtain the InputfieldWrapper, and then 
 	 * append their own Inputfields to that. 
 	 * 
 	 * NOTE: Inputfields with a name that starts with an underscore, i.e. "_myname" are assumed to be for runtime 
 	 * use and are NOT stored in the database. 
-	 *
+	 * 
+	 * #pw-group-configuration
+	 * 
 	 * @param Field $field
 	 * @return InputfieldWrapper
 	 *
 	 */
 	public function ___getConfigInputfields(Field $field) {
 		$inputfields = $this->wire(new InputfieldWrapper());	
+		
 		/* 
 		// EXAMPLE
 		$f = $this->modules->get("InputfieldCheckbox"); 
@@ -143,7 +170,10 @@ abstract class Fieldtype extends WireData implements Module {
 	 * Same as getConfigInputfields but with definition as an array instead
 	 * 
 	 * If both getConfigInputfields and getConfigInputfieldsArray are implemented then 
-	 * definitions from both will be used. 
+	 * definitions from both will be used. It's probably simplest just to implement one
+	 * or the other.
+	 * 
+	 * #pw-group-configuration
 	 * 
 	 * @param Field $field
 	 * @return array
@@ -154,8 +184,16 @@ abstract class Fieldtype extends WireData implements Module {
 	}
 
 	/**
-	 * Return a list of Inputfield names from getConfig[Inputfields|Array] that are allowed in fieldgroup/template context
-	 *
+	 * Return an array of configuration field names from that are allowed in fieldgroup/template context
+	 * 
+	 * These field names are those that would be used for Inputfields like those returned from getConfigInputfields()
+	 * or getConfigArray(). 
+	 * 
+	 * Inputfield field names returned from here are allowed to have unique values per Fieldgroup assignment, rather
+	 * than sharing the same setting globally.
+	 * 
+	 * #pw-group-configuration
+	 * 
 	 * @param Field $field
 	 * @return array of Inputfield names
 	 *
@@ -165,20 +203,24 @@ abstract class Fieldtype extends WireData implements Module {
 	}
 
 	/**
-	 * Get inputfields for advanced settings of the Field and Fieldtype
+	 * Get Inputfields for advanced settings of the Field and Fieldtype
+	 * 
+	 * Inputfields returned from this appear under the "Advanced" tab rather than the "Details" tab, 
+	 * in the Field editor. 
 	 *
-	 * In most cases, you will want to override getConfigInputfields rather than this method
+	 * In most cases, you will want to implement the getConfigInputfields() or getConfigArray() rather than this method.
 	 * 
 	 * NOTE: Inputfields with a name that starts with an underscore, i.e. "_myname" are assumed to be for runtime
 	 * use and are NOT stored in the database.
-	 *
-	 * @TODO should this be moved back into modules/Process/ProcessField.module? (that's where it is saved)
-	 *
+	 * 
+	 * #pw-group-configuration
+	 * 
 	 * @param Field $field
 	 * @return InputfieldWrapper
 	 *
 	 */
 	public function ___getConfigAdvancedInputfields(Field $field) {
+		// @TODO should this be moved back into modules/Process/ProcessField.module? (that's where it is saved)
 		// advanced settings
 		$inputfields = $this->wire(new InputfieldWrapper());	
 
@@ -234,6 +276,9 @@ abstract class Fieldtype extends WireData implements Module {
 	 *
 	 * Use this method to externalize any config values when necessary.
 	 * For example, internal IDs should be converted to GUIDs where possible.
+	 * Most Fieldtype modules can use the default implementation already provided here.
+	 * 
+	 * #pw-group-configuration
 	 * 
 	 * @param Field $field
 	 * @param array $data
@@ -267,8 +312,13 @@ abstract class Fieldtype extends WireData implements Module {
 	}
 
 	/**
-	 * Convert an array of exported data to a format that will be understood internally (opposite of exportConfigData)
-	 *
+	 * Convert an array of exported data to a format that will be understood internally 
+	 * 
+	 * This is the opposite of the exportConfigData() method. 
+	 * Most modules can use the default implementation provided here.
+	 * 
+	 * #pw-group-configuration
+	 * 
 	 * @param Field $field
 	 * @param array $data
 	 * @return array Data as given and modified as needed. Also included is $data[errors], an associative array
@@ -282,9 +332,13 @@ abstract class Fieldtype extends WireData implements Module {
 	}
 
 	/**
-	 * Get an array of Fieldtypes that are compatible with this one (i.e. ones the user may change the type to)
-	 *
-	 * @param Field $field Just in case it's needed
+	 * Get an array of Fieldtypes that are compatible with this one 
+	 * 
+	 * This represents the list of Fieldtype modules that the user is allowed to change to from this one.
+	 * 
+	 * #pw-group-configuration
+	 * 
+	 * @param Field $field 
 	 * @return Fieldtypes|null
 	 *
 	 */
@@ -297,11 +351,14 @@ abstract class Fieldtype extends WireData implements Module {
 	}
 
 	/**
-	 * Sanitize the value for runtime storage. 
+	 * Sanitize the value for runtime storage and return it. 
 	 *
-	 * This method should remove anything that's invalid from the given value. If it can't be sanitized, it should be blanked. 
-	 * This method filters every value set to a Page instance. 
-	 *
+	 * - Implementation is required by Fieldtype modules, as this method is abstract. 
+	 * - This method should remove anything that's invalid from the given value. If it can't be sanitized, it should be made blank.
+	 * - This method filters every value set to a Page instance, so it should do it's thing as quickly as possible. 
+	 * 
+	 * #pw-group-loading
+	 * 
 	 * @param Page $page
 	 * @param Field $field
 	 * @param string|int|WireArray|object $value
@@ -310,17 +367,18 @@ abstract class Fieldtype extends WireData implements Module {
 	 */
 	abstract public function sanitizeValue(Page $page, Field $field, $value);
 
-
 	/**
 	 * Format the given value for output and return a string of the formatted value
 	 *
 	 * Page instances call upon this method to do any necessary formatting of a value in preparation for output,
-	 * but only if $page->outputFormatting is true. The most common use of this method is for text-only fields that
+	 * but only if output formatting `$page->of()` is enabled. The most common use of this method is for text-only fields that
 	 * need to have some text formatting applied to them, like Markdown, SmartyPants, Textile, etc. As a result, 
 	 * Fieldtype modules don't need to implement this unless it's applicable. 
 	 *
-	 * Fieldtype modules that implement this do not need to call this parent method. 
-	 *
+	 * Fieldtype modules that implement this do not need to call this parent method, as it doesn't do anything.
+	 * 
+	 * #pw-group-formatting
+	 * 
 	 * @param Page $page
 	 * @param Field $field
 	 * @param string|int|object $value
@@ -332,23 +390,26 @@ abstract class Fieldtype extends WireData implements Module {
 	}
 
 	/**
-	 * Render a markup string of the value
+	 * Render a markup string of the value.
 	 * 
 	 * Non-markup components should also be entity encoded where appropriate. 
 	 * 
 	 * Most Fieldtypes don't need to implement this since the default covers most scenarios. 
 	 * 
-	 * This is different from formatValue() in that it always returns a string (or object that can be 
+	 * This is different from `Fieldtype::formatValue()` in that it always returns a string (or object that can be 
 	 * typecast to a string) that is output ready with markup. Further, this method may be used to render 
-	 * specific properties in compound fieldtypes. The intention here is primarily for admin output purposes, 
+	 * specific properties in compound Fieldtypes. The intention here is primarily for admin output purposes, 
 	 * but can be used front-end where applicable. 
 	 * 
-	 * This is different from Inputfield::renderValue() in that the context may be outside that of an Inputfield,
-	 * as Inputfields can have external CSS or JS dependencies. 
+	 * This is different from `Inputfield::renderValue()` in that the context may be outside that of an Inputfield,
+	 * as Inputfields can have external CSS or JS dependencies.
+	 * 
+	 * #pw-group-formatting
 	 * 
 	 * @param Page $page Page that $value comes from
 	 * @param Field $field Field that $value comes from
-	 * @param mixed $value Optionally specify the $page->getFormatted(value), value must be a formatted value. 
+	 * @param mixed $value Optionally specify the value returned by `$page->getFormatted('field')`. 
+	 *  When specified, value must be a formatted value. 
 	 * 	If null or not specified (recommended), it will be retrieved automatically.
 	 * @param string $property Optionally specify the property or index to render. If omitted, entire value is rendered.
 	 * @return string|MarkupFieldtype Returns a string or object that can be output as a string, ready for output.
@@ -364,6 +425,10 @@ abstract class Fieldtype extends WireData implements Module {
 
 	/**
 	 * Return the blank value for this fieldtype, whether that is a blank string, zero value, blank object or array
+	 * 
+	 * Default/non-implemented behavior is to return a blanks string. 
+	 * 
+	 * #pw-group-loading
 	 *
 	 * @param Page|NullPage $page
 	 * @param Field $field
@@ -375,14 +440,16 @@ abstract class Fieldtype extends WireData implements Module {
 	}
 
 	/**
-	 * Return whether the given value is considered empty or not
+	 * Return whether the given value is considered empty or not.
 	 * 
-	 * This an be anything that might be present in a selector value and thus is
+	 * This can be anything that might be present in a selector value and thus is
 	 * typically a string. However, it may be used outside of that purpose so you
 	 * shouldn't count on it being a string. 
 	 * 
 	 * Example: an integer or text Fieldtype might not consider a "0" to be empty,
 	 * whereas a Page reference would. 
+	 * 
+	 * #pw-group-finding
 	 * 
 	 * @param Field $field
 	 * @param mixed $value
@@ -394,17 +461,21 @@ abstract class Fieldtype extends WireData implements Module {
 	}
 
 	/**
-	 * Given a raw value (value as stored in DB), return the value as it would appear in a Page object
+	 * Given a raw value (value as stored in database), return the value as it would appear in a Page object.
 	 *
-	 * In many cases, no change to the value may be necessary, but if a Page expects this value as an object (for instance) then 
-	 * this would be the method that converts that value to an object and returns it. 
-	 * This method is called by the Page class, which takes the value provided by loadPageField and sends it to wakeValue 
-	 * before making it a part of the Page. 
+	 * In many cases, no change to the value may be necessary, but if a Page expects this value as an object (for instance) 
+	 * then this would be the method that converts that value to an object and returns it. 
+	 * 
+	 * This method is called by the Page class, which takes the value provided by `Fieldtype::loadPageField()` and sends 
+	 * it to this method before making it a part of the Page. 
+	 * 
+	 * #pw-group-loading
 	 *
 	 * @param Page $page
 	 * @param Field $field
 	 * @param string|int|array $value
 	 * @return string|int|array|object $value
+	 * @see Fieldtype::sleepValue()
 	 *
 	 */
 	public function ___wakeupValue(Page $page, Field $field, $value) {
@@ -412,16 +483,20 @@ abstract class Fieldtype extends WireData implements Module {
 	}
 
 	/**
-	 * Given an 'awake' value, as set by wakeupValue, convert the value back to a basic type for storage in DB. 
+	 * Given an 'awake' value, as set by wakeupValue(), convert the value back to a basic type for storage in database. 
 	 *
 	 * In many cases, this may mean no change to the value, which is why the default here just returns the value. 
 	 * But for values that are stored with pages as objects (for instance) this method would take that object
 	 * and convert it to an array, int or string (serialized or otherwise). 
+	 * 
+	 * Returned value must be either an array, number, or string. 
+	 * 
+	 * #pw-group-saving
 	 *
 	 * @param Page $page
 	 * @param Field $field
-	 * @param string|int|array|object $value
-	 * @return string|int|array
+	 * @param string|int|float|array|object $value
+	 * @return string|int|float|array
 	 *
 	 */
 	public function ___sleepValue(Page $page, Field $field, $value) {
@@ -450,8 +525,10 @@ abstract class Fieldtype extends WireData implements Module {
 	 * If an array is returned, it should only contain: strings, ints, floats or more arrays of those types.
 	 * This is intended for web service exports. 
  	 *
-	 * If not overridden, this takes on the same behavior as sleepValue(). However, if overridden, 
+	 * If not overridden, this takes on the same behavior as `Fieldtype::sleepValue()`. However, if overridden, 
 	 * it is intended to be more verbose than wakeupValue, where applicable. 
+	 * 
+	 * #pw-group-formatting
 	 *
 	 * @param Page $page
 	 * @param Field $field
@@ -466,9 +543,11 @@ abstract class Fieldtype extends WireData implements Module {
 	}
 
 	/**
-	 * Return the default value for this fieldtype (may be the same as blank value)
+	 * Return the default value for this Fieldtype (typically the same as blank value)
 	 *
 	 * Under no circumstances should this return NULL, because that is used by Page to determine if a field has been loaded. 
+	 * 
+	 * #pw-internal
 	 *
 	 * @param Page $page
 	 * @param Field $field 
@@ -484,9 +563,11 @@ abstract class Fieldtype extends WireData implements Module {
 	}
 
 	/**
-	 * Get the query that matches a Fieldtype table's data with a given value
+	 * Get the database query that matches a Fieldtype table’s data with a given value.
 	 *
-	 * Possible template method: If overridden, children should NOT call this parent method. 
+	 * Possible template method: If overridden, children should not call this parent method. 
+	 * 
+	 * #pw-group-finding
 	 *
 	 * @param DatabaseQuerySelect $query
 	 * @param string $table The table name to use
@@ -516,7 +597,10 @@ abstract class Fieldtype extends WireData implements Module {
 	 * Create a new field table in the database.
 	 *
 	 * This method should execute the SQL query necessary to create $field->table
-	 * It should throw an Exception if failure occurs
+	 * It should throw a WireException if failure occurs.
+	 * Most Fieldtype modules use this built-in implementation. 
+	 * 
+	 * #pw-group-creating
 	 *
  	 * @param Field $field
 	 * @return bool
@@ -560,30 +644,41 @@ abstract class Fieldtype extends WireData implements Module {
 	/**
 	 * Get the database schema for this field
 	 *
-	 * Should return an array like the following, indexed by field name with type details as the value (as it would be in an SQL statement)
-	 * Indexes are passed through with a 'keys' array. Note that 'pages_id' as a field and primary key may be retrieved by starting with the
-	 * parent schema return from this root getDatabaseSchema method. 
+	 * - Should return an array like in the example below, indexed by field name with type details as the value 
+	 *   (as it would be in an SQL statement).
 	 * 
+	 * - Indexes are passed through with a `keys` array. Note that `pages_id` as a field and primary key may be 
+	 *   retrieved by starting with the parent schema return from the built-in getDatabaseSchema() method.
+	 * 
+	 * - At minimum, each Fieldtype must add a `data` field as well as an index for it.
+	 *
+	 * - If you want a PHP `NULL` value to become a NULL in the database, your column definition must specify: 
+	 *   `DEFAULT NULL`.
+	 *
+	 * ~~~~~~
 	 * array(
-	 * 	'data' => 'mediumtext NOT NULL', 
-	 * 	'keys' => array(
-	 * 		'FULLTEXT KEY data (data)', 
-	 * 	),
-	 *	'xtra' => array(
-	 *		// optional extras, MySQL defaults will be used if ommitted
-	 * 		'append' => 'ENGINE=MyISAM DEFAULT CHARSET=latin1'
+	 *  'data' => 'mediumtext NOT NULL', 
+	 *  'keys' => array(
+	 *    'primary' => 'PRIMARY KEY (`pages_id`)', 
+	 *    'FULLTEXT KEY data (data)', 
+	 *  ),
+	 *  'xtra' => array(
+	 *    // optional extras, MySQL defaults will be used if omitted
+	 *    'append' => 
+	 *      'ENGINE={$this->config->dbEngine} ' . 
+	 *      'DEFAULT CHARSET={$this->config->dbCharset}'
 	 * 
-	 * 		// true (default) if this schema provides all storage for this fieldtype.
-	 * 		// false if other storage is involved with this fieldtype, beyond this schema (like repeaters, PageTable, etc.)
-	 * 		'all' => true, 
-	 *	)
+	 *    // true (default) if this schema provides all storage for this fieldtype.
+	 *    // false if other storage is involved with this fieldtype, beyond this schema 
+	 *    // (like repeaters, PageTable, etc.)
+	 *    'all' => true, 
+	 *  )
 	 * );
-	 *
-	 * At minimum, each Fieldtype must add a 'data' field as well as an index for it. 
+	 * ~~~~~~
 	 * 
-	 * If you want a PHP NULL value to become a NULL in the database, your column definition must specify: DEFAULT NULL
+	 * #pw-group-creating
 	 *
-	 * @param Field $field In case it's needed for the schema, but usually should not. 
+	 * @param Field $field In case it's needed for the schema, but typically isn't. 
 	 * @return array
 	 *
 	 */
@@ -613,6 +708,8 @@ abstract class Fieldtype extends WireData implements Module {
 	/**
 	 * Return trimmed database schema array of any parts that aren't needed for data loading
 	 * 
+	 * #pw-internal
+	 * 
 	 * @param array $schema
 	 * @return array
 	 *
@@ -623,11 +720,13 @@ abstract class Fieldtype extends WireData implements Module {
 	}
 
 	/**
-	 * Return array with information about what properties and operators can be used with this field
+	 * Return array with information about what properties and operators can be used with this field.
+	 * 
+	 * #pw-group-finding
 	 * 
 	 * @param Field $field
 	 * @param array $data Array of extra data, when/if needed
-	 * @return array See FieldSelectorInfo.php for details
+	 * @return array See `FieldSelectorInfo` class for details.
 	 *
 	 */
 	public function ___getSelectorInfo(Field $field, array $data = array()) {
@@ -638,11 +737,13 @@ abstract class Fieldtype extends WireData implements Module {
 	/**
 	 * Load the given page field from the database table and return the value. 
 	 *
-	 * Return NULL if the value is not available. 
-	 * Return the value as it exists in the database, without further processing. 
-	 *
-	 * This is intended only to be called by Page objects on an as-needed basis. 
-	 * Typically this is only called for fields that don't have 'autojoin' turned on.
+	 * - Return NULL if the value is not available. 
+	 * - Return the value as it exists in the database, without further processing. 
+	 * - This is intended only to be called by Page objects on an as-needed basis. 
+	 * - Typically this is only called for fields that don't have 'autojoin' turned on.
+	 * - Any actual conversion of the value should be handled by the `Fieldtype::wakeupValue()` method. 
+	 * 
+	 * #pw-group-loading
 	 *
 	 * @param Page $page Page object to save. 
 	 * @param Field $field Field to retrieve from the page. 
@@ -697,7 +798,9 @@ abstract class Fieldtype extends WireData implements Module {
 	}
 
 	/**
-	 * Return the query used for loading all parts of the data from this field
+	 * Return the query used for loading all parts of the data from this field.
+	 * 
+	 * #pw-group-loading
 	 *
 	 * @param Field $field
 	 * @param DatabaseQuerySelect $query
@@ -721,6 +824,8 @@ abstract class Fieldtype extends WireData implements Module {
 
 	/**
 	 * Return the query used for Autojoining this field (if different from getLoadQuery) or NULL if autojoin not allowed. 
+	 * 
+	 * #pw-group-loading
 	 *
 	 * @param Field $field
 	 * @param DatabaseQuerySelect $query
@@ -732,9 +837,11 @@ abstract class Fieldtype extends WireData implements Module {
 	}
 
 	/**
-	 * Save the given field from page 
+	 * Save the given field from given page to the database. 
 	 *
-	 * Possible template method: If overridden, children should NOT call this parent method.
+	 * Possible template method: If overridden, it is likely not necessary to call this parent method.
+	 * 
+	 * #pw-group-saving
 	 *
 	 * @param Page $page Page object to save. 
 	 * @param Field $field Field to retrieve from the page. 
@@ -809,9 +916,12 @@ abstract class Fieldtype extends WireData implements Module {
 
 
 	/**
-	 * Delete the given field, which implies: drop the table $field->table
+	 * Delete the given field, which implies: drop the table used by the field. 
 	 *
-	 * This should only be called by the Fields class since fieldgroups_fields lookup entries must be deleted before this method is called. 
+	 * This should only be called by the `Fields` class since `fieldgroups_fields` lookup entries must be 
+	 * deleted before this method is called. 
+	 * 
+	 * #pw-group-deleting
 	 *
 	 * @param Field $field Field object
 	 * @return bool True on success, false on DB delete failure.
@@ -831,10 +941,11 @@ abstract class Fieldtype extends WireData implements Module {
 	}
 
 	/**
-	 * Delete the given Field from the given Page
+	 * Delete the given Field from the given Page.
 	 *
-	 * Should delete entries from $field->table that belong to $page->id.
-	 * Possible template method.
+	 * Must delete entries from field's database table that belong to the Page. 
+	 * 
+	 * #pw-group-deleting
 	 *
 	 * @param Page $page 
 	 * @param Field $field Field object
@@ -861,14 +972,15 @@ abstract class Fieldtype extends WireData implements Module {
 		$query->bindValue(":page_id", $page_id, \PDO::PARAM_INT);
 		$result = $query->execute();
 		return $result;
-
 	}
 	
 	/**
-	 * Empty out the DB table data for page field, but leave everything else in tact
+	 * Empty out the DB table data for page field, but leave everything else in tact.
 	 *
-	 * In most cases this may be nearly identical to deletePageField, but would be different
+	 * In most cases this may be nearly identical to `Fieldtype::deletePageField()`, but would be different
 	 * for things like page references where we wouldn't want relational data deleted.
+	 * 
+	 * #pw-group-deleting
 	 *
 	 * @param Page $page
 	 * @param Field $field Field object
@@ -886,7 +998,9 @@ abstract class Fieldtype extends WireData implements Module {
 
 	
 	/**
-	 * Move this field's data from one page to another
+	 * Move this field’s data from one page to another.
+	 * 
+	 * #pw-group-saving
 	 *
 	 * @param Page $src Source Page
 	 * @param Page $dst Destination Page
@@ -909,7 +1023,7 @@ abstract class Fieldtype extends WireData implements Module {
 
 	
 	/**
-	 * Delete the given Field from all pages using the given template, without loading those pages
+	 * Delete the given Field from all pages using the given template, without loading those pages.
 	 * 
 	 * ProcessWire will use this method rather than deletePageField in cases where the quantity of items
 	 * to delete is high (above 200 at time this was written). However, if your individual Fieldtype
@@ -917,6 +1031,8 @@ abstract class Fieldtype extends WireData implements Module {
 	 * 
 	 * This was added so that mass deletions can happen without loading every page, which may not be feasible
 	 * when dealing with thousands of pages. 
+	 * 
+	 * #pw-group-deleting
 	 * 
 	 * @param Template $template
 	 * @param Field $field
@@ -929,6 +1045,8 @@ abstract class Fieldtype extends WireData implements Module {
 
 	/**
 	 * Return a cloned copy of $field
+	 * 
+	 * #pw-group-other
 	 *
 	 * @param Field $field
 	 * @return Field cloned copy
@@ -939,7 +1057,9 @@ abstract class Fieldtype extends WireData implements Module {
 	}
 
 	/**
-	 * Get a property from this Fieldtype's data
+	 * Get a property from this Fieldtype’s data
+	 * 
+	 * #pw-group-other
 	 *
 	 * @param string $key
 	 * @return mixed
@@ -954,9 +1074,13 @@ abstract class Fieldtype extends WireData implements Module {
 	/**
 	 * Install this Fieldtype, consistent with optional Module interface
 	 *
-	 * Called once at time of installation by Modules::install().
-	 * If custom Fieldtype classes need to perform any setup beyond that performed in ___createTable(),
-	 * this method is where they should do it. This is not required, and probably not applicable to most. 
+	 * - Called once at time of installation by Modules::install().
+	 * - If custom Fieldtype classes need to perform any setup beyond that performed in ___createTable(),
+	 *   this method is where they should do it. This is not required, and probably not applicable to most. 
+	 * 
+	 * #pw-group-other
+	 * 
+	 * @throws WireException Should throw an Exception on failure to install
 	 *
 	 */
 	public function ___install() {
@@ -966,10 +1090,14 @@ abstract class Fieldtype extends WireData implements Module {
 	/**
 	 * Uninstall this Fieldtype, consistent with optional Module interface
 	 *
-	 * Checks to make sure it's safe to uninstall this Fieldtype. If not, throw an Exception indicating such. 
-	 * It's safe to uninstall a Fieldtype only if it's not being used by any Fields. 
-	 * If a Fieldtype overrides this to perform additional uninstall functions, it would be good to call this 
-	 * first to make sure uninstall is okay. 
+	 * - Checks to make sure it's safe to uninstall this Fieldtype. If not, throw an Exception indicating such. 
+	 * - It's safe to uninstall a Fieldtype only if it's not being used by any Fields. 
+	 * - If a Fieldtype overrides this to perform additional uninstall functions, it would be good to call this 
+	 *   parent uninstall method first to make sure uninstall is okay. 
+	 * 
+	 * #pw-group-other
+	 * 
+	 * @throws WireException Should throw an Exception if uninstsall can't be completed.
 	 *
 	 */
 	public function ___uninstall() {
@@ -988,6 +1116,8 @@ abstract class Fieldtype extends WireData implements Module {
 
 	/**
 	 * Called when module version changes
+	 * 
+	 * #pw-group-other
 	 *
 	 * @param $fromVersion
 	 * @param $toVersion

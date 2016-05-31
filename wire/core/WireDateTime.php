@@ -3,7 +3,7 @@
 /**
  * ProcessWire Date/Time Tools ($datetime API variable)
  * 
- * Provides helpers for working with dates/times and conversion between formats.
+ * #pw-summary The $datetime API variable provides helpers for working with dates/times and conversion between formats.
  * 
  * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
  * https://processwire.com
@@ -123,6 +123,16 @@ class WireDateTime extends Wire {
 
 	/**
 	 * Return all predefined PHP date() formats for use as dates
+	 * 
+	 * ~~~~~
+	 * // output all date formats
+	 * $formats = $datetime->getDateFormats();
+	 * echo "<pre>" . print_r($formats, true) . "</pre>";
+	 * ~~~~~
+	 * 
+	 * #pw-advanced
+	 * 
+	 * @return array Returns an array of strings containing recognized date formats
 	 *
 	 */
 	public function getDateFormats() { return self::$dateFormats; }
@@ -130,6 +140,16 @@ class WireDateTime extends Wire {
 
 	/**
 	 * Return all predefined PHP date() formats for use as times
+	 *
+	 * ~~~~~
+	 * // output all time formats
+	 * $formats = $datetime->getTimeFormats();
+	 * echo "<pre>" . print_r($formats, true) . "</pre>";
+	 * ~~~~~
+	 * 
+	 * #pw-advanced
+	 *
+	 * @return array Returns an array of strings containing recognized time formats
 	 *
 	 */
 	public function getTimeFormats() { return self::$timeFormats; }
@@ -140,7 +160,7 @@ class WireDateTime extends Wire {
 	 *
 	 * @param string $str Date/time string
 	 * @param string $format Format of the date/time string in PHP date syntax
-	 * @return int
+	 * @return int Unix timestamp
 	 *
 	 */
 	public function stringToTimestamp($str, $format) {
@@ -224,9 +244,20 @@ class WireDateTime extends Wire {
 
 	/**
 	 * Format a date with the given PHP date() or PHP strftime() format
+	 * 
+	 * This method will accept either [PHP date](http://php.net/manual/en/function.date.php) 
+	 * or [PHP strftime](http://php.net/manual/en/function.strftime.php) compatible formats, 
+	 * determine what kind it is, and return the timestamp formatted with it. 
+	 * 
+	 * ~~~~~~
+	 * // Output the current date/time in ISO-8601 like format
+	 * echo $datetime->formatDate(time(), 'Y-m-d H:i a'); 
+	 * ~~~~~~
+	 * 
+	 * #pw-internal
 	 *
-	 * @param int $value Unix timestamp of date
-	 * @param string $format date() or strftime() format string to use for formatting
+	 * @param int $value Unix timestamp of date/time
+	 * @param string $format PHP date() or strftime() format string to use for formatting
 	 * @return string Formatted date string
 	 *
 	 */
@@ -266,7 +297,9 @@ class WireDateTime extends Wire {
 	}
 
 	/**
-	 * Given a date() format, convert it to either 'js', 'strftime' or 'regex' format
+	 * Given a PHP date() format, convert it to either 'js', 'strftime' or 'regex' format
+	 * 
+	 * #pw-advanced
 	 *
 	 * @param string $format PHP date() format
 	 * @param string $type New format to convert to: either 'js', 'strftime', or 'regex'
@@ -325,24 +358,29 @@ class WireDateTime extends Wire {
 	/**
 	 * Format a date, using PHP date(), strftime() or other special strings (see arguments).
 	 *
-	 * This is designed to work the same wa as PHP's date() but be able to accept any common format
-	 * used in ProcessWire. This is helpful in reducing code in places where you might have logic
-	 * determining when to use date(), strftime(), or wireRelativeTimeStr().
+	 * This is designed to work the same way as PHP's `date()` but be able to accept any common format
+	 * used in ProcessWire. This is helpful for reducing code in places where you might have logic
+	 * determining when to use `date()`, `strftime()`, `wireRelativeTimeStr()` or some other date 
+	 * formatting function. 
+	 * 
+	 * ~~~~~~
+	 * // Output the current date/time in relative format
+	 * echo $date->formatDate('relative');
+	 * ~~~~~~
 	 *
 	 * @param string|int $format Use one of the following:
-	 *  - PHP date() format
-	 * 	- PHP strftime() format (detected by presence of a '%' somewhere in it)
-	 * 	- 'relative': for a relative date/time string.
-	 *  - 'relative-': for a relative date/time string with no tense.
-	 * 	- 'rel': for an abbreviated relative date/time string.
-	 * 	- 'rel-': for an abbreviated relative date/time string with no tense.
-	 * 	- 'r': for an extra-abbreviated relative date/time string.
-	 * 	- 'r-': for an extra-abbreviated relative date/time string with no tense.
-	 * 	- 'ts': makes it return a unix timestamp
-	 * 	- '': blank string makes it use the system date format ($config->dateFormat)
-	 * 	- If given an integer and no second argument specified, it is assumed to be the second ($ts) argument.
-	 * @param int|string|null $ts Optionally specify the date/time stamp or strtotime() compatible string.
-	 * 	If not specified, current time is used.
+	 *  - [PHP date](http://php.net/manual/en/function.date.php) format
+	 *  - [PHP strftime](http://php.net/manual/en/function.strftime.php) format (detected by presence of a '%' somewhere in it)
+	 *  - `relative` for a relative date/time string.
+	 *  - `relative-` for a relative date/time string with no tense.
+	 *  - `rel` for an abbreviated relative date/time string.
+	 *  - `rel-` for an abbreviated relative date/time string with no tense.
+	 *  - `r` for an extra-abbreviated relative date/time string.
+	 *  - `r-` for an extra-abbreviated relative date/time string with no tense.
+	 *  - `ts` makes it return a unix timestamp
+	 *  - blank string makes it use the system date format ($config->dateFormat)
+	 *  - If given an integer and no second argument specified, it is assumed to be the second ($ts) argument.
+	 * @param int|string|null $ts Optionally specify the date/time stamp or strtotime() compatible string. If not specified, current time is used.
 	 * @return string|bool Formatted date/time, or boolean false on failure
 	 *
 	 */
@@ -382,26 +420,36 @@ class WireDateTime extends Wire {
 	/**
 	 * Given a unix timestamp (or date string), returns a formatted string indicating the time relative to now
 	 *
-	 * Example: 1 day ago, 30 seconds ago, etc.
-	 *
-	 * Based upon: http://www.php.net/manual/en/function.time.php#89415
-	 *
+	 * For example: 
+	 * 
+	 * - 2 years ago
+	 * - 3 months ago
+	 * - 1 day ago
+	 * - 30 seconds ago
+	 * - Just now
+	 * - 1 day from now
+	 * - 5 months from now
+	 * - 3 years from now
+	 * 
+	 * This method also supports multi-language and will output in the current user's language, so long as the 
+	 * phrases in /wire/core/WireDateTime.php are translated in the language pack. 
+	 * 
 	 * @param int|string $ts Unix timestamp or date string
 	 * @param bool|int|array $abbreviate Whether to use abbreviations for shorter strings.
-	 * 	Specify boolean TRUE for abbreviations (abbreviated where common, not always different from non-abbreviated)
-	 * 	Specify integer 1 for extra short abbreviations (all terms abbreviated into shortest possible string)
-	 * 	Specify boolean FALSE or omit for no abbreviations.
-	 * 	Specify associative array of key=value pairs of terms to use for abbreviations. The possible keys are:
-	 * 		just now, ago, from now, never
-	 * 		second, minute, hour, day, week, month, year, decade
-	 * 		seconds, minutes, hours, days, weeks, months, years, decades
-	 * @param bool $useTense Whether to append a tense like "ago" or "from now",
-	 * 	May be ok to disable in situations where all times are assumed in future or past.
-	 * 	In abbreviate=1 (shortest) mode, this removes the leading "+" or "-" from the string.
-	 * @return string
+	 *  - Specify boolean TRUE for abbreviations (abbreviated where common, not always different from non-abbreviated)
+	 *  - Specify integer 1 for extra short abbreviations (all terms abbreviated into shortest possible string)
+	 *  - Specify boolean FALSE or omit for no abbreviations.
+	 *  - Specify associative array of key=value pairs of terms to use for abbreviations. The possible keys are:
+	 * 	  just now, ago, from now, never, second, minute, hour, day, week, month, year, decade, seconds, minutes, 
+	 *    hours, days, weeks, months, years, decades
+	 * @param bool $useTense Whether to append a tense like "ago" or "from now".
+	 *  - May be ok to disable in situations where all times are assumed in future or past.
+	 *  - In abbreviate=1 (shortest) mode, this removes the leading "+" or "-" from the string.
+	 * @return string Formatted relative time string
 	 *
 	 */
 	public function relativeTimeStr($ts, $abbreviate = false, $useTense = true) {
+		// Originally based upon: <http://www.php.net/manual/en/function.time.php#89415>
 
 		if(empty($ts)) {
 			if(is_array($abbreviate) && isset($abbreviate['never'])) return $abbreviate['never'];

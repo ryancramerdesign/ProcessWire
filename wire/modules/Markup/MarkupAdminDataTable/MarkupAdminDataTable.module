@@ -174,7 +174,9 @@ class MarkupAdminDataTable extends ModuleJS {
 			$out .= "\n\t</tbody>";
 			$out .= "\n</table>";
 			
-			if($this->responsive) $out .= "\n<script>AdminDataTable.initTable($('#$id'));</script>";
+			if($this->responsive) {
+				$out .= "\n<script>if(typeof AdminDataTable != 'undefined') AdminDataTable.initTable($('#$id'));</script>";
+			}
 		}
 
 		if(count($this->actions)) {

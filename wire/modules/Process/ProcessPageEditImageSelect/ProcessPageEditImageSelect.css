@@ -74,6 +74,15 @@ small.ui-helper-clearfix {
 .cropping_active .cropper-container {
 	position: static; 
 }
+.processing small.ui-helper-clearfix,
+.cropping_active small.ui-helper-clearfix {
+	padding-bottom: 0;
+	margin-bottom: -2px;
+}
+.processing small.ui-helper-clearfix {
+	padding-bottom: 0.5em;
+	margin-bottom: -2px;
+}
 .cropping_active #action_icons {
 	display: none !important;
 }
