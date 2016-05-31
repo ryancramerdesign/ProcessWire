@@ -100,3 +100,11 @@
 	top: 0;
 }
 
+#_ProcessPageEditView {
+	padding-right: 0 !important;
+}
+
+#_ProcessPageEditViewDropdownToggle {
+	cursor: pointer;
+}
+

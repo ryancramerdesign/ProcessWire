@@ -28,7 +28,7 @@ class ProcessWire extends Wire {
 
 	const versionMajor = 3; 
 	const versionMinor = 0; 
-	const versionRevision = 14; 
+	const versionRevision = 18; 
 	const versionSuffix = 'devns';
 	
 	const indexVersion = 300; // required version for index.php file (represented by PROCESSWIRE define)
@@ -633,11 +633,18 @@ class ProcessWire extends Wire {
 		$siteDir = 'site';
 		$indexConfigFile = $rootPath . "/index.config.php";
 
-		if(is_file($indexConfigFile) && !function_exists("ProcessWireHostSiteConfig")) {
+		if(is_file($indexConfigFile) 
+			&& !function_exists("\\ProcessWire\\ProcessWireHostSiteConfig")
+			&& !function_exists("\\ProcessWireHostSiteConfig")) {
 			// optional config file is present in root
 			/** @noinspection PhpIncludeInspection */
+			$hostConfig = array();
 			@include($indexConfigFile);
-			$hostConfig = function_exists("ProcessWireHostSiteConfig") ? ProcessWireHostSiteConfig() : array();
+			if(function_exists("\\ProcessWire\\ProcessWireHostSiteConfig")) {
+				$hostConfig = ProcessWireHostSiteConfig();
+			} else if(function_exists("ProcessWireHostSiteConfig")) {
+				$hostConfig = \ProcessWireHostSiteConfig();
+			}
 			if($httpHost && isset($hostConfig[$httpHost])) {
 				$siteDir = $hostConfig[$httpHost];
 			} else if(isset($hostConfig['*'])) {

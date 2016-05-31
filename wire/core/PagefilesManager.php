@@ -3,12 +3,42 @@
 /**
  * ProcessWire PagefilesManager
  *
- * Manages Pagefiles, ensuring proper storage in published/draft dirs and migration of files between them
+ * #pw-summary Manages files and file directories for a page independent of a particular field.
+ * #pw-summary-static These methods are not connected with a particular instance and may only be called statically.
+ * #pw-body =
+ * Files in ProcessWire are always connected with a particular `Field` on a `Page`. This is typically
+ * a `FieldtypeFile` field or a `FieldtypeImage` field, which exist as `Pagefiles` or `Pageimages`
+ * values on the Page. Sometimes it is necessary to manage all files connected with a page as a
+ * group, and this files manager class provides that. Likewise, something needs to manage the paths
+ * and URLs where these files live, and that is where this files manager comes into play as well.
  * 
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * **Summary of what PagefilesManager does**
+ *
+ * - Provides methods for movement of all files connected with a page as a group.
+ * - Ensures that file directories for a page are created (and removed) when applicable.
+ * - Manages secured vs. normal page file paths (see `$config->pagefileSecure`).
+ * - Manages extended vs. normal page file paths (see `$config->pagefileExtendedPaths`). 
+ * 
+ * **How to access the Page files manager**
+ * 
+ * The Page files manager can be accessed from any page’s `Page::filesManager()` method or property.
+ * 
+ * ~~~~~
+ * // Example of getting a Page’s dedicated file path and URL
+ * $filesPath = $page->filesManager->path();
+ * $filesURL = $page->filesManager->url();
+ * ~~~~~
+ * 
+ * #pw-body
+ * 
+ * ProcessWire 3.x (development), Copyright 2016 by Ryan Cramer
  * https://processwire.com
  * 
- * @method save()
+ * @method save() #pw-hooker
+ * @property string $path 
+ * @property string $url 
+ * @property Page $page Page that this files manager is for. 
+ * 
  *
  */
 
@@ -28,18 +58,24 @@ class PagefilesManager extends Wire {
 
 	/**
 	 * Reference to the Page object this PagefilesManager is managing
+	 * 
+	 * @var Page
 	 *
 	 */
 	protected $page;
 
 	/**
 	 * Cached copy of $path, once it has been determined
+	 * 
+	 * @var string|null
 	 *
 	 */
 	protected $path = null;
 
 	/**
 	 * Cached copy of $url, once it has been determined
+	 * 
+	 * @var string|null
 	 *
 	 */
 	protected $url = null;
@@ -58,6 +94,10 @@ class PagefilesManager extends Wire {
 	 * Initialize the PagefilesManager with a Page
 	 *
  	 * Same as construct, but separated for when cloning a page
+	 * 
+	 * #pw-internal
+	 * 
+	 * @param Page $page
 	 *
 	 */
 	public function init(Page $page) {
@@ -68,6 +108,10 @@ class PagefilesManager extends Wire {
 
 	/**
 	 * Set the page 
+	 * 
+	 * #pw-internal
+	 * 
+	 * @param Page $page
 	 *
 	 */
 	public function setPage(Page $page) {
@@ -75,9 +119,9 @@ class PagefilesManager extends Wire {
 	}
 
 	/** 
-	 * Get an array of all published filenames (using basename as value)
-	 *
-	 * @return array Array of basenames
+	 * Get an array of all published filenames on the current Page.
+	 * 
+	 * @return array Array of file basenames
 	 *
 	 */
 	public function getFiles() {
@@ -91,10 +135,12 @@ class PagefilesManager extends Wire {
 	}
 	
 	/**
-	 * Get the Pagefile/Pageimage object containing the given filename
-	 *
-	 * @param string $name If given a URL/path, this will traverse to other pages. If given a basename, it will stay with current page.
-	 * @return Pagefile|null Returns Pagefile object if found, null if not
+	 * Get the Pagefile object containing the given filename.
+	 * 
+	 * @param string $name Name of file to get: 
+	 *   - If given a URL or path, this will traverse to other pages. 
+	 *   - If given a basename, it will stay with current page.
+	 * @return Pagefile|Pageimage|null Returns Pagefile or Pageimage object if found, or null if not.
 	 *
 	 */
 	public function getFile($name) {
@@ -172,9 +218,11 @@ class PagefilesManager extends Wire {
 	}
 
 	/**
-	 * Recursively copy all files managed by this PagefilesManager into a new path
+	 * Recursively copy all files managed by this PagefilesManager into a new path.
+	 * 
+	 * #pw-group-manipulation
 	 *
-	 * @param $toPath string Path of directory to copy files into. 
+	 * @param $toPath string Path to copy files into. 
 	 * @return int Number of files/directories copied. 
 	 *
 	 */
@@ -183,9 +231,11 @@ class PagefilesManager extends Wire {
 	}
 
 	/**
-	 * Recursively move all files managed by this PagefilesManager into a new path
+	 * Recursively move all files managed by this PagefilesManager into a new path.
+	 * 
+	 * #pw-group-manipulation
 	 *
-	 * @param $toPath string Path of directory to move files into.
+	 * @param $toPath string Path to move files into.
 	 * @return int Number of files/directories moved.
 	 *
 	 */
@@ -207,7 +257,9 @@ class PagefilesManager extends Wire {
 	}
 
 	/**
-	 * Create the directory path where published files will be restored
+	 * Create the directory path where published files will be stored.
+	 * 
+	 * #pw-internal
 	 *
 	 * @return bool True on success, false if not
 	 *
@@ -218,38 +270,58 @@ class PagefilesManager extends Wire {
 
 	/**
 	 * Empty out the published files (delete all of them)
+	 * 
+	 * #pw-group-manipulation
+	 * 
+	 * @param bool $rmdir Remove the directory too? (default=false)
+	 * @param bool $recursive Recursively do the same for subdirectories? (default=true)
+	 * @return bool True on success, false on error (since 3.0.17, previous versions had no return value).
 	 *
 	 */
 	public function emptyPath($rmdir = false, $recursive = true) {
 		$path = $this->path();
-		if(!is_dir($path)) return;
+		if(!is_dir($path)) return true;
+		$errors = 0;
 		if($recursive) {
 			// clear out path and everything below it
-			wireRmdir($path, true);
+			if(!wireRmdir($path, true)) $errors++;
 			if(!$rmdir) $this->_createPath($path); 
 		} else {
 			// only clear out files in path
 			foreach(new \DirectoryIterator($path) as $file) {
 				if($file->isDot() || $file->isDir()) continue; 
-				unlink($file->getPathname()); 
+				if(!unlink($file->getPathname())) $errors++;
 			}
 			if($rmdir) {
 				@rmdir($path); // will not be successful if other dirs within it
 			}
 		}
+		return $errors === 0;
 	}
 
 	/**
 	 * Empties all file paths related to the Page, and removes the directories
+	 * 
+	 * This is the same as calling the `PagefilesManager:emptyPath()` method with the
+	 * `$rmdir` and `$recursive` options as both true.
+	 * 
+	 * #pw-group-manipulation
+	 * 
+	 * @return bool True on success, false on error (since 3.0.17, previous versions had no return value). 
 	 *
 	 */
 	public function emptyAllPaths() {
-		$this->emptyPath(true); 
+		return $this->emptyPath(true); 
 	}
 
 
 	/**
-	 * Get the published path
+	 * Get the published path for files
+	 * 
+	 * #pw-hooks
+	 * 
+	 * @return string
+	 * @throws WireException if attempting to access this on a Page that doesn't yet exist in the database
  	 *
 	 */
 	public function path() {
@@ -258,6 +330,11 @@ class PagefilesManager extends Wire {
 	
 	/**
 	 * Get the published path (for use with hooks)
+	 * 
+	 * #pw-internal
+	 * 
+	 * @return string
+	 * @throws WireException if attempting to access this on a Page that doesn't yet exist in the database
 	 *
 	 */
 	public function ___path() {
@@ -269,7 +346,12 @@ class PagefilesManager extends Wire {
 	}
 
 	/**
-	 * Return the auto-determined URL
+	 * Get the published URL for files
+	 * 
+	 * #pw-hooks
+	 * 
+	 * @return string
+	 * @throws WireException if attempting to access this on a Page that doesn't yet exist in the database
 	 *
 	 */
 	public function url() {
@@ -278,8 +360,13 @@ class PagefilesManager extends Wire {
 
 	/**
 	 * Return the auto-determined URL, hookable version
+	 * 
+	 * #pw-internal
  	 *
 	 * Note: your hook can get the $page from $event->object->page; 
+	 * 
+	 * @return string
+	 * @throws WireException if attempting to access this on a Page that doesn't yet exist in the database
 	 *
 	 */
 	public function ___url() {
@@ -293,15 +380,22 @@ class PagefilesManager extends Wire {
 	}
 
 	/**
-	 * For hooks to listen to on page save action
-	 *
-	 * Executed before a page draft/published assets are moved around, when changes to files may be best to execute
+	 * For hooks to listen to on page save action, for file-specific operations
+	 * 
+	 * Executed before a page draft/published assets are moved around, when changes to files may be best to execute.
+	 * 
+	 * There are no arguments or return values here. 
+	 * Hooks may retrieve the Page object being saved from `$event->object->page`. 
+	 * 
+	 * #pw-hooker
 	 *
 	 */
 	public function ___save() { }
 
 	/**	
 	 * Uncache/unload any data that should be unloaded with the page
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	public function uncache() {
@@ -312,6 +406,9 @@ class PagefilesManager extends Wire {
 	
 	/**
 	 * Handle non-function versions of some properties
+	 * 
+	 * @param string $key
+	 * @return mixed
 	 *
 	 */
 	public function __get($key) {
@@ -322,10 +419,12 @@ class PagefilesManager extends Wire {
 	}
 
 	/**
-	 * Returns true if Page has a files path that exists
+	 * Returns true if Page has a files path that exists.
 	 *
-	 * This is a way to for $pages API functions (or others) to check if they should attempt to use 
+	 * This is a way to for `$pages` API functions (or others) to check if they should attempt to use 
 	 * a $page's filesManager, thus ensuring directories aren't created for pages that don't need them.
+	 * 
+	 * #pw-group-static
 	 *
 	 * @param Page $page
 	 * @return bool True if a path exists for the page, false if not. 
@@ -336,7 +435,9 @@ class PagefilesManager extends Wire {
 	}
 
 	/**
-	 * Returns true if Page has a path and files
+	 * Returns true if Page has a path and files, false if not.
+	 * 
+	 * #pw-group-static
 	 *
 	 * @param Page $page
 	 * @return bool True if $page has a path and files
@@ -352,10 +453,12 @@ class PagefilesManager extends Wire {
 	}
 
 	/**
-	 * Get the files path for a given page (whether it exists or not) - static
+	 * Get the files path for a given page (whether it exists or not).
+	 * 
+	 * #pw-group-static
 	 *
 	 * @param Page $page
-	 * @param bool $extended Whether to force use of extended paths, primarily for recursive use by this function only
+	 * @param bool $extended Whether to force use of extended paths, primarily for recursive use by this function only.
 	 * @return string 
  	 *
 	 */
@@ -410,6 +513,8 @@ class PagefilesManager extends Wire {
 
 	/**
 	 * Generate the directory name (after /site/assets/files/)
+	 * 
+	 * #pw-internal
 	 *
 	 * @param int $id
 	 * @param string $securePrefix Optional prefix to use for last segment in path
@@ -438,9 +543,11 @@ class PagefilesManager extends Wire {
 	}
 
 	/**
-	 * Given a dir (URL or path) to a files directory, return the page ID associated with it
+	 * Given a dir (URL or path) to a files directory, return the page ID associated with it.
+	 * 
+	 * #pw-group-static
 	 *
-	 * @param string $dir Maybe extended or regular, path or URL
+	 * @param string $dir May be extended or regular directory, path or URL.
 	 * @return int
 	 *
 	 */ 
@@ -465,8 +572,8 @@ class PagefilesManager extends Wire {
 	}
 
 	/**
-	 * Return a path name where temporary files can be stored
-	 *
+	 * Return a path where temporary files can be stored.
+	 * 
 	 * @return string
 	 *
 	 */

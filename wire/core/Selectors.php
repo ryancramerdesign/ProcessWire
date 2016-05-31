@@ -289,12 +289,21 @@ class Selectors extends WireArray {
 	 *
 	 */
 	protected function create($field, $operator, $value) {
+		$not = false;
 		if(!isset(self::$selectorTypes[$operator])) {
-			$debug = $this->wire('config')->debug ? "field='$field', value='$value', selector: '$this->selectorStr'" : "";
-			throw new WireException("Unknown Selector operator: '$operator' -- was your selector value properly escaped? $debug"); 
+			// unrecognized operator, see if it's an alternate placement for NOT "!" statement
+			$op = ltrim($operator, '!');
+			if(isset(self::$selectorTypes[$op])) {
+				$operator = $op;
+				$not = true;
+			} else {
+				$debug = $this->wire('config')->debug ? "field='$field', value='$value', selector: '$this->selectorStr'" : "";
+				throw new WireException("Unknown Selector operator: '$operator' -- was your selector value properly escaped? $debug");
+			}
 		}
 		$class = wireClassName(self::$selectorTypes[$operator], true); 
 		$selector = $this->wire(new $class($field, $value)); 
+		if($not) $selector->not = true;
 		return $selector; 		
 	}
 

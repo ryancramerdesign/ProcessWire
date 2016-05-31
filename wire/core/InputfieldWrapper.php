@@ -10,15 +10,18 @@
  * =======================
  * A type of Inputfield that is designed specifically to wrap other Inputfields.
  * The most common example of an InputfieldWrapper is a <form>.
+ * 
+ * #pw-summary A type of Inputfield that contains other Inputfield objects as children. Commonly a form or a fieldset.  
  *
  * InputfieldWrapper is not designed to render an Inputfield specifically, but you can set a value attribute
  * containing content that will be rendered before the wrapper.
  *
- * @property bool $renderValueMode True when only rendering values, i.e. no inputs (default=false)
- * @property bool $quietMode True to suppress label, description and notes, often combined with renderValueMode (default=false)
- * @property int $columnWidthSpacing Percentage spacing between columns or 0 for none. Default pulled from $config->inputfieldColumnWidthSpacing.
- * @property bool $useDependencies Whether or not to consider dependencies during processing (default=true)
- * @property bool|null $InputfieldWrapper_isPreRendered Whether or not children have been pre-rendered (internal use only)
+ * @property bool $renderValueMode True when only rendering values, i.e. no inputs (default=false). #pw-internal
+ * @property bool $quietMode True to suppress label, description and notes, often combined with renderValueMode (default=false). #pw-internal
+ * @property int $columnWidthSpacing Percentage spacing between columns or 0 for none. Default pulled from `$config->inputfieldColumnWidthSpacing`. #pw-internal
+ * @property bool $useDependencies Whether or not to consider `showIf` and `requiredIf` dependencies during processing (default=true). #pw-internal
+ * @property bool|null $InputfieldWrapper_isPreRendered Whether or not children have been pre-rendered (internal use only) #pw-internal
+ * @property InputfieldsArray|null $children Inputfield instances that are direct children of this InputfieldWrapper.  #pw-group-properties
  *
  */
 
@@ -109,14 +112,25 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 	}
 
 	/**
-	 * By default, calls to get() are finding a child Inputfield based on the name attribute
+	 * Get a child Inputfield having a name attribute matching the given $key.
 	 * 
-	 * @param string $key
-	 * @return mixed
+	 * This method can also get settings, attributes or API variables, so long as they don't
+	 * collide with an Inputfield name. For that reason, you may prefer to use the `Inputfield::getSetting()`,
+	 * `Inputfield::attr()` or `Wire::wire()` methods for those other purposes. 
+	 * 
+	 * If you want a method that can only return a matching Inputfield object, use the 
+	 * `InputfieldWrapper::getChildByName()` method .
+	 * 
+	 * #pw-group-retrieval-and-traversal
+	 * 
+	 * @param string $key Name of Inputfield or setting/property to retrieve. 
+	 * @return Inputfield|mixed 
+	 * @see InputfieldWrapper::getChildByName()
 	 *
 	 */
 	public function get($key) {
-		if($inputfield = $this->getChildByName($key)) return $inputfield;
+		$inputfield = $this->getChildByName($key);
+		if($inputfield) return $inputfield;
 		$value = $this->wire($key);
 		if($value) return $value; 
 		if($key == 'children') return $this->children; 
@@ -125,10 +139,13 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 	}
 
 	/**
-	 * Add an Inputfield child or array definition of Inputfields
+	 * Add an Inputfield item as a child (also accepts array definition)
+	 * 
+	 * #pw-group-manipulation
 	 *
 	 * @param Inputfield|array $item
 	 * @return $this
+	 * @see InputfieldWrapper::import()
 	 *
 	 */
 	public function add($item) {
@@ -142,17 +159,19 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 	}
 
 	/**
-	 * Import the given Inputfield items
+	 * Import the given Inputfield items as children
 	 * 
-	 * If given an InputfieldWrapper, it will import the children of it and
-	 * exclude the wrapper itself. This is different from add() in that add()
-	 * adds the wrapper as-is. 
+	 * If given an `InputfieldWrapper`, it will import the children of it and
+	 * exclude the wrapper itself. This is different from `InputfieldWrapper::add()` 
+	 * in that add() would add the wrapper, not just the children. See also 
+	 * the `InputfieldWrapper::importArray()` method. 
 	 * 
-	 * See also InputfieldWrapper::importArray()
+	 * #pw-group-manipulation
 	 * 
-	 * @param InputfieldWrapper|array|InputfieldsArray $items
+	 * @param InputfieldWrapper|array|InputfieldsArray $items Wrapper containing items to add
 	 * @return $this
 	 * @throws WireException
+	 * @see InputfieldWrapper::add(), InputfieldWrapper::importArray()
 	 * 
 	 */
 	public function import($items) {
@@ -171,10 +190,12 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 	}
 
 	/**
-	 * Prepend another Inputfield to this Inputfield's children
+	 * Prepend an Inputfield to this instance’s children.
 	 * 
-	 * @param Inputfield $item
-	 * @return this
+	 * #pw-group-manipulation
+	 * 
+	 * @param Inputfield $item Item to prepend
+	 * @return $this
 	 *
 	 */
 	public function prepend(Inputfield $item) {
@@ -184,10 +205,12 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 	}
 
 	/**
-	 * Append another Inputfield to this Inputfield's children
+	 * Append an Inputfield to this instance’s children.
 	 * 
-	 * @param Inputfield $item
-	 * @return this
+	 * #pw-group-manipulation
+	 * 
+	 * @param Inputfield $item Item to append
+	 * @return $this
 	 *
 	 */
 	public function append(Inputfield $item) {
@@ -197,11 +220,13 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 	}
 
 	/**
-	 * Insert one Inputfield before one that's already there
+	 * Insert one Inputfield before one that’s already there.
 	 * 
-	 * @param Inputfield $item Item to insert
-	 * @param Inputfield $existingItem Existing item you want to insert before
-	 * @return this
+	 * #pw-group-manipulation
+	 * 
+	 * @param Inputfield $item Item to insert.
+	 * @param Inputfield $existingItem Existing item you want to insert before.
+	 * @return $this
 	 *
 	 */
 	public function insertBefore(Inputfield $item, Inputfield $existingItem) {
@@ -215,11 +240,13 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 	}
 
 	/**
-	 * Insert one Inputfield after one that's already there
+	 * Insert one Inputfield after one that’s already there.
+	 * 
+	 * #pw-group-manipulation
 	 * 
 	 * @param Inputfield $item Item you want to insert
 	 * @param Inputfield $existingItem Existing item you want to insert after
-	 * @return this
+	 * @return $this
 	 *
 	 */
 	public function insertAfter(Inputfield $item, Inputfield $existingItem) {
@@ -233,10 +260,12 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 	}
 
 	/**
-	 * Remove an Inputfield from this Inputfield's children
+	 * Remove an Inputfield from this instance’s children.
 	 * 
-	 * @param Inputfield|string $item Inputfield or inputfield name
-	 * @return this
+	 * #pw-group-manipulation
+	 * 
+	 * @param Inputfield|string $item Inputfield object or name
+	 * @return $this
 	 *
 	 */
 	public function remove($item) {
@@ -256,7 +285,7 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 
 	/**
 	 * Prepare children for rendering by creating any fieldset groups
-	 *
+	 * 
 	 */
 	protected function preRenderChildren() {
 
@@ -285,12 +314,11 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 	}
 
 	/**
-	 * Return the completed output of this Inputfield, ready for insertion in an XHTML form
-	 *
-	 * This includes the output of any child Inputfields (if applicable). Children are presented as list items in an unordered list. 
+	 * Render this Inputfield and the output of its children.
+	 * 
+	 * #pw-group-output
 	 *
 	 * @todo this method has become too long/complex, move to its own pluggable class and split it up a lot
-	 * 
 	 * @return string
 	 *
 	 */
@@ -519,6 +547,14 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 		return $out; 
 	}
 
+	/**
+	 * Render the output of this Inputfield and its children, showing values only (no inputs)
+	 * 
+	 * #pw-group-output
+	 * 
+	 * @return string
+	 * 
+	 */
 	public function ___renderValue() {
 		$this->addClass('InputfieldRenderValueMode');
 		$this->set('renderValueMode', true); 
@@ -528,10 +564,16 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 	}
 
 	/**
-	 * Render output for an Inputfield
+	 * Render output for an individual Inputfield
 	 * 
-	 * @param Inputfield $inputfield The Inputfield to render
-	 * @param bool $renderValueMode 
+	 * This method takes care of all the pre-and-post requisites needed for rendering an Inputfield
+	 * among a group of Inputfields. It is used by the `InputfieldWrapper::render()` method for each
+	 * Inputfield present in the children. 
+	 * 
+	 * #pw-group-output
+	 * 
+	 * @param Inputfield $inputfield The Inputfield to render.
+	 * @param bool $renderValueMode Specify true if we are only rendering values (default=false).
 	 * @return string Rendered output
 	 * 
 	 */
@@ -630,7 +672,9 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 	}
 
 	/**
-	 * Pass the given array to all children to process input
+	 * Process input for all children
+	 * 
+	 * #pw-group-input
 	 *
 	 * @param WireInputData $input
 	 * @return $this
@@ -664,11 +708,15 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 	}
 
 	/**
+	 * Is the given Inputfield processable for input?
+	 * 
 	 * Returns whether or not the given Inputfield should be processed by processInput()
 	 * 
-	 * When an $inputfield has a 'showIf' property, then this returns false, but it queues
+	 * When an `Inputfield` has a `showIf` property, then this returns false, but it queues
 	 * the field in the delayedChildren array for later processing. The root container should
 	 * temporarily remove the 'showIf' property of inputfields they want processed. 
+	 * 
+	 * #pw-internal
 	 * 
 	 * @param Inputfield $inputfield
 	 * @return bool
@@ -721,6 +769,14 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 		return true;
 	}
 
+	/**
+	 * Returns true if all children are empty, or false if one or more is populated
+	 * 
+	 * #pw-group-retrieval-and-traversal
+	 * 
+	 * @return bool
+	 * 
+	 */
 	public function isEmpty() {
 		$empty = true; 
 		foreach($this->children as $child) {
@@ -733,12 +789,15 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 	}
 
 	/**
-	 * Return an array of errors that occurred on any of the children during processInput()
+	 * Return an array of errors that occurred on any of the children during input processing.
 	 *
-	 * Should only be called after processInput()
+	 * Should only be called after `InputfieldWrapper::processInput()`.
+	 * 
+	 * #pw-group-input
+	 * #pw-group-retrieval-and-traversal
 	 *
-	 * @param bool $clear
-	 * @return array
+	 * @param bool $clear Specify true to clear out the errors (default=false).
+	 * @return array Array of error strings
 	 *
 	 */
 	public function getErrors($clear = false) {
@@ -753,21 +812,26 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 	}
 
 	/**
-	 * Return all child Inputfields, or a blank InputfieldArray if none
+	 * Return all children Inputfield objects
+	 * 
+	 * #pw-group-retrieval-and-traversal
 	 * 	
 	 * @param string $selector Optional selector string to filter the children by
  	 * @return InputfieldsArray
 	 *
 	 */
 	public function children($selector = '') {
-		if($selector) return $this->children->find($selector); 
-			else return $this->children; 
+		if($selector) {
+			return $this->children->find($selector);
+		} else {
+			return $this->children;
+		}
 	}
 
 	/**
-	 * Return all child Inputfields, or a blank InputfieldArray if none
+	 * Return all children Inputfields (alias of children method)
 	 *
-	 * Alias of children()
+	 * #pw-internal
 	 *
 	 * @param string $selector Optional selector string to filter the children by
  	 * @return InputfieldsArray
@@ -781,6 +845,8 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 	 * Return array of inputfields (indexed by name) of fields that had dependencies and were not processed
 	 * 
 	 * The results are to be handled by the root containing element (i.e. InputfieldForm).
+	 * 
+	 * #pw-internal
 	 *
 	 * @param bool $clear Set to true in order to clear the delayed children list.
 	 * @return array
@@ -797,7 +863,9 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 	}
 
 	/**
-	 * Like children() but $selector is not optional, and the method name is more readable in instances where you are filtering.
+	 * Find all children Inputfields matching a selector string
+	 * 
+	 * #pw-group-retrieval-and-traversal
 	 *
 	 * @param string $selector Required selector string to filter the children by
  	 * @return InputfieldsArray
@@ -808,10 +876,17 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 	}
 
 	/**
-	 * Given a field name, return the child Inputfield or NULL if not found
-	 *
-	 * @param string $name
+	 * Given an Inputfield name, return the child Inputfield or NULL if not found.
+	 * 
+	 * This is the same as the `InputfieldWrapper::get()` method except that it can
+	 * only return Inputfield or null, and has no crossover with other settings, 
+	 * properties or API variables. 
+	 * 
+	 * #pw-group-retrieval-and-traversal
+	 * 
+	 * @param string $name Name of Inputfield
 	 * @return Inputfield|null
+	 * @see InputfieldWrapper::get(), InputfieldWrapper::children()
 	 *
 	 */
 	public function getChildByName($name) {
@@ -822,7 +897,13 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 	}
 
 	/**
-	 * Per the InteratorAggregate interface, make the Inputfield children iterable
+	 * Enables foreach() of the children of this class
+	 * 
+	 * Per the InteratorAggregate interface, make the Inputfield children iterable.
+	 * 
+	 * #pw-group-retrieval-and-traversal
+	 * 
+	 * @return InputfieldsArray
 	 *
 	 */
 	public function getIterator() {
@@ -830,7 +911,11 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 	}
 
 	/**
-	 * Per the \Countable interface
+	 * Return the quantity of children present
+	 * 
+	 * #pw-group-retrieval-and-traversal
+	 * 
+	 * @return int
 	 *
 	 */
 	public function count() {
@@ -838,9 +923,11 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 	}
 
 	/**
-	 * Get all fields recursively in a flat InputfieldWrapper, not just direct children
+	 * Get all Inputfields below this recursively in a flat InputfieldWrapper (children, and their children, etc.)
 	 *
-	 * Note that all InputfieldWrappers are removed as a result (except for the containing InputfieldWrapper)
+	 * Note that all InputfieldWrapper instances are removed as a result (except for the containing InputfieldWrapper).
+	 * 
+	 * #pw-group-retrieval-and-traversal
  	 *  
 	 * @return InputfieldWrapper
 	 *
@@ -861,6 +948,11 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 	
 	/**
 	 * Start or stop tracking changes, applying the same to any children
+	 * 
+	 * #pw-internal
+	 * 
+	 * @param bool $trackChanges
+	 * @return $this
 	 *
 	 */
 	public function setTrackChanges($trackChanges = true) {
@@ -870,6 +962,11 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 
 	/**
 	 * Start or stop tracking changes after clearing out any existing tracked changes, applying the same to any children
+	 * 
+	 * #pw-internal
+	 *
+	 * @param bool $trackChanges
+	 * @return $this
 	 *
 	 */
 	public function resetTrackChanges($trackChanges = true) {
@@ -878,7 +975,11 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 	}
 
 	/**
-	 * Get any configuration Inputfields common to all InputfieldWrappers
+	 * Get configuration Inputfields for this InputfieldWrapper
+	 * 
+	 * #pw-group-module
+	 * 
+	 * @return InputfieldWrapper
 	 *
 	 */
 	public function ___getConfigInputfields() {
@@ -898,6 +999,8 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 
 	/**
 	 * Set custom markup for render, see self::$markup at top for reference.
+	 * 
+	 * #pw-internal
 	 *
 	 * @param array $markup
 	 *
@@ -908,6 +1011,8 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 
 	/**
 	 * Get custom markup for render, see self::$markup at top for reference.
+	 * 
+	 * #pw-internal
 	 *
 	 * @return array 
 	 *
@@ -919,6 +1024,8 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 	/**
 	 * Set custom classes for render, see self::$classes at top for reference.
 	 * 
+	 * #pw-internal
+	 * 
 	 * @param array $classes
 	 *
 	 */
@@ -928,6 +1035,8 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 
 	/**
 	 * Get custom classes for render, see self::$classes at top for reference.
+	 * 
+	 * #pw-internal
 	 *
 	 * @return array
 	 * 
@@ -940,11 +1049,14 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 	 * Import an array of Inputfield definitions to to this InputfieldWrapper instance
 	 *
 	 * Your array should be an array of associative arrays, with each element describing an Inputfield.
-	 * It is required to have a "type" property which tells which Inputfield module to use. You are also
-	 * required to have a "name" property. You should probably always have a "label" property too. You may
-	 * optionally specify the shortened Inputfield "type" if preferred, i.e. "text" rather than
-	 * "InputfieldText". Here is an example of how you might define the array:
-	 *
+	 * The following properties are required for each Inputfield definition: 
+	 * 
+	 * - `type` Which Inputfield module to use (may optionally exclude the "Inputfield" prefix). 
+	 * - `name` Name attribute to use for the Inputfield. 
+	 * - `label` Text label that appears above the Inputfield. 
+	 * 
+	 * ~~~~~
+	 * // Example array for Inputfield definitions
 	 * array(
 	 *   array(
 	 *     'name' => 'fullname',
@@ -976,9 +1088,11 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 	 *       )
 	 *     )
 	 * );
-	 *
-	 * Note: you may alternatively use associative arrays where the keys are assumed to be the 'name' attribute.
-	 * See the last item 'my_fieldset' above for an example. 
+	 * // Note: you may alternatively use associative arrays where the keys are assumed to 
+	 * // be the 'name' attribute.See the last item 'my_fieldset' above for an example. 
+	 * ~~~~~
+	 * 
+	 * #pw-group-manipulation
 	 *
 	 * @param array $a Array of Inputfield definitions
 	 * @param InputfieldWrapper $inputfields Specify the wrapper you want them added to, or omit to use current.
@@ -1052,14 +1166,16 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 	}
 
 	/**
-	 * Populate values for all Inputfields in this wrapper from the given $data object or array
+	 * Populate values for all Inputfields in this wrapper from the given $data object or array.
 	 * 
 	 * This iterates through every field in this InputfieldWrapper and looks for field names 
 	 * that are also present in the given object or array. If present, it uses them to populate
 	 * the associated Inputfield. 
 	 * 
-	 * If given an array, it should be associative with the field 'name' as the keys and
-	 * the field 'value' as the array value, i.e. array('field_name' => 'field_value', etc.)
+	 * If given an array, it should be an associative with the field 'name' as the keys and
+	 * the field 'value' as the array value, i.e. `['field_name' => 'field_value']`.
+	 * 
+	 * #pw-group-manipulation
 	 * 
 	 * @param WireData|Wire|ConfigurableModule|array $data
 	 * @return array Returns array of field names that were populated

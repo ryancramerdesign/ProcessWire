@@ -15,6 +15,7 @@ function InputfieldPageTableDialog() {
 				if(typeof sort != "undefined" && sort.length) ajaxURL += '&InputfieldPageTableSort=' + sort.replace(/\|/g, ',');
 				$.get(ajaxURL, function(data) {
 					$container.html(data);
+					$container.find(".Inputfield").trigger('reloaded', ['InputfieldPageTable']);
 					$container.effect('highlight', 500, function() {
 						var $table = $container.find('table');
 						$table.find('tbody').css('overflow', 'visible');
@@ -170,7 +171,7 @@ $(document).ready(function() {
 	InputfieldPageTableSortable($(".InputfieldPageTable table"));
 	
 	$(document).on('reloaded', '.InputfieldPageTable', function() {
-		InputfieldPageTableSortable($(this).find("table"));
+		InputfieldPageTableSortable($(this).find(".InputfieldPageTableContainer > table"));
 	});
 	
 	$(document).on('click', '.InputfieldPageTableOrphansAll', function() {

@@ -81,8 +81,11 @@
 }
 	.InputfieldForm .ui-accordion-header a,
 	.ui-accordion-header a,
-	#footer .ui-accordion-header a {
+	#debug .ui-accordion-header a {
 		color: $reverse-text-color;
+		.ui-priority-secondary {
+			color: transparentize($reverse-text-color, 0.3) !important;
+		}
 	}
 .ui-accordion-content,
 .content .InputfieldForm .ui-accordion-content,
@@ -239,6 +242,11 @@ button.ui-button.ui-priority-secondary,
 	}
 }
 
+button.ui-button .ui-priority-secondary,
+.ui-button .ui-priority-secondary {
+	color: rgba($button-color, 0.5) !important; 
+}
+
 .ui-button:hover, 
 button.ui-button.ui-state-hover, 
 .ui-button.ui-state-hover {
@@ -342,15 +350,36 @@ button.ui-state-disabled{
 }
 
 .ui-slider .ui-slider-handle{
-	background: darken($link, 30%);
-	border-radius: 3px;
+	//background: darken($link, 30%);
+	//border-radius: 3px;
+	// border-radius: 50%; 
+}
+.ui-slider .ui-slider-handle {
+	width: 17px;
+	height: 21px;
 	border-width: 0;
 	outline: none;
+	border: none;
+	background-color: transparent;
+	background: url(images/slider_handles.png) 0 0 no-repeat;
+}
+
+body.hidpi-device .ui-slider .ui-slider-handle {
+	background: url(images/slider_handles2x.png) 0 0 no-repeat;
+	background-size: 34px 21px;
 }
 
 .ui-slider-horizontal {
 	background: $light-text-color;
 	border: none;
+	height: 8px; 
+	.ui-slider-handle {
+		top: -5px; 
+	}
+}
+.ui-slider-horizontal, 
+.ui-slider-range {
+	border-radius: 4px; 
 }
 
 /**

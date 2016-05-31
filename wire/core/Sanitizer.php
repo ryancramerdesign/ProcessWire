@@ -4,6 +4,9 @@
  * ProcessWire Sanitizer
  *
  * Sanitizer provides shared sanitization functions as commonly used throughout ProcessWire core and modules
+ * 
+ * #pw-summary Provides methods for sanitizing and validating user input, preparing data for output, and more. 
+ * #pw-use-constants
  *
  * Modules may also add methods to the Sanitizer as needed i.e. $this->sanitizer->addHook('myMethod', $myClass, 'myMethod'); 
  * See the Wire class definition for more details about the addHook method. 
@@ -20,19 +23,21 @@
 class Sanitizer extends Wire {
 
 	/**
-	 * May be passed to pageName for the $beautify param, see pageName for details.
+	 * Constant used for the $beautify argument of name sanitizer methods to indicate transliteration may be used. 
 	 *
 	 */
 	const translate = 2;
 
 	/**
 	 * Beautify argument for pageName() to IDN encode UTF8 to ascii
+	 * #pw-internal
 	 * 
 	 */
 	const toAscii = 4;
 
 	/**
 	 * Beautify argument for pageName() to allow decode IDN ascii to UTF8
+	 * #pw-internal
 	 * 
 	 */
 	const toUTF8 = 8;
@@ -41,6 +46,7 @@ class Sanitizer extends Wire {
 	 * Beautify argument for pageName() to indicate that UTF8 (in whitelist) is allowed
 	 * 
 	 * Unlike the toUTF8 option, no ascii to UTF8 conversion is allowed. 
+	 * #pw-internal
 	 * 
 	 */
 	const okUTF8 = 16;
@@ -74,11 +80,13 @@ class Sanitizer extends Wire {
 
 	/**
 	 * Internal filter used by other name filtering methods in this class
+	 * 
+	 * #pw-internal
 	 *
 	 * @param string $value Value to filter
 	 * @param array $allowedExtras Additional characters that are allowed in the value
 	 * @param string 1 character replacement value for invalid characters
-	 * @param bool $beautify Whether to beautify the string, specify Sanitizer::translate to perform transliteration. 
+	 * @param bool $beautify Whether to beautify the string, specify `Sanitizer::translate` to perform transliteration. 
 	 * @param int $maxLength
 	 * @return string
 	 *
@@ -137,19 +145,35 @@ class Sanitizer extends Wire {
 	}
 
 	/**
-	 * Standard alphanumeric and dash, underscore, dot name 
+	 * Sanitize in "name" format (ASCII alphanumeric letters/digits, hyphens, underscores, periods)
+	 * 
+	 * Default behavior: 
 	 *
-	 * @param string $value
-	 * @param bool|int $beautify Should be true when creating a name for the first time. Default is false.
-	 *	You may also specify Sanitizer::translate (or number 2) for the $beautify param, which will make it translate letters
-	 *	based on the InputfieldPageName custom config settings.
-	 * @param int $maxLength Maximum number of characters allowed in the name
-	 * @param string $replacement Replacement character for invalid chars: one of -_.
+	 * - Allows both upper and lowercase ASCII letters. 
+	 * - Limits maximum length to 128 characters.  
+	 * - Replaces non-name format characters with underscore "_". 
+	 * 
+	 * ~~~~~
+	 * $test = "Foo+Bar Baz-123"
+	 * echo $sanitizer->name($test); // outputs: Foo_Bar_Baz-123
+	 * ~~~~~
+	 * 
+	 * #pw-group-strings
+	 *
+	 * @param string $value Value that you want to convert to name format. 
+	 * @param bool|int $beautify Beautify the returned name?
+	 *  - Beautify makes returned name prettier by getting rid of doubled punctuation, leading/trailing punctuation and such. 
+	 *  - Should be TRUE when creating a resource using the name for the first time (default is FALSE). 
+	 *  - You may also specify the constant `Sanitizer::translate` (or integer 2) for the this argument, which will make it 
+	 *    translate letters based on name format settings in ProcessWire. 
+	 * @param int $maxLength Maximum number of characters allowed in the name (default=128). 
+	 * @param string $replacement Replacement character for invalid characters. Should be either "_", "-" or "." (default="_").
 	 * @param array $options Extra options to replace default 'beautify' behaviors
-	 * 	- allowAdjacentExtras (bool): Whether to allow [-_.] chars next to each other (default=false)
-	 * 	- allowDoubledReplacement (bool): Whether to allow two of the same replacement chars [-_] next to each other (default=false)
-	 *  - allowedExtras (array): Specify allowed characters (default=[-_.], not including the brackets)
-	 * @return string
+	 *  - `allowAdjacentExtras` (bool): Whether to allow [-_.] characters next to each other (default=false).
+	 *  - `allowDoubledReplacement` (bool): Whether to allow two of the same replacement chars [-_] next to each other (default=false).
+	 *  - `allowedExtras (array): Specify extra allowed characters (default=`['-', '_', '.']`).
+	 * @return string Sanitized value in name format
+	 * @see Sanitizer::pageName()
 	 * 
 	 */
 	public function name($value, $beautify = false, $maxLength = 128, $replacement = '_', $options = array()) {
@@ -196,14 +220,20 @@ class Sanitizer extends Wire {
 	}
 
 	/**
-	 * Standard alphanumeric and dash, underscore, dot name plus multiple names may be separated by a delimeter
-	 *
-	 * @param string|array $value Value(s) to filter
-	 * @param string $delimeter Character that delimits values (optional)
-	 * @param array $allowedExtras Additional characters that are allowed in the value (optional)
-	 * @param string 1 character replacement value for invalid characters (optional)
-	 * @param bool $beautify
-	 * @return string|array Return string if given a string for $value, returns array if given an array for $value
+	 * Sanitize a string or array containing multiple names
+	 * 
+	 * - Default behavior is to sanitize to ASCII alphanumeric and hyphen, underscore, and period.
+	 * - If given a string, multiple names may be separated by a delimeter (which is a space by default). 
+	 * - Return value will be of the same type as the given value (i.e. string or array). 
+	 * 
+	 * #pw-group-strings
+	 * 
+	 * @param string|array $value Value(s) to sanitize to name format.
+	 * @param string $delimeter Character that delimits values, if $value is a string (default=" ").
+	 * @param array $allowedExtras Additional characters that are allowed in the value (default=['-', '_', '.']).
+	 * @param string $replacementChar Single character replacement value for invalid characters (default='_').
+	 * @param bool $beautify Whether or not to beautify returned values (default=false). See Sanitizer::name() for beautify options.
+	 * @return string|array Returns string if given a string for $value, returns array if given an array for $value.
 	 *
 	 */
 	public function names($value, $delimeter = ' ', $allowedExtras = array('-', '_', '.'), $replacementChar = '_', $beautify = false) {
@@ -224,10 +254,14 @@ class Sanitizer extends Wire {
 
 
 	/**
-	 * Standard alphanumeric and underscore, per class or variable names in PHP
+	 * Sanitizes a string to be consistent with PHP variable names (not including '$'). 
 	 * 
-	 * @param string $value
-	 * @return string
+	 * Allows upper and lowercase ASCII letters, digits and underscore. 
+	 * 
+	 * #pw-internal
+	 * 
+	 * @param string $value String you want to sanitize
+	 * @return string Sanitized string
 	 *
 	 */
 	public function varName($value) {
@@ -235,16 +269,26 @@ class Sanitizer extends Wire {
 	}
 
 	/**
-	 * Name filter as used by ProcessWire Fields
+	 * Sanitize consistent with names used by ProcessWire fields and/or PHP variables
+	 *
+	 * - Allows upper and lowercase ASCII letters, digits and underscore. 
+	 * - ProcessWire field names follow the same conventions as PHP variable names, though digits may lead. 
+	 * - This method is the same as the varName() sanitizer except that it supports beautification and max length. 
+	 * - Unlike other name formats, hyphen and period are excluded because they aren't allowed characters in PHP variables.
 	 * 
-	 * Note that dash and dot are excluded because they aren't allowed characters in PHP variables
+	 * ~~~~~
+	 * $test = "Hello world";
+	 * echo $sanitizer->varName($test); // outputs: Hello_world
+	 * ~~~~~
 	 * 
-	 * @param string $value
-	 * @param bool|int $beautify Should be true when creating a name for the first time. Default is false.
-	 *	You may also specify Sanitizer::translate (or number 2) for the $beautify param, which will make it translate letters
-	 *	based on the InputfieldPageName custom config settings.
-	 * @param int $maxLength Maximum number of characters allowed in the name
-	 * @return string
+	 * #pw-group-strings
+	 * 
+	 * @param string $value Value you want to sanitize 
+	 * @param bool|int $beautify Should be true when using the name for a new field (default=false).
+	 *  You may also specify constant `Sanitizer::translate` (or number 2) for the $beautify param, which will make it translate letters
+	 *  based on the system page name translation settings. 
+	 * @param int $maxLength Maximum number of characters allowed in the name (default=128).
+	 * @return string Sanitized string
 	 *
 	 */
 	public function fieldName($value, $beautify = false, $maxLength = 128) {
@@ -253,6 +297,8 @@ class Sanitizer extends Wire {
 	
 	/**
 	 * Name filter as used by ProcessWire Templates
+	 * 
+	 * #pw-internal
 	 *
 	 * @param string $value
 	 * @param bool|int $beautify Should be true when creating a name for the first time. Default is false.
@@ -267,25 +313,37 @@ class Sanitizer extends Wire {
 	}
 
 	/**
-	 * Name filter for ProcessWire Page names
+	 * Sanitize as a ProcessWire page name
 	 *
-	 * Because page names are often generated from a UTF-8 title, UTF8 to ASCII conversion will take place when $beautify is on.
+	 * - Page names by default support lowercase ASCII letters, digits, underscore, hyphen and period. 
 	 * 
-	 * You may optionally omit the $beautify and/or $maxLength arguments and substitute the $options array instead.
-	 * When substituted, the beautify and maxLength options can be specified in $options as well.
+	 * - Because page names are often generated from a UTF-8 title, UTF-8 to ASCII conversion will take place when `$beautify` is enabled.
 	 * 
-	 * If $config->pageNameCharset is UTF8 then non-ascii page names will be converted to punycode ("xn-") ascii page names,
-	 * rather than converted, regardless of $beautify setting. 
+	 * - You may optionally omit the `$beautify` and/or `$maxLength` arguments and substitute the `$options` array instead.
+	 * 
+	 * - When substituted, the beautify and maxLength options can be specified in $options as well.
+	 * 
+	 * - If `$config->pageNameCharset` is "UTF8" then non-ASCII page names will be converted to punycode ("xn-") ASCII page names,
+	 *   rather than converted, regardless of `$beautify` setting. 
+	 * 
+	 * ~~~~~
+	 * $test = "Hello world!";
+	 * echo $sanitizer->pageName($test, true); // outputs: hello-world
+	 * ~~~~~
+	 * 
+	 * #pw-group-strings
+	 * #pw-group-pages
 	 *
-	 * @param string $value
-	 * @param bool|int|array $beautify Should be true when creating a Page's name for the first time. Default is false. 
-	 *	You may also specify Sanitizer::translate (or number 2) for the $beautify param, which will make it translate letters
-	 *	based on the InputfieldPageName custom config settings. 
+	 * @param string $value Value to sanitize as a page name
+	 * @param bool|int|array $beautify This argument accepts a few different possible values (default=false): 
+	 *  - `true` (boolean): Make it pretty. Use this when using a pageName for the first time. 
+	 *  - `Sanitizer::translate` (constant): This will make it translate non-ASCII letters based on *InputfieldPageName* module config settings. 
+	 *  - `$options` (array): You can optionally specify the $options array for this argument instead. 
+	 * @param int|array $maxLength Maximum number of characters allowed in the name.
 	 *  You may also specify the $options array for this argument instead. 
-	 * @param int|array $maxLength Maximum number of characters allowed in the name
-	 *  You may also specify the $options array for this argument instead. 
-	 * @param array $options 
+	 * @param array $options Array of options to modify default behavior. See Sanitizer::name() method for available options. 
 	 * @return string
+	 * @see Sanitizer::name()
 	 *
 	 */
 	public function pageName($value, $beautify = false, $maxLength = 128, array $options = array()) {
@@ -363,11 +421,14 @@ class Sanitizer extends Wire {
 	/**
 	 * Name filter for ProcessWire Page names with transliteration
 	 *
-	 * This is the same as calling pageName with the Sanitizer::translate option for $beautify.
+	 * This is the same as calling pageName with the `Sanitizer::translate` option for the `$beautify` argument.
+	 * 
+	 * #pw-group-strings
+	 * #pw-group-pages
 	 *
-	 * @param string $value
+	 * @param string $value Value to sanitize
 	 * @param int $maxLength Maximum number of characters allowed in the name
-	 * @return string
+	 * @return string Sanitized value
 	 *
 	 */
 	public function pageNameTranslate($value, $maxLength = 128) {
@@ -375,14 +436,18 @@ class Sanitizer extends Wire {
 	}
 
 	/**
-	 * Sanitize and allow for UTF8 characters (from $config->pageNameWhitelist) in page name
+	 * Sanitize and allow for UTF-8 characters in page name
 	 * 
-	 * This method does not convert to or from UTF8, it only sanitizes it against $config->pageNameWhitelist.
-	 * If given a $value that has only ascii characters, this will pass control to pageName() instead. 
-	 * If $config->pageNameCharset is not "UTF8" then this function just passes control to pageName() instead.
+	 * - If `$config->pageNameCharset` is not `UTF8` then this function just passes control to the regular page name sanitizer.
+	 * - Allowed UTF-8 characters are determined from `$config->pageNameWhitelist`.
+	 * - This method does not convert to or from UTF-8, it only sanitizes it against the whitelist. 
+	 * - If given a value that has only ASCII characters, this will pass control to the regular page name sanitizer. 
 	 * 
-	 * @param $value
-	 * @return string
+	 * #pw-group-strings
+	 * #pw-group-pages
+	 * 
+	 * @param string $value Value to sanitize
+	 * @return string Sanitized value
 	 *
 	 */
 	public function pageNameUTF8($value) {
@@ -526,6 +591,8 @@ class Sanitizer extends Wire {
 
 	/**
 	 * Format required by ProcessWire user names
+	 * 
+	 * #pw-internal
 	 *
 	 * @deprecated, use pageName instead.
 	 * @param string $value
@@ -538,13 +605,19 @@ class Sanitizer extends Wire {
 
 	/**
 	 * Name filter for ProcessWire filenames (basenames only, not paths)
+	 * 
+	 * This sanitizes a filename to be consistent with the name format in ProcessWire, 
+	 * ASCII-alphanumeric, hyphens, underscores and periods.
+	 * 
+	 * #pw-group-strings
+	 * #pw-group-files
 	 *
-	 * @param string $value
+	 * @param string $value Filename to sanitize
 	 * @param bool|int $beautify Should be true when creating a file's name for the first time. Default is false.
-	 *	You may also specify Sanitizer::translate (or number 2) for the $beautify param, which will make it translate letters
-	 *	based on the InputfieldPageName custom config settings.
-	 * @param int $maxLength Maximum number of characters allowed in the name
-	 * @return string
+	 *  You may also specify Sanitizer::translate (or number 2) for the $beautify param, which will make it translate letters
+	 *  based on the InputfieldPageName custom config settings.
+	 * @param int $maxLength Maximum number of characters allowed in the filename
+	 * @return string Sanitized filename
 	 *
 	 */
 	public function filename($value, $beautify = false, $maxLength = 128) {
@@ -569,6 +642,8 @@ class Sanitizer extends Wire {
 	/**
 	 * Hookable alias of filename method for case consistency with other name methods (preferable to use filename)
 	 * 
+	 * #pw-internal
+	 * 
 	 * @param string $value
 	 * @param bool|int $beautify Should be true when creating a file's name for the first time. Default is false.
 	 *	You may also specify Sanitizer::translate (or number 2) for the $beautify param, which will make it translate letters
@@ -582,20 +657,26 @@ class Sanitizer extends Wire {
 	}
 
 	/**
-	 * Return the given path if valid, or boolean false if not.
-	 *
+	 * Validate the given path, return path if valid, or false if not valid
+	 * 
+	 * Returns the given path if valid, or boolean false if not.
+	 *  
 	 * Path is validated per ProcessWire "name" convention of ascii only [-_./a-z0-9]
 	 * As a result, this function is primarily useful for validating ProcessWire paths,
 	 * and won't always work with paths outside ProcessWire.
-	 * 
-	 * This method validates only and does not sanitize. See pagePathName() for a similar
+	 *   
+	 * This method validates only and does not sanitize. See `$sanitizer->pagePathName()` for a similar
 	 * method that does sanitiation. 
 	 * 
-	 * @param string $value Path
+	 * #pw-group-strings
+	 * #pw-group-pages
+	 * 
+	 * @param string $value Path to validate
 	 * @param int|array $options Options to modify behavior, or maxLength (int) may be specified.
-	 * 	- allowDotDot: Whether to allow ".." in a path (default=false)
-	 * 	- maxLength: Maximum length of allowed path (default=1024)
+	 *  - `allowDotDot` (bool): Whether to allow ".." in a path (default=false)
+	 *  - `maxLength` (int): Maximum length of allowed path (default=1024)
 	 * @return bool|string Returns false if invalid, actual path (string) if valid.
+	 * @see Sanitizer::pagePathName()
 	 *
 	 */
 	public function path($value, $options = array()) {
@@ -618,11 +699,14 @@ class Sanitizer extends Wire {
 	 * Sanitize a page path name
 	 * 
 	 * Returned path is not guaranteed to be valid or match a page, just sanitized. 
+	 * 
+	 * #pw-group-strings
+	 * #pw-group-pages
 	 *
-	 * @param string $value
-	 * @param bool $beautify
-	 * @param int $maxLength
-	 * @return string
+	 * @param string $value Value to sanitize
+	 * @param bool $beautify Beautify the value? (default=false)
+	 * @param int $maxLength Maximum length (default=1024)
+	 * @return string Sanitized path name
 	 *
 	 */
 	public function pagePathName($value, $beautify = false, $maxLength = 1024) {
@@ -678,12 +762,17 @@ class Sanitizer extends Wire {
 	}
 
 	/**
-	 * Sanitize a UTF8 page path name (does not perform ascii/UTF8 conversions)
+	 * Sanitize a UTF-8 page path name (does not perform ASCII/UTF8 conversions)
 	 * 
-	 * If $config->pageNameCharset is not UTF8 then this does the same thing as pagePathName().
+	 * - If `$config->pageNameCharset` is not `UTF8` then this does the same thing as `$sanitizer->pagePathName()`.
+	 * - Returned path is not guaranteed to be valid or match a page, just sanitized.
 	 * 
-	 * @param string $value
+	 * #pw-group-strings
+	 * #pw-group-pages
+	 * 
+	 * @param string $value Path name to sanitize
 	 * @return string
+	 * @see Sanitizer::pagePathName()
 	 * 
 	 */
 	public function pagePathNameUTF8($value) {
@@ -703,10 +792,14 @@ class Sanitizer extends Wire {
 	}
 
 	/**
-	 * Returns valid email address, or blank if it isn't valid
+	 * Sanitize and validate an email address
+	 * 
+	 * Returns valid email address, or blank string if it isn't valid.
+	 * 
+	 * #pw-group-strings
 	 *
-	 * @param string $value
-	 * @return string
+	 * @param string $value Email address to sanitize and validate.
+	 * @return string Sanitized, valid email address, or blank string on failure. 
 	 * 
 	 */ 
 	public function email($value) {
@@ -717,6 +810,8 @@ class Sanitizer extends Wire {
 
 	/**
 	 * Returns a value that may be used in an email header
+	 * 
+	 * #pw-group-strings
 	 *
 	 * @param string $value
 	 * @return string
@@ -729,11 +824,38 @@ class Sanitizer extends Wire {
 	}
 
 	/**
-	 * Sanitize input text and remove tags
+	 * Sanitize short string of text to single line without HTML
+	 * 
+	 * - This sanitizer is useful for short strings of input text like like first and last names, street names, search queries, etc.
+	 * 
+	 * - Please note the default 255 character max length setting. 
+	 * 
+	 * - If using returned value for front-end output, be sure to run it through `$sanitizer->entities()` first. 
+	 * 
+	 * ~~~~~
+	 * $str = "
+	 *   <strong>Hello World</strong>
+	 *   How are you doing today?
+	 * ";
+	 * 
+	 * echo $sanitizer->text($str);
+	 * // outputs: Hello World How are you doing today?
+	 * ~~~~~
+	 * 
+	 * #pw-group-strings
 	 *
-	 * @param string $value
-	 * @param array $options See the $defaultOptions array in the method for options
+	 * @param string $value String value to sanitize
+	 * @param array $options Options to modify default behavior: 
+	 *  - `maxLength` (int): maximum characters allowed, or 0=no max (default=255).
+	 *  - `maxBytes` (int): maximum bytes allowed (default=0, which implies maxLength*4).
+	 *  - `stripTags` (bool): strip markup tags? (default=true).
+	 *  - `allowableTags` (string): markup tags that are allowed, if stripTags is true (use same format as for PHP's `strip_tags()` function.
+	 *  - `multiLine` (bool): allow multiple lines? if false, then $newlineReplacement below is applicable (default=false).
+	 *  - `newlineReplacement` (string): character to replace newlines with, OR specify boolean TRUE to remove extra lines (default=" ").
+	 *  - `inCharset` (string): input character set (default="UTF-8").
+	 *  - `outCharset` (string): output character set (default="UTF-8").
 	 * @return string
+	 * @see Sanitizer::textarea()
 	 *
 	 */
 	public function text($value, $options = array()) {
@@ -802,11 +924,30 @@ class Sanitizer extends Wire {
 	}
 
 	/**
-	 * Sanitize input multiline text and remove tags
+	 * Sanitize input string as multi-line text without no HTML tags
+	 * 
+	 * - This sanitizer is useful for user-submitted text from a plain-text `<textarea>` field, 
+	 *   or any other kind of string value that might have multiple-lines.
+	 * 
+	 * - Don't use this sanitizer for values where you want to allow HTML (like rich text fields). 
+	 *   For those values you should instead use the `$sanitizer->purify()` method. 
+	 * 
+	 * - If using returned value for front-end output, be sure to run it through `$sanitizer->entities()` first.
+	 * 
+	 * #pw-group-strings
 	 *
-	 * @param string $value
-	 * @param array $options See Sanitizer::text and $defaultOptions array for an explanation of options
+	 * @param string $value String value to sanitize
+	 * @param array $options Options to modify default behavior
+	 * 	- `maxLength` (int): maximum characters allowed, or 0=no max (default=16384 or 16kb).
+	 *  - `maxBytes` (int): maximum bytes allowed (default=0, which implies maxLength*3 or 48kb).
+	 *  - `stripTags` (bool): strip markup tags? (default=true).
+	 *  - `allowableTags` (string): markup tags that are allowed, if stripTags is true (use same format as for PHP's `strip_tags()` function.
+	 *  - `allowCRLF` (bool): allow CR+LF newlines (i.e. "\r\n")? (default=false, which means "\r\n" is replaced with "\n"). 
+	 *  - `inCharset` (string): input character set (default="UTF-8").
+	 *  - `outCharset` (string): output character set (default="UTF-8").
 	 * @return string
+	 * @see Sanitizer::text(), Sanitizer::purify()
+	 * 
 	 *
 	 */
 	public function textarea($value, $options = array()) {
@@ -826,9 +967,15 @@ class Sanitizer extends Wire {
 	/**
 	 * Convert a string containing markup or entities to be plain text
 	 * 
-	 * @param string $value
-	 * @param array $options
-	 * @return string
+	 * #pw-group-strings
+	 * 
+	 * @param string $value String you want to convert
+	 * @param array $options Options to modify default behavior: 
+	 *   - `newline` (string): Character(s) to replace newlines with (default="\n").
+	 *   - `separator` (string): Character(s) to separate HTML <li> items with (default="\n").
+	 *   - `entities` (bool): Entity encode returned value? (default=false). 
+	 *   - `trim` (string): Character(s) to trim from beginning and end of value (default=" -,:;|\n\t").
+	 * @return string Converted string of text
 	 * 
 	 */	
 	public function markupToText($value, array $options = array()) {
@@ -894,11 +1041,20 @@ class Sanitizer extends Wire {
 	}
 
 	/**
-	 * Same as markupToText but only allows a single line of text
+	 * Convert a string containing markup or entities to be a single line of plain text
 	 * 
-	 * @param string $value 
-	 * @param array $options
-	 * @return string
+	 * This is the same as the `$sanitizer->markupToText()` method except that the return 
+	 * value is always just a single line. 
+	 * 
+	 * #pw-group-strings
+	 * 
+	 * @param string $value Value to convert
+	 * @param array $options Options to modify default behavior:
+	 *   - `newline` (string): Character(s) to replace newlines with (default=" ").
+	 *   - `separator` (string): Character(s) to separate HTML <li> items with (default=", ").
+	 *   - `entities` (bool): Entity encode returned value? (default=false).
+	 *   - `trim` (string): Character(s) to trim from beginning and end of value (default=" -,:;|\n\t").
+	 * @return string Converted string of text on a single line
 	 * 
 	 */
 	public function markupToLine($value, array $options = array()) {
@@ -908,33 +1064,38 @@ class Sanitizer extends Wire {
 	}
 
 	/**
-	 * Returns a valid URL, or blank if it can't be made valid
+	 * Sanitize and validate given URL or return blank if it can’t be made valid
 	 *
-	 * Performs some basic sanitization like adding a protocol to the front if it's missing, but leaves alone local/relative URLs.
+	 * - Performs some basic sanitization like adding a scheme to the front if it's missing, but leaves alone local/relative URLs.
+	 * - URL is not required to conform to ProcessWire conventions unless a relative path is given.
+	 * - Please note that URLs should always be entity encoded in your output. Many evil things are technically allowed in a valid URL, 
+	 *   so your output should always entity encoded any URLs that came from user input.
+	 * 
+	 * ~~~~~~
+	 * $url = $sanitizer->url('processwire.com/api/'); 
+	 * echo $sanitizer->entities($url); // outputs: http://processwire.com/api/
+	 * ~~~~~~
+	 * 
+	 * #pw-group-strings
 	 *
-	 * URL is not required to confirm to ProcessWire conventions unless a relative path is given.
-	 *
-	 * Please note that URLs should always be entity encoded in your output. <script> is technically allowed in a valid URL, so
-	 * your output should always entity encoded any URLs that came from user input.
-	 *
-	 * @param string $value URL
-	 * @param bool|array $options Array of options including:
-	 * 	- allowRelative (boolean) Whether to allow relative URLs, i.e. those without domains (default=true)
-	 * 	- allowIDN (boolean) Whether to allow internationalized domain names (default=false)
-	 * 	- allowQuerystring (boolean) Whether to allow query strings (default=true)
-	 * 	- allowSchemes (array) Array of allowed schemes, lowercase (default=[] any)
-	 *	- disallowSchemes (array) Array of disallowed schemes, lowercase (default=[file])
-	 * 	- requireScheme (bool) Specify true to require a scheme in the URL, if one not present, it will be added to non-relative URLs (default=true)
-	 * 	- stripTags (bool) Specify false to prevent tags from being stripped (default=true)
-	 * 	- stripQuotes (bool) Specify false to prevent quotes from being stripped (default=true)
-	 * 	- throw (bool) Throw exceptions on invalid URLs (default=false)
-	 *	Previously this was the boolean $allowRelative, and that usage will still work for backwards compatibility.
-	 * @return string
-	 * @throws WireException on invalid URLs, only if $options['throw'] is true.
-	 * @todo add TLD validation
+	 * @param string $value URL to validate
+	 * @param bool|array $options Array of options to modify default behavior, including:
+	 *  - `allowRelative` (boolean): Whether to allow relative URLs, i.e. those without domains (default=true).
+	 *  - `allowIDN` (boolean): Whether to allow internationalized domain names (default=false).
+	 *  - `allowQuerystring` (boolean): Whether to allow query strings (default=true).
+	 *  - `allowSchemes` (array): Array of allowed schemes, lowercase (default=[] any).
+	 *  - `disallowSchemes` (array): Array of disallowed schemes, lowercase (default=['file']).
+	 *  - `requireScheme` (bool): Specify true to require a scheme in the URL, if one not present, it will be added to non-relative URLs (default=true).
+	 *  - `stripTags` (bool): Specify false to prevent tags from being stripped (default=true).
+	 *  - `stripQuotes` (bool): Specify false to prevent quotes from being stripped (default=true).
+	 *  - `maxLength` (int): Maximum length in bytes allowed for URLs (default=4096).
+	 *  - `throw` (bool): Throw exceptions on invalid URLs (default=false).
+	 * @return string Returns a valid URL or blank string if it can't be made valid.
+	 * @throws WireException on invalid URLs, only if `$options['throw']` is true.
 	 *
 	 */
 	public function url($value, $options = array()) {
+		// Previously the $options argument was the boolean $allowRelative, and that usage will still work for backwards compatibility.
 
 		$defaultOptions = array(
 			'allowRelative' => true,
@@ -1180,6 +1341,8 @@ class Sanitizer extends Wire {
 	 * 
 	 * Note that dash and dot are excluded because they aren't allowed characters in PHP variables
 	 * 
+	 * #pw-internal
+	 * 
 	 * @param string $value
 	 * @return string
 	 *
@@ -1191,12 +1354,22 @@ class Sanitizer extends Wire {
 
 	/**
 	 * Sanitizes a string value that needs to go in a ProcessWire selector
+	 * 
+	 * Always use this to sanitize any string values you are inserting in selector strings. 
+	 * This ensures that the value can't be confused for another component of the selector string. 
+	 * This method may remove characters, escape characters, or surround the string in quotes. 
+	 * 
+	 * ~~~~~
+	 * // Sanitize text for a search on title and body fields
+	 * $q = $input->get->text('q'); // text search query
+	 * $results = $pages->find("title|body%=" . $sanitizer->selectorValue($q)); 
+	 * ~~~~~
+	 * 
+	 * #pw-group-strings
 	 *
-	 * String value is assumed to be UTF-8. Replaces non-alphanumeric and non-space with space
-	 *
-	 * @param string $value
-	 * @param int $maxLength Maximum number of allowed characters
-	 * @return string
+	 * @param string $value String value to sanitize (assumed to be UTF-8). 
+	 * @param int $maxLength Maximum number of allowed characters (default=100).
+	 * @return string Value ready to be used as the value component in a selector string. 
 	 * 
 	 */
 	public function selectorValue($value, $maxLength = 100) {
@@ -1268,18 +1441,28 @@ class Sanitizer extends Wire {
 	}
 
 	/**
-	 * Entity encode a string
+	 * Entity encode a string for output
 	 *
-	 * Wrapper for PHP's htmlentities function that contains typical ProcessWire usage defaults
+	 * Wrapper for PHP's `htmlentities()` function that contains typical ProcessWire usage defaults
 	 *
-	 * The arguments used hre are identical to those for PHP's htmlentities function: 
-	 * http://www.php.net/manual/en/function.htmlentities.php
-	 *
-	 * @param string $str
-	 * @param int|bool $flags See PHP htmlentities function for flags. 
-	 * @param string $encoding
-	 * @param bool $doubleEncode
-	 * @return string
+	 * The arguments used here are identical to those for
+	 * [PHP's htmlentities](http://www.php.net/manual/en/function.htmlentities.php) function,
+	 * except that the ProcessWire defaults for encoding quotes and using UTF-8 are already populated. 
+	 * 
+	 * ~~~~~
+	 * $test = "ain't <em>nothing</em> perfect but our brokenness";
+	 * echo $sanitizer->entities($test); 
+	 * // result: ain&apos;t &lt;em&gt;nothing&lt;/em&gt; perfect but our brokenness
+	 * ~~~~~
+	 * 
+	 * #pw-group-strings
+	 * 
+	 * @param string $str String to entity encode
+	 * @param int|bool $flags See PHP htmlentities() function for flags. 
+	 * @param string $encoding Encoding of string (default="UTF-8").
+	 * @param bool $doubleEncode Allow double encode? (default=true).
+	 * @return string Entity encoded string
+	 * @see Sanitizer::entities1(), Sanitizer::unentities()
 	 *
 	 */
 	public function entities($str, $flags = ENT_QUOTES, $encoding = 'UTF-8', $doubleEncode = true) {
@@ -1288,12 +1471,16 @@ class Sanitizer extends Wire {
 	}
 	
 	/**
-	 * Entity encode a string and don't double encode something if already encoded
-	 *
-	 * @param string $str
-	 * @param int|bool $flags See PHP htmlentities function for flags. 
-	 * @param string $encoding
-	 * @return string
+	 * Entity encode a string and don’t double encode it if already encoded
+	 * 
+	 * #pw-group-strings
+	 * 
+	 * @param string $str String to entity encode
+	 * @param int|bool $flags See PHP htmlentities() function for flags.
+	 * @param string $encoding Encoding of string (default="UTF-8").
+	 * @return string Entity encoded string
+	 * @see Sanitizer::entities(), Sanitizer::unentities()
+	 * 
 	 *
 	 */
 	public function entities1($str, $flags = ENT_QUOTES, $encoding = 'UTF-8') {
@@ -1304,34 +1491,45 @@ class Sanitizer extends Wire {
 	/**
 	 * Entity encode while translating some markdown tags to HTML equivalents
 	 * 
-	 * If you specify boolean TRUE for the $options argument, full markdown is applied. Otherwise,
-	 * only basic markdown allowed, as outlined below: 
-	 * 
-	 * Basic allowed markdown currently includes: 
-	 * 		**strong**
-	 * 		*emphasis*
-	 * 		[anchor-text](url)
-	 * 		~~strikethrough~~
-	 * 		`code`
+	 * If you specify boolean TRUE for the `$options` argument, full markdown is applied. Otherwise,
+	 * only basic markdown allowed, as outlined in the examples. 
 	 * 
 	 * The primary reason to use this over full-on Markdown is that it has less overhead
-	 * and is faster then full-blown Markdowon, for when you don't need it. It's also safer
+	 * and is faster then full-blown Markdown, for when you don't need it. It's also safer
 	 * for text coming from user input since it doesn't allow any other HTML. But if you just
-	 * want full markdown, then specify TRUE for the $options argument. 
-	 *
-	 * @param string $str
+	 * want full markdown, then specify TRUE for the `$options` argument. 
+	 * 
+	 * ~~~~~
+	 * Basic allowed markdown currently includes: 
+	 * **strong**
+	 * *emphasis*
+	 * [anchor-text](url)
+	 * ~~strikethrough~~
+	 * `code`
+	 * ~~~~~
+	 * ~~~~~
+	 * // basic markdown
+	 * echo $sanitizer->entitiesMarkdown($str); 
+	 * 
+	 * // full markdown
+	 * echo $sanitizer->entitiesMarkdown($str, true); 
+	 * ~~~~~
+	 * 
+	 * #pw-group-strings
+	 * 
+	 * @param string $str String to apply markdown to
 	 * @param array|bool|int $options Options include the following, or specify boolean TRUE to apply full markdown.
-	 *  - fullMarkdown (bool): Use full markdown rather than basic? (default=false) when true, most options no longer apply.
-	 *      Note: A markdown flavor integer may also be supplied for the fullMarkdown option.
-	 * 	- flags (int): See htmlentities() flags. Default is ENT_QUOTES. 
-	 * 	- encoding (string): PHP encoding type. Default is 'UTF-8'. 
-	 * 	- doubleEncode (bool): Whether to double encode (if already encoded). Default is true. 
-	 * 	- allow (array): Only markdown that translates to these tags will be allowed. Default=array('a', 'strong', 'em', 'code', 's')
-	 * 	- disallow (array): Specified tags (in the default allow list) won't be allowed. Default=array(). 
-	 * 		Note: The 'disallow' is an alternative to the default 'allow'. No point in using them both. 
-	 * 	- linkMarkup (string): Markup to use for links. Default='<a href="{url}" rel="nofollow" target="_blank">{text}</a>'
-	 *  - allowBrackets (bool): Allow some inline-level bracket tags, i.e. [span.detail]text[/span]? (default=false)
-	 * @return string
+	 *  - `fullMarkdown` (bool): Use full markdown rather than basic? (default=false) when true, most options no longer apply.
+	 *    Note: A markdown flavor integer may also be supplied for the fullMarkdown option.
+	 *  - `flags` (int): PHP htmlentities() flags. Default is ENT_QUOTES. 
+	 *  - `encoding` (string): PHP encoding type. Default is 'UTF-8'. 
+	 *  - `doubleEncode` (bool): Whether to double encode (if already encoded). Default is true. 
+	 *  - `allow` (array): Only markdown that translates to these tags will be allowed. Default is most inline HTML tags. 
+	 *  - `disallow` (array): Specified tags (in the default allow list) that won't be allowed. Default=[] empty array.
+	 *    (Note: The 'disallow' is an alternative to the default 'allow'. No point in using them both.) 
+	 *  - `linkMarkup` (string): Markup to use for links. Default=`<a href="{url}" rel="nofollow" target="_blank">{text}</a>`.
+	 *  - `allowBrackets` (bool): Allow some inline-level bracket tags, i.e. `[span.detail]text[/span]` ? (default=false)
+	 * @return string Formatted with a flavor of markdown
 	 *
 	 */
 	public function entitiesMarkdown($str, $options = array()) {
@@ -1423,15 +1621,17 @@ class Sanitizer extends Wire {
 	/**
 	 * Remove entity encoded characters from a string. 
 	 * 
-	 * Wrapper for PHP's html_entity_decode function that contains typical ProcessWire usage defaults
+	 * Wrapper for PHP's `html_entity_decode()` function that contains typical ProcessWire usage defaults.
 	 *
-	 * The arguments used hre are identical to those for PHP's heml_entity_decode function: 
-	 * http://www.php.net/manual/en/function.html-entity-decode.php
-	 *
-	 * @param string $str
+	 * The arguments used here are identical to those for PHP's 
+	 * [html_entity_decode](http://www.php.net/manual/en/function.html-entity-decode.php) function.
+	 * 
+	 * #pw-group-strings
+	 * 
+	 * @param string $str String to remove entities from
 	 * @param int|bool $flags See PHP html_entity_decode function for flags. 
-	 * @param string $encoding
-	 * @return string
+	 * @param string $encoding Encoding (default="UTF-8").
+	 * @return string String with entities removed.
 	 *
 	 */
 	public function unentities($str, $flags = ENT_QUOTES, $encoding = 'UTF-8') {
@@ -1441,6 +1641,8 @@ class Sanitizer extends Wire {
 
 	/**
 	 * Alias for unentities
+	 * 
+	 * #pw-internal
 	 * 
 	 * @param $str
 	 * @param $flags
@@ -1456,11 +1658,13 @@ class Sanitizer extends Wire {
 	/**
 	 * Purify HTML markup using HTML Purifier
 	 *
-	 * See: http://htmlpurifier.org
+	 * See: [htmlpurifier.org](http://htmlpurifier.org)
+	 * 
+	 * #pw-group-strings
 	 *
 	 * @param string $str String to purify
-	 * @param array $options See config options at: http://htmlpurifier.org/live/configdoc/plain.html
-	 * @return string
+	 * @param array $options See [config options](http://htmlpurifier.org/live/configdoc/plain.html).
+	 * @return string Purified markup string.
 	 * @throws WireException if given something other than a string
 	 *
 	 */
@@ -1478,9 +1682,11 @@ class Sanitizer extends Wire {
 	/**
 	 * Return a new HTML Purifier instance
 	 *
-	 * See: http://htmlpurifier.org
+	 * See: [htmlpurifier.org](http://htmlpurifier.org)
+	 * 
+	 * #pw-group-other
 	 *
-	 * @param array $options See config options at: http://htmlpurifier.org/live/configdoc/plain.html
+	 * @param array $options See [config options](http://htmlpurifier.org/live/configdoc/plain.html).
 	 * @return MarkupHTMLPurifier
 	 *
 	 */
@@ -1492,13 +1698,16 @@ class Sanitizer extends Wire {
 
 	/**
 	 * Remove newlines from the given string and return it
-	 *
-	 * @param string $str
-	 * @return string
+	 * 
+	 * #pw-group-strings
+	 * 
+	 * @param string $str String to remove newlines from
+	 * @param string $replacement Character to replace newlines with (default=" ")
+	 * @return string String without newlines
 	 *
 	 */
-	function removeNewlines($str) {
-		return str_replace(array("\r\n", "\r", "\n"), ' ', $str);
+	function removeNewlines($str, $replacement = ' ') {
+		return str_replace(array("\r\n", "\r", "\n"), $replacement, $str);
 	}
 
 	/**
@@ -1506,8 +1715,10 @@ class Sanitizer extends Wire {
 	 *
 	 * Note that this makes no assumptions about what is a "safe" string, so you should always apply another
 	 * sanitizer to it.
+	 * 
+	 * #pw-group-strings
 	 *
-	 * @param string|int|array|object|bool|float $value
+	 * @param string|int|array|object|bool|float $value Value to sanitize as string
 	 * @param string|null Optional sanitizer method (from this class) to apply to the string before returning
 	 * @return string
 	 *
@@ -1536,17 +1747,20 @@ class Sanitizer extends Wire {
 	/**
 	 * Sanitize a date or date/time string, making sure it is valid, and return it
 	 *
-	 * If no dateFormat is specified, date will be returned as a unix timestamp.
-	 * If given date is invalid or empty, NULL will be returned.
-	 * If $value is an integer or string of all numbers, it is always assumed to be a unix timestamp.
+	 * - If no date $format is specified, date will be returned as a unix timestamp.
+	 * - If given date is invalid or empty, NULL will be returned.
+	 * - If $value is an integer or string of all numbers, it is always assumed to be a unix timestamp.
+	 * 
+	 * #pw-group-strings
+	 * #pw-group-numbers
 	 *
 	 * @param string|int $value Date string or unix timestamp
 	 * @param string|null $format Format of date string ($value) in any wireDate(), date() or strftime() format.
 	 * @param array $options Options to modify behavior:
-	 * 	- returnFormat: wireDate() format to return date in. If not specified, then the $format argument is used.
-	 * 	- min: Minimum allowed date in $format or unix timestamp format. Null is returned when date is less than this.
-	 * 	- max: Maximum allowed date in $format or unix timestamp format. Null is returned when date is more than this.
-	 * 	- default: Default value to return if no value specified.
+	 *  - `returnFormat` (string): wireDate() format to return date in. If not specified, then the $format argument is used.
+	 *  - `min` (string|int): Minimum allowed date in $format or unix timestamp format. Null is returned when date is less than this.
+	 *  - `max` (string|int): Maximum allowed date in $format or unix timestamp format. Null is returned when date is more than this.
+	 *  - `default` (mixed): Default value to return if no value specified.
 	 * @return string|int|null
 	 *
 	 */
@@ -1584,11 +1798,15 @@ class Sanitizer extends Wire {
 	}
 
 	/**
-	 * Validate that $value matches regex pattern. If it does, value is returned. If not, blank is returned.
+	 * Validate that given value matches regex pattern. 
 	 * 
-	 * @param string $value
-	 * @param string $regex PCRE regex pattern (same as you would provide to preg_match)
-	 * @return string
+	 * If given value matches, value is returned. If not, blank is returned.
+	 * 
+	 * #pw-group-strings
+	 * 
+	 * @param string $value Value to match
+	 * @param string $regex PCRE regex pattern (same as you would provide to PHP's `preg_match()`)
+	 * @return string Value you supplied if it matches, or blank string if it doesn't
 	 * 
 	 */
 	public function match($value, $regex) {
@@ -1604,11 +1822,13 @@ class Sanitizer extends Wire {
 	/**
 	 * Sanitized an integer (unsigned, unless you specify a negative minimum value)
 	 * 
-	 * @param mixed $value
+	 * #pw-group-numbers
+	 * 
+	 * @param mixed $value Value you want to sanitize as an integer
 	 * @param array $options Optionally specify any one or more of the following to modify behavior: 
-	 * 	- min (int|null) Minimum allowed value (default=0)
-	 *  - max (int|null) Maximum allowed value (default=PHP_INT_MAX)
-	 * 	- blankValue (mixed) Value that you want to use when provided value is null or blank string (default=0)
+	 * 	- `min` (int|null): Minimum allowed value (default=0)
+	 *  - `max` (int|null): Maximum allowed value (default=PHP_INT_MAX)
+	 * 	- `blankValue` (mixed): Value that you want to use when provided value is null or blank string (default=0)
 	 * @return int Returns integer, or specified blankValue (which doesn't necessarily have to be an integer)
 	 * 
 	 */	
@@ -1633,13 +1853,15 @@ class Sanitizer extends Wire {
 	/**
 	 * Sanitize to unsigned (0 or positive) integer
 	 * 
-	 * This is an alias to the int() method with default min/max arguments
+	 * This is an alias to the int() method with default min/max arguments.
+	 * 
+	 * #pw-group-numbers
 	 * 
 	 * @param mixed $value
 	 * @param array $options Optionally specify any one or more of the following to modify behavior:
-	 * 	- min (int|null) Minimum allowed value (default=0)
-	 *  - max (int|null) Maximum allowed value (default=PHP_INT_MAX)
-	 * 	- blankValue (mixed) Value that you want to use when provided value is null or blank string (default=0)
+	 * 	- `min` (int|null): Minimum allowed value (default=0)
+	 *  - `max` (int|null): Maximum allowed value (default=PHP_INT_MAX)
+	 * 	- `blankValue` (mixed): Value that you want to use when provided value is null or blank string (default=0)
 	 * @return int Returns integer, or specified blankValue (which doesn't necessarily have to be an integer)
 	 * @return int
 	 * 
@@ -1650,12 +1872,14 @@ class Sanitizer extends Wire {
 
 	/**
 	 * Sanitize to signed integer (negative or positive)
+	 * 
+	 * #pw-group-numbers
 	 *
 	 * @param mixed $value
 	 * @param array $options Optionally specify any one or more of the following to modify behavior:
-	 * 	- min (int|null) Minimum allowed value (default=negative PHP_INT_MAX)
-	 *  - max (int|null) Maximum allowed value (default=PHP_INT_MAX)
-	 * 	- blankValue (mixed) Value that you want to use when provided value is null or blank string (default=0)
+	 * 	- `min` (int|null): Minimum allowed value (default=negative PHP_INT_MAX)
+	 *  - `max` (int|null): Maximum allowed value (default=PHP_INT_MAX)
+	 * 	- `blankValue` (mixed): Value that you want to use when provided value is null or blank string (default=0)
 	 * @return int
 	 *
 	 */
@@ -1667,13 +1891,15 @@ class Sanitizer extends Wire {
 	/**
 	 * Sanitize to floating point value
 	 * 
+	 * #pw-group-numbers
+	 * 
 	 * @param float|string|int $value
 	 * @param array $options Optionally specify one or more options in an associative array:
-	 * 	- precision (int|null): Optional number of digits to round to (default=null)
-	 * 	- mode (int): Mode to use for rounding precision (default=PHP_ROUND_HALF_UP);
-	 * 	- blankValue (null|int|string|float): Value to return (whether float or non-float) if provided $value is an empty non-float (default=0.0)
-	 * 	- min (float|null): Minimum allowed value, excluding blankValue (default=null)
-	 * 	- max (float|null): Maximum allowed value, excluding blankValue (default=null)
+	 * 	- `precision` (int|null): Optional number of digits to round to (default=null)
+	 * 	- `mode` (int): Mode to use for rounding precision (default=PHP_ROUND_HALF_UP);
+	 * 	- `blankValue` (null|int|string|float): Value to return (whether float or non-float) if provided $value is an empty non-float (default=0.0)
+	 * 	- `min` (float|null): Minimum allowed value, excluding blankValue (default=null)
+	 * 	- `max` (float|null): Maximum allowed value, excluding blankValue (default=null)
 	 * @return float
 	 * 
 	 */
@@ -1763,15 +1989,17 @@ class Sanitizer extends Wire {
 	 *
 	 * If string specified, string delimiter may be pipe ("|"), or comma (","), unless overridden with the 'delimiter'
 	 * or 'delimiters' option. 
+	 * 
+	 * #pw-group-arrays
 	 *
 	 * @param array|string|mixed $value Accepts an array or CSV string. If given something else, it becomes first item in array.
-	 * @param string $sanitizer Optional Sanitizer method to apply to items in the array (default=null, aka none)
+	 * @param string $sanitizer Optional Sanitizer method to apply to items in the array (default=null, aka none).
 	 * @param array $options Optional modifications to default behavior:
-	 * 	- maxItems (int): Maximum items allowed in array (default=0, which means no limit)
+	 * 	`maxItems` (int): Maximum items allowed in array (default=0, which means no limit)  
 	 * 	The following options are only used if the provided $value is a string: 
-	 * 	- delimiter (string): Single delimiter to use to identify CSV strings. Overrides the 'delimiters' option when specified (default=null)
-	 * 	- delimiters (array): Delimiters to identify CSV strings. First found delimiter will be used, default=array("|", ",")
-	 * 	- enclosure (string): Enclosure to use for CSV strings (default=double quote, i.e. ")
+	 * 	- `delimiter` (string): Single delimiter to use to identify CSV strings. Overrides the 'delimiters' option when specified (default=null)
+	 * 	- `delimiters` (array): Delimiters to identify CSV strings. First found delimiter will be used, default=array("|", ",")
+	 * 	- `enclosure` (string): Enclosure to use for CSV strings (default=double quote, i.e. ")
 	 * @return array
 	 * @throws WireException if an unknown $sanitizer method is given
 	 *
@@ -1833,12 +2061,15 @@ class Sanitizer extends Wire {
 	 * Sanitize array or CSV string to array of unsigned integers (or signed if specified $min is less than 0)
 	 *
 	 * If string specified, string delimiter may be comma (","), or pipe ("|"), or you may override with the 'delimiter' option.
+	 * 
+	 * #pw-group-arrays
+	 * #pw-group-numbers
 	 *
 	 * @param array|string|mixed $value Accepts an array or CSV string. If given something else, it becomes first value in array.
-	 * @param array $options Optional options (see ___array() and int() methods for options), plus these two: 
-	 * 	- min (int) Minimum allowed value (default=0)
-	 * 	- max (int) Maximum allowed value (default=PHP_INT_MAX)
-	 * @return array
+	 * @param array $options Optional options (see `Sanitizer::array()` and `Sanitizer::int()` methods for options), plus these two: 
+	 * 	- `min` (int): Minimum allowed value (default=0)
+	 * 	- `max` (int): Maximum allowed value (default=PHP_INT_MAX)
+	 * @return array Array of integers
 	 *
 	 */
 	public function intArray($value, array $options = array()) {
@@ -1854,14 +2085,16 @@ class Sanitizer extends Wire {
 
 	/**
 	 * Minimize an array to remove empty values
+	 * 
+	 * #pw-group-arrays
 	 *
 	 * @param array $data Array to reduce
 	 * @param bool|array $allowEmpty Should empty values be allowed in the encoded data?
-	 *	- Specify false to exclude all empty values (this is the default if not specified).
-	 * 	- Specify true to allow all empty values to be retained (thus no point in calling this function).
-	 * 	- Specify an array of keys (from data) that should be retained if you want some retained and not others.
-	 * 	- Specify the digit 0 to retain values that are 0, but not other types of empty values.
-	 * @param bool $convert Perform type conversions where appropriate: i.e. convert digit-only string to integer
+	 *  - `false` (bool): to exclude all empty values (this is the default if not specified).
+	 *  - `true` (bool): to allow all empty values to be retained (thus no point in calling this function).
+	 *  - Specify array of keys (from data) that should be retained if you want some retained and not others.
+	 *  - Specify the digit `0` to retain values that are 0, but not other types of empty values.
+	 * @param bool $convert Perform type conversions where appropriate? i.e. convert digit-only string to integer (default=false). 
 	 * @return array
 	 *
 	 */
@@ -1908,6 +2141,8 @@ class Sanitizer extends Wire {
 
 	/**
 	 * Return $value if it exists in $allowedValues, or null if it doesn't
+	 * 
+	 * #pw-group-arrays
 	 *
 	 * @param string|int $value
 	 * @param array $allowedValues Whitelist of option values that are allowed
@@ -1922,6 +2157,8 @@ class Sanitizer extends Wire {
 
 	/**
 	 * Return given values that that also exist in $allowedValues whitelist
+	 * 
+	 * #pw-group-arrays
 	 *
 	 * @param array $values
 	 * @param array $allowedValues Whitelist of option values that are allowed
@@ -1944,6 +2181,14 @@ class Sanitizer extends Wire {
 
 	/**
 	 * Convert the given value to a boolean
+	 * 
+	 * This differs from regular boolean type conversion in the following ways: 
+	 * 
+	 * - This method will recognize things like the strings "false" or "0" representing a boolean false.
+	 * - If given an object, it will convert the object to a string before determining what boolean value it should represent.
+	 * - If given an array, it returns false if the array contains zero items. 
+	 * 
+	 * #pw-group-other
 	 * 
 	 * @param $value
 	 * @return bool
@@ -1971,6 +2216,8 @@ class Sanitizer extends Wire {
 	 * Run value through all sanitizers, return array indexed by sanitizer name and resulting value
 	 * 
 	 * Used for debugging and testing purposes. 
+	 * 
+	 * #pw-group-other
 	 * 
 	 * @param $value
 	 * @return array
@@ -2029,12 +2276,14 @@ class Sanitizer extends Wire {
 	 *
 	 * IMPORTANT: This method returns NULL if it can't find a validator for the file. This does
 	 * not mean the file is invalid, just that it didn't have the tools to validate it.
+	 * 
+	 * #pw-group-files
 	 *
 	 * @param string $filename Full path and filename to validate
-	 * @param array $options If available, provide array with any one or all of the following:
-	 * 	'page' => Page object associated with $filename
-	 * 	'field' => Field object associated with $filename
-	 * 	'pagefile' => Pagefile object associated with $filename
+	 * @param array $options When available, provide array with any one or all of the following:
+	 *  - `page` (Page): Page object associated with $filename.
+	 *  - `field` (Field): Field object associated with $filename.
+	 *  - `pagefile` (Pagefile): Pagefile object associated with $filename.
 	 * @return bool|null Returns TRUE if valid, FALSE if not, or NULL if no validator available for given file type.
 	 *
 	 */

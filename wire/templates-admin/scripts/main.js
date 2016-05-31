@@ -77,7 +77,7 @@ var ProcessWireAdmin = {
 
 			var $a = $(this);
 			var $ul;
-
+		
 			if($a.attr('data-dropdown')) {
 				// see if it is specifying a certain <ul>
 				// first check if the selector matches a sibling
@@ -129,7 +129,6 @@ var ProcessWireAdmin = {
 
 		function mouseenterDropdownToggle(e) {
 			
-
 			var $a = $(this);
 			var $ul = $a.data('dropdown-ul');
 			var delay = $a.hasClass('dropdown-toggle-delay') ? 700 : 0;
@@ -288,7 +287,7 @@ var ProcessWireAdmin = {
 				$('#topnav').on("click", "a.dropdown-toggle, a.has-items", touchClick);
 			}
 
-			$(".dropdown-menu").on("click", "a", function(e) {
+			$(".dropdown-menu").on("click", "a:not(.pw-modal)", function(e) {
 				e.stopPropagation();
 			});
 

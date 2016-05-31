@@ -3,12 +3,29 @@
 /**
  * ProcessWire Pageimages
  *
- * Pageimages are a collection of Pageimage objects.
+ * #pw-summary Pageimages are a type of WireArray containing Pageimage objects. They represent the value of multi-image field in ProcessWire.
+ * 
+ * #pw-body = 
+ * Most of the methods you are likely to use are inherited from `Pagefiles` and `WireArray` so be sure to take a look at those as well. 
+ * Pageimages is dedicated to containing `Pageimage` objects.
+ * 
+ * ~~~~~
+ * // Example of outputting a thumbnail gallery of Pageimage objects
+ * foreach($page->images as $image) {
+ *   // $page->images is a Pageimages object
+ *   // $image and $thumb are both Pageimage objects
+ *   $thumb = $image->size(200, 200);
+ *   echo "<a href='$image->url'>";
+ *   echo "<img src='$thumb->url' alt='$image->description' />";
+ *   echo "</a>";
+ * }
+ * ~~~~~
+ * #pw-body
  *
  * Typically a Pageimages object will be associated with a specific field attached to a Page. 
  * There may be multiple instances of Pageimages attached to a given Page (depending on what fields are in it's fieldgroup).
  * 
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * ProcessWire 3.x (development), Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  */
@@ -17,6 +34,8 @@ class Pageimages extends Pagefiles {
 
 	/**
 	 * Per the WireArray interface, items must be of type Pagefile
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	public function isValidItem($item) {
@@ -24,7 +43,7 @@ class Pageimages extends Pagefiles {
 	}
 
 	/**
-	 * Add a new Pageimage item, or create one from it's filename and add it.
+	 * Add a new Pageimage item, or create one from given filename and add it.
 	 *
 	 * @param Pageimage|string $item If item is a string (filename) then the Pageimage instance will be created automatically.
 	 * @return $this
@@ -37,6 +56,8 @@ class Pageimages extends Pagefiles {
 
 	/**
 	 * Per the WireArray interface, return a blank Pageimage
+	 * 
+	 * #pw-internal
 	 *
 	 */
 	public function makeBlankItem() {
@@ -73,11 +94,27 @@ class Pageimages extends Pagefiles {
 	}
 
 	/**
-	 * Get an array of all image variations on this field indexed by original file
+	 * Get an array of all image variations on this field indexed by original file name.
 	 * 
-	 * More information on any variation filename can be retrieved from Pageimage::isVariation('filename.jpg')
+	 * More information on any variation filename can be retrieved from `Pageimage::isVariation()`.
 	 * 
-	 * @return array like array('original-file.jpg' => array('variation1.jpg', variation2.jpg', etc.)
+	 * ~~~~~
+	 * $variations = $page->images->getAllVariations();
+	 * print_r($variations);
+	 * // Example output: 
+	 * // array(
+	 * //   'foo.jpg' => array(
+	 * //      'foo.100x100.jpg', 
+	 * //      'foo.200x200.jpg'
+	 * //   ), 
+	 * //   'bar.jpg' => array(
+	 * //      'bar.300x300.jpg'
+	 * //   )
+	 * // );
+	 * ~~~~~
+	 * 
+	 * @return array Array indexed by file name, each containing array of variation file names
+	 * @see Pageimage::isVariation()
 	 * 
 	 */
 	public function getAllVariations() {

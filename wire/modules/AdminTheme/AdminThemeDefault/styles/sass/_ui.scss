@@ -62,6 +62,7 @@
 }
 	.InputfieldForm .ui-accordion-header a,
 	.ui-accordion-header a,
+	#debug .ui-accordion-header a, 
 	#footer .ui-accordion-header a {
 		color: $reverse-text-color;
 	}
@@ -252,9 +253,43 @@ button.ui-button.ui-state-default,
 .ui-slider .ui-slider-range, 
 .ui-widget .ui-slider .ui-slider-range,
 .ui-widget-content .ui-slider .ui-slider-range {
-	background: $link-hover-color; /* CYAN */
+	//background: transparentize($light-text-color, 0.2);
+	background: transparentize($button-hover-bg, 0.25);
 	/* remove padding added to Inputfields that was getting inherited here */
 	padding: 0;
+}
+
+.ui-slider .ui-slider-handle {
+	//background: darken($link-hover-color, 10%);
+	//border-radius: 50%;
+	border-width: 0;
+	outline: none;
+	border: none;
+}
+
+.ui-slider-horizontal {
+	height: 8px; 
+	background: transparentize($light-text-color, 0.65);
+	border: none;
+	.ui-slider-handle {
+		//top: -.22em;
+		top: -5px; 
+	}
+}
+.ui-slider-horizontal,
+.ui-slider-range {
+	border-radius: 4px;
+}
+
+.ui-slider .ui-slider-handle {
+	width: 17px; 
+	height: 21px;
+	background-color: transparent;
+	background: url(images/slider_handles.png) 0 0 no-repeat;
+}
+body.hidpi-device .ui-slider .ui-slider-handle {
+	background: url(images/slider_handles2x.png) 0 0 no-repeat;
+	background-size: 34px 21px;
 }
 
 /**

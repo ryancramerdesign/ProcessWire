@@ -315,6 +315,9 @@ function pwModalOpenEvent(e) {
 	var $iframe = pwModalWindow(href, settings, modalSize);
 
 	jQuery("body").append($spinner.fadeIn('fast'));
+	setTimeout(function() {
+		$a.removeClass('ui-state-active');
+	}, 500);
 
 	$iframe.load(function() {
 
