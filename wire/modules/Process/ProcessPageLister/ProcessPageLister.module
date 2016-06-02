@@ -1325,7 +1325,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 				}
 			}
 		}
-		$icon = $p->template->getIcon();
+		$icon = $p->getIcon();
 		$icon = $icon ? wireIconMarkup($icon, 'fw') : '';	
 		if($class) $value = "<span class='" . trim($class) . "'>$value</span>";
 
