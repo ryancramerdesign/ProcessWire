@@ -68,7 +68,7 @@ $debugToolsLabel = __('Debug Mode Tools', __FILE__);
 			$oc++;
 			$o .= "\n" . 
 				"<tr>" . 
-				"<td><a target='_blank' href='https://processwire.com/api/variables/$key/'>\$$key</a></td>" .
+				"<td><a target='_blank' href='https://processwire.com/api/ref/$key/'>\$$key</a></td>" .
 				"<td>" . get_class($value) . "</td>" . 
 				"</tr>";
 		}
