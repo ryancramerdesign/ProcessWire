@@ -1430,7 +1430,11 @@ class PageFinder extends Wire {
 
 					if(!$this->wire('fields')->isNative($subfield)) {
 						$finder = $this->wire(new PageFinder());
-						$s = $field == 'children' ? '' : 'children.count>0, ';
+						if($field == 'children') {
+							$s = $subfield ? '' : 'children.id';
+						} else {
+							$s = 'children.count>0, ';
+						}
 						$IDs = $finder->findIDs(new Selectors("include=all, $s$subfield{$operator}" . implode('|', $values)));
 						if(!count($IDs)) $IDs[] = -1; // forced non match
 					} else {
