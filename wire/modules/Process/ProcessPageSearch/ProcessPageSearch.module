@@ -384,6 +384,7 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 
 		if($this->config->ajax) {
 			// ajax json output
+			header("Content-type: application/json"); 
 			$out = $this->renderMatchesAjax($matches, $display, $displaySelector); 
 
 		} else {
