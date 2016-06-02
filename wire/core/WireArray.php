@@ -1948,12 +1948,14 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 	 * @param string|callable|array $property Property or properties to retrieve, or callable function that shuld receive items.
 	 * @param array $options Options to modify default behavior:
 	 *  - `getMethod` (string): Method to call on each item to retrieve $property (default = "get")
+	 *  - `key` (string|null): Property of Wire objects to use for key of array, or omit (null) for non-associative array (default).
 	 * @return array
 	 *
 	 */
 	public function explode($property, array $options = array()) {
 		$defaults = array(
 			'getMethod' => 'get', // method used to get value from each item
+			'key' => null,
 		);
 		$options = array_merge($defaults, $options);
 		$getMethod = $options['getMethod'];
@@ -1961,6 +1963,12 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 		$isFunction = !$isArray && !is_string($property) && is_callable($property);
 		$values = array();
 		foreach($this as $key => $item) {
+			if(!empty($options['key']) && is_string($options['key'])) {
+				$key = $item->get($options['key']);	
+				if(!is_string($key) || !is_int($key)) $key = (string) $key;	
+				if(!strlen($key)) continue;
+				if(isset($values[$key])) continue;
+			}
 			if($isFunction) {
 				$values[$key] = $property($item, $key);
 			} else if($isArray) {
