@@ -6,7 +6,7 @@ $debugToolsLabel = __('Debug Mode Tools', __FILE__);
 ?>
 
 <p>
-	<a class="pw-panel" data-panel-id="debug" data-panel-width="75%" data-tab-text="<?php echo $debugToolsLabel; ?>" data-tab-icon="cog" data-tab-offset="200" id="debug_toggle" href="#debug">
+	<a class="pw-panel" data-panel-id="debug" data-panel-width="75%" data-tab-text="<?php echo $debugToolsLabel; ?>" data-tab-icon="bug" data-tab-offset="200" id="debug_toggle" href="#debug">
 		<i class='fa fa-cog'></i> <?php echo $debugToolsLabel; ?>
 	</a>
 </p>

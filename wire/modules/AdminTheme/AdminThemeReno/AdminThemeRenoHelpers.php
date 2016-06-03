@@ -81,11 +81,11 @@ class AdminThemeRenoHelpers extends AdminThemeDefaultHelpers {
 		$avatar = "<i class='fa $adminTheme->profile'></i>";
 	
 		if($user->isLoggedin() && !$this->session->get('touch')) { 
-			if($config->debug) {
+			if($config->debug && $user->isSuperuser()) {
 				$debugLabel = __('Debug Mode Tools', '/wire/templates-admin/debug.inc');
 				$items[] = array(
 					"class" => "",
-					"label" => "<i class='fa fa-cog'></i>",
+					"label" => "<i class='fa fa-bug'></i>",
 					"link" => "#",
 					"attrs" => "title='$debugLabel' onclick=\"$('#debug_toggle').click();return false;\"", 
 				);
@@ -96,7 +96,7 @@ class AdminThemeRenoHelpers extends AdminThemeDefaultHelpers {
 					"class" => "",
 					"label" => "<i class='fa fa-sitemap'></i>",
 					"link" => $config->urls->admin . 'page/',
-					"attrs" => "class='pw-panel pw-panel-right' " .
+					"attrs" => "class='pw-panel' " .
 						"data-tab-text='$treeLabel' " .
 						"data-tab-icon='sitemap' " .
 						"title='$treeLabel'"
