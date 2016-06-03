@@ -404,7 +404,7 @@ class FileCompiler extends Wire {
 			'(.*?)' . // 1: open
 			'(' . implode('|', $funcs) . ')' . // 2:function
 			'([\( ]+)' . // 3: argOpen: open parenthesis and/or space
-			'(["\']?[^;\r\n]+)' . // 4:filename, and rest of the statement (file may be quoted or end with closing parens)
+			'(["\']?[^;?\r\n]+)' . // 4:filename, and rest of the statement (file may be quoted or end with closing parens)
 			'([;\r\n])' . // 5:close, whatever the last character is on the line
 			'/im';
 		
