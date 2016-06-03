@@ -55,6 +55,19 @@ class FieldtypeCheckbox extends Fieldtype {
 		return $schema;
 	}
 
+	public function getMatchQuery($query, $table, $subfield, $operator, $value) {
+		if(!empty($value) && ($operator == '!=' || $operator == '<>')) {
+			// allow for matching test_checkbox!=1 since non-checked rows don't appear in database
+			static $n = 0;
+			$_table = $table . '_ckbx' . (++$n);
+			$query->leftjoin("$table AS $_table ON $_table.pages_id=pages.id");
+			$query->where("$_table.pages_id IS NULL"); 
+		} else {
+			$query = parent::getMatchQuery($query, $table, $subfield, $operator, $value);
+		}
+		return $query;
+	}
+
 	/**
 	 * Return array with information about what properties and operators can be used with this field
 	 * 
