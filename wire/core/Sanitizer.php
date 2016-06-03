@@ -1031,7 +1031,10 @@ class Sanitizer extends Wire {
 		}
 	
 		// entity-encode text value, if requested
-		if($options['entities']) $value = $this->entities($value);
+		if($options['entities']) {
+			$value = $this->entities($value);
+			$options['trim'] = str_replace(';', '', $options['trim']);
+		}
 	
 		// trim characters from beginning and end
 		$_value = trim($value, $options['trim'] . $options['newline']);
