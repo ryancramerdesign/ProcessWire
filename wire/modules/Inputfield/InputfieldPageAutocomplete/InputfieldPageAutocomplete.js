@@ -167,6 +167,9 @@ var InputfieldPageAutocomplete = {
 				}
 				//$(this).closest('.InputfieldPageAutocomplete').find('.InputfieldPageAutocompleteData').val('').change();
 			}
+			setTimeout(function() {
+				$input.focus();
+			}, 250);
 
 		}).keyup(function() {
 			$icon.attr('class', $icon.attr('data-class')); 
