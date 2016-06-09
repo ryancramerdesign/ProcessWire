@@ -321,7 +321,12 @@ class Selectors extends WireArray {
 		
 		while(strlen($str)) {
 
+			$not = false;
 			$quote = '';	
+			if(strpos($str, '!') === 0) {
+				$str = ltrim($str, '!');
+				$not = true; 
+			}
 			$group = $this->extractGroup($str); 	
 			$field = $this->extractField($str); 
 			$operator = $this->extractOperator($str, $this->getOperatorChars());
@@ -340,6 +345,7 @@ class Selectors extends WireArray {
 				$selector = $this->create($field, $operator, $value);
 				if(!is_null($group)) $selector->group = $group; 
 				if($quote) $selector->quote = $quote; 
+				if($not) $selector->not = true; 
 				$this->add($selector); 
 			}
 

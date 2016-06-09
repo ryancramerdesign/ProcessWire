@@ -301,7 +301,7 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 
 		$url = $this->page->httpUrl();
 		if($this->page->hasStatus(Page::statusDraft) && strpos($url, '?') === false) $url .= '?draft=1';
-		$languages = $this->wire('modules')->isInstalled('LanguageSupportPageNames') ? $this->wire('languages') : null;
+		$languages = $this->wire('modules')->isInstalled('LanguageSupportPageNames') ? $this->page->template->getLanguages() : null;
 		
 		foreach($icons as $name => $icon) {
 			$labels[$name] = "<i class='fa fa-fw fa-$icon'></i>&nbsp;" . $labels[$name];
@@ -675,6 +675,7 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 				$field->attr('disabled', 'disabled');
 				$field->required = false;
 			}
+			$field->editPage = $this->page;
 			if($this->page->parent) $field->parentPage = $this->page->parent;
 			$fields->prepend($field);
 		}
@@ -835,6 +836,7 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 				$field->attr('disabled', 'disabled'); 
 				$field->required = false;
 			}
+			$field->editPage = $this->page;
 			if($this->page->parent) $field->parentPage = $this->page->parent;
 			$wrapper->prepend($field); 
 		}
@@ -1038,7 +1040,7 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 		$id = $this->className() . 'View';
 		$settings = $this->wire('config')->pageEdit; 
 		$target = '';
-		if(is_array($settings) && !empty($settings['viewNew'])) $target = " target='_blank'";
+		if((is_array($settings) && !empty($settings['viewNew'])) || $this->viewAction == 'new') $target = " target='_blank'";
 		$a = 
 			"<a id='_ProcessPageEditView'$target href='$url' data-action='$this->viewAction'>$label</a>&nbsp;" . 
 			"<span id='_ProcessPageEditViewDropdownToggle' class='dropdown-toggle' data-dropdown='#_ProcessPageEditViewDropdown'>&nbsp;" . 

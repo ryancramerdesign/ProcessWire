@@ -1230,7 +1230,25 @@ class ProcessTemplate extends Process {
 		$fieldset->append($field);
 		
 		// --------------------
+	
+		if($this->wire('languages')) {
+			$field = $this->modules->get('InputfieldCheckbox');
+			$field->attr('name', 'noLang');
+			$field->label = $this->_("Disable multi-language support for this template?");
+			$field->description = $this->_("When checked, pages using this template will only use the default language.");
+			if($this->wire('config')->advanced) $field->notes = $this->_('API: $template->noLang = 1; // default is 0.');
 
+			$field->attr('value', 1);
+			if($template->noLang) {
+				$field->attr('checked', 'checked');
+				$form->collapsed = Inputfield::collapsedNo;
+			} else {
+				$field->collapsed = Inputfield::collapsedYes;
+			}
+			$fieldset->append($field);
+		}
+
+		// --------------------
 
 		/*
 		$field = $this->modules->get('InputfieldText'); 
@@ -2106,6 +2124,10 @@ class ProcessTemplate extends Process {
 		$this->template->compile = (int) $this->input->post('compile'); 
 		$this->template->tags = $this->sanitizer->text($form->get('tags')->attr('value'));
 		$this->template->contentType = $form->get('contentType')->attr('value');
+		
+		if($this->wire('languages')) {
+			$this->template->noLang = (int) $form->get('noLang')->attr('value');
+		}
 		
 		foreach(array('prependFile', 'appendFile') as $name) {
 			$value = $form->get($name)->attr('value'); 

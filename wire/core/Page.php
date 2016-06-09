@@ -2066,6 +2066,23 @@ class Page extends WireData implements \Countable, WireMatchable {
 		return $this->traversal()->prevUntil($this, $selector, $filter, $siblings); 
 	}
 
+	/**
+	 * Get languages active for this page and viewable by current user
+	 * 
+	 * #pw-group-languages
+	 * 
+	 * @return PageArray|null Returns PageArray of languages, or null if language support is not active.
+	 * 
+	 */
+	public function getLanguages() {
+		$languages = $this->wire('pages')->newPageArray();
+		$templateLanguages = $this->template->getLanguages();
+		if(!$templateLanguages) return null;
+		foreach($templateLanguages as $language) {
+			if($this->viewable($language)) $languages->add($language);
+		}
+		return $languages;
+	}
 
 	/**
 	 * Save the entire page to the database, or just a field from it

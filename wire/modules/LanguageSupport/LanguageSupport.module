@@ -554,14 +554,18 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 	 */
 	public function hookFieldGetInputfield(HookEvent $event) {
 
-		$languages = $this->wire('languages'); 
 		$language = $this->wire('user')->language; 
 		if(!$language || !$language->id) return; 
 
 		/** @var Field $field */
-		$field = $event->object; 
+		$field = $event->object;
+		$page = $event->arguments[0];
+		$template = $page ? $page->template : null;
 		$inputfield = $event->return; 
 		$translatable = array('label', 'description', 'notes');
+		$languages = $template ? $template->getLanguages() : $this->wire('languages'); 
+		$useLanguages = $template && $template->noLang ? false : true;
+		if(!$languages) $languages = $this->wire('languages'); 
 
 		// populate language versions where available
 		foreach($translatable as $key) {
@@ -572,12 +576,11 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 		}
 		
 		// see if this fieldtype supports languages natively
-		if($field->type instanceof FieldtypeLanguageInterface) {
-
+		if($field->type instanceof FieldtypeLanguageInterface && $useLanguages) {
+			
 			// populate useLanguages in the inputfield so we can detect it elsehwere
 			$inputfield->set('useLanguages', true); 
 
-			$page = $event->arguments[0];
 			$value = $page->get($field->name);
 
 			// set values in this field specific to each language

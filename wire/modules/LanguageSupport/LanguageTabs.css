@@ -71,3 +71,12 @@
 .InputfieldImage .InputfieldFileLink + .langTabsContainer {
 	margin-top: 0.5em;
 }
+
+.hadLanguageSupport > .InputfieldContent > .LanguageSupport {
+	margin-bottom: 0;
+}
+
+.langTabsHidden,
+.hadLanguageSupport .LanguageSupportLabel {
+	display: none; 
+}

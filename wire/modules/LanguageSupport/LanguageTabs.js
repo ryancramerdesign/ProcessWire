@@ -62,6 +62,36 @@ function toggleLanguageTabs() {
 	return false;
 }
 
+function hideLanguageTabs() {
+	
+	// hide all inputs except default (for cases where all inputs are shown rather than tabs)
+	$(".InputfieldContent").each(function() {
+		var n = 0;
+		$(this).children('.LanguageSupport').each(function() {
+			if(++n == 1) {
+				$(this).closest('.Inputfield').addClass('hadLanguageSupport');
+				return;
+			}
+			$(this).addClass('langTabsHidden');
+		});
+	});
+
+	// make sure first tab is clicked
+	var $tab = $(".langTabs").find("li:eq(0)");
+	if(!$tab.hasClass('ui-state-active')) $tab.find('a').click();
+
+	// hide the tab toggler
+	$(".langTabsToggle, .LanguageSupportLabel:visible, .langTabs > ul").addClass('langTabsHidden');
+	$(".hasLangTabs").removeClass("hasLangTabs").addClass("hadLangTabs");
+}
+
+function unhideLanguageTabs() {
+	// un-hide the previously hidden language tabs
+	$('.langTabsHidden').removeClass('langTabsHidden');
+	$('.hadLangTabs').removeClass('hadLangTabs').addClass('hasLangTabs');
+	$('.hadLanguageSupport').removeClass('hadLanguageSupport'); // just .Inputfield with open inputs
+}
+
 $(document).ready(function() { 
 	$(document).on('click', '.langTabsToggle', toggleLanguageTabs); 
 	$(document).on('reloaded', '.Inputfield', function() {

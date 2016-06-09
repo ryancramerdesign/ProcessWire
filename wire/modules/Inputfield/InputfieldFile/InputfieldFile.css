@@ -109,18 +109,23 @@
 		margin: 0;
 		padding: 0;
 	}
-		ul.InputfieldFileList li .hasLangTabs .InputfieldFileDescription {
+		.Inputfield .hasLangTabs .InputfieldFileDescription {
 			padding-top: 0.5em;
 		}
-		ul.InputfieldFileList li .InputfieldFileTags input,
-		ul.InputfieldFileList li .InputfieldFileDescription input {
+		.Inputfield .InputfieldFileTags input,
+		.Inputfield .InputfieldFileDescription input {
 			width: 100%; 
 		}
 
-		ul.InputfieldFileList li .InputfieldFileTags input {
+		.Inputfield .InputfieldFileTags input {
 			margin-bottom: 0.5em;
 		}
-
+	
+	.Inputfield .InputfieldFileDescription.LanguageSupport {
+		padding-left: 0;
+		padding-right: 0;
+		padding-top: 0.4em;
+	}
 
 	ul.InputfieldFileList li .InputfieldFileSort {
 		display: none; 
