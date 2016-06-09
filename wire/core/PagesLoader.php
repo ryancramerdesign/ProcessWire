@@ -475,7 +475,13 @@ class PagesLoader extends Wire {
 
 			} else if($options['getFromCache'] && $page = $this->pages->getCache($id)) {
 				// page is already available in the cache	
-				$loaded[$id] = $page;
+				if($template && $page->template->id != $template->id) {
+					// do not load: does not match specified template
+				} else if($parent_id && $page->parent_id != $parent_id) {
+					// do not load: does not match specified parent_id
+				} else {
+					$loaded[$id] = $page;
+				}
 
 			} else if(isset(Page::$loadingStack[$id])) {
 				// if the page is already in the process of being loaded, point to it rather than attempting to load again.
