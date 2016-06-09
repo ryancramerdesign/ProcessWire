@@ -167,9 +167,12 @@ var InputfieldPageAutocomplete = {
 				}
 				//$(this).closest('.InputfieldPageAutocomplete').find('.InputfieldPageAutocompleteData').val('').change();
 			}
-			setTimeout(function() {
-				$input.focus();
-			}, 250);
+			if($input.hasClass('focus-after-blur')) {
+				$input.removeClass('focus-after-blur');
+				setTimeout(function() {
+					$input.focus();
+				}, 250);
+			}
 
 		}).keyup(function() {
 			$icon.attr('class', $icon.attr('data-class')); 
@@ -209,7 +212,7 @@ var InputfieldPageAutocomplete = {
 					}
 					$note.hide();
 				} else {
-					$(this).blur();
+					$(this).addClass('focus-after-blur').blur();
 				}
 				return false;
 			}
