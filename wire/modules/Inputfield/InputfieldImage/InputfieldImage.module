@@ -329,6 +329,11 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 	protected function ___fileAdded(Pagefile $pagefile) {
 		
 		/** @var Pageimage $pagefile */
+		
+		if($pagefile->ext() == 'svg') {
+			parent::___fileAdded($pagefile);
+			return;
+		}
 
 		$pagefile2 = null;
 
@@ -535,7 +540,7 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 				</div>
 			";
 		} else {
-			$buttons = $this->renderButtons($pagefile, $id, $n);
+			$buttons = $pagefile->ext() == 'svg' ? '' : $this->renderButtons($pagefile, $id, $n);
 			$description = $this->renderItemDescriptionField($pagefile, $id, $n);
 			$additional = $this->renderAdditionalFields($pagefile, $id, $n);
 			$error = $thumb['error'] ? "<span class='ui-state-error-text'>" . $sanitizer->entities($thumb['error']) . "</span>" : "";
@@ -811,7 +816,7 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		if($this->renderValueMode) {
 			$editable = false;
 		} else if($pagefile->ext == 'svg') {
-			$editable = false;
+			$editable = true;
 		} else {
 			$editable = true;
 		}
