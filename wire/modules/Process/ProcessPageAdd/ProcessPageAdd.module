@@ -198,7 +198,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 		$parents = $this->wire('pages')->find("template=$parentTemplate, include=hidden, limit=500, sort=name"); 
 		if(!count($parents)) throw new WireException("No usable parents match this template"); 
 		if(count($parents) == 1) {
-			$url = "./parent_id=" . $parents->first()->id; 
+			$url = "./?parent_id=" . $parents->first()->id; 
 			if($this->wire('input')->get('modal')) $url .= "&modal=1";
 			$this->wire('session')->redirect($url);
 		}
