@@ -115,8 +115,6 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 			'variations' => $this->_('Variations'), 
 			'dimensions' => $this->_('Dimensions'), 
 			'filesize' => $this->_('Filesize'), 
-			'choose-file' => $this->_('Choose File'),
-			'choose-files' => $this->_('Choose Files'), 
 			'edit' => $this->_('Edit'),
 			'drag-drop-in' => $this->_('drag and drop in new images above'), 
 			'na' => $this->_('N/A'), // for JS
@@ -944,16 +942,7 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		return $data;
 	}
 
-	/**
-	 * Format list of file extensions for output with upload field
-	 * 
-	 * @param string $extensions
-	 * @return string
-	 * 
-	 */
-	protected function formatExtensions($extensions) {
-		return $this->wire('sanitizer')->entities(str_replace(' ', ', ', trim($extensions)));
-	}
+
 
 	/**
 	 * Return whether or not admin thumbs should be scaled

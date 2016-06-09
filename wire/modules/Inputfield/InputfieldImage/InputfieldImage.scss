@@ -565,46 +565,8 @@ $itemPadding: 0.4em;
 	}
 }
 
-// element that surrounds the input[type=file] to make it appear as jQuery UI style button
-.InputfieldImage .InputMask {
-	position: relative;
-	overflow: hidden;
-	line-height: 1 !important;
-	cursor: pointer;
-	font-size: 14px;
-	border: none;
-
-	i {
-		// in case the font-size above is different than an optimal FA size.
-		font-size: 14px;
-		margin: 0 3px 0 0;
-	}
-
-	&:hover {
-		cursor: pointer;
-	}
-
-	// this should be changed to whatever the active state styles are for a secondary button in the admin theme.
-	&:active {
-		box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2)
-	}
-
-	& > input[type=file] {
-		position: absolute;
-		top: 0;
-		left: 0;
-		height: 100%;
-		-ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=0)";
-		filter: alpha(opacity=0);
-		opacity: 0;
-		font-size: 1000px;
-		cursor: inherit;
-		width: 100%;
-	}
-}
 
 // Narrow mode applies when width of Inputfield is under 500px
-//&.InputfieldImageNarrow {
 .InputfieldImageNarrow {
 
 	.InputfieldHeader .InputfieldImageSizeSlider {
@@ -647,8 +609,6 @@ $itemPadding: 0.4em;
 
 }
 
-//&.InputfieldFileSingle .gridImages .gridImage img,
-//&.InputfieldRenderValueMode .gridImages .gridImage img {
 .InputfieldFileSingle .gridImages .gridImage img,
 .InputfieldRenderValueMode .gridImages .gridImage img {
 	cursor: zoom-in;
@@ -661,7 +621,6 @@ $itemPadding: 0.4em;
  *
  */
 
-//&.InputfieldImageEditAll {
 .InputfieldImageEditAll {
 
 	.gridImage {
@@ -783,23 +742,10 @@ $itemPadding: 0.4em;
 		}
 
 		&__trash {
-			/*
-			position: absolute;
-			background: white;
-			padding: .2em .6em;
-			color: #aaa;
-			cursor: pointer;
-			*/
 			z-index: 5;
 			display: block !important;
 			top: 0;
 			right: 0;
-
-			/*
-			& > input {
-				display: none;
-			}
-			*/
 		}
 		
 		&__edit {
@@ -840,19 +786,6 @@ $itemPadding: 0.4em;
 			.InputfieldImageEdit__additional {
 				display: none;
 			}
-
-			/*
-			& .gridImage__trash {
-				background-color: $deleteColor;
-				color: white;
-				display: block;
-
-				&:hover {
-					color: white;
-					background-color: $deleteColor;
-				}
-			}
-			*/
 
 			&:hover .gridImage__trash:hover {
 				color: white;

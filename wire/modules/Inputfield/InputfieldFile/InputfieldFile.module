@@ -108,7 +108,9 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 			'description' => $this->_('Description'), 
 			'tags' => $this->_('Tags'),
 			'drag-drop' => $this->_('drag and drop files in here'), 
-			'delete' => $this->_('Delete'), 
+			'delete' => $this->_('Delete'),
+			'choose-file' => $this->_('Choose File'),
+			'choose-files' => $this->_('Choose Files'),
 		);
 		
 		$this->isAjax = $this->wire('input')->get('InputfieldFileAjax') 
@@ -388,21 +390,40 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 		unset($attrs['value']); 
 		if(substr($attrs['name'], -1) != ']') $attrs['name'] .= '[]';
 
-		$extensions = $this->extensions; 
+		$extensions = $this->extensions;
 		if($this->unzip && !$this->maxFiles) $extensions .= ' zip';
+		$formatExtensions = $this->formatExtensions($extensions);
+		$chooseLabel = $this->labels['choose-file'];
 		$dragDropLabel = $this->labels['drag-drop'];
+		$attrStr = $this->getAttributesString($attrs);
 
-		$out =	
-			"\n<p data-maxfilesize='{$this->maxFilesize}' data-extensions='{$extensions}' data-fieldname='$attrs[name]' class='InputfieldFileUpload'>" . 
-			"\n\t<input type='hidden' class='InputfieldFileMaxFiles' value='{$this->maxFiles}' />" . 
-			"\n\t<input " . $this->getAttributesString($attrs) . " />" . 
-			"\n\t<span class='InputfieldFileValidExtensions detail'>" . htmlspecialchars(str_replace(' ', ', ', trim($extensions))) . "</span>";
-
-		// Ajax upload instruction
-		if(!$this->noAjax) $out .= 
-			"\n\t<span class='AjaxUploadDropHere description'><i class='fa fa-upload'></i>&nbsp; $dragDropLabel</span>"; 
+		$out =
+			"<div " .
+				"data-maxfilesize='$this->maxFilesize' " .
+				"data-extensions='$extensions' " .
+				"data-fieldname='$attrs[name]' " .
+				"class='InputfieldFileUpload'>
+				
+				<div class='InputMask ui-button ui-state-default'>
+					<span class='ui-button-text'>
+						<i class='fa fa-fw fa-folder-open-o'></i>$chooseLabel
+					</span>
+					<input $attrStr>
+				</div>
+				
+				<span class='InputfieldFileValidExtensions detail'>$formatExtensions</span>
+				<input type='hidden' class='InputfieldFileMaxFiles' value='$this->maxFiles' />
+			";
 		
-		$out .= "\n</p>";
+		if(!$this->noAjax) $out .= "
+				<span class='AjaxUploadDropHere description'>
+					<span>
+						<i class='fa fa-upload'></i>&nbsp;$dragDropLabel
+					</span>
+				</span>
+			";	
+		
+		$out .= "</div>"; // .InputfieldFileUpload
 
 		return $out; 
 	}
@@ -748,6 +769,17 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 	 */
 	protected function allowCollapsedItems() {
 		return $this->descriptionRows == 0 && !$this->useTags && !$this->noCollapseItem;
+	}
+
+	/**
+	 * Format list of file extensions for output with upload field
+	 *
+	 * @param string $extensions
+	 * @return string
+	 *
+	 */
+	protected function formatExtensions($extensions) {
+		return $this->wire('sanitizer')->entities(str_replace(' ', ', ', trim($extensions)));
 	}
 
 	/**

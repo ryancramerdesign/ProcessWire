@@ -1404,7 +1404,7 @@ class ProcessField extends Process implements ConfigurableModule {
 				$this->error($e->getMessage()); 
 				if(!$this->field->id) $this->session->redirect("./"); 
 			}
-			$this->session->redirect("edit?id={$this->field->id}"); 
+			$this->session->redirect("edit?id={$this->field->id}#fieldtypeConfig"); 
 				
 		} else {
 			
@@ -1524,6 +1524,7 @@ class ProcessField extends Process implements ConfigurableModule {
 		$_name = $name;
 		$name = $this->wire('sanitizer')->fieldName($name);
 		$allowed = false;
+		$okay = array('files', 'datetime'); // field names that are okay, even if they collide with something else
 		$error = '';
 		if(empty($name)) {
 			$error = $this->_('Field name is empty'); 
@@ -1531,7 +1532,7 @@ class ProcessField extends Process implements ConfigurableModule {
 			$error = $this->_('Field names may only contain ASCII letters, digits or underscore.');
 		} else if($this->wire('fields')->get($name)) {
 			$error = sprintf($this->_('Field name "%s" is already in use'), $name);
-		} else if($this->wire($name) || $this->wire('fields')->isNative($name)) {
+		} else if(($this->wire($name) || $this->wire('fields')->isNative($name)) && !in_array($name, $okay)) {
 			$error = sprintf($this->_('Field name "%s" is a reserved word'), $name);
 		} else if(preg_match('/^(_|\d)/', $name)) {
 			$error = $this->_('Field names may not begin with "_" or digits');
