@@ -1371,34 +1371,51 @@ class Sanitizer extends Wire {
 	 * #pw-group-strings
 	 *
 	 * @param string $value String value to sanitize (assumed to be UTF-8). 
-	 * @param int $maxLength Maximum number of allowed characters (default=100).
+	 * @param array|int $options Options to modify behavior: 
+	 *   - `maxLength` (int): Maximum number of allowed characters (default=100). This may also be specified instead of $options array.
+	 *   - `useQuotes` (bool): Allow selectorValue() function to add quotes if it deems them necessary? (default=true)
+	 *   - If an integer is specified for $options, it is assumed to be the maxLength value. 
 	 * @return string Value ready to be used as the value component in a selector string. 
 	 * 
 	 */
-	public function selectorValue($value, $maxLength = 100) {
+	public function selectorValue($value, $options = array()) {
+		
+		$defaults = array(
+			'maxLength' => 100, 
+			'useQuotes' => true, 
+		);
 
+		if(is_int($options)) {
+			$options = array('maxLength' => $options);
+		} else if(!is_array($options)) {
+			$options = array();
+		}
+		$options = array_merge($defaults, $options);
 		if(!is_string($value)) $value = $this->string($value);
 		$value = trim($value); 
 		$quoteChar = '"';
 		$needsQuotes = false; 
+		$maxLength = $options['maxLength'];
 
-		// determine if value is already quoted and set initial value of needsQuotes
-		// also pick out the initial quote style
-		if(strlen($value) && ($value[0] == "'" || $value[0] == '"')) {
-			$needsQuotes = true; 
+		if($options['useQuotes']) {
+			// determine if value is already quoted and set initial value of needsQuotes
+			// also pick out the initial quote style
+			if(strlen($value) && ($value[0] == "'" || $value[0] == '"')) {
+				$needsQuotes = true;
+			}
+
+			// trim off leading or trailing quotes
+			$value = trim($value, "\"'");
+
+			// if an apostrophe is present, value must be quoted
+			if(strpos($value, "'") !== false) $needsQuotes = true;
+
+			// if commas are present, then the selector needs to be quoted
+			if(strpos($value, ',') !== false) $needsQuotes = true;
+
+			// disallow double quotes -- remove any if they are present
+			if(strpos($value, '"') !== false) $value = str_replace('"', '', $value);
 		}
-
-		// trim off leading or trailing quotes
-		$value = trim($value, "\"'"); 
-
-		// if an apostrophe is present, value must be quoted
-		if(strpos($value, "'") !== false) $needsQuotes = true; 
-
-		// if commas are present, then the selector needs to be quoted
-		if(strpos($value, ',') !== false) $needsQuotes = true; 
-
-		// disallow double quotes -- remove any if they are present
-		if(strpos($value, '"') !== false) $value = str_replace('"', '', $value); 
 
 		// selector value is limited to 100 chars
 		if(strlen($value) > $maxLength) {
@@ -1433,7 +1450,7 @@ class Sanitizer extends Wire {
 		$value = trim($value); // trim any kind of whitespace
 		$value = trim($value, '+!,'); // chars to remove from begin and end 
 		
-		if(!$needsQuotes && strlen($value)) {
+		if(!$needsQuotes && $options['useQuotes'] && strlen($value)) {
 			$a = substr($value, 0, 1); 
 			$b = substr($value, -1); 
 			if((!ctype_alnum($a) && $a != '/') || (!ctype_alnum($b) && $b != '/')) $needsQuotes = true;

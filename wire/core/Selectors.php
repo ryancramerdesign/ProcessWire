@@ -967,7 +967,11 @@ class Selectors extends WireArray {
 				$fieldsStr = implode('|', $fields);
 				throw new WireException("Value given for '$fieldsStr' is not in provided whitelist");
 			}
-			if($_sanitize) $value = $sanitizer->$_sanitize($value);
+			if($_sanitize === 'selectorValue') {
+				$value = $sanitizer->selectorValue($value, array('useQuotes' => false)); 
+			} else if($_sanitize) {
+				$value = $sanitizer->$_sanitize($value);
+			}
 			$values[] = $value;
 		}
 
