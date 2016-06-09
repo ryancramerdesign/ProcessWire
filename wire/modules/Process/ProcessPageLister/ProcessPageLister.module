@@ -1149,9 +1149,6 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 			}
 		}
 
-		if($value instanceof Pageimages && $this->imageStyle == 0 && (!$subname || $subname == 'data')) {
-		}
-
 		if($subname == 'count' && $value instanceof WireArray) {
 			// count
 			$value = $value->count();
@@ -1198,7 +1195,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 						$field->inputfieldSetting('adminThumbHeight', $this->imageHeight);
 					}
 					if($this->imageStyle == 0) {
-						$field->inputfieldSetting('renderValueFlags', Inputfield::renderValueMinimal | Inputfield::renderValueNoWrap); 
+						$field->inputfieldSetting('renderValueFlags', Inputfield::renderValueMinimal); // | Inputfield::renderValueNoWrap); 
 					}
 				}
 				$field->inputfieldSetting('skipLabel', Inputfield::skipLabelHeader);
