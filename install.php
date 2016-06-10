@@ -719,6 +719,15 @@ class Installer {
 			"\n * " . 
 			"\n */" . 
 			"\n\$config->timezone = '$values[timezone]';" . 	
+			"\n" . 
+			"\n/**" .
+			"\n * Installer: Unix timestamp of date/time installed" .
+			"\n * " .
+			"\n * This is used to detect which when certain behaviors must be backwards compatible." .
+			"\n * Please leave this value as-is." .
+			"\n * " .
+			"\n */" .
+			"\n\$config->installed = " . time() . ";" .
 			"\n\n";
 
 		if(!empty($values['httpHosts'])) {
@@ -731,7 +740,7 @@ class Installer {
 			foreach($values['httpHosts'] as $host) $cfg .= "'$host', ";
 			$cfg = rtrim($cfg, ", ") . ");\n\n";
 		}
-
+		
 		if(($fp = fopen("./site/config.php", "a")) && fwrite($fp, $cfg)) {
 			fclose($fp); 
 			$this->ok("Saved configuration to ./site/config.php"); 
