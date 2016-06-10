@@ -123,6 +123,7 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 		if($last == 'g') $this->maxFilesize = (($filesize*1024)*1024)*1024;
 			else if($last == 'm') $this->maxFilesize = ($filesize*1024)*1024;
 			else if($last == 'k') $this->maxFilesize = $filesize*1024;
+			else if((int) $filesize > 0) $this->maxFilesize = (int) $filesize;
 			else $this->maxFilesize = (5*1024)*1024; 
 		
 		if($this->wire('input')->get('uploadOnlyMode')) $this->uploadOnlyMode = true;
