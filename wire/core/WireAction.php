@@ -58,7 +58,7 @@ abstract class WireAction extends WireData implements Module {
 	 *
 	 */
 	public function getItemType() {
-		return __NAMESPACE__ . '\\Wire';
+		return strlen(__NAMESPACE__) ? __NAMESPACE__ . '\\Wire' : 'Wire';
 	}
 
 	/**

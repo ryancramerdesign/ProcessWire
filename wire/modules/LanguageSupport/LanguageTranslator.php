@@ -143,8 +143,11 @@ class LanguageTranslator extends Wire {
 				'WireArray', 
 				'Process'
 			);
-			foreach($stopClasses as $class) {
-				$stopClass[] = __NAMESPACE__ . "\\$class";
+			
+			if(__NAMESPACE__) {
+				foreach($stopClasses as $class) {
+					$stopClass[] = __NAMESPACE__ . "\\$class";
+				}
 			}
 
 			while($parentClass = $reflection->getParentClass()) { 

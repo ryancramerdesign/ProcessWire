@@ -1064,9 +1064,6 @@ class Pages extends Wire {
 	public function newPageArray(array $options = array()) {
 		$class = 'PageArray';
 		if(!empty($options['pageArrayClass'])) $class = $options['pageArrayClass'];
-		if($this->wire('config')->compat2x && strpos($class, "\\") === false) {
-			if(class_exists("\\$class")) $class = "\\$class";
-		}
 		$class = wireClassName($class, true);
 		$pageArray = $this->wire(new $class());
 		if(!$pageArray instanceof PageArray) $pageArray = $this->wire(new PageArray());
@@ -1087,9 +1084,6 @@ class Pages extends Wire {
 	public function newPage(array $options = array()) {
 		$class = 'Page';
 		if(!empty($options['pageClass'])) $class = $options['pageClass'];
-		if($this->wire('config')->compat2x && strpos($class, "\\") === false) {
-			if(class_exists("\\$class")) $class = "\\$class";
-		}
 		if(isset($options['template'])) {
 			$template = $options['template'];
 			if(!is_object($template)) {
@@ -1117,11 +1111,7 @@ class Pages extends Wire {
 	 * 
 	 */
 	public function newNullPage() {
-		if($this->wire('config')->compat2x && class_exists("\\NullPage")) {
-			$page = new \NullPage();
-		} else {
-			$page = new NullPage();
-		}
+		$page = new NullPage();
 		$this->wire($page);
 		return $page;
 	}

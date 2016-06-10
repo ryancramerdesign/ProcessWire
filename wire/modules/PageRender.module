@@ -383,7 +383,7 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 		$_page = $this->wire('page'); // just in case one page is rendering another, save the previous
 		$config = $this->wire('config');
 		$compiler = null;
-		if($config->templateCompile && $template->compile) {
+		if(__NAMESPACE__ && $config->templateCompile && $template->compile) {
 			$compilerOptions = array(
 				'namespace' => true, 
 				'includes' => $template->compile >= 2 ? true : false, 

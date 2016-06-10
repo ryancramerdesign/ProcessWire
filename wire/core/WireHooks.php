@@ -95,12 +95,6 @@ class WireHooks {
 	protected $config;
 
 	/**
-	 * @var bool
-	 * 
-	 */
-	protected $compat2x;
-
-	/**
 	 * @var array
 	 * 
 	 */
@@ -122,7 +116,6 @@ class WireHooks {
 	public function __construct(ProcessWire $wire, Config $config) {
 		$this->wire = $wire;
 		$this->config = $config;
-		$this->compat2x = $this->config->compat2x;
 	}
 	
 	/**
@@ -600,7 +593,7 @@ class WireHooks {
 					if(!$matches) continue; // don't run hook
 				}
 
-				$event = $this->compat2x ? new \HookEvent() : new HookEvent();
+				$event = new HookEvent();
 				$this->wire->wire($event);
 				$event->object = $object;
 				$event->method = $method;
@@ -614,9 +607,9 @@ class WireHooks {
 				$toMethod = $hook['toMethod'];
 
 				if(is_null($toObject)) {
-					if(!is_callable($toMethod) && strpos($toMethod, "\\") === false) {
+					if(!is_callable($toMethod) && strpos($toMethod, "\\") === false && __NAMESPACE__) {
 						$_toMethod = "\\" . __NAMESPACE__ . "\\$toMethod";
-						if($this->compat2x && !is_callable($_toMethod)) $_toMethod = "\\$toMethod";
+						// if(!is_callable($_toMethod)) $_toMethod = "\\$toMethod";
 						$toMethod = $_toMethod;
 					}
 					$toMethod($event);

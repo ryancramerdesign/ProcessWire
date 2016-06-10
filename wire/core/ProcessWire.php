@@ -109,7 +109,7 @@ class ProcessWire extends Wire {
 		$this->fuel->set('wire', $this, true);
 
 		$classLoader = $this->wire('classLoader', new WireClassLoader($this), true);
-		$classLoader->addNamespace(__NAMESPACE__, PROCESSWIRE_CORE_PATH);
+		$classLoader->addNamespace((strlen(__NAMESPACE__) ? __NAMESPACE__ : "\\"), PROCESSWIRE_CORE_PATH);
 
 		$this->wire('hooks', new WireHooks($this, $config), true);
 
@@ -263,8 +263,6 @@ class ProcessWire extends Wire {
 		$cache = $this->wire('cache', new WireCache(), true); 
 		$cache->preload($config->preloadCacheNames); 
 		
-		if($config->compat2x) $this->loadCompat2x();
-
 		$modules = null;
 		try { 		
 			if($this->debug) Debug::timer('boot.load.modules');
@@ -325,15 +323,6 @@ class ProcessWire extends Wire {
 		$this->setStatus(self::statusInit);
 	}
 
-	/**
-	 * Load ProcessWire 2.x compatibility mode
-	 * 
-	 */
-	protected function loadCompat2x() {
-		include_once(__DIR__ . '/compat2x/Classes.php');
-		include_once(__DIR__ . '/compat2x/Functions.php');
-	}
-	
 	/**
 	 * Initialize the given API var
 	 * 
@@ -412,12 +401,12 @@ class ProcessWire extends Wire {
 		if($session) $session->maintenance();
 		if($cache) $cache->maintenance();
 
-		if($config->templateCompile) {
+		if($config->templateCompile && __NAMESPACE__) {
 			$compiler = new FileCompiler($this->wire('config')->paths->templates);
 			$compiler->maintenance();
 		}
 		
-		if($config->moduleCompile) {
+		if($config->moduleCompile && __NAMESPACE__) {
 			$compiler = new FileCompiler($this->wire('config')->paths->siteModules);
 			$compiler->maintenance();
 		}
@@ -642,7 +631,7 @@ class ProcessWire extends Wire {
 			@include($indexConfigFile);
 			if(function_exists("\\ProcessWire\\ProcessWireHostSiteConfig")) {
 				$hostConfig = ProcessWireHostSiteConfig();
-			} else if(function_exists("ProcessWireHostSiteConfig")) {
+			} else if(function_exists("\\ProcessWireHostSiteConfig")) {
 				$hostConfig = \ProcessWireHostSiteConfig();
 			}
 			if($httpHost && isset($hostConfig[$httpHost])) {

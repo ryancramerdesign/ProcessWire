@@ -609,7 +609,6 @@ class PagesLoader extends Wire {
 				$this->error("Class '$class' for Pages::getById() does not exist", Notice::log);
 				$class = 'Page';
 			}
-			if($this->wire('config')->compat2x && class_exists("\\$class")) $class = "\\$class";
 		
 			// page to populate, if provided in 'getOne' mode
 			/** @var Page|null $_page */

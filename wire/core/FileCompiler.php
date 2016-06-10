@@ -79,6 +79,11 @@ class FileCompiler extends Wire {
 	 */
 	public function __construct($sourcePath, array $options = array()) {
 		$this->options = array_merge($this->options, $options);
+		if(!strlen(__NAMESPACE__)) {
+			// when PW compiled without namespace support
+			$this->options['namespace'] = false;
+			$this->options['skipIfNamespace'] = true;
+		}
 		if(strpos($sourcePath, '..') !== false) $sourcePath = realpath($sourcePath);
 		if(DIRECTORY_SEPARATOR != '/') $sourcePath = str_replace(DIRECTORY_SEPARATOR, '/', $sourcePath);
 		$this->sourcePath = rtrim($sourcePath, '/') . '/';
