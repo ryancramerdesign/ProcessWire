@@ -1,4 +1,4 @@
-# Welcome to ProcessWire 3.x
+# Welcome to ProcessWire 3.x / 2.8.x
 
 This document is in Markdown. An HTML formatted version of this document 
 can be read at: https://processwire.com/download/readme
@@ -267,8 +267,14 @@ logging in to your admin and going to Setup > ProCache.
   
 ### Upgrading from ProcessWire 2.7
 
+**Upgrading from 2.7 to 3.x**  
 Please see the [README.md](https://github.com/ryancramerdesign/ProcessWire/blob/devns/README.md)
-file for important details on the 3.x alpha/beta upgrade.
+file for important details on the 3.x beta upgrade.
+
+**Upgrading from 2.7 to 2.8.x**  
+Follow the general upgrade process by replacing your replacing your /wire/ directory and 
+index.php file with the new versions. After confirming successful upgrade, then replace or
+update your .htaccess file (with the new provided htaccess.txt file). 
   
 ### Upgrading from ProcessWire 2.6
 

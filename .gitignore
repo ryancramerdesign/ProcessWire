@@ -35,3 +35,4 @@ wire/modules/Inputfield/InputfieldDatetime/timepicker/i18n/*.min.js
 wire/modules/Inputfield/InputfieldDatetime/jquery-ui-timepicker-addon.min.js
 wire/modules/Jquery/JqueryFancybox/
 wire/modules/Jquery/JqueryTableSorter/JqueryTableSorter.min.js
+pwx.php
