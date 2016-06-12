@@ -164,6 +164,8 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 		$languages = $this->wire('languages');
 		$userLanguage = null;
 		$user = $this->wire('user');
+		$superuser = $user->isSuperuser();
+		$checkEditAccess = false;
 		
 		foreach($this->input->get as $name => $value) {
 			
@@ -221,14 +223,21 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 			}
 
 			// if dealing with a user other than superuser, only allow include=hidden
-			if($name == 'include' && $value != 'hidden' && !$user->isSuperuser()) $value = 'hidden';
+			if($name == 'include' && $value != 'hidden' && !$superuser) {
+				if($user->hasPermission('page-edit') && $this->input->get('admin_search')) {
+					$value = 'unpublished';
+					$checkEditAccess = true;
+				} else {
+					$value = 'hidden';
+				}
+			}
 		
 			// don't allow setting of check_access property, except for superuser
-			if($name == 'check_access' && !$user->isSuperuser()) continue; 
+			if($name == 'check_access' && !$superuser) continue; 
 			
 			// don't allow setting of the 'status' property, except for superuser
 			if($name == 'status') {
-				if(!$user->isSuperuser()) continue; 
+				if(!$superuser) continue; 
 				$status = (int) $value;
 			}
 			
@@ -292,12 +301,29 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 			if(count($repeaters)) $selector .= ", has_parent!=" . $repeaters->first()->id; 
 		}
 
-		if($user->isSuperuser() && !$status && !preg_match('/\binclude=/', $selector)) {
-			$selector .= ", include=all, status<" . Page::statusTrash; 
+		if(!$status && !preg_match('/\binclude=/', $selector)) {
+			if($superuser) {
+				// superuser only
+				$selector .= ", include=all, status<" . Page::statusTrash;
+			} else if($this->adminSearchMode && $user->hasPermission('page-edit')) {
+				// admin search mode and user has some kind of page-edit permission
+				$selector .= ", include=unpublished, status<" . Page::statusTrash;
+				$checkEditAccess = true;
+			} 
+		}
+	
+		$items = $this->pages->find($selector);
+		
+		if(!$superuser && $checkEditAccess) {
+			// filter out non-editable pages, since some may be included via include=unpublished
+			foreach($items as $item) {
+				if(!$item->editable()) $items->remove($item);
+			}
 		}
 		
-		$out = $this->render($this->pages->find($selector), $displaySelector);
+		$out = $this->render($items, $displaySelector);
 		if($userLanguage) $user->language = $userLanguage;
+		
 		return $out; 
 	}
 
