@@ -478,7 +478,11 @@ class InputfieldCKEditor extends InputfieldTextarea {
 
 		if($this->usePurifier && $this->wire('modules')->isInstalled('MarkupHTMLPurifier')) {
 			if(is_null(self::$purifier)) self::$purifier = $this->wire('modules')->get('MarkupHTMLPurifier');
-			self::$purifier->set('Attr.AllowedFrameTargets', array('_blank')); // allow links opened in new window/tab
+			$configData = $this->wire('modules')->getModuleConfigData('ProcessPageEditLink');
+			$targets = isset($configData['targetOptions']) ? $configData['targetOptions'] : '_blank';
+			$targets = explode("\n", $targets);
+			foreach($targets as $k => $v) $targets[$k] = trim($v);
+			self::$purifier->set('Attr.AllowedFrameTargets', $targets); // allow links opened in new window/tab
 			self::$purifier->set('Attr.EnableID', stripos($this->toolbar, 'anchor') !== false); // for anchor plugin use of id and name attributes
 			$value = self::$purifier->purify($value); 
 			// $newLength = strlen($value);
