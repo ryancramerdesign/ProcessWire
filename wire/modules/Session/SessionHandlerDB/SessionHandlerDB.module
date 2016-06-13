@@ -15,7 +15,7 @@ class SessionHandlerDB extends WireSessionHandler implements Module, Configurabl
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Session Handler Database', 
-			'version' => 2, 
+			'version' => 3, 
 			'summary' => "Installing this module makes ProcessWire store sessions in the database rather than the file system. Note that this module will log you out after install or uninstall.",
 			'installs' => array('ProcessSessionDB')
 			);
@@ -42,6 +42,7 @@ class SessionHandlerDB extends WireSessionHandler implements Module, Configurabl
 		$this->database = $this->wire('database');
 		$this->set('useIP', 0); // track IP address?
 		$this->set('useUA', 0); // track query string?
+		$this->set('lockSeconds', 50); // max number of seconds to wait to obtain DB row lock
 	}
 	
 	public function init() {
@@ -63,10 +64,15 @@ class SessionHandlerDB extends WireSessionHandler implements Module, Configurabl
 		$database = $this->database;
 		$data = '';
 		
-		$query = $database->prepare("SELECT GET_LOCK(:id, 10)"); 
-		$query->execute(array(":id" => $id)); 
+		$query = $database->prepare("SELECT GET_LOCK(:id, :seconds)"); 
+		$query->bindValue(':id', $id);
+		$query->bindValue(':seconds', $this->lockSeconds, \PDO::PARAM_INT);
+		$database->execute($query);
+		
 		$query = $database->prepare("SELECT data FROM `$table` WHERE id=:id");
-		$query->execute(array(":id" => $id)); 
+		$query->bindValue(':id', $id);
+		$database->execute($query);
+		
 		if($query->rowCount()) {
 			$data = $query->fetchColumn();
 			if(empty($data)) $data = '';
@@ -89,25 +95,43 @@ class SessionHandlerDB extends WireSessionHandler implements Module, Configurabl
 		$database = $this->database;
 		$user = $this->wire('user');
 		$page = $this->wire('page');
-		$id = $database->escapeStr($id);
 		$user_id = $user && $user->id ? (int) $user->id : 0; 
 		$pages_id = $page && $page->id ? (int) $page->id : 0;
-		$data = $database->escapeStr($data);
-		$ua = ($this->useUA && isset($_SERVER['HTTP_USER_AGENT'])) ? $database->escapeStr(substr($_SERVER['HTTP_USER_AGENT'], 0, 255)) : '';
+		$ua = ($this->useUA && isset($_SERVER['HTTP_USER_AGENT'])) ? substr(strip_tags($_SERVER['HTTP_USER_AGENT']), 0, 255) : '';
 		$ip = $this->useIP ? ((int) $this->wire('session')->getIP(true)) : '';
+	
+		$binds = array(
+			':id' => $id, 
+			':user_id' => $user_id, 
+			':pages_id' => $pages_id, 
+			':data' => $data,
+		);
+
+		$s = "user_id=:user_id, pages_id=:pages_id, data=:data";
 		
-		$s = "user_id=$user_id, pages_id=$pages_id, data='$data'"; 
-		if($ip) $s .= ", ip=$ip";
-		if($ua) $s .= ", ua='$ua'";
-		$sql = 	"INSERT INTO $table SET id='$id', $s ";
-		$sql .= "ON DUPLICATE KEY UPDATE $s, ts=NOW()";
+		if($ip) {
+			$s .= ", ip=:ip";
+			$binds[':ip'] = $ip;
+		}
+		if($ua) {
+			$s .= ", ua=:ua";
+			$bonds[':ua'] = $ua;
+		}
 		
+		$sql = "INSERT INTO $table SET id=:id, $s ON DUPLICATE KEY UPDATE $s, ts=NOW()";
 		$query = $database->prepare($sql); 
-		$result = $query->execute() ? true : false;
+		
+		foreach($binds as $key => $value) {
+			$type = is_int($value) ? \PDO::PARAM_INT : \PDO::PARAM_STR;
+			$query->bindValue($key, $value, $type);
+		}
+		
+		$result = $database->execute($query, false) ? true : false; 
 		$query->closeCursor();
 		
-		$query = $database->prepare("SELECT RELEASE_LOCK('$id')");
-		$query->execute();
+		$query = $database->prepare("DO RELEASE_LOCK(:id)");
+		$query->bindValue(':id', $id, \PDO::PARAM_STR);
+		$database->execute($query, false);
 		$query->closeCursor();
 		
 		return $result; 
@@ -156,7 +180,7 @@ class SessionHandlerDB extends WireSessionHandler implements Module, Configurabl
 				"id CHAR(32) NOT NULL, " . 
 				"user_id INT UNSIGNED NOT NULL, " . 
 				"pages_id INT UNSIGNED NOT NULL, " . 
-				"data TEXT NOT NULL, " . 
+				"data MEDIUMTEXT NOT NULL, " . 
 				"ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, " . 
 				"ip INT UNSIGNED NOT NULL DEFAULT 0, " . 
 				"ua VARCHAR(250) NOT NULL DEFAULT '', " . 
@@ -315,7 +339,7 @@ class SessionHandlerDB extends WireSessionHandler implements Module, Configurabl
 		$sql = "SELECT * FROM " . self::dbTableName . " WHERE id=:id";
 		$query = $this->wire('database')->prepare($sql);
 		$query->bindValue(':id', $sessionID); 
-		$query->execute();
+		$this->wire('database')->execute($query);
 		if(!$query->rowCount()) return array();
 		$row = $query->fetch(\PDO::FETCH_ASSOC) ;
 		$sess = $_SESSION; // save
