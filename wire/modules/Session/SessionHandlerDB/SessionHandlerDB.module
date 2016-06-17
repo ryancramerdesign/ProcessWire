@@ -15,7 +15,7 @@ class SessionHandlerDB extends WireSessionHandler implements Module, Configurabl
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Session Handler Database', 
-			'version' => 3, 
+			'version' => 4, 
 			'summary' => "Installing this module makes ProcessWire store sessions in the database rather than the file system. Note that this module will log you out after install or uninstall.",
 			'installs' => array('ProcessSessionDB')
 			);
@@ -115,7 +115,7 @@ class SessionHandlerDB extends WireSessionHandler implements Module, Configurabl
 		}
 		if($ua) {
 			$s .= ", ua=:ua";
-			$bonds[':ua'] = $ua;
+			$binds[':ua'] = $ua;
 		}
 		
 		$sql = "INSERT INTO $table SET id=:id, $s ON DUPLICATE KEY UPDATE $s, ts=NOW()";
