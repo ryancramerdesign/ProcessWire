@@ -744,15 +744,14 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		$inputfields->append($fieldset); 
 
 		$field = $this->modules->get('InputfieldSelect');
-		$field->setAttribute('name', 'labelFieldName');
-		$field->setAttribute('value', $this->labelFieldName); 
+		$field->attr('name', 'labelFieldName');
 		$field->label = $this->_('Label field');
 		$field->required = true; 
 		$field->description = $this->_('Select the page field that you want to be used in generating the labels for each selectable page.'); // Description for Label Field
 		$field->notes = $this->_('Select "Custom format" if you want to specify multiple fields, or other fields you do not see above.');
 		$field->addOption('.', $this->_('Custom format (multiple fields)' . ' ...'));
 		$field->columnWidth = 50;
-
+		
 		if($this->wire('fields')->get('title')) {
 			$field->addOption('title', 'title' . $defaultLabel);
 			$field->addOption('name', 'name');
@@ -769,6 +768,17 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 			if($titleIsDefault && $f->name == 'title') continue;
 			$field->addOption($f->name);
 		}
+		if(!$this->labelFieldFormat) {
+			if($this->labelFieldName === '.') {
+				// they want a custom format, but they didn't provide one
+				$this->labelFieldName = $titleIsDefault ? 'title' : 'name';
+			}
+		}
+		if(!$this->labelFieldName) {
+			// no label field name means we fall back to default
+			$this->labelFieldName = $titleIsDefault ? 'title' : 'name';
+		}
+		$field->attr('value', $this->labelFieldName);
 		$inputfields->append($field); 
 		
 		$field = $this->modules->get('InputfieldText');

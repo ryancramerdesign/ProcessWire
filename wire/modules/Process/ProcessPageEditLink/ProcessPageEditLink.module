@@ -89,7 +89,7 @@ class ProcessPageEditLink extends Process implements ConfigurableModule {
 			'pageUrl' => $this->page->url,
 			'pageName' => $this->page->name, 
 			'rootParentUrl' => $this->page->rootParent->url,
-			'slashUrls' => $this->page->template->slashUrls,
+			'slashUrls' => $this->page->template ? $this->page->template->slashUrls : 1,
 			'urlType' => $this->urlType,
 			'extLinkRel' => $this->extLinkRel, 
 			'extLinkTarget' => $this->extLinkTarget, 

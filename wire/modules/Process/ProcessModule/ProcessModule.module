@@ -1218,7 +1218,7 @@ class ProcessModule extends Process {
 			// we populate the language values from module config data so module doesn't have to do this
 			$data = $this->modules->getModuleConfigData($moduleName);
 			foreach($fields->getAll() as $field) {
-				if(!$field->useLanguages) continue;
+				if(!$field->getSetting('useLanguages')) continue;
 				foreach($languages as $language) {
 					if($language->isDefault()) continue;
 					$name = $field->name . '__' . $language->id;
@@ -1244,7 +1244,7 @@ class ProcessModule extends Process {
 					$data[$name] = $value;
 					// multi-language, if Inputfield specifies useLanguages==true
 					// convert value1234 inputfield values to module config data in name__1234 format
-					if($languages && $field->useLanguages) {
+					if($languages && $field->getSetting('useLanguages')) {
 						$_name = $name;
 						foreach($languages as $language) {
 							if($language->isDefault()) continue;

@@ -66,7 +66,7 @@ class SelectableOptionConfig extends Wire {
 		if(!is_null($value)) {
 			// _options has been posted
 
-			if($this->manager->useLanguages() && $inputfield->useLanguages) {
+			if($this->manager->useLanguages() && $inputfield->getSetting('useLanguages')) {
 				// multi-language
 
 				$valuesPerLanguage = array();

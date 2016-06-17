@@ -368,7 +368,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 			}
 		}
 		
-		if($this->template && count($this->template->childTemplates) == 1 
+		if($this->template && count($this->parent->template->childTemplates) == 1 
 			&& (strlen($this->parent->template->childNameFormat) || $this->input->get('name_format'))) {
 			// quick add! 
 			$this->processQuickAdd($this->parent, $this->template); 
@@ -630,6 +630,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 					}
 					if(in_array($field->collapsed, array(Inputfield::collapsedNoLocked, Inputfield::collapsedYesLocked))) continue;
 					$inputfield = $field->getInputfield($page);
+					if($this->template && $this->template->noLang) $inputfield->useLanguages = false;
 					$form->append($inputfield);
 					break;
 				}
@@ -661,6 +662,13 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 			foreach($languages as $language) {
 				if($language->isDefault()) continue;
 				$field->checkboxChecked = $this->parent->get("status$language") ? true : false;
+			}
+			if($this->template) {
+				// dummy edit page for examination by InputfieldPageName
+				$editPage = $this->wire('pages')->newPage();
+				$editPage->parent = $this->parent;
+				$editPage->template = $this->template;
+				$field->editPage = $editPage;
 			}
 		}
 		$form->append($field); 
@@ -933,7 +941,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 			if(!$this->page->hasField($field)) continue;
 			$f = $form->children->get($field->name); 
 			if($f) {
-				if($languages && $f->useLanguages) {
+				if($languages && $f->getSetting('useLanguages')) {
 					// account for language fields (most likely FieldtypePageTitleLanguage)
 					$value = $this->page->get($field->name); 
 					if(is_object($value)) $value->setFromInputfield($f);

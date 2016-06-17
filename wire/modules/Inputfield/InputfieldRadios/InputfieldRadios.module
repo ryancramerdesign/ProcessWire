@@ -62,7 +62,11 @@ class InputfieldRadios extends InputfieldSelect {
 			$textClass = 'pw-no-select';
 			if($disabled) $textClass .= ' ui-state-disabled';
 			$attrs = $this->getOptionAttributesString($attrs);
-			if($attrs) $attrs = ' ' . $attrs; 
+			if($attrs) $attrs = ' ' . $attrs;
+			$label = str_replace(' ', ' !wbr!', $value);
+			$label = $this->entityEncode($label, Inputfield::textFormatBasic);
+			$label = str_replace('!wbr!', '<wbr>', $label);
+			$label = "<span class='$textClass'>$label</span>";
 
 			$out .= 
 				"\n\t\t<li$liAttr><label$attrs>" . 
@@ -71,7 +75,7 @@ class InputfieldRadios extends InputfieldSelect {
 				"name='{$this->name}' " . 
 				"id='$id' " .
 				"value='" . htmlspecialchars($key, ENT_QUOTES) . "' />" . 
-				"<span class='$textClass'>" . str_replace(' ', ' <wbr>', $this->entityEncode($value)) ."</span>" . 
+				"<span class='$textClass'>$label</span>" . 
 				"</label></li>";
 		}
 

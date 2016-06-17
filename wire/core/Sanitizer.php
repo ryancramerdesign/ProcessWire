@@ -1560,7 +1560,7 @@ class Sanitizer extends Wire {
 			'encoding' => 'UTF-8',
 			'doubleEncode' => true,
 			'allowBrackets' => false, // allow [bracket] tags?
-			'allow' => array('a', 'strong', 'em', 'code', 's', 'span', 'u', 'small'),
+			'allow' => array('a', 'strong', 'em', 'code', 's', 'span', 'u', 'small', 'i'),
 			'disallow' => array(),
 			'linkMarkup' => '<a href="{url}" rel="nofollow" target="_blank">{text}</a>',
 		);

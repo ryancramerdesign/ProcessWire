@@ -426,7 +426,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 
 		$page = $this->process instanceof WirePageEditor ? $this->process->getPage() : $this->wire('pages')->newNullPage();
 		if(!$page->id && $inputfield->editPage) $page = $inputfield->editPage;
-		$template = $page->id ? $page->template : null;
+		$template = $page->template ? $page->template : null;
 		if($template && $template->noLang) return;
 		
 		/** @var Languages $languages */

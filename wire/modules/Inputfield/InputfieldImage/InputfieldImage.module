@@ -21,6 +21,7 @@
  * by setting directly to an instance of this Inputfield:
  *
  * @property int $gridSize squared size of the admin thumbnails (default=130)
+ * @property string $gridMode Default grid mode in admin, one of "grid", "left" or "list" (default="grid")
  * @property array $imageSizerOptions Options to pass along to the ImageSizer class. See /wire/config.php $imageSizerOptions for details.
  * 
  * 
@@ -95,6 +96,7 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		if($gridSize < 100) $gridSize = self::defaultGridSize; // establish min of 100
 		if($gridSize >= (self::defaultGridSize * 2)) $gridSize = self::defaultGridSize; // establish max of 259
 		$this->set('gridSize', $gridSize); 
+		$this->set('gridMode', 'grid'); // one of "grid", "left" or "list"
 		
 		// adminThumbScale is no longer in use (here in case descending module using it)
 		$this->set('adminThumbScale', empty($options['scale']) ? 1.0 : (float) $options['scale']);
@@ -238,7 +240,7 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		$class = 'gridImages ui-helper-clearfix';
 		if($this->uploadOnlyMode) $class .= " InputfieldImageUploadOnly";
 		if($this->overwrite && !$this->renderValueMode) $class .= " InputfieldFileOverwrite";
-		$out = "<ul class='$class' data-gridSize='$this->gridSize'>$out</ul>";
+		$out = "<ul class='$class' data-gridSize='$this->gridSize' data-gridMode='$this->gridMode'>$out</ul>";
 		$out = "<ul class='InputfieldImageErrors'></ul>$out";
 
 		return $out;
@@ -736,6 +738,18 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 	public function ___getConfigInputfields() {
 
 		$inputfields = parent::___getConfigInputfields();
+	
+		/** @var InputfieldRadios $f */
+		$f = $this->wire('modules')->get('InputfieldRadios');
+		$f->attr('name', 'gridMode');
+		$f->label = $this->_('Default image grid mode');
+		$f->description = $this->_('In the admin, the list of images will appear in this mode by default. The user can change it at any time by clicking the icons in the top right corner of the field.');
+		$f->notes = $this->_('If you have recently used this images field, you will have to clear your cookies before seeing any changes to this setting.');
+		$f->addOption('grid', '[i.fa.fa-th][/i] ' . $this->_('Square grid images'));
+		$f->addOption('left', '[i.fa.fa-tasks][/i] ' . $this->_('Proportional grid images'));
+		$f->addOption('list', '[i.fa.fa-th-list][/i] ' . $this->_('Vertical list (verbose)'));
+		$f->attr('value', $this->gridMode);
+		$inputfields->add($f);
 
 		/** @var InputfieldFieldset $fieldset */
 		$fieldset = $this->modules->get('InputfieldFieldset');

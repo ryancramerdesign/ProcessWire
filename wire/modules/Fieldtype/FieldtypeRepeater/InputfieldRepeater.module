@@ -153,6 +153,13 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 			// editable new item
 			$out .= ' {• ' . $this->_('New') . '}';
 		}
+	
+		$maxlen = 100;
+		if(strlen($out) > $maxlen) {
+			$out = substr($out, 0, $maxlen);
+			$pos = strrpos($out, ' '); 
+			if($pos > ($maxlen / 2)) $out = substr($out, 0, $pos);
+		}
 		
 		return $out;
 	}
@@ -228,6 +235,7 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 
 		/** @var InputfieldWrapper $form */
 		$form = $this->wire(new InputfieldWrapper());
+		$form->name = 'repeater_form_' . $this->name . ($itemID ? "_$itemID" : "");
 		$this->wrapAttr('data-page', $this->page->id);
 		/** @var PageArray $value */
 		$value = $this->attr('value'); 
@@ -280,6 +288,7 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 			$wrap = $this->wire('modules')->get('InputfieldFieldset'); 
 			$wrap->addClass('InputfieldRepeaterItem');
 			$wrap->label = $this->renderRepeaterLabel($label, ++$cnt, $page);
+			$wrap->name = "repeater_item_{$page->id}";
 			$wrap->wrapAttr('data-page', $page->id);
 			$wrap->wrapAttr('data-type', $this->getRepeaterItemType($page));
 			$wrap->set('useDependencies', false);
@@ -324,7 +333,7 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 			$wrap->prepend($loaded);
 			
 			if(!$isReadyItem) $form->add($wrap);
-			$this->labels[$page->id] = $wrap->label;
+			$this->labels[$page->id] = $wrap->getSetting('label');
 		}	
 
 		// create a new/blank item to be used as a template for any new items added
@@ -599,7 +608,7 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 			$name = preg_replace('/_repeater\d+$/', '', $name); 
 
 			if($name && $inputfield->isChanged()) {
-				if($languages && $inputfield->useLanguages) {
+				if($languages && $inputfield->getSetting('useLanguages')) {
 					$value = $page->get($name); 
 					if(is_object($value)) {
 						$value->setFromInputfield($inputfield); 

@@ -212,10 +212,11 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 		$viewable = $this->page->viewable();
 		
 		$out = "<p id='PageIDIndicator' class='$class'>" . ($this->page->id ? $this->page->id : "New") . "</p>";
-		
-		if($this->form->description) { 
-			$out .= "<h2>" . $this->form->description . "</h2>";
-			$this->form->description = '';
+	
+		$description = $this->form->getSetting('description');
+		if($description) { 
+			$out .= "<h2>" . $this->form->entityEncode($description, Inputfield::textFormatBasic) . "</h2>";
+			$this->form->set('description', '');
 		}
 
 		if(!count($this->fields)) { 
@@ -332,6 +333,7 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 			if(count($languageUrls) > 1) {
 				$ul = "<ul class=''>";
 				foreach($languages as $language) {
+					if(!isset($languageUrls[$language->id])) continue;
 					$localUrl = $languageUrls[$language->id];
 					$label = $language->get('title|name');
 					$_action = str_replace(' has-items', '', $action);
@@ -505,7 +507,8 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 
 		// for ProcessPageEditImageSelect support
 		if($this->wire('input')->get('uploadOnlyMode') && !$this->wire('config')->ajax) {
-			$form->action .= "&uploadOnlyMode=1";
+			$action .= "&uploadOnlyMode=1";
+			$form->attr('action', $action);
 			// for modal uploading with InputfieldFile or InputfieldImage
 			if(count($this->fields) && $this->field->type instanceof FieldtypeImage) {
 				$this->redirectUrl = "../image/?id=$this->id";
@@ -519,7 +522,8 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 		if($this->field) { 
 			// focus in on a specific field or fields 
 			
-			$form->action .= count($this->fields) == 1 ? "&field={$this->field->name}" : "&fields=" . implode(',', array_keys($this->fields));
+			$action .= count($this->fields) == 1 ? "&field={$this->field->name}" : "&fields=" . implode(',', array_keys($this->fields));
+			$form->attr('action', $action);
 			$form->addClass('ProcessPageEditSingleField'); 
 		
 			foreach($this->fields as $field) {
@@ -530,7 +534,8 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 						Inputfield::collapsedNoLocked,
 						Inputfield::collapsedYesLocked,
 					);
-					if($inputfield->collapsed > 0 && !in_array($inputfield->collapsed, $skipCollapsed)) {
+					$collapsed = $inputfield->getSetting('collapsed');
+					if($collapsed > 0 && !in_array($collapsed, $skipCollapsed)) {
 						$inputfield->collapsed = Inputfield::collapsedNo;
 					}
 					$form->add($inputfield);
@@ -551,11 +556,11 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 				if(!$tabOpen && $inputfield->className == 'InputfieldFieldsetTabOpen') {
 					// open new tab
 					$tabOpen = $inputfield; 
-					$tabViewable = $this->page->viewable($inputfield->name);
+					$tabViewable = $this->page->viewable($inputfield->attr('name'));
 					$tabWrap = $this->wire(new InputfieldWrapper());
-					$tabWrap->attr('title', $tabOpen->label);
-					$tabWrap->id = $tabOpen->id;
-					$tabWrap->collapsed = $tabOpen->collapsed;
+					$tabWrap->attr('title', $tabOpen->getSetting('label'));
+					$tabWrap->id = $tabOpen->attr('id');
+					$tabWrap->collapsed = $tabOpen->getSetting('collapsed');
 					$contentTab->remove($inputfield); 
 					if(!$tabViewable) continue;
 					
@@ -669,7 +674,7 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 			if($label) $field->label = $label;
 			$field->attr('name', '_pw_page_name');
 			$field->attr('value', $this->page->name);
-			$field->required = $this->page->id != 1;
+			$field->required = $this->page->id != 1 && !$this->page->hasStatus(Page::statusTemp);
 			$field->slashUrls = $this->page->template->slashUrls;
 			if(!$this->page->editable('name', false)) {
 				$field->attr('disabled', 'disabled');
@@ -831,7 +836,7 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 			$field->attr('value', $this->page->name); 
 			$field->attr('name', '_pw_page_name');
 			$field->slashUrls = $this->page->template->slashUrls;
-			$field->required = $this->page->id != 1;
+			$field->required = $this->page->id != 1 && !$this->page->hasStatus(Page::statusTemp);
 			if(!$this->page->editable('name', false)) {
 				$field->attr('disabled', 'disabled'); 
 				$field->required = false;
@@ -1242,7 +1247,7 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 			}
 
 			if($name && $inputfield->isChanged()) {
-				if($languages && $inputfield->useLanguages) {
+				if($languages && $inputfield->getSetting('useLanguages')) {
 					$v = $this->page->get($name); 
 					if(is_object($v)) {
 						$v->setFromInputfield($inputfield); 
@@ -1685,7 +1690,7 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 
 		foreach($form->children() as $inputfield) {
 			$name = $inputfield->name;
-			if($languages && $inputfield->useLanguages) {
+			if($languages && $inputfield->getSetting('useLanguages')) {
 				$v = $page->get($name);
 				if(is_object($v)) {
 					$v->setFromInputfield($inputfield);

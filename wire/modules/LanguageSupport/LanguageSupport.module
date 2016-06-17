@@ -281,7 +281,7 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 		
 		$user = $this->wire('user');
 		if($user->isSuperuser()) return true; 
-		if($inputfield->useLanguages) return true; 
+		if($inputfield->getSetting('useLanguages')) return true; 
 		if(!$this->LanguageSupportFields) return true; 
 		$permissions = $this->wire('languages')->getPageEditPermissions();
 		if(!isset($permissions['none'])) return true;
@@ -335,7 +335,7 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 
 		/** @var Inputfield $inputfield */
 		$inputfield = $event->arguments(0);
-		if($inputfield->useLanguages) return;
+		if($inputfield->getSetting('useLanguages')) return;
 		$renderValueMode = $event->arguments(1);
 
 		if(!$this->editableInputfield($inputfield) && !$renderValueMode) {
@@ -412,7 +412,7 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 			}
 		}
 
-		if(!$inputfield->useLanguages || $numLanguages < 2) return;
+		if(!$inputfield->getSetting('useLanguages') || $numLanguages < 2) return;
 
 		// keep originals to restore later (including $name, which we already got above)
 		$id = $inputfield->attr('id');
@@ -471,7 +471,7 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 		$inputfield = $event->object;
 		$replace = false; 
 		
-		if($inputfield->useLanguages) {
+		if($inputfield->getSetting('useLanguages')) {
 			// native multi-language field
 			$this->hookInputfieldBeforeRender($event); // ensures default language values are populated
 			if(!$this->wire('languages')->editable($this->defaultLanguagePage)) $replace = true; 
@@ -503,7 +503,7 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 
 		/** @var Inputfield $inputfield */
 		$inputfield = $event->object;
-		if(!$inputfield->useLanguages) return;
+		if(!$inputfield->getSetting('useLanguages')) return;
 		$post = $event->arguments[0];
 		$languages = $this->wire('languages');	
 		

@@ -779,14 +779,14 @@ class Field extends WireData implements Saveable, Exportable {
 
 		// predefined field settings
 		$inputfield->attr('name', $this->name . $contextStr); 
-		$inputfield->label = $this->label;
+		$inputfield->set('label', $this->label);
 
 		// just in case an Inputfield needs to know it's Fieldtype context, or lack of it
-		$inputfield->hasFieldtype = $this->type; 
+		$inputfield->set('hasFieldtype', $this->type); 
 		
 		// custom field settings
 		foreach($this->data as $key => $value) {
-			if($inputfield->has($key)) {
+			if($inputfield->hasSetting($key) || $inputfield->hasAttribute($key)) {
 				if(is_array($this->trackGets)) $this->trackGets($key); 
 				$inputfield->set($key, $value); 
 			}
@@ -797,7 +797,7 @@ class Field extends WireData implements Saveable, Exportable {
 			$inputfield->collapsed = Inputfield::collapsedHidden;
 		} else if($locked) {
 			// Inputfield is locked as a result of access control
-			$collapsed = $inputfield->collapsed; 
+			$collapsed = $inputfield->getSetting('collapsed'); 
 			$ignoreCollapsed = array(Inputfield::collapsedNoLocked, Inputfield::collapsedYesLocked, Inputfield::collapsedHidden);
 			if(!in_array($collapsed, $ignoreCollapsed)) {
 				// Inputfield is not already locked or hidden, convert to locked equivalent

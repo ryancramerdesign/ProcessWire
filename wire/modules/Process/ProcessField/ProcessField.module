@@ -1632,7 +1632,7 @@ class ProcessField extends Process implements ConfigurableModule {
 			$this->field->set($name, $value); 
 
 			// account for languages, if used
-			if($languages && $inputfield->useLanguages) {
+			if($languages && $inputfield->getSetting('useLanguages')) {
 				foreach($languages as $language) {
 					$value = $inputfield->get("value" . $language->id);
 					$this->field->set($name . $language->id, $value); 

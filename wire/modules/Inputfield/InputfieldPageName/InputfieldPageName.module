@@ -156,8 +156,8 @@ class InputfieldPageName extends InputfieldName implements ConfigurableModule {
 		$languages = $this->wire('languages');
 		$sanitizer = $this->wire('sanitizer');
 		$editable = $this->attr('disabled') ? false : true; 
-		
-		if($this->editPage && $this->editPage->template->noLang) $languages = false;	
+	
+		if($this->editPage && $this->editPage->template->noLang) $languages = false;
 		if($editable && $languages && $this->hasLanguagePageNames && !$languages->editable($user->language)) $editable = false;
 		
 		if($this->parentPage) {
