@@ -786,7 +786,12 @@ class Field extends WireData implements Saveable, Exportable {
 		
 		// custom field settings
 		foreach($this->data as $key => $value) {
-			if($inputfield->hasSetting($key) || $inputfield->hasAttribute($key)) {
+			if($inputfield instanceof InputfieldWrapper) {
+				$has = $inputfield->hasSetting($key) || $inputfield->hasAttribute($key);
+			} else {
+				$has = $inputfield->has($key);
+			}
+			if($has) {
 				if(is_array($this->trackGets)) $this->trackGets($key); 
 				$inputfield->set($key, $value); 
 			}
