@@ -330,7 +330,9 @@ class LanguageTranslator extends Wire {
 	public function setTranslationFromHash($textdomain, $hash, $translation) {
 
 		// if the textdomain isn't yet setup, then set it up
-		if(!is_array($this->textdomains[$textdomain])) $this->textdomains[$textdomain] = $this->textdomainTemplate();
+		if(!isset($this->textdomains[$textdomain]) || !is_array($this->textdomains[$textdomain])) {
+			$this->textdomains[$textdomain] = $this->textdomainTemplate();
+		}
 
 		// populate the new translation
 		if(strlen($translation)) $this->textdomains[$textdomain]['translations'][$hash] = array('text' => $translation); 
@@ -388,6 +390,18 @@ class LanguageTranslator extends Wire {
 	}
 
 	/**
+	 * Does a json translation file exist for the given textdomain?
+	 * 
+	 * @param string $textdomain
+	 * @return bool
+	 * 
+	 */
+	public function textdomainFileExists($textdomain) {
+		$file = $this->getTextdomainTranslationFile($textdomain);
+		return is_file($file);
+	}
+
+	/**
 	 * Load translation group $textdomain into the current language translations
 	 *
 	 */
@@ -411,13 +425,21 @@ class LanguageTranslator extends Wire {
 	/**
 	 * Given a source file to translate, create a new textdomain
 	 *
-	 * @param string Filename that we will be translating, relative to site root.
+	 * @param string $filename Filename or textdomain that we will be translating, relative to site root.
+	 * @param bool $filenameIsTextdomain Specify true if $filename is a textdomain instead.
+	 * @param bool $save Whether to save the language
 	 * @return string|bool Returns textdomain string if successful, or false if not. 
 	 *
 	 */
-	public function addFileToTranslate($filename) {
+	public function addFileToTranslate($filename, $filenameIsTextdomain = false, $save = true) {
 
-		$textdomain = $this->filenameToTextdomain($filename); 
+		if($filenameIsTextdomain) {
+			$textdomain = $filename;
+			$filename = $this->textdomainToFilename($textdomain);
+			// $this->message($textdomain . ": " . $filename);
+		} else {
+			$textdomain = $this->filenameToTextdomain($filename);
+		}
 		$this->textdomains[$textdomain] = $this->textdomainTemplate(ltrim($filename, '/'), $textdomain); 
 		$file = $this->getTextdomainTranslationFile($textdomain); 
 		$result = file_put_contents($file, $this->encodeJSON($this->textdomains[$textdomain]), LOCK_EX); 
@@ -431,7 +453,7 @@ class LanguageTranslator extends Wire {
 				} 
 			}
 			$this->currentLanguage->$fieldName->add($file); 
-			$this->currentLanguage->save();
+			if($save) $this->currentLanguage->save();
 		}
 
 		return $result ? $textdomain : false;
@@ -446,7 +468,9 @@ class LanguageTranslator extends Wire {
 	 */
 	public function saveTextdomain($textdomain) {
 		if(empty($this->textdomains[$textdomain])) return false;
-		$json = $this->encodeJSON($this->textdomains[$textdomain]); 
+		$data = $this->textdomains[$textdomain];
+		//if(empty($data['file'])) $data['file'] = $this->textdomainToFilename($textdomain);
+		$json = $this->encodeJSON($data); 
 		$file = $this->getTextdomainTranslationFile($textdomain); 
 		$result = file_put_contents($file, $json, LOCK_EX); 
 		return $result; 
