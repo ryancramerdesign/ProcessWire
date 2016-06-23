@@ -122,13 +122,28 @@ class SystemUpdater extends WireData implements Module, ConfigurableModule {
 	 * 
 	 */
 	protected function ___coreVersionChange($fromVersion, $toVersion) {
+		
 		$this->message(sprintf($this->_('Detected core version change %1$s => %2$s'), $fromVersion, $toVersion));
+		
+		if( (strpos($fromVersion, '2') === 0 && strpos($toVersion, '3') === 0) ||
+			(strpos($fromVersion, '3') === 0 && strpos($toVersion, '2') === 0)) {
+			// clear FileCompiler cache
+			$config = $this->wire('config');
+			if($config->templateCompile || $config->moduleCompile) {
+				$compiler = new FileCompiler($this->wire('config')->paths->templates);
+				$compiler->clearCache(true);
+				$this->message($this->_('Cleared file compiler cache')); 
+			}
+		}
+		
 		if(!$this->numUpdatesApplied) {
 			// reset modules cache, only if it hasn't been reset already by a system update
 			$this->modules->resetCache();
 		}
+		
 		$this->configData['coreVersion'] = $toVersion;
 		$this->wire('modules')->saveModuleConfigData($this, $this->configData);
+		
 	}
 
 	/**

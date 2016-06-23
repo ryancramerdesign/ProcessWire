@@ -81,8 +81,8 @@ class FileCompiler extends Wire {
 		$this->options = array_merge($this->options, $options);
 		if(!strlen(__NAMESPACE__)) {
 			// when PW compiled without namespace support
-			$this->options['namespace'] = false;
-			$this->options['skipIfNamespace'] = true;
+			$this->options['skipIfNamespace'] = false;
+			$this->options['namespace'] = true;
 		}
 		if(strpos($sourcePath, '..') !== false) $sourcePath = realpath($sourcePath);
 		if(DIRECTORY_SEPARATOR != '/') $sourcePath = str_replace(DIRECTORY_SEPARATOR, '/', $sourcePath);
@@ -225,6 +225,9 @@ class FileCompiler extends Wire {
 			$targetPath = dirname($targetPathname);
 			$targetData = file_get_contents($sourcePathname);
 			if(stripos($targetData, 'FileCompiler=0')) return $sourcePathname; // bypass if it contains this string
+			if(strpos($targetData, 'namespace') !== false) $this->ns = $this->wire('files')->getNamespace($targetData, true);
+			if(!$this->ns) $this->ns = "\\";
+			if(!__NAMESPACE__ && !$this->options['modules'] && $this->ns === "\\") return $sourcePathname;
 			set_time_limit(120);
 			$this->copyAllNewerFiles($sourcePath, $targetPath); 
 			$targetDirname = dirname($targetPathname) . '/';
@@ -276,14 +279,6 @@ class FileCompiler extends Wire {
 	 */
 	protected function ___compileData($data, $sourceFile) {
 		
-		$pos = strpos($data, 'namespace');
-		if($pos !== false) {
-			// first check if data already defines a namespace, in which case we'll skip over it
-			$this->ns = $this->wire('files')->getNamespace($data, true);
-		} else {
-			$this->ns = "\\";
-		}
-		
 		if($this->options['skipIfNamespace'] && $this->ns && $this->ns !== "\\") {
 			// file already declares a namespace and options indicate we shouldn't compile
 			return $data;
@@ -292,12 +287,19 @@ class FileCompiler extends Wire {
 		if($this->options['includes']) $this->compileIncludes($data, $sourceFile);
 		
 		if($this->options['namespace']) {
-			if($this->ns && $this->ns !== "\\") {
-				// namespace already present, no need for namespace compilation
+			if(__NAMESPACE__) { 
+				if($this->ns && $this->ns !== "\\") {
+					// namespace already present, no need for namespace compilation
+				} else {
+					$this->compileNamespace($data);
+				}
 			} else {
-				$this->compileNamespace($data);
+				if($this->ns && $this->ns !== "\\") {
+					// namespace present in file
+					$this->compileNamespace($data);
+				}
 			}
-		}
+		} 
 		
 		if($this->options['modules']) {
 			foreach($this->wire('modules')->findByPrefix('FileCompiler', true) as $module) {
@@ -305,6 +307,12 @@ class FileCompiler extends Wire {
 				$module->setSourceFile($sourceFile);
 				$data = $module->compile($data);
 			}	
+		}
+	
+		if(!strlen(__NAMESPACE__)) {
+			if(strpos($data, "ProcessWire\\")) {
+				$data = str_replace(array("\\ProcessWire\\", "ProcessWire\\"), "\\", $data);
+			}
 		}
 		
 		return $data;
@@ -509,7 +517,8 @@ class FileCompiler extends Wire {
 			
 			$fileMatch = str_replace("\t", '', $fileMatch);
 			if(strlen($open)) $open .= ' ';
-			$newFullMatch = "$open$funcMatch(\\ProcessWire\\wire('files')->compile($fileMatch,$optionsStr)$argsMatch$close";
+			$ns = __NAMESPACE__ ? "\\ProcessWire" : "";
+			$newFullMatch = "$open$funcMatch($ns\\wire('files')->compile($fileMatch,$optionsStr)$argsMatch$close";
 			$data = str_replace($fullMatch, $newFullMatch, $data);
 		}
 		
@@ -524,8 +533,9 @@ class FileCompiler extends Wire {
 				') . $1$2', 
 				$data);
 			*/
+			$ns = __NAMESPACE__ ? "\\ProcessWire" : "";
 			$data = preg_replace('%([\'"])' . preg_quote($rootPath) . '([^\'"\s\r\n]*[\'"])%',
-				'\\ProcessWire\\wire("config")->paths->root . $1$2',
+				$ns . '\\wire("config")->paths->root . $1$2',
 				$data);
 		}
 
@@ -563,7 +573,7 @@ class FileCompiler extends Wire {
 				if($file->isDot() || $file->isDir()) continue;
 				$basename = $file->getBasename('.php');
 				if(strtoupper($basename[0]) == $basename[0]) {
-					$name = __NAMESPACE__ . "\\$basename";	
+					$name = __NAMESPACE__ ? __NAMESPACE__ . "\\$basename" : $basename;	
 					if(!in_array($name, $classes)) $files[] = $name;
 				}
 			}
@@ -571,25 +581,30 @@ class FileCompiler extends Wire {
 		
 		// also add in all modules
 		foreach($this->wire('modules') as $module) {
-			$name = $module->className(true);
+			$name = __NAMESPACE__ ? $module->className(true) : $module->className();
 			if(!in_array($name, $classes)) $classes[] = $name;
 		}
 		$classes = array_merge($classes, $files);
+		if(!__NAMESPACE__) $classes = array_merge($classes, array_keys($this->wire('modules')->getInstallable()));
 		
 		// update classes and interfaces
 		foreach($classes as $class) {
 			
-			if(strpos($class, __NAMESPACE__ . '\\') !== 0) continue; // limit only to ProcessWire classes/interfaces
+			if(__NAMESPACE__ && strpos($class, __NAMESPACE__ . '\\') !== 0) continue; // limit only to ProcessWire classes/interfaces
 			/** @noinspection PhpUnusedLocalVariableInspection */
-			list($ns, $class) = explode('\\', $class, 2); // reduce to just class without namespace
+			if(strpos($class, '\\') !== false) {
+				list($ns, $class) = explode('\\', $class, 2); // reduce to just class without namespace
+			} else {
+				$ns = '';
+			}
 			if(stripos($data, $class) === false) continue; // quick exit if class name not referenced in data
 			
 			$patterns = array(
 				// 1=open 2=close
 				// all patterns match within 1 line only
 				"new" => '(new\s+)' . $class . '\s*(\(|;|\))',  // 'new Page(' or 'new Page;' or 'new Page)'
-				"function" => '(function\s+[_a-zA-Z0-9]+\s*\([^)]*?)\b' . $class . '(\s+\$[_a-zA-Z0-9]+)', // 'function(Page $page' or 'function($a, Page $page'
-				"::" => '(^|[^_a-zA-Z0-9"\'])' . $class . '(::)', // constant ' Page::foo' or '(Page::foo' or '=Page::foo' or bitwise open
+				"function" => '(function\s+[_a-zA-Z0-9]+\s*\([^\\\\)]*?)\b' . $class . '(\s+\$[_a-zA-Z0-9]+)', // 'function(Page $page' or 'function($a, Page $page'
+				"::" => '(^|[^_\\\\a-zA-Z0-9"\'])' . $class . '(::)', // constant ' Page::foo' or '(Page::foo' or '=Page::foo' or bitwise open
 				"extends" => '(\sextends\s+)' . $class . '(\s|\{|$)', // 'extends Page'
 				"implements" => '(\simplements[^{]*?[\s,]+)' . $class . '([^_a-zA-Z0-9]|$)', // 'implements Module' or 'implements Foo, Module'
 				"instanceof" => '(\sinstanceof\s+)' . $class . '([^_a-zA-Z0-9]|$)', // 'instanceof Page'
@@ -606,7 +621,7 @@ class FileCompiler extends Wire {
 					$open = $matches[1][$key];
 					$close = $matches[2][$key];
 					if(substr($open, -1) == '\\') continue; // if last character in open is '\' then skip the replacement
-					$className = '\\' . __NAMESPACE__ . '\\' . $class;
+					$className = __NAMESPACE__ ? '\\' . __NAMESPACE__ . '\\' . $class : '\\' . $class;
 					$data = str_replace($fullMatch, $open . $className . $close, $data);
 				}
 			}
@@ -618,11 +633,17 @@ class FileCompiler extends Wire {
 		
 		foreach($functions['user'] as $function) {
 			
-			if(stripos($function, __NAMESPACE__ . '\\') !== 0) continue; // limit only to ProcessWire functions
+			if(__NAMESPACE__) {
+				if(stripos($function, __NAMESPACE__ . '\\') !== 0) continue; // limit only to ProcessWire functions
+				list($ns, $function) = explode('\\', $function, 2); // reduce to just function name
+				$functionName = '\\' . __NAMESPACE__ . '\\' . $function;
+			} else {
+				if(stripos($function, '\\') !== 0) continue;
+				$functionName = '\\' . $function;
+				$ns = '';
+			}
 			/** @noinspection PhpUnusedLocalVariableInspection */
-			list($ns, $function) = explode('\\', $function, 2); // reduce to just function name
 			if(stripos($data, $function) === false) continue; // if function name not mentioned in data, quick exit
-			$functionName = '\\' . __NAMESPACE__ . '\\' . $function;
 		
 			$n = 0;
 			while(preg_match_all('/^(.*?[()!;,@\[=\s.])' . $function . '\s*\(/im', $data, $matches)) {
@@ -642,11 +663,12 @@ class FileCompiler extends Wire {
 		}
 		
 		// update other function calls
+		$ns = __NAMESPACE__ ? "\\ProcessWire" : "";
 		if(strpos($data, 'class_parents(') !== false) {
-			$data = preg_replace('/\bclass_parents\(/', '\\ProcessWire\\wireClassParents(', $data);
+			$data = preg_replace('/\bclass_parents\(/', $ns . '\\wireClassParents(', $data);
 		}
 		if(strpos($data, 'class_implements(') !== false) {
-			$data = preg_replace('/\bclass_implements\(/', '\\ProcessWire\\wireClassImplements(', $data);
+			$data = preg_replace('/\bclass_implements\(/', $ns . '\\wireClassImplements(', $data);
 		}
 		
 		return true; 

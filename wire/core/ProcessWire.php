@@ -401,12 +401,12 @@ class ProcessWire extends Wire {
 		if($session) $session->maintenance();
 		if($cache) $cache->maintenance();
 
-		if($config->templateCompile && __NAMESPACE__) {
+		if($config->templateCompile) {
 			$compiler = new FileCompiler($this->wire('config')->paths->templates);
 			$compiler->maintenance();
 		}
 		
-		if($config->moduleCompile && __NAMESPACE__) {
+		if($config->moduleCompile) {
 			$compiler = new FileCompiler($this->wire('config')->paths->siteModules);
 			$compiler->maintenance();
 		}

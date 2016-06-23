@@ -239,7 +239,7 @@ class ProcessModule extends Process {
 			$this->session->CSRF->validate();
 			$name = $this->wire('sanitizer')->name($this->input->post->install);
 			if($name && isset($this->modulesArray[$name]) && !$this->modulesArray[$name]) {
-				$module = $this->modules->get($name); 		
+				$module = $this->modules->install($name, array('force' => true)); 		
 				if($module) {
 					$this->modulesArray[$name] = 1;
 					$this->session->message($this->_("Module Install") . " - $name"); // Message that precedes the name of the module installed
@@ -633,7 +633,8 @@ class ProcessModule extends Process {
 			$summary .= empty($info['href']) ? '' : (" <a href='$info[href]'>" . $this->_('more') . "</a>");
 			if($summary) $summary = "<p class='module-summary'>$summary</p>";
 			$buttons = '';
-			$confirmJS = "return confirm('" . sprintf($this->_('Delete %s?'), $name) . "')";
+			$confirmDeleteJS = "return confirm('" . sprintf($this->_('Delete %s?'), $name) . "')";
+			$confirmInstallJS = "return confirm('" . sprintf($this->_('Installing may cause problems. Are you sure you want to install?'), $name) . "')";
 			$editUrl = "edit?name={$name}";
 
 			if(!$installed) {
@@ -665,25 +666,48 @@ class ProcessModule extends Process {
 				$title = "<span data-name='$name' class='$class'>$title</span>";
 
 				if(count($requires)) {
-					//$buttonState = 'ui-state-default ui-state-disabled';
-					//$buttonType = 'button';
+					$buttonState = 'ui-state-default ui-state-disabled';
+					$buttonType = 'button';
 				} else {
-					$isConfirm = count($modulesArray) == 1 && $this->wire('input')->get('name');
-					$buttonState = 'ui-state-default';
-					$buttonType = 'submit';
-					$buttonPriority = $isConfirm ? "ui-priority-primary" : "ui-priority-secondary";
-					$buttons .=
-						"<button type='$buttonType' name='install' data-install='$name' class='install_$name $buttonState ui-button $buttonPriority' value='$name'>" .
-						"<span class='ui-button-text'><i class='fa fa-sign-in'></i> " . $this->labels['install_btn'] . "</span></button>"; // Text for 'Install' button
-					// install confirm, needs a cancel button
-					if($isConfirm) $buttons .=
-						"<button type='$buttonType' name='cancel' class='cancel_$name ui-button ui-priority-secondary' value='$name'>" .
-						"<span class='ui-button-text'><i class='fa fa-times-circle'></i> " . $this->labels['cancel'] . "</span></button>"; // Text for 'Cancel' button
 				}
+				$isConfirm = count($modulesArray) == 1 && $this->wire('input')->get('name');
+				$buttonState = 'ui-state-default';
+				$buttonPriority = $isConfirm ? "ui-priority-primary" : "ui-priority-secondary";
+				$buttonType = 'submit';
+				$buttonWarning = '';
+				if(count($requires)) {
+					$buttonWarning = " onclick=\"$confirmInstallJS\"";
+					$icon = 'fa-warning';
+				} else {
+					$icon = 'fa-sign-in';
+				}
+				$buttons .=
+					"<button type='$buttonType' name='install'$buttonWarning data-install='$name' " . 
+						"class='install_$name $buttonState ui-button $buttonPriority' value='$name'>" .
+						"<span class='ui-button-text'>" . 
+							"<i class='fa $icon'></i> " . 
+							$this->labels['install_btn'] . 
+						"</span>" . 
+					"</button>"; 
+				
+				// install confirm, needs a cancel button
+				if($isConfirm) $buttons .=
+					"<button type='$buttonType' name='cancel' class='cancel_$name ui-button ui-priority-secondary' value='$name'>" .
+						"<span class='ui-button-text'>" . 
+							"<i class='fa fa-times-circle'></i> " . 
+							$this->labels['cancel'] . 
+						"</span>" . 
+					"</button>"; 
 
 				if($allowDelete && $this->wire('modules')->isDeleteable($name)) $buttons .= 
-					"<button type='submit' name='delete' data-delete='$name' class='delete_$name ui-state-default ui-priority-secondary ui-button' value='$name' onclick=\"$confirmJS\">" . 
-					"<span class='ui-button-text'><i class='fa fa-eraser'></i> " . $this->_x('Delete', 'button') . "</span></button>"; // Text for 'Delete' button
+					"<button type='submit' name='delete' data-delete='$name' " . 
+						"class='delete_$name ui-state-default ui-priority-secondary ui-button' " . 
+						"value='$name' onclick=\"$confirmDeleteJS\">" . 
+						"<span class='ui-button-text'>" . 
+							"<i class='fa fa-eraser'></i> " . 
+							$this->_x('Delete', 'button') . 
+						"</span>" . 
+					"</button>"; 
 
 				$editUrl = '#';
 

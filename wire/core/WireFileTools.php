@@ -727,12 +727,8 @@ class WireFileTools extends Wire {
 	 * 
 	 */
 	public function compile($file, array $options = array()) {
-		if(__NAMESPACE__) {
-			$compiler = new FileCompiler(dirname($file), $options);
-			return $compiler->compile(basename($file));
-		} else {
-			return $file;
-		}
+		$compiler = new FileCompiler(dirname($file), $options);
+		return $compiler->compile(basename($file));
 	}
 
 	/**

@@ -127,7 +127,11 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 			if(!$field->type instanceof FieldtypeRepeater) continue;
 			$template = $field->type->getRepeaterTemplate($field);
 			if(!$template) continue;
-			$template->setQuietly('pageClass', wireClassName($field->type->getPageClass()));
+			if(__NAMESPACE__) {
+				$template->setQuietly('pageClass', wireClassName($field->type->getPageClass()));
+			} else {
+				$template->setQuietly('pageClass', $field->type->getPageClass());
+			}
 		}
 	}
 

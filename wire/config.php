@@ -261,7 +261,7 @@ $config->userAuthHashType = 'sha1';
  * @var bool
  * 
  */
-$config->templateCompile = true; 
+$config->templateCompile = strlen(__NAMESPACE__) > 0; 
 
 /**
  * Prepend template file 
@@ -784,7 +784,7 @@ $config->dbQueryLogMax = 500;
  * @var bool
  *
  */
-$config->moduleCompile = true;
+$config->moduleCompile = true; 
 
 /**
  * Modules service URL
