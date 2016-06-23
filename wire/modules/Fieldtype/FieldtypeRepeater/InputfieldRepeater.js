@@ -70,6 +70,34 @@ function InputfieldRepeaterItemOpenReady(e) {
 }
 
 /**
+ * Remember which repeater items are open 
+ * 
+ */
+function InputfieldRepeaterUpdateState($item) {
+	
+	if(!$item.closest('.InputfieldRepeaterRememberOpen').length) return;
+	
+	var val = '';
+	
+	$(".InputfieldRepeaterItem:not(.InputfieldStateCollapsed)").each(function() {
+		var id = parseInt($(this).attr('data-page'));
+		if(id > 0) {
+			val += id + '|';
+		}
+	});
+
+	$.cookie('repeaters_open', val);
+}
+
+/**
+ * Event called when repeater item is collapsed
+ * 
+ */
+function InputfieldRepeaterItemClosed(e) {
+	InputfieldRepeaterUpdateState($(this));
+}
+
+/**
  * Handles load of ajax editable items (Inputfields "opened" event handler)
  * 
  */
@@ -77,6 +105,8 @@ function InputfieldRepeaterItemOpened(e) {
 	
 	var $item = $(this);
 	var $loaded = $item.find(".InputfieldRepeaterLoaded");
+
+	InputfieldRepeaterUpdateState($item);
 	
 	if(parseInt($loaded.val()) > 0) return; // item already loaded
 
@@ -320,6 +350,7 @@ function InputfieldRepeaterInit($this) {
 				$('html, body').animate({
 					scrollTop: $addItem.offset().top
 				}, 500);
+				InputfieldRepeaterUpdateState($addItem);
 			});
 		}
 		
@@ -346,6 +377,7 @@ $(document).ready(function() {
 	$(document).on('click', '.InputfieldRepeaterTrash', InputfieldRepeaterDeleteClick);
 	$(document).on('click', '.InputfieldRepeaterToggle', InputfieldRepeaterToggleClick);
 	$(document).on('opened', '.InputfieldRepeaterItem', InputfieldRepeaterItemOpened);
+	$(document).on('closed', '.InputfieldRepeaterItem', InputfieldRepeaterItemClosed);
 	$(document).on('openReady', '.InputfieldRepeaterItem', InputfieldRepeaterItemOpenReady);
 
 }); 

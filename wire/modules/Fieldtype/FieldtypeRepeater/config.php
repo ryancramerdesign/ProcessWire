@@ -175,6 +175,22 @@ class FieldtypeRepeaterConfigHelper extends Wire {
 			else if(is_null($value)) $value = FieldtypeRepeater::loadingAll;
 		$f->attr('value', (int) $value);
 		$inputfields->add($f);
+		
+		// -------------------------------------------------
+		
+		$f = $this->wire('modules')->get('InputfieldCheckbox');
+		$f->attr('name', 'rememberOpen');
+		$f->label = $this->_('Remember which repeater items are open?');
+		$f->description = $this->_('When checked, opened repeater items remain open after saving or reloading from the page editor (unless the user closes them).');
+		$f->icon = 'lightbulb-o';
+		if((int) $field->get('rememberOpen')) {
+			$f->attr('checked', 'checked');
+		} else {
+			$f->collapsed = Inputfield::collapsedYes;	
+		}
+		$inputfields->add($f);
+		
+		// -------------------------------------------------
 
 		$numOldReady = $this->field->type->countOldReadyPages($field);
 		if($numOldReady) {
