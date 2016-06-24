@@ -1,3 +1,30 @@
+/**
+ * True when other tabs are being automatically clicked
+ * 
+ * @type {boolean}
+ * 
+ */
+var clickLanguageTabActive = false;
+
+/**
+ * Event called when language tab is long-clicked
+ * 
+ * @param e
+ * 
+ */
+function longclickLanguageTab(e) {
+	if(clickLanguageTabActive) return;
+	clickLanguageTabActive = true;
+	var $tab = $(this);
+	var langID = $tab.attr('data-lang');
+	var $tabs = $tab.closest('form').find('a.langTab' + langID).not($tab);
+	$tab.click();
+	$tabs.click();
+	$tabs.effect('highlight', 250);
+	setTimeout(function() {
+		clickLanguageTabActive = false;
+	}, 250);
+}
 
 /**
  * Establish tabs for all ".langTabs" elements in the given element
@@ -27,6 +54,19 @@ function setupLanguageTabs($form) {
 				.append("<i class='fa fa-folder-o'></i>");
 			$parent.prev('.InputfieldHeader').append($span);
 		}
+		var $links = $this.find('a');
+		var timeout = null;
+		var $note = $parent.find('.langTabsNote');
+		$links.on('longclick', longclickLanguageTab);
+		$links.on('mouseover', function() {
+			if(timeout) clearTimeout(timeout);
+			if($parent.width() < 500) return;
+			timeout = setTimeout(function() { $note.fadeIn('fast'); }, 250);
+		}).on('mouseout', function() {
+			if(timeout) clearTimeout(timeout);
+			if($parent.width() < 500) return;
+			timeout = setTimeout(function() { $note.fadeOut('fast'); }, 250);
+		});
 	});
 }
 
@@ -62,9 +102,14 @@ function toggleLanguageTabs() {
 	return false;
 }
 
+/**
+ * Hide all language tab inputs except for default
+ * 
+ * For cases where all inputs are shown rather than tabs (like page name).
+ * 
+ */
 function hideLanguageTabs() {
 	
-	// hide all inputs except default (for cases where all inputs are shown rather than tabs)
 	$(".InputfieldContent").each(function() {
 		var n = 0;
 		$(this).children('.LanguageSupport').each(function() {
@@ -85,6 +130,10 @@ function hideLanguageTabs() {
 	$(".hasLangTabs").removeClass("hasLangTabs").addClass("hadLangTabs");
 }
 
+/**
+ * The opposite of the hideLanguageTabs() function
+ * 
+ */
 function unhideLanguageTabs() {
 	// un-hide the previously hidden language tabs
 	$('.langTabsHidden').removeClass('langTabsHidden');
@@ -92,8 +141,12 @@ function unhideLanguageTabs() {
 	$('.hadLanguageSupport').removeClass('hadLanguageSupport'); // just .Inputfield with open inputs
 }
 
-$(document).ready(function() { 
-	$(document).on('click', '.langTabsToggle', toggleLanguageTabs); 
+/**
+ * document.ready
+ * 
+ */
+jQuery(document).ready(function() { 
+	$(document).on('click', '.langTabsToggle', toggleLanguageTabs);
 	$(document).on('reloaded', '.Inputfield', function() {
 		setupLanguageTabs($(this));
 	});
