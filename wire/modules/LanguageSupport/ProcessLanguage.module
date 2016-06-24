@@ -81,10 +81,14 @@ class ProcessLanguage extends ProcessPageType {
 	 *
 	 */
 	public function init() {
-		$this->addHookBefore('InputfieldFile::render', $this, 'renderInputfieldFile'); 
+		$this->addHookBefore('InputfieldFile::render', $this, 'renderInputfieldFile');
 		$this->addHookAfter('InputfieldFile::renderItem', $this, 'renderInputfieldFileItem'); 
 		$this->addHookAfter('InputfieldFile::renderUpload', $this, 'renderInputfieldFileUpload');
-		$this->addHookBefore('InputfieldFile::processInput', $this, 'processInputfieldFileInput'); 
+		$this->addHookBefore('InputfieldFile::processInput', $this, 'processInputfieldFileInput');
+	
+		if(!$this->wire('config')->ajax) {
+			$this->addHookBefore('InputfieldForm::render', $this, 'renderInputfieldForm');
+		}
 		parent::init();
 	}
 
@@ -125,6 +129,45 @@ class ProcessLanguage extends ProcessPageType {
 		$inputfield->overwrite = true;
 		$inputfield->noCollapseItem = true;
 		$inputfield->noShortName = true; 
+		
+	}
+	
+	public function renderInputfieldForm(HookEvent $event) {
+	
+		$form = $event->object;
+		$language = $this->getPage();
+		$file = $language->filesManager()->path . '.phrase-index.txt';
+		$inputfield = $this->wire('modules')->get('InputfieldMarkup');
+		$inputfield->label = $this->_('Live Search');
+		$inputfield->icon = 'search';
+		$placeholder = $this->_('Text to search for');
+		
+		if(!is_file($file)) {
+			$inputfield->value = "<p><a href='../../language-translator/add/?language_id=$language->id&refresh=1'>" . 
+				$this->_('Click here to build search phrase index') . "</a></p>";
+			
+		} else {
+
+			$phrases = file_get_contents($file);
+			$phrases = str_replace(array('"', "\n"), array(' ', ' '), $phrases);
+
+			$inputfield->value =
+				"<script>" .
+				"var phraseIndex = \"$phrases\"; " .
+				"var phraseLanguageID = $language->id;" .
+				"</script>" .
+				"<p class='description' style='margin:0'>" .
+				$this->_('Search all translatable files for specific text/phrase.') . ' ' .
+				$this->_('Click found matches to edit translation or add file (if not already present).') .
+				"<p>" .
+				"<p>" .
+				"<input type='text' class='language-phrase-search' style='width:50%' name='_q' placeholder='$placeholder' /> " .
+				"<span class='detail language-phrase-search-cnt'></span>" .
+				"</p>";
+		}
+		
+		$field = $form->getChildByName('language_files_site');
+		$form->insertBefore($inputfield, $field);
 	}
 
 	/**
