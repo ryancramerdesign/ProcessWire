@@ -369,6 +369,8 @@ $(document).ready(function() {
 		if(typeof source != "undefined") {
 			if(source == 'InputfieldRepeaterItemEdit' || source == 'InputfieldRepeaterItemAdd') {
 				event.stopPropagation();
+				var $r = $(this).find(".InputfieldRepeater");
+				if($r.length) InputfieldRepeaterInit($r);
 				return;
 			}
 		}
