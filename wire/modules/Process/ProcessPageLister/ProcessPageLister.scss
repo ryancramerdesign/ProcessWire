@@ -67,7 +67,8 @@
 				margin-bottom: 0;
 			}
 		}
-	}
+		
+	} // table
 	
 	.PageListerActions {
 		display: none;
@@ -115,7 +116,7 @@
 	.datetime {
 		white-space: nowrap;
 	}
-	
+
 	td:not(.col_editing) .InputfieldHasFileList {
 		.InputfieldHeader {
 			display: none;
@@ -192,5 +193,14 @@ p.version {
 
 #table_bookmarks {
 	margin-top: 0.5em;
+}
+
+.AdminThemeReno {
+	a.lister-lightbox {
+		padding: 0 !important;
+	}
+	a.lister-lightbox img {
+		margin: 0 !important;
+	}
 }
 
