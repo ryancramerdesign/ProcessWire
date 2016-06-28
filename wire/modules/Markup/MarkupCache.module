@@ -8,12 +8,12 @@
  *
  * Example usage:
  * 
- * $cache = $modules->get("MarkupCache"); 
- * if(!$data = $cache->get("cityOptions")) {
+ * $mycache = $modules->get("MarkupCache"); 
+ * if(!$data = $mycache->get("cityOptions")) {
  * 	foreach($pages->find("template=city, sort=name") as $city) {
  * 		$data .= "<option value='{$city->id}'>{$city->title}</option>";
  *	}
- *	$cache->save($data); 
+ *	$mycache->save($data); 
  * }
  * echo $data; 
  *
