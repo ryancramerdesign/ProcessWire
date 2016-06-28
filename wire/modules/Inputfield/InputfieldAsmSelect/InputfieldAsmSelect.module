@@ -63,6 +63,7 @@ class InputfieldAsmSelect extends InputfieldSelectMultiple implements Inputfield
 		if($this->hasFieldtype == 'FieldtypePage' && $this->usePageEdit && !$this->editLink) {
 			$this->setAsmSelectOption('editLink', $this->wire('config')->urls->admin . 'page/edit/?id={value}');
 			$this->setAsmSelectOption('editLinkOnlySelected', false);
+			$this->setAsmSelectOption('editLinkButtonSelector', ".InputfieldSubmit button.ui-button:visible");
 			$this->setAsmSelectOption('editLinkModal', true);
 		}
 

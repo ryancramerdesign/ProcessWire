@@ -52,7 +52,8 @@
 			editLink: '', 						// Optional URL options can link to with tag {value} replaced by option value, i.e. /path/to/page/edit?id={$value}
 			editLabel: '<span class="ui-icon ui-icon-extlink"></span>', // Text used in the "edit" link (if editLink is populated)
 			editLinkOnlySelected: true, 				// When true, edit link only appears for items that were already selected
-			editLinkModal: true					// Whether the edit link (if used) should be modal or "longclick" for longclick modal only
+			editLinkModal: true,					// Whether the edit link (if used) should be modal or "longclick" for longclick modal only
+			editLinkButtonSelector: 'form button.ui-button:visible' // button selector for finding buttons that should become modal window buttons
 
 			};
 
@@ -549,7 +550,7 @@
 					var buttons = [];
 					var buttonCnt = 0;
 
-					$icontents.find('form button.ui-button:visible').each(function(n) {
+					$icontents.find(options.editLinkButtonSelector).each(function(n) {
 
 						var $button = $(this);
 						var label = $button.text();
