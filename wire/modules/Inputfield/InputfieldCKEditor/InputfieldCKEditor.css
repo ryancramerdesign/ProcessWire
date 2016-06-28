@@ -20,7 +20,7 @@
 	margin-bottom: 0;
 }
 
-.InputfieldForm div.cke_focus {
-	border-color: #fff; 
+.InputfieldForm div.cke_editable_inline.cke_focus {
+	border-color: #fff;
 }
 
