@@ -13,10 +13,12 @@
  *
  * This file is licensed under the MIT license
  * https://processwire.com/about/license/mit/
+ * 
+ * @property int $runOrder Order that the module executes in relative to other FileCompiler modules. 
  *
  */
 
-abstract class FileCompilerModule extends WireData implements Module {
+abstract class FileCompilerModule extends WireData implements Module, ConfigurableModule {
 
 	/**
 	 * Return an array of module information
@@ -38,6 +40,10 @@ abstract class FileCompilerModule extends WireData implements Module {
 	 * 
 	 */
 	protected $sourceFile = '';
+	
+	public function __construct() {
+		$this->set('runOrder', 0);
+	}
 	
 	/**
 	 * Optional method to initialize the module.
@@ -139,6 +145,21 @@ abstract class FileCompilerModule extends WireData implements Module {
 	 */
 	public function getSourceFile() {
 		return $this->sourceFile;
+	}
+
+	/**
+	 * Configure the FileCompiler module
+	 * 
+	 * @param InputfieldWrapper $inputfields
+	 * 
+	 */
+	public function getModuleConfigInputfields(InputfieldWrapper $inputfields) {
+		$f = $this->wire('modules')->get('InputfieldInteger');
+		$f->attr('name', 'runOrder');
+		$f->attr('value', (int) $this->get('runOrder'));
+		$f->label = $this->_('Runtime execution order');
+		$f->description = $this->_('Order that this module runs in relative to other FileCompiler modules. Lower numbers run first.');
+		$inputfields->add($f);
 	}
 
 }

@@ -102,6 +102,7 @@ class InputfieldAsmSelect extends InputfieldSelectMultiple implements Inputfield
 		$f->addOption(1, $this->_('Yes (in modal window)'));
 		$f->attr('value', $this->usePageEdit);
 		$f->optionColumns = 1;
+		$f->collapsed = Inputfield::collapsedBlank;
 		$inputfields->add($f);
 		return $inputfields;
 	}

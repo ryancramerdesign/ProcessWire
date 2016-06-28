@@ -216,7 +216,9 @@ class FileCompiler extends Wire {
 					// target file changed somewhere else, needs to be re-compiled
 					$this->wire('cache')->deleteFor($this, $cacheName);	
 				}
-				if(isset($cache['source']['ns'])) $this->ns = $cache['source']['ns'];
+				if(!$compileNow && isset($cache['source']['ns'])) {
+					$this->ns = $cache['source']['ns'];
+				}
 			}
 		}
 		
@@ -283,11 +285,13 @@ class FileCompiler extends Wire {
 			// file already declares a namespace and options indicate we shouldn't compile
 			return $data;
 		}
-
-		if($this->options['includes']) $this->compileIncludes($data, $sourceFile);
+			
+		if($this->options['includes']) {
+			$this->compileIncludes($data, $sourceFile);
+		}
 		
 		if($this->options['namespace']) {
-			if(__NAMESPACE__) { 
+			if(__NAMESPACE__) {
 				if($this->ns && $this->ns !== "\\") {
 					// namespace already present, no need for namespace compilation
 				} else {
@@ -299,14 +303,24 @@ class FileCompiler extends Wire {
 					$this->compileNamespace($data);
 				}
 			}
-		} 
-		
+		}
+
 		if($this->options['modules']) {
+			// FileCompiler modules
+			$compilers = array();
 			foreach($this->wire('modules')->findByPrefix('FileCompiler', true) as $module) {
 				if(!$module instanceof FileCompilerModule) continue;
-				$module->setSourceFile($sourceFile);
-				$data = $module->compile($data);
-			}	
+				$runOrder = (int) $module->get('runOrder');
+				while(isset($compilers[$runOrder])) $runOrder++;
+				$compilers[$runOrder] = $module;
+			}
+			if(count($compilers)) {
+				ksort($compilers);
+				foreach($compilers as $module) {
+					$module->setSourceFile($sourceFile);
+					$data = $module->compile($data);
+				}
+			}
 		}
 	
 		if(!strlen(__NAMESPACE__)) {
@@ -417,7 +431,7 @@ class FileCompiler extends Wire {
 			'(.*?)' . // 1: open
 			'(' . implode('|', $funcs) . ')' . // 2:function
 			'([\( ]+)' . // 3: argOpen: open parenthesis and/or space
-			'(["\']?[^;?\r\n]+)' . // 4:filename, and rest of the statement (file may be quoted or end with closing parens)
+			'(["\']?[^;\r\n]+)' . // 4:filename, and rest of the statement (file may be quoted or end with closing parens)
 			'([;\r\n])' . // 5:close, whatever the last character is on the line
 			'/im';
 		
@@ -476,10 +490,11 @@ class FileCompiler extends Wire {
 				}
 			}
 
-			if(substr($fileMatch, -2) == '?>') {
+			if(strpos($fileMatch, '?' . '>')) {
 				// move closing PHP tag out of the fileMatch and into the close
-				$fileMatch = substr($fileMatch, 0, -2);
-				$close = "?>$close";
+				list($fileMatch, $fileMatchExtra) = explode('?' . '>', $fileMatch);
+				$close = '?' . '>' . $fileMatchExtra . $close;
+				$fileMatch = trim($fileMatch);
 			}
 			if(substr($fileMatch, -1) == ')') {
 				// move the closing parenthesis out of fileMatch and into close
@@ -518,6 +533,7 @@ class FileCompiler extends Wire {
 			$fileMatch = str_replace("\t", '', $fileMatch);
 			if(strlen($open)) $open .= ' ';
 			$ns = __NAMESPACE__ ? "\\ProcessWire" : "";
+			$open = rtrim($open) . ' ';
 			$newFullMatch = "$open$funcMatch($ns\\wire('files')->compile($fileMatch,$optionsStr)$argsMatch$close";
 			$data = str_replace($fullMatch, $newFullMatch, $data);
 		}
