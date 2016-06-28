@@ -272,7 +272,7 @@ Please see the [README.md](https://github.com/ryancramerdesign/ProcessWire/blob/
 file for important details on the 3.x beta upgrade.
 
 **Upgrading from 2.7 to 2.8.x**  
-Follow the general upgrade process by replacing your replacing your /wire/ directory and 
+Follow the general upgrade process by replacing your /wire/ directory and 
 index.php file with the new versions. After confirming successful upgrade, then replace or
 update your .htaccess file (with the new provided htaccess.txt file). 
   
