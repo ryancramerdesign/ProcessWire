@@ -1177,6 +1177,7 @@ class ProcessTemplate extends Process {
 		
 		$fieldset = $this->wire('modules')->get('InputfieldFieldset');
 		$fieldset->label = $this->_('Template Toggles'); 
+		$fieldset->icon = 'toggle-on';
 		$fieldset->description = $this->_('You should generally leave these toggles unchecked unless you have a specific need covered here.'); 
 		$form->add($fieldset); 
 		
@@ -1229,6 +1230,23 @@ class ProcessTemplate extends Process {
 		}
 		$fieldset->append($field);
 		
+		// --------------------
+
+		$field = $this->modules->get('InputfieldCheckbox');
+		$field->attr('name', 'noMove');
+		$field->label = $this->_("Don't allow pages to be moved?");
+		$field->description = $this->_("If you want to prevent pages using this template from being moved (changing parent) then check this box."); // noMove option, description
+		if($this->wire('config')->advanced) $field->notes = $this->_('API: $template->noMove = 1; // or 0 to disable'); // noMove option, API notes
+
+		$field->attr('value', 1);
+		if($template->noMove) {
+			$field->attr('checked', 'checked');
+			$field->collapsed = Inputfield::collapsedNo;
+		} else {
+			$field->collapsed = Inputfield::collapsedYes;
+		}
+		$fieldset->append($field);
+
 		// --------------------
 	
 		if($this->wire('languages')) {
@@ -1338,24 +1356,6 @@ class ProcessTemplate extends Process {
 
 		// --------------------
 		
-		$field = $this->modules->get('InputfieldCheckbox');
-		$field->attr('name', 'noMove');
-		$field->label = $this->_("Don't allow pages to be moved?");
-		$field->description = $this->_("If you want to prevent pages using this template from being moved (changing parent) then check this box."); // noMove option, description
-		if($this->wire('config')->advanced) $field->notes = $this->_('API: $template->noMove = 1; // or 0 to disable'); // noMove option, API notes
-
-		$field->attr('value', 1);
-		if($template->noMove) {
-			$field->attr('checked', 'checked');
-			$field->collapsed = Inputfield::collapsedNo;
-		} else {
-			$field->collapsed = Inputfield::collapsedYes;
-		}
-		$form->append($field);
-
-		// --------------------
-
-
 		$field = $this->modules->get('InputfieldCheckbox');
 		$field->attr('name', 'noTrash');
 		$field->label = $this->_("Disable Trash Option?");
@@ -2195,6 +2195,7 @@ class ProcessTemplate extends Process {
 		}
 
 		$this->template->noShortcut = $this->input->post->noShortcut ? 1 : 0;
+		$this->template->noMove = (int) $form->get('noMove')->attr('value');
 
 		$sortfield = $this->sanitizer->name($_POST['sortfield']); 
 		if($sortfield && $sortfield != 'sort' && !empty($_POST['sortfield_reverse'])) $sortfield = '-' . $sortfield;
@@ -2205,7 +2206,6 @@ class ProcessTemplate extends Process {
 		// system
 		if($this->config->advanced) { 
 			if($form->get('flagSystem')->attr('value')) $this->template->flags = $this->template->flags | Template::flagSystem;
-			$this->template->noMove = (int) $form->get('noMove')->attr('value');
 			$this->template->pageClass = $form->get('pageClass')->attr('value');
 			$this->template->noGlobal = (int) $form->get('noGlobal')->attr('value');
 			$this->template->noSettings = (int) $form->get('noSettings')->attr('value');

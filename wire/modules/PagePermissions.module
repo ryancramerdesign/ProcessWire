@@ -228,7 +228,8 @@ class PagePermissions extends WireData implements Module {
 		if($user->id === $page->id && $this->wire('page')->process == 'ProcessProfile' && $user->hasPermission('profile-edit')) return true;
 
 		// if the current process is something other than ProcessUser, they don't have permission
-		if($this->wire('process') != 'ProcessUser') {
+		$process = $this->wire('process');
+		if($process != 'ProcessUser' && (!$process instanceof ProcessPageList) && (!$process instanceof ProcessPageLister)) {
 			return false;
 		}
 	
