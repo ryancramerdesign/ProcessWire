@@ -211,7 +211,6 @@ class InputfieldCKEditor extends InputfieldTextarea {
 	public function renderReady(Inputfield $parent = null, $renderValueMode = false) {
 
 		static $loaded = false;
-		static $stylesSets = array();
 		
 		$class = $this->className();
 		$config = $this->wire('config');
@@ -255,14 +254,11 @@ class InputfieldCKEditor extends InputfieldTextarea {
 		if(!$this->useACF) $settings['allowedContent'] = true; // disables ACF, per CKEditor docs
 		if($this->rows) $settings['height'] = ($this->rows*2) . 'em'; // set editor height, based on rows value
 
-		$stylesSet = $this->stylesSet;
+		$stylesSet = $this->getSetting('stylesSet');
 		if(empty($stylesSet)) $stylesSet = "mystyles:/wire/modules/Inputfield/InputfieldCKEditor/mystyles.js";
 		if(strpos($stylesSet, ':') !== false) {
 			list($k, $v) = explode(':', $stylesSet);
-			if(!in_array($k, $stylesSets)) {
-				$settings['stylesSet'] = "$k:" . $this->pathFromRoot($v, strpos($v, '/wire/') === false);
-				$stylesSets[] = $k;
-			}
+			$settings['stylesSet'] = "$k:" . $this->pathFromRoot($v, strpos($v, '/wire/') === false);
 		}
 
 		foreach($this->findPlugins() as $name => $file) {
