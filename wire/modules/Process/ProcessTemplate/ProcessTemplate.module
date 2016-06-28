@@ -1121,12 +1121,12 @@ class ProcessTemplate extends Process {
 
 		// --------------------
 
-		$field = $this->modules->get("InputfieldCheckbox"); 
+		$field = $this->modules->get("InputfieldText"); 
 		$field->attr('id+name', 'clone_template');
-		$field->attr('value', 1); 
 		$field->label = $this->_('Duplicate/clone this template?');
-		$field->description = $this->_('Check the box below if you want to create a duplicate/clone copy of this template. The clone will be created when you save. If your templates directory is writable and the template has a file, it will also be cloned.'); // Clone template, description
+		$field->description = $this->_('Enter the name of the new template you want to create. The clone will be created when you save. If your templates directory is writable and the template has a file, it will also be cloned.'); // Clone template, description
 		$field->collapsed = Inputfield::collapsedYes; 
+		$field->icon = 'clone';
 		$form->append($field);
 		
 		// --------------------
@@ -2265,13 +2265,21 @@ class ProcessTemplate extends Process {
 		}
 
 		// check for creation of clone 
-		if($this->input->post->clone_template) {
-			$clone = $this->templates->clone($this->template); 
-			if($clone) {
-				$this->message(sprintf($this->_('Created clone of template "%1$s" named "%2$s". You may rename it by editing "%2$s" and clicking the "advanced" tab.'), $this->template->name, $clone->name)); 
-				if(!$redirectUrl) $redirectUrl = './';
+		$cloneTemplateName = $this->wire('input')->post('clone_template');
+		if($cloneTemplateName) {
+			$cloneTemplateName = $this->wire('sanitizer')->pageName($cloneTemplateName);
+			if(!$cloneTemplateName) {
+				$this->error($this->_('Invalid template name specified for clone'));
+			} else if($this->wire('templates')->get($cloneTemplateName)) {
+				$this->error($this->_('Cannot clone because a template with that name already exists'));
 			} else {
-				$this->error($this->_('Error creating clone of this template')); 
+				$clone = $this->templates->clone($this->template, $cloneTemplateName);
+				if($clone) {
+					$this->message(sprintf($this->_('Created clone of template "%1$s" named "%2$s".'), $this->template->name, $clone->name));
+					if(!$redirectUrl) $redirectUrl = "./edit?id=$clone->id";
+				} else {
+					$this->error($this->_('Error creating clone of this template'));
+				}
 			}
 		}
 		
