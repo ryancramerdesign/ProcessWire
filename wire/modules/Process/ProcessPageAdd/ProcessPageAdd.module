@@ -367,11 +367,12 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 				throw new WireException("Template {$this->template->name} is not allowed here ({$this->parent->path})");
 			}
 		}
-		
-		if($this->template && count($this->parent->template->childTemplates) == 1 
-			&& (strlen($this->parent->template->childNameFormat) || $this->input->get('name_format'))) {
-			// quick add! 
-			$this->processQuickAdd($this->parent, $this->template); 
+	
+		if($this->template && $this->parent) {
+			// determine whether quick-add can be used
+			if(strlen($this->parent->template->childNameFormat) || $this->input->get('name_format')) {
+				$this->processQuickAdd($this->parent, $this->template);
+			}
 		}
 		
 		$this->form = $this->buildForm();
