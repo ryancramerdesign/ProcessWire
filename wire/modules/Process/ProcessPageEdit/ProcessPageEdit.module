@@ -252,6 +252,16 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 					"<li><a data-dropdown-value='add' href='#'><i class='fa fa-fw fa-plus-circle'></i> " .
 					$this->_('%s + Add New') . "</a></li>";
 			}
+
+			$siblingPage = $this->page->next();
+            while(!($siblingPage instanceof NullPage) && !$siblingPage->editable()) {
+                $siblingPage = $siblingPage->next();
+            }
+            
+            if(!($siblingPage instanceof NullPage) && $siblingPage->editable()) {
+                $out .=
+                    "<li><a data-dropdown-value='next' href='#'><i class='fa fa-fw fa-arrow-circle-right'></i> {$this->_('%s + Edit Next')}</a></li>";
+            }
 			
 			$out .= "</ul>";
 		}
@@ -454,7 +464,16 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 			$this->redirectUrl = $this->page->httpUrl();
 		} else if($submitAction == 'add') {
 			$this->redirectUrl = "../add/?parent_id={$this->page->parent_id}";
-		}
+		} else if($submitAction == 'next') {
+            $siblingPage = $this->page->next();
+            while(!($siblingPage instanceof NullPage) && !$siblingPage->editable()) {
+                $siblingPage = $siblingPage->next();
+            }
+            
+            if(!($siblingPage instanceof NullPage) && $siblingPage->editable()) {
+                $this->redirectUrl = "../edit/?id={$siblingPage->id}";
+            }
+        }
 
 		$this->processSaveRedirect($this->redirectUrl);
 	}	
