@@ -136,6 +136,7 @@ class ProcessLanguage extends ProcessPageType {
 	
 		$form = $event->object;
 		$language = $this->getPage();
+		if(!$language->id) return;
 		$file = $language->filesManager()->path . '.phrase-index.txt';
 		$inputfield = $this->wire('modules')->get('InputfieldMarkup');
 		$inputfield->label = $this->_('Live Search');
@@ -167,7 +168,7 @@ class ProcessLanguage extends ProcessPageType {
 		}
 		
 		$field = $form->getChildByName('language_files_site');
-		$form->insertBefore($inputfield, $field);
+		if($field) $form->insertBefore($inputfield, $field);
 	}
 
 	/**
