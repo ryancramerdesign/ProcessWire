@@ -496,6 +496,9 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 					$icon = $inputfield->getSetting('icon');
 					$icon = $icon ? str_replace('{name}', $this->wire('sanitizer')->name(str_replace(array('icon-', 'fa-'), '', $icon)), $markup['item_icon']) : ''; 
 					$toggle = $collapsed == Inputfield::collapsedNever ? '' : $markup['item_toggle']; 
+					if($toggle && strpos($toggle, 'title=') === false) {
+						$toggle = str_replace("class=", "title='" . $this->_('Toggle open/close') . "' class=", $toggle);
+					}
 					if($inputfield->getSetting('skipLabel') === Inputfield::skipLabelHeader || $quietMode) {
 						// label only shows when field is collapsed
 						$label = str_replace('{out}', $icon . $label . $toggle, $markup['item_label_hidden']); 

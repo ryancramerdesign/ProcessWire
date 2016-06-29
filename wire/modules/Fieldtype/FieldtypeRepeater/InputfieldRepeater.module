@@ -483,6 +483,13 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 		$collapse = $this->field->get('repeaterCollapse');
 		$forIDs = null; 
 		if($loading == FieldtypeRepeater::loadingAll && $collapse != FieldtypeRepeater::collapseNone) $forIDs = array();
+		
+		$this->wire('config')->js('InputfieldRepeater', array(
+			'labels' => array(
+				'remove' => $this->_x('Delete this item', 'repeater-item-action'), 
+				'toggle' => $this->_x('Toggle published/unpublished', 'repeater-item-action')
+			)
+		));
 
 		return $this->buildForm(0, $forIDs)->render() . $out; 
 	}
