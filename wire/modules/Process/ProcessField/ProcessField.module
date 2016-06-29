@@ -1404,7 +1404,9 @@ class ProcessField extends Process implements ConfigurableModule {
 				$this->error($e->getMessage()); 
 				if(!$this->field->id) $this->session->redirect("./"); 
 			}
-			$this->session->redirect("edit?id={$this->field->id}#fieldtypeConfig"); 
+			$redirectURL = "edit?id={$this->field->id}";
+			if(!$this->wire('input')->get('modal')) $redirectURL .= "#fieldtypeConfig";
+			$this->session->redirect($redirectURL);
 				
 		} else {
 			
