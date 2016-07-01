@@ -65,6 +65,7 @@ class ProcessLanguage extends ProcessPageType {
 		// make sure our files fields have CSV support
 		foreach(array('language_files', 'language_files_site') as $fieldName) {
 			$field = $this->wire('fields')->get($fieldName);
+			if(!$field) continue;
 			$extensions = $field->get('extensions'); 
 			if(strpos($extensions, 'csv') === false) {
 				$field->set('extensions', "$extensions csv");

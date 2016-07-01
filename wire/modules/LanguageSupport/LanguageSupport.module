@@ -223,7 +223,7 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 		if($this->wire('page')->template == 'admin') { 
 			$this->config->styles->add($this->config->urls->LanguageSupport . "LanguageSupport.css"); 
 			$language = $this->wire('user')->language;
-			$this->config->js('LanguageSupport', array(
+			if($language) $this->config->js('LanguageSupport', array(
 				'language' => array(
 					'id' => $language->id, 
 					'name' => $language->name,
