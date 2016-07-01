@@ -247,10 +247,19 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 					$this->_('%s + View') . "</a></li>";
 			}
 			
-			if($this->wire('process') == $this && $this->page->id > 1 && $this->page->parent()->addable()) {
-				$out .= 
-					"<li><a data-dropdown-value='add' href='#'><i class='fa fa-fw fa-plus-circle'></i> " .
-					$this->_('%s + Add New') . "</a></li>";
+			if($this->wire('process') == $this && $this->page->id > 1) {
+				$parent = $this->page->parent();
+				if($parent->addable()) {
+					$out .=
+						"<li><a data-dropdown-value='add' href='#'><i class='fa fa-fw fa-plus-circle'></i> " .
+						$this->_('%s + Add New') . "</a></li>";
+				}
+				if($parent->numChildren > 1) {
+					$out .=
+						"<li><a data-dropdown-value='next' href='#'><i class='fa fa-fw fa-edit'></i> " .
+						$this->_('%s + Next') . "</a></li>";
+				}
+				
 			}
 			
 			$out .= "</ul>";
@@ -454,6 +463,22 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 			$this->redirectUrl = $this->page->httpUrl();
 		} else if($submitAction == 'add') {
 			$this->redirectUrl = "../add/?parent_id={$this->page->parent_id}";
+		} else if($submitAction == 'next') {
+			$nextPage = $this->page->next("include=unpublished");
+			if($nextPage->id) {
+				if(!$nextPage->editable()) {
+					$nextPage = $this->page->next("include=hidden");
+					if($nextPage->id && !$nextPage->editable()) {
+						$nextPage = $this->page->next();
+						if($nextPage->id && !$nextPage->editable()) $nextPage = new NullPage();
+					}
+				}
+			}
+			if($nextPage->id) {
+				$this->redirectUrl = "./?id=$nextPage->id";
+			} else {
+				$this->warning($this->_('There is no editable next page to edit.'));	
+			}
 		}
 
 		$this->processSaveRedirect($this->redirectUrl);
