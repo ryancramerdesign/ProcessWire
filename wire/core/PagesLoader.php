@@ -162,6 +162,8 @@ class PagesLoader extends Wire {
 	 *  - caller: string - optional name of calling function, for debugging purposes, i.e. pages.count
 	 * 	- include: string - Optional inclusion mode of 'hidden', 'unpublished' or 'all'. Default=none. Typically you would specify this
 	 * 		directly in the selector string, so the option is mainly useful if your first argument is not a string.
+	 *  - `stopBeforeID` (int): Stop loading pages once page matching this ID is found (default=0).
+	 *  - `startAfterID` (int): Start loading pages once page matching this ID is found (default=0).
 	 * 	- loadOptions: array - Optional assoc array of options to pass to getById() load options.
 	 * @return PageArray
 	 *

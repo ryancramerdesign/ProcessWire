@@ -100,6 +100,30 @@ class PageFinder extends Wire {
 		 */
 		'getTotalType' => 'calc',
 
+		/**
+		 * Only start loading pages after this ID
+		 * 
+		 */
+		'startAfterID' => 0,
+		
+		/**
+		 * Stop and load no more if a page having this ID is found
+		 *
+		 */
+		'stopBeforeID' => 0,
+
+		/**
+		 * For internal use with startAfterID or stopBeforeID (when combined with a 'limit=n' selector)
+		 * 
+		 */
+		'softLimit' => 0, 
+
+		/**
+		 * Reverse whatever sort is specified
+		 * 
+		 */
+		'reverseSort' => false, 
+
 		); 
 
 	protected $fieldgroups; 
@@ -114,6 +138,7 @@ class PageFinder extends Wire {
 	protected $getQueryNumChildren = 0; // number of times the function has been called
 	protected $lastOptions = array(); 
 	protected $extraOrSelectors = array(); // one from each field must match
+	
 	// protected $extraSubSelectors = array(); // subselectors that are added in after getQuery()
 	// protected $extraJoins = array();
 	// protected $nativeWheres = array(); // where statements for native fields, to be reused in subselects where appropriate.
@@ -131,7 +156,10 @@ class PageFinder extends Wire {
 		$maxStatus = null; 
 		$limit = 0; // for getTotal auto detection
 		$start = 0;
+		$limitSelector = null;
 		$checkAccessSpecified = false;
+		$hasParents = array(); // requests for parent(s) in the selector
+		$hasSort = false; // whether or not a sort is requested
 
 		foreach($selectors as $key => $selector) {
 
@@ -181,6 +209,7 @@ class PageFinder extends Wire {
 			} else if($fieldName == 'limit') {
 				// for getTotal auto detect
 				$limit = (int) $selector->value; 	
+				$limitSelector = $selector;
 
 			} else if($fieldName == 'start') {
 				// for getTotal auto detect
@@ -188,7 +217,11 @@ class PageFinder extends Wire {
 
 			} else if($fieldName == 'sort') {
 				// sorting is not needed if we are only retrieving totals
-				if($options['loadPages'] === false) $selectors->remove($selector); 
+				if($options['loadPages'] === false) $selectors->remove($selector);
+				$hasSort = true;
+
+			} else if($fieldName == 'parent' || $fieldName == 'parent_id') {
+				$hasParents[] = $selector->value;
 
 			} else if($fieldName == 'getTotal' || $fieldName == 'get_total') {
 				// whether to retrieve the total, and optionally what type: calc or count
@@ -233,7 +266,9 @@ class PageFinder extends Wire {
 		if($options['findOne']) {
 			// findOne option is never paginated, always starts at 0
 			$selectors->add(new SelectorEqual('start', 0)); 
-			$selectors->add(new SelectorEqual('limit', 1)); 
+			if(empty($options['startAfterID']) && empty($options['stopBeforeID'])) {
+				$selectors->add(new SelectorEqual('limit', 1));
+			}
 			// getTotal default is false when only finding 1 page
 			if(is_null($options['getTotal'])) $options['getTotal'] = false; 
 
@@ -245,15 +280,35 @@ class PageFinder extends Wire {
 			// get Total default is true when finding multiple pages
 			if(is_null($options['getTotal'])) $options['getTotal'] = true; 
 		}
-
+		
+		if(count($hasParents) == 1 && !$hasSort) {
+			// if single parent specified and no sort requested, default to the sort specified with the requested parent
+			try {
+				$parent = $this->wire('pages')->get(reset($hasParents));
+			} catch(\Exception $e) {
+				// don't try to add sort
+				$parent = null;
+			}
+			if($parent && $parent->id) {
+				$sort = $parent->template->sortfield;
+				if(!$sort) $sort = $parent->sortfield;
+				if($sort) $selectors->add(new SelectorEqual('sort', $sort));
+				$hasSort = true;
+			}
+		}
+		
+		if(!$options['findOne'] && $limitSelector && ($options['startAfterID'] || $options['stopBeforeID'])) {
+			$options['softLimit'] = $limitSelector->value;
+			$selectors->remove($limitSelector);
+		}
+		
 		$this->lastOptions = $options; 
-
 	}
 
 	/**
 	 * Return all pages matching the given selector.
 	 * 
-	 * @param Selectors $selectors
+	 * @param Selectors|string|array $selectors Selectors object or selector string
 	 * @param array $options
 	 *  - `findOne` (bool): Specify that you only want to find 1 page and don't need info for pagination (default=false).
 	 *  - `findHidden` (bool): Specify that it's okay for hidden pages to be included in the results (default=false). 
@@ -269,13 +324,22 @@ class PageFinder extends Wire {
 	 *  - `loadPages` (bool): This is an optimization used by the Pages::find() method, but we observe it here as we may be able to apply 
 	 *     some additional optimizations in certain cases. For instance, if loadPages=false, then we can skip retrieval of IDs and omit 
 	 *     sort fields. (default=true)
+	 *  - `stopBeforeID` (int): Stop loading pages once a page matching this ID is found. Page having this ID will be excluded as well (default=0).
+	 *  - `startAfterID` (int): Start loading pages once a page matching this ID is found. Page having this ID will be excluded as well (default=0).
+	 *  - `reverseSort` (bool): Reverse whatever sort is specified.
 	 *  - `returnVerbose` (bool): When true, this function returns array of arrays containing page ID, parent ID, template ID and score.
 	 *     When false, returns only an array of page IDs. True is required by most usage from Pages class. False is only for specific cases. 
 	 * @return array|DatabaseQuerySelect
 	 * @throws PageFinderException
 	 *
 	 */
-	public function ___find(Selectors $selectors, $options = array()) {
+	public function ___find($selectors, array $options = array()) {
+		
+		if(is_string($selectors) || is_array($selectors)) {
+			$selectors = new Selectors($selectors);
+		} else if(!$selectors instanceof Selectors) {
+			throw new PageFinderException("find() requires Selectors object or string");
+		}
 
 		$this->fieldgroups = $this->wire('fieldgroups'); 
 		$options = array_merge($this->defaultOptions, $options); 
@@ -293,6 +357,8 @@ class PageFinder extends Wire {
 		$this->getTotalType = $options['getTotalType'] == 'count' ? 'count' : 'calc'; 
 		unset($options['getTotal']); // so we get a notice if we try to access it
 
+		$stopBeforeID = (int) $options['stopBeforeID'];
+		$startAfterID = (int) $options['startAfterID'];
 		$database = $this->wire('database');
 		$matches = array(); 
 		/** @var DatabaseQuerySelect $query */
@@ -319,8 +385,26 @@ class PageFinder extends Wire {
 			}
 		
 			if($options['loadPages']) {
+				$softCnt = 0; // for startAfterID when combined with 'limit'
+				
 				/** @noinspection PhpAssignmentInConditionInspection */
 				while($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
+					
+					if($startAfterID > 0) {
+						if($row['id'] != $startAfterID) continue;	
+						$startAfterID = -1; // -1 indicates that recording may start
+						continue;
+					}
+					
+					if($stopBeforeID && $row['id'] == $stopBeforeID) {
+						if($options['findOne']) {
+							$matches = array(end($matches));
+						} else if($options['softLimit']) {
+							$matches = array_slice($matches, -1 * $options['softLimit']);
+						}
+						break;
+					}
+					
 					if($options['returnVerbose']) {
 						// determine score for this row
 						$score = 0;
@@ -332,6 +416,15 @@ class PageFinder extends Wire {
 						$matches[] = $row;
 					} else {
 						$matches[] = (int) $row['id']; 
+					}
+				
+					if($startAfterID === -1) {
+						// -1 indicates that recording may start
+						if($options['findOne']) {
+							break;
+						} else if($options['softLimit'] && ++$softCnt >= $options['softLimit']) {
+							break;
+						}
 					}
 				}
 			}
@@ -583,7 +676,7 @@ class PageFinder extends Wire {
 				else $subfield = '';
 
 			// TODO Make native fields and path/url multi-field and multi-value aware
-			if($field == 'sort') {
+			if($field == 'sort' && $selector->operator === '=' && !$subfield) {
 				$sortSelectors[] = $selector; 
 				continue; 
 
@@ -1253,13 +1346,14 @@ class PageFinder extends Wire {
 					$value = "$tableAlias." . ($subValue ? $subValue : "data"); ; 
 				}
 			}
-
-			if($fc == '-' || $lc == '-') {
+		
+			$descending = $fc == '-' || $lc == '-';
+			if($this->lastOptions['reverseSort']) $descending = !$descending;
+			if($descending) {
 				$query->orderby("$value DESC", true);
 			} else {
 				$query->orderby("$value", true);
 			}
-
 		}
 	}
 
@@ -1399,6 +1493,8 @@ class PageFinder extends Wire {
 			$sql = '';
 
 			if(strpos($field, '.')) list($field, $subfield) = explode('.', $field);
+			
+			if($field == 'sort' && $subfield) $subfield = '';
 
 			if(!$this->wire('fields')->isNative($field)) {
 				$subfield = $field;
@@ -1480,7 +1576,7 @@ class PageFinder extends Wire {
 					$value = date('Y-m-d H:i:s', $value); 
 				}
 
-				if(in_array($field, array('id', 'parent_id', 'templates_id'))) {
+				if(in_array($field, array('id', 'parent_id', 'templates_id', 'sort'))) {
 					$value = (int) $value; 
 				}
 				

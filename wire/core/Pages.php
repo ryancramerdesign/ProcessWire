@@ -207,6 +207,8 @@ class Pages extends Wire {
 	 *  - `caller` (string): Optional name of calling function, for debugging purposes, i.e. pages.count
 	 *  - `include` (string): Optional inclusion mode of 'hidden', 'unpublished' or 'all'. Default=none. Typically you would specify this 
 	 *     directly in the selector string, so the option is mainly useful if your first argument is not a string. 
+	 *  - `stopBeforeID` (int): Stop loading pages once page matching this ID is found (default=0).
+	 *  - `startAfterID` (int): Start loading pages once page matching this ID is found (default=0). 
 	 *  - `lazy` (bool): Specify true to force lazy loading. This is the same as using the Pages::findMany() method (default=false).
 	 *  - `loadOptions` (array): Optional assoc array of options to pass to getById() load options.
 	 * @return PageArray Pages that matched the given selector.
