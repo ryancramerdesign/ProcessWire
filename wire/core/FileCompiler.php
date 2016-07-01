@@ -149,10 +149,14 @@ class FileCompiler extends Wire {
 		
 		$ext = pathinfo($filename, PATHINFO_EXTENSION);
 		if(!in_array(strtolower($ext), $this->extensions)) {
-			if(!strlen($ext) && !is_file($filename) && is_file("$filename.php")) {
-				// assume PHP file extension if none given, for cases like wireIncludeFile
-				$filename .= '.php';
-				$basename .= '.php';
+			if(!strlen($ext) && !is_file($filename)) { 
+				foreach($this->extensions as $ext) {
+					if(is_file("$filename.$ext")) {
+						// assume PHP file extension if none given, for cases like wireIncludeFile
+						$filename .= ".$ext";
+						$basename .= ".$ext";
+					}
+				}
 			} else {
 				return false;
 			}

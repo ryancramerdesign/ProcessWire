@@ -15,7 +15,7 @@ class SessionHandlerDB extends WireSessionHandler implements Module, Configurabl
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Session Handler Database', 
-			'version' => 4, 
+			'version' => 5, 
 			'summary' => "Installing this module makes ProcessWire store sessions in the database rather than the file system. Note that this module will log you out after install or uninstall.",
 			'installs' => array('ProcessSessionDB')
 			);
@@ -349,5 +349,26 @@ class SessionHandlerDB extends WireSessionHandler implements Module, Configurabl
 		return $row; 
 	}
 
+	/**
+	 * Upgrade module version
+	 * 
+	 * @param int $fromVersion
+	 * @param int $toVersion
+	 * @throws WireException
+	 * 
+	 */
+	public function ___upgrade($fromVersion, $toVersion) {
+		// $this->message("Upgrade: $fromVersion => $toVersion");
+		// if(version_compare($fromVersion, "0.0.5", "<") && version_compare($toVersion, "0.0.4", ">")) {
+		if($fromVersion <= 4 && $toVersion >= 5) {	
+			$table = self::dbTableName;
+			$database = $this->wire('database');
+			$sql = "ALTER TABLE $table MODIFY data MEDIUMTEXT NOT NULL";
+			$query = $database->prepare($sql);
+			$success = false;
+			$query->execute();
+			$this->message("Updated sessions database for larger data storage", Notice::log);
+		}
+	}
 
 }

@@ -91,7 +91,11 @@ class DatabaseQuerySelectFulltext extends Wire {
 		switch($operator) {
 
 			case '=':
-			case '!=': 
+			case '!=':
+			case '>':
+			case '<':
+			case '<=':
+			case '>=': 
 				$v = $database->escapeStr($value); 
 				$query->where("$tableField$operator'$v'");
 				// @todo, bound values can be used instead for many cases, update to use them like this:
