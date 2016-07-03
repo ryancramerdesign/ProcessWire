@@ -52,6 +52,7 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 	public function __construct() {
 		$this->set('useBookmarks', false);
 		$this->set('viewAction', 'this');
+		$this->wire('process', $this);
 		return parent::__construct();
 	}
 

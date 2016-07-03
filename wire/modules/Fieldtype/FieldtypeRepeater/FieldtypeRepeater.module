@@ -101,6 +101,18 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 	 */
 	public function ready() {
 		// if(in_array('WirePageEditor', wireClassImplements((string) $this->wire('page')->process))) { // @todo
+		
+		// make sure that all templates used by repeater pages enforce a Page type of RepeaterPage
+		foreach($this->wire('fields') as $field) {
+			if(!$field->type instanceof FieldtypeRepeater) continue;
+			$template = $field->type->getRepeaterTemplate($field);
+			if(!$template) continue;
+			if(__NAMESPACE__) {
+				$template->setQuietly('pageClass', wireClassName($field->type->getPageClass()));
+			} else {
+				$template->setQuietly('pageClass', $field->type->getPageClass());
+			}
+		}
 	
 		if($this->wire('page')->process == 'ProcessPageEdit') {
 			
@@ -118,21 +130,13 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 					}
 				}
 			}
+			if(!$this->wire('user')->isSuperuser()) {
+				$this->addHookAfter('PagePermissions::pageEditable', $this, 'hookPagePermissionsPageEditableAjax');
+			}
 		}
 		
 		$this->addHookBefore('PageFinder::getQuery', $this, 'hookPageFinderGetQuery'); 
 
-		// make sure that all templates used by repeater pages enforce a Page type of RepeaterPage
-		foreach($this->wire('fields') as $field) {
-			if(!$field->type instanceof FieldtypeRepeater) continue;
-			$template = $field->type->getRepeaterTemplate($field);
-			if(!$template) continue;
-			if(__NAMESPACE__) {
-				$template->setQuietly('pageClass', wireClassName($field->type->getPageClass()));
-			} else {
-				$template->setQuietly('pageClass', $field->type->getPageClass());
-			}
-		}
 	}
 
 	/**
@@ -153,6 +157,24 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 	 */
 	public function getPageArrayClass() {
 		return __NAMESPACE__ . "\\RepeaterPageArray";
+	}
+
+	/**
+	 * Hook called after PagePermissions::pageEditable() when Process is ProcessPageEdit and call is ajax
+	 * 
+	 * @param HookEvent $event
+	 * 
+	 */
+	public function hookPagePermissionsPageEditableAjax(HookEvent $event) {
+		if($event->return) return;
+		$page = $event->arguments(0);
+		if(!$page instanceof RepeaterPage) return;
+		$n = 0;
+		while($page instanceof RepeaterPage) {
+			$page = $page->getForPage();
+			if(++$n > 20) break;
+		}
+		if(!$page instanceof RepeaterPage) $event->return = $page->editable();
 	}
 
 	/**

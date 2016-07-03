@@ -146,12 +146,28 @@ class PagePermissions extends WireData implements Module {
 
 	/**
 	 * Is the given page editable?
-	 * 
-	 * @param Page $page;
+	 *
+	 * @param Page $page
 	 * @return bool
 	 *
 	 */
 	public function pageEditable(Page $page) {
+		if($this->wire('hooks')->isHooked('PagePermissions::pageEditable()')) {
+			return $this->__call('pageEditable', array($page));
+		} else {
+			return $this->___pageEditable($page);
+		}
+	}
+
+
+	/**
+	 * Hookable implmentation for: Is the given page editable?
+	 * 
+	 * @param Page $page
+	 * @return bool
+	 *
+	 */
+	protected function ___pageEditable(Page $page) {
 
 		$user = $this->wire('user');
 

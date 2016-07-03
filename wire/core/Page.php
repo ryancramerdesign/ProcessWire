@@ -1975,9 +1975,6 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 * By default, hidden, unpublished and non-viewable pages are excluded. If you want them included, 
 	 * be sure to specify `include=` with hidden, unpublished or all, in your selector.
 	 * 
-	 * If given a PageArray of siblings (containing the current) it will return the next sibling 
-	 * relative to the provided PageArray.
-	 * 
 	 * ~~~~~
 	 * // Get the next sibling
 	 * $sibling = $page->next();
@@ -1986,13 +1983,14 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 * $sibling = $page->next("created>$page->created"); 
 	 * 
 	 * // Get the next sibling, even if it isn't viewable
-	 * $sibling = $page->include("include=all");
+	 * $sibling = $page->next("include=all");
 	 * ~~~~~
 	 * 
 	 * #pw-group-traversal
 	 *
 	 * @param string|array $selector Optional selector. When specified, will find nearest next sibling that matches. 
-	 * @param PageArray $siblings DEPRECATED: Optional siblings to use instead of the default. 
+	 * @param PageArray $siblings DEPRECATED: Optional siblings to use instead of the default. Avoid using this argument
+	 *   as it forces this method to use the older/slower functions. 
 	 * @return Page|NullPage Returns the next sibling page, or a NullPage if none found. 
 	 *
 	 */
@@ -2013,7 +2011,7 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 * @param string|array|bool $selector Optional selector. When specified, will filter the found siblings.
 	 * @param bool|PageArray $getQty Return a count instead of PageArray? (boolean)
 	 *   - If no $selector argument is needed, this may be specified as the first argument.
-	 *   - Legacy support: You may specify a PageArray of siblings to use instead of the default (deprecated).
+	 *   - Legacy support: You may specify a PageArray of siblings to use instead of the default (deprecated, avoid it).
 	 * @param bool $getPrev For internal use, makes this method implement the prevAll() behavior instead.
 	 * @return PageArray|int Returns all matching pages after this one, or integer if $count option specified.
 	 *
@@ -2047,7 +2045,7 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 *
 	 * @param string|Page|array $selector May either be a selector or Page to stop at. Results will not include this. 
 	 * @param string|array $filter Optional selector to filter matched pages by
-	 * @param PageArray $siblings DEPRECATED: Optional PageArray of siblings to use instead. 
+	 * @param PageArray $siblings DEPRECATED: Optional PageArray of siblings to use instead (avoid).
 	 * @return PageArray
 	 *
 	 */
@@ -2070,7 +2068,7 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 * #pw-group-traversal
 	 *
 	 * @param string|array $selector Optional selector. When specified, will find nearest previous sibling that matches. 
-	 * @param PageArray|null DEPRECATED: $siblings Optional siblings to use instead of the default. NOTE: The $siblings argument is deprecated.
+	 * @param PageArray|null $siblings DEPRECATED: $siblings Optional siblings to use instead of the default.
 	 * @return Page|NullPage Returns the previous sibling page, or a NullPage if none found. 
 	 *
 	 */
@@ -2091,7 +2089,7 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 * @param string|array|bool $selector Optional selector. When specified, will filter the found siblings.
 	 * @param bool|PageArray $getQty Return a count instead of PageArray? (boolean)
 	 *   - If no $selector argument is needed, this may be specified as the first argument.
-	 *   - Legacy support: You may specify a PageArray of siblings to use instead of the default (deprecated).
+	 *   - Legacy support: You may specify a PageArray of siblings to use instead of the default (deprecated, avoid it).
 	 * @return Page|NullPage|int Returns all matching pages before this one, or integer if $getQty requested.
 	 *
 	 */
@@ -2599,6 +2597,7 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 * #pw-group-traversal
 	 * 
 	 * @return int Returns index number (zero-based)
+	 * @since 3.0.24
 	 * 
 	 */
 	public function index() {

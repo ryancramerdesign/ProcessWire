@@ -407,7 +407,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 	 */
 	public function hookWirePageEditorExecute(HookEvent $event) {
 		$page = $event->object->getPage();
-		if($page->id == 1) {
+		if($page && $page->id == 1) {
 			if($page->name == Pages::defaultRootName) $page->name = '';
 		}
 	}
