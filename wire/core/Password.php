@@ -7,21 +7,27 @@
  * 
  * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
  * https://processwire.com
+ * 
+ * @method setPass($value)
  *
  */
 
 class Password extends Wire {
 
+	/**
+	 * @var array
+	 * 
+	 */
 	protected $data = array(
 		'salt' => '', 
 		'hash' => '',
 		);
 
 	/**
-	 * Does this PasswordItem match the given pass?
+	 * Does this Password match the given string?
 	 *
 	 * @param string $pass Password to compare
-	 * @return string
+	 * @return bool
 	 *
 	 */
 	public function matches($pass) {
@@ -30,7 +36,6 @@ class Password extends Wire {
 		$hash = $this->hash($pass); 
 		if(!strlen($hash)) return false;
 		$updateNotify = false;
-		$matches = false;
 
 		if($this->isBlowfish($hash)) {
 			$hash = substr($hash, 29);
@@ -45,13 +50,20 @@ class Password extends Wire {
 
 		$matches = ($hash === $this->data['hash']);
 
-		if($matches && $updateNotify) $this->message($this->_('The password system has recently been updated. Please change your password to complete the update for your account.')); 
+		if($matches && $updateNotify) {
+			$this->message($this->_('The password system has recently been updated. Please change your password to complete the update for your account.'));
+		}
 
 		return $matches; 
 	}
 
 	/**
-	 * Get a property via direct access
+	 * Get a property via direct access ('salt' or 'hash')
+	 * 
+	 * #pw-group-internal
+	 * 
+	 * @param string $key
+	 * @return mixed
 	 *
 	 */
 	public function __get($key) {
@@ -60,7 +72,12 @@ class Password extends Wire {
 	}
 
 	/**
-	 * Set a property via direct access
+	 * Set a property 
+	 * 
+	 * #pw-group-internal
+	 * 
+	 * @param string $key
+	 * @param mixed $value
 	 *
 	 */
 	public function __set($key, $value) {
@@ -76,7 +93,10 @@ class Password extends Wire {
 	}
 
 	/**
-	 * Set the 'pass' to the given $value
+	 * Set the 'pass' to the given value
+	 * 
+	 * @param string $value
+	 * @throws WireException if given invalid $value
 	 *
 	 */
 	protected function ___setPass($value) {
@@ -144,8 +164,7 @@ class Password extends Wire {
 	 * Modified for camelCase, variable names, and function-based context by Ryan.
 	 *
 	 * @param int $requiredLength Length of string you want returned (default=22)
-	 * @param bool $fast Set to true for a faster, though less random string 
-	 * 	(default=false, only use true for non-password use)
+	 * @param bool $fast Set to true for a faster, though less random string (default=false, only use true for non-password use)
 	 * @return string
 	 *
 	 */
@@ -231,7 +250,7 @@ class Password extends Wire {
 	/**
 	 * Given an unhashed password, generate a hash of the password for database storage and comparison
 	 *
-	 * Note: When bowfish, returns the entire blowfish string which has the salt as the first 28 characters. 
+	 * Note: When blowfish, returns the entire blowfish string which has the salt as the first 28 characters. 
 	 *
 	 * @param string $pass Raw password
 	 * @return string
@@ -279,9 +298,198 @@ class Password extends Wire {
 		return $hash; 
 	}
 
-	public function __toString() {
-		return (string) $this->data['hash']; 
+	/**
+	 * Return a pseudo-random alpha or alphanumeric character
+	 *
+	 * @param int $qty Number of random characters requested
+	 * @param bool $alphanumeric Specify true to allow digits in return value
+	 * @param array $disallow Characters that may not be used in return value
+	 * @return string
+	 *
+	 */
+	protected function randomAlpha($qty = 1, $alphanumeric = false, $disallow = array()) {
+		$letters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+		$digits = '0123456789';
+		if($alphanumeric) $letters .= $digits;
+		if($alphanumeric === 1) $letters = $digits; // digits only
+		foreach($disallow as $c) {
+			$letters = str_replace($c, '', $letters);
+		}
+		$value = '';
+		for($x = 0; $x < $qty; $x++) {
+			$n = mt_rand(0, strlen($letters) - 1);
+			$value .= $letters[$n];
+		}
+		return $value;
+	}
+
+	/**
+	 * Generate and return a random password
+	 * 
+	 * Default settings of this method are to generate a random but readable password without characters that
+	 * tend to have readability issues, and using only ASCII characters (for broadest keyboard compatibility).
+	 * 
+	 * @param array $options Specify any of the following options (all optional):
+	 *  - `minLength` (int): Minimum lenth of returned value (default=7).
+	 *  - `maxLength` (int): Maximum lenth of returned value, will be exceeded if needed to meet other options (default=15).
+	 *  - `minLower` (int): Minimum number of lowercase characters required (default=1). 
+	 *  - `minUpper` (int): Minimum number of uppercase characters required (default=1).
+	 *  - `maxUpper` (int): Maximum number of uppercase characters allowed (0=any, -1=none, default=3).
+	 *  - `minDigits` (int): Minimum number of digits required (default=1).
+	 *  - `maxDigits` (int): Maximum number of digits allowed (0=any, -1=none, default=0). 
+	 *  - `minSymbols` (int): Minimum number of non-alpha, non-digit symbols required (default=0).
+	 *  - `maxSymbols` (int): Maximum number of non-alpha, non-digit symbols to allow (0=any, -1=none, default=3).
+	 *  - `useSymbols` (array): Array of characters to use as "symbols" in returned value (see method for default).
+	 *  - `disallow` (array): Disallowed characters that may be confused with others (default=O,0,I,1,l).
+	 *
+	 * @return string
+	 * 
+	 */
+	public function randomPass(array $options = array()) {
+
+		$defaults = array(
+			'minLength' => 7, 
+			'maxLength' => 15,
+			'minUpper' => 1, 
+			'maxUpper' => 3, 
+			'minLower' => 1, 
+			'minDigits' => 1, 
+			'maxDigits' => 0, 
+			'minSymbols' => 0, 
+			'maxSymbols' => 3, 
+			'useSymbols' => array('@', '#', '$', '%', '^', '*', '_', '-', '+', '?', '(', ')', '!', '.', '=', '/'),
+			'disallow' => array('O', '0', 'I', '1', 'l'), 
+		);
+
+		$options = array_merge($defaults, $options);
+		$length = mt_rand($options['minLength'], $options['maxLength']);
+		$base64Symbols = array('/' , '.');
+		$_disallow = array(); // with both upper and lower versions
+		
+		foreach($options['disallow'] as $c) {
+			$c = strtolower($c);
+			$_disallow[$c] = $c;
+			$c = strtoupper($c);
+			$_disallow[$c] = $c;
+		}
+
+		// build foundation of password using base64 string
+		do {
+			$value = $this->randomBase64String($length);
+			$valid = preg_match('/[A-Z]/i', $value) && preg_match('/[0-9]/', $value);
+		} while(!$valid);
+
+		// limit amount of characters that are too common in base64 string
+		foreach($base64Symbols as $char) {
+			if(strpos($value, $char) === false) continue;
+			$c = $this->randomAlpha(1, true, $options['disallow']);
+			$value = str_replace($char, $c, $value);
+		}
+
+		// manage quantity of symbols
+		if($options['maxSymbols'] > -1) {
+			// ensure there are a certain quantity of symbols present
+			if($options['maxSymbols'] === 0) {
+				$numSymbols = mt_rand($options['minSymbols'], floor(strlen($value) / 2));
+			} else {
+				$numSymbols = mt_rand($options['minSymbols'], $options['maxSymbols']);
+			}
+			$symbols = $options['useSymbols'];
+			shuffle($symbols);
+			for($n = 0; $n < $numSymbols; $n++) {
+				$symbol = array_shift($symbols);
+				$value .= $symbol;
+			}
+		} else {
+			// no symbols, remove those commonly added in base64 string
+			$options['disallow'] = array_merge($options['disallow'], $base64Symbols);
+		}
+
+		// manage quantity of uppercase characters
+		if($options['maxUpper'] > 0 || ($options['minUpper'] > 0 && $options['maxUpper'] > -1)) {
+			// limit or establish the number of uppercase characters
+			if(!$options['maxUpper']) $options['maxUpper'] = floor(strlen($value) / 2);
+			$numUpper = mt_rand($options['minUpper'], $options['maxUpper']);
+			if($numUpper) {
+				$value = strtolower($value);
+				$test = $this->wire('sanitizer')->alpha($value);
+				if(strlen($test) < $numUpper) {
+					// there aren't enough characters present to meet requirements, so add some	
+					$value .= $this->randomAlpha($numUpper - strlen($test), false, $_disallow);
+				}
+				for($i = 0; $i < strlen($value); $i++) {
+					$c = strtoupper($value[$i]);
+					if(in_array($c, $options['disallow'])) continue;
+					if($c !== $value[$i]) $value[$i] = $c;
+					if($c >= 'A' && $c <= 'Z') $numUpper--;
+					if(!$numUpper) break;
+				}
+				// still need more? append new characters as needed
+				if($numUpper) $value .= strtoupper($this->randomAlpha($numUpper, false, $_disallow));
+			}
+
+		} else if($options['maxUpper'] < 0) {
+			// disallow upper
+			$value = strtolower($value);
+		}
+		
+		// manage quantity of lowercase characters
+		if($options['minLower'] > 0) {
+			$test = preg_replace('/[^a-z]/', '', $value);
+			if(strlen($test) < $options['minLower']) {
+				// needs more lowercase
+				$value .= strtolower($this->randomAlpha($options['minLower'] - strlen($test), false, $_disallow));
+			}
+		}
+	
+		// manage quantity of required digits
+		if($options['minDigits'] > 0) {
+			$test = $this->wire('sanitizer')->digits($value);
+			$test = str_replace($options['disallow'], '', $test);
+			$numDigits = $options['minDigits'] - strlen($test);
+			if($numDigits > 0) {
+				$value .= $this->randomAlpha($numDigits, 1, $options['disallow']);	
+			}
+		}
+		if($options['maxDigits'] > 0 || $options['maxDigits'] == -1) {
+			// a maximum number of digits specified
+			$numDigits = 0;
+			for($n = 0; $n < strlen($value); $n++) {
+				$c = $value[$n];
+				$isDigit = ctype_digit($c);
+				if($isDigit) $numDigits++;
+				if($isDigit && $numDigits > $options['maxDigits']) {
+					// convert digit to alpha
+					$value[$n] = strtolower($this->randomAlpha(1, false, $_disallow));
+				}
+			}
+		}
+
+		// replace any disallowed characters
+		foreach($options['disallow'] as $char) {
+			$pos = strpos($value, $char);
+			if($pos === false) continue;
+			if(ctype_digit($char)) {
+				$c = $this->randomAlpha(1, 1, $_disallow);
+			} else if(strtoupper($char) === $char) {
+				$c = strtoupper($this->randomAlpha(1, false, $_disallow));
+			} else {
+				$c = strtolower($this->randomAlpha(1, false, $_disallow));
+			}
+			$value = str_replace($char, $c, $value);
+		}
+	
+		// randomize, in case any operations above need it
+		$value = str_split($value);
+		shuffle($value);
+		$value = implode('', $value);
+
+		return $value;
 	}
 	
+	public function __toString() {
+		return (string) $this->data['hash'];
+	}
+
 }
 
