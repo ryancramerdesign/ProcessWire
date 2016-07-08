@@ -792,6 +792,61 @@ class Sanitizer extends Wire {
 	}
 
 	/**
+	 * Sanitize to ASCII alpha (a-z A-Z)
+	 * 
+	 * #pw-group-strings
+	 * 
+	 * @param string $value Value to sanitize
+	 * @param bool|int $beautify Whether to beautify (See Sanitizer::translate option too)
+	 * @param int $maxLength Maximum length of returned value (default=1024)
+	 * @return string
+	 * 
+	 */
+	public function alpha($value, $beautify = false, $maxLength = 1024) {
+		$value = $this->alphanumeric($value, $beautify, 8192);
+		$numbers = array('0', '1', '2', '3', '4', '5', '6', '7', '8', '9');
+		$value = str_replace($numbers, '', $value);
+		if(strlen($value) > $maxLength) $value = substr($value, 0, $maxLength);
+		return $value;
+	}
+
+	/**
+	 * Sanitize to ASCII alphanumeric (a-z A-Z 0-9)
+	 * 
+	 * #pw-group-strings
+	 *
+	 * @param string $value Value to sanitize
+	 * @param bool|int $beautify Whether to beautify (See Sanitizer::translate option too)
+	 * @param int $maxLength Maximum length of returned value (default=1024)
+	 * @return string
+	 *
+	 */
+	public function alphanumeric($value, $beautify = false, $maxLength = 1024) {
+		$value = $this->nameFilter($value, array('_'), '_', $beautify, $maxLength * 10);
+		$value = str_replace('_', '', $value);
+		if(strlen($value) > $maxLength) $value = substr($value, 0, $maxLength);
+		return $value;
+	}
+
+	/**
+	 * Sanitize string to contain only ASCII digits (0-9)
+	 * 
+	 * #pw-group-strings
+	 *
+	 * @param string $value Value to sanitize
+	 * @param int $maxLength Maximum length of returned value (default=1024)
+	 * @return string
+	 *
+	 */
+	public function digits($value, $maxLength = 1024) {
+		$letters = str_split('_abcdefghijklmnopqrstuvwxyz');
+		$value = strtolower($this->nameFilter($value, array('_'), '_', false, $maxLength * 10));
+		$value = str_replace($letters, '', $value);
+		if(strlen($value) > $maxLength) $value = substr($value, 0, $maxLength);
+		return $value; 
+	}
+
+	/**
 	 * Sanitize and validate an email address
 	 * 
 	 * Returns valid email address, or blank string if it isn't valid.
