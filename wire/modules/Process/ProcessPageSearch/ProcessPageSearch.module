@@ -379,8 +379,8 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 	/**
 	 * Set a display format
 	 * 
-	 * @param $name Session var name that will be used, output will be returned in JSON results indexed by $name as well.
-	 * @param $format Format string to pass to $page->getMarkup(str)
+	 * @param string $name Session var name that will be used, output will be returned in JSON results indexed by $name as well.
+	 * @param string $format Format string to pass to $page->getMarkup(str)
 	 * @param bool $textOnly 
 	 * 
 	 */

@@ -375,13 +375,23 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 			// swap a and b
 			$data = $this->data; 
 			foreach($data as $key => $value) {
+				$k = null;
 				if($value === $a) {
-					$key = $b->getItemKey();
+					if(method_exists($b, 'getItemKey')) {
+						$k = $b->getItemKey();
+					} else {
+						$k = $this->getItemKey($b);
+					}
 					$value = $b; 
 				} else if($value === $b) {
-					$key = $a->getItemKey();
+					if(method_exists($a, 'getItemKey')) {
+						$k = $a->getItemKey();
+					} else {
+						$k = $this->getItemKey($a);
+					}
 					$value = $a; 
 				}
+				if($k !== null) $key = $k;
 				$data[$key] = $value;
 			}
 			$this->data = $data; 

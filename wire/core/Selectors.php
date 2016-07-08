@@ -110,6 +110,8 @@ class Selectors extends WireArray {
 	public function init($selector) {
 		if(is_array($selector)) {
 			$this->setSelectorArray($selector);
+		} else if(is_object($selector) && $selector instanceof Selector) {
+			$this->add($selector);
 		} else {
 			$this->setSelectorString($selector);
 		}
@@ -288,7 +290,7 @@ class Selectors extends WireArray {
 	 * @throws WireException
 	 *
 	 */
-	protected function create($field, $operator, $value) {
+	public function create($field, $operator, $value) {
 		$not = false;
 		if(!isset(self::$selectorTypes[$operator])) {
 			// unrecognized operator, see if it's an alternate placement for NOT "!" statement

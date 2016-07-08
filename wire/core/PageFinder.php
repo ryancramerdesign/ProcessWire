@@ -476,18 +476,31 @@ class PageFinder extends Wire {
 	 * and OR-groups, i.e. "(bar=foo), (foo=bar)"
 	 * 
 	 * @param Selector $selector
-	 * @return bool Returns false if selector should be skipped over by getQuery()
+	 * @param Selectors $selectors
+	 * @param array $options
+	 * @param int $level
+	 * @return bool|Selector Returns false if selector should be skipped over by getQuery(), returns Selector otherwise
+	 * @throws PageFinderSyntaxException
 	 *
 	 */
-	protected function preProcessSelector(Selector $selector) {
+	protected function preProcessSelector(Selector $selector, Selectors $selectors, array $options, $level = 0) {
 		
 		$quote = $selector->quote;
-		if(!$quote) return true;
+		$fields = $selector->fields;
+		$hasDoubleDot = false;
+		
+		foreach($fields as $fn) {
+			$dot = strpos($fn, '.');
+			if($dot && strrpos($fn, '.') !== $dot) {
+				$hasDoubleDot = true;
+				break;
+			}
+		}
 	
 		if($quote == '[') {
 			// selector contains another embedded selector that we need to convert to page IDs
 			// i.e. field=[id>0, name=something, this=that]
-			$this->preProcessSubSelector($selector);
+			$this->preProcessSubSelector($selector, $selectors);
 
 		} else if($quote == '(') {
 			// selector contains an OR group (quoted selector)
@@ -501,9 +514,41 @@ class PageFinder extends Wire {
 				$this->extraOrSelectors[$groupName][] = $this->wire(new Selectors($selector->value));
 			}
 			return false;
+			
+		} else if($hasDoubleDot) {
+			// has an "a.b.c" type string in the field, convert to a sub-selector
+			
+			if(count($fields) > 1) {
+				throw new PageFinderSyntaxException("Multi-dot 'a.b.c' type selectors may not be used with OR '|' fields");
+			}
+			
+			$fn = reset($fields);
+			$parts = explode('.', $fn);
+			$fieldName = array_shift($parts);
+			$field = $this->isPageField($fieldName);
+			
+			if($field) {
+				// we have a workable page field
+				/** @var Selectors $_selectors */
+				if($options['findAll']) $s = "include=all";
+					else if($options['findHidden']) $s = "include=hidden";
+					else if($options['findUnpublished']) $s = "include=unpublished";
+					else $s = '';
+				$_selectors = $this->wire(new Selectors($s));
+				$_selector = $_selectors->create(implode('.', $parts), $selector->operator, $selector->values);
+				$_selectors->add($_selector);
+				$sel = new SelectorEqual("$fieldName", $_selectors);
+				$sel->quote = '[';
+				if(!$level) $selectors->replace($selector, $sel);
+				$selector = $sel;
+				$sel = $this->preProcessSelector($sel, $selectors, $options, $level + 1);
+				if($sel) $selector = $sel;
+			} else {
+				// not a page field
+			}
 		}
 		
-		return true;
+		return $selector;
 	}
 
 	/*
@@ -545,9 +590,10 @@ class PageFinder extends Wire {
 	 * Pre-process a Selector that has a [quoted selector] embedded within its value
 	 * 
 	 * @param Selector $selector
+	 * @param Selectors $parentSelectors
 	 * 
 	 */
-	protected function preProcessSubSelector(Selector $selector) {
+	protected function preProcessSubSelector(Selector $selector, Selectors $parentSelectors) {
 
 		// Selector contains another embedded selector that we need to convert to page IDs.
 		// Example: "field=[id>0, name=something, this=that]" converts to "field.id=123|456|789"
@@ -557,17 +603,28 @@ class PageFinder extends Wire {
 		
 		$hasTemplate = false;
 		$hasParent = false;
+		$hasInclude = false;
 		
 		foreach($selectors as $s) {
 			if(is_array($s->field)) continue;
 			if($s->field == 'template') $hasTemplate = true;
-			if($s->field == 'parent' || $s->field == 'parent_id') $hasParent = true;
+			if($s->field == 'parent' || $s->field == 'parent_id' || $s->field == 'parent.id') $hasParent = true;
+			if($s->field == 'include' || $s->field == 'status') $hasInclude = true;
+		}
+		
+		if(!$hasInclude) {
+			// see if parent selector has an include mode, and copy it over to this one
+			foreach($parentSelectors as $s) {
+				if($s->field == 'include' || $s->field == 'status' || $s->field == 'check_access') {
+					$selectors->add(clone $s);
+				}
+			}
 		}
 		
 		// special handling for page references, detect if parent or template is defined, 
 		// and add it to the selector if available. This makes it faster. 
 		if(!$hasTemplate || !$hasParent) {
-			
+
 			$fields = is_array($selector->field) ? $selector->field : array($selector->field);
 			$templates = array();
 			$parents = array();
@@ -587,7 +644,16 @@ class PageFinder extends Wire {
 						$templates[] = (int) $field->template_id;
 					}
 				}
-				if(!$hasParent && $field->parent_id) $parents[] = (int) $field->parent_id;
+				if(!$hasParent && $field->parent_id) {
+					if(strpos($field->type->className(), 'FieldtypeRepeater') !== false) {
+						// repeater items not stored directly under parent_id, but as another parent under parent_id. 
+						// so we use has_parent instead here
+						$selectors->prepend(new SelectorEqual('has_parent', $field->parent_id));
+					} else {
+						// direct parent: FieldtypePage or similar
+						$parents[] = (int) $field->parent_id;
+					}
+				}
 				if($field->findPagesSelector && count($fields) == 1) $findSelector = $field->findPagesSelector;
 			}
 			
@@ -602,9 +668,12 @@ class PageFinder extends Wire {
 				}
 			}
 		}
-
+		
 		$pageFinder = $this->wire(new PageFinder());
 		$ids = $pageFinder->findIDs($selectors);
+		$fieldNames = $selector->fields;
+		$fieldName = reset($fieldNames);
+		$natives = array('parent', 'parent.id', 'parent_id', 'children', 'children.id', 'child', 'child.id');
 		
 		// populate selector value with array of page IDs
 		if(count($ids) == 0) {
@@ -617,13 +686,34 @@ class PageFinder extends Wire {
 					/** @noinspection PhpUnusedLocalVariableInspection */
 					list($fieldName, $subname) = explode('.', $fieldName); // subname intentionally unused
 				}
-				$fieldName .= '.id';
+				$field = $this->isPageField($fieldName);
+				if(is_string($field) && in_array($field, $natives)) {
+					// prevent matching something like parent_id=0, as that would match homepage
+					$fieldName = 'id';
+				} else if($field) {
+					$fieldName .= '.id';
+				} else {
+					// non-Page value field
+					$selector->forceMatch = false;
+				}
 				$fieldNames[$key] = $fieldName;
 			}
 			$selector->fields = $fieldNames;
 			$selector->value = 0;
+			
+		} else if(in_array($fieldName, $natives)) {
+			// i.e. parent, parent_id, children, etc
+			$selector->value = count($ids) > 1 ? $ids : reset($ids);
+			
 		} else {
-			$selector->value = count($ids) > 1 ? implode(',', $ids) : reset($ids);
+			$field = $this->isPageField($fieldName);
+			if(is_object($field) && $field instanceof FieldtypePage) {
+				// FieldtypePage fields can use the "," separation syntax for speed optimization
+				$selector->value = count($ids) > 1 ? implode(',', $ids) : reset($ids);
+			} else {
+				// otherwise use array
+				$selector->value = count($ids) > 1 ? $ids : reset($ids);
+			}
 		}
 		
 		$selector->quote = '';
@@ -634,7 +724,7 @@ class PageFinder extends Wire {
 	 *
 	 * @TODO split this method up into more parts, it's too long
 	 *
-	 * @param array $selectors Array of selectors.
+	 * @param Selectors $selectors Array of selectors.
 	 * @param array $options 
 	 * @return DatabaseQuerySelect 
 	 * @throws PageFinderSyntaxException
@@ -663,8 +753,13 @@ class PageFinder extends Wire {
 			
 			/** @var Selector $selector */
 
-			if(is_null($lastSelector)) $lastSelector = $selector; 
-			if(!$this->preProcessSelector($selector)) continue; 
+			if(is_null($lastSelector)) $lastSelector = $selector;
+			$selector = $this->preProcessSelector($selector, $selectors, $options);
+			if(!$selector || $selector->forceMatch === true) continue;
+			if($selector->forceMatch === false) {
+				$query->where("1>2"); // force non match
+				continue;
+			}
 			
 			$fields = $selector->field; 
 			$group = $selector->group; // i.e. @field
@@ -768,6 +863,7 @@ class PageFinder extends Wire {
 					$q->set('selector', $selector); // original selector if required by the fieldtype
 					$q->set('selectors', $selectors); // original selectors (all) if required by the fieldtype
 					$q->set('parentQuery', $query);
+					
 					$q = $fieldtype->getMatchQuery($q, $tableAlias, $subfield, $selector->operator, $value); 
 
 					if(count($q->select)) $query->select($q);
@@ -796,7 +892,7 @@ class PageFinder extends Wire {
 						}
 					}
 
-					$cnt++; 
+					$cnt++;
 				}
 
 				if($join) {
@@ -1519,7 +1615,9 @@ class PageFinder extends Wire {
 					}
 					$field = 'parent_id';
 
-					if(count($values) == 1 && $selector->getOperator() === '=') $this->parent_id = reset($values); 
+					if(count($values) == 1 && $selector->getOperator() === '=') {
+						$this->parent_id = reset($values);
+					}
 
 				} else {
 					// matching by a parent's native or custom field (subfield)
@@ -1859,6 +1957,40 @@ class PageFinder extends Wire {
 	 */
 	public function getOptions() {
 		return $this->lastOptions; 
+	}
+
+	/**
+	 * Does the given field or fieldName resolve to a field that uses Page or PageArray values?
+	 * 
+	 * @param string|Field $fieldName Field name or object
+	 * @return Field|bool|string Returns Field object or boolean true (children|parent) if valid Page field, or boolean false if not
+	 * 
+	 */
+	protected function isPageField($fieldName) {
+		$is = false;
+		$field = null;
+		if($fieldName === 'parent' || $fieldName === 'children') {
+			return $fieldName; // early exit
+		} else if(is_object($fieldName) && $fieldName instanceof Field) {
+			$field = $fieldName;
+		} else {
+			$field = $this->wire('fields')->get($fieldName);
+		}
+		if($field) {
+			$className = $field->type->className();
+			if($field->type instanceof FieldtypePage) {
+				$is = true;
+			} else if(strpos($className, 'FieldtypeRepeater') !== false || strpos($className, 'FieldtypePageTable') !== false) {
+				$is = true;
+			} else {
+				$test = $field->type->getBlankValue(new NullPage(), $field); 
+				if(is_object($test) && ($test instanceof Page || $test instanceof PageArray)) {
+					$is = true;
+				}
+			}
+		}
+		if($is && $field) $is = $field; 
+		return $is;
 	}
 }
 

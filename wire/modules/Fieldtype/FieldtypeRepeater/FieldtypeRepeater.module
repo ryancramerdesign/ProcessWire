@@ -1038,7 +1038,19 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 			$value = (int) $value;
 			$query->where("($table.$subfield{$operator}$value)"); 
 
-		} else if($subfield == 'data' || !$subfield) {
+		} else if($subfield == 'data' || $subfield == 'id' || !$subfield) {
+			
+			if($subfield == 'id') $subfield = '';
+		
+			// support matching of IDs via word matching fulltext index
+			if(ctype_digit("$value") && !empty($value)) {
+				if($operator === '=') { 
+					$operator = '~=';
+				} else if($operator === '!=') {
+					// @todo specify NOT
+					$operator = '~=';
+				}
+			}
 
 			if(in_array($operator, array('*=', '~=', '^=', '$=', '%='))) {
 				$ft = $this->wire(new DatabaseQuerySelectFulltext($query));
@@ -1049,7 +1061,7 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 				$query->where("$table.count{$operator}0"); 
 
 			} else {
-				// @todo match 123, 123|456|789 or /path/to/page
+				// match /path/to/page or other, not implemented
 			}
 			
 		} else {

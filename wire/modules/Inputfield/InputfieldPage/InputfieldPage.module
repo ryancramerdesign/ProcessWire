@@ -19,14 +19,39 @@
  * @property string $findPagesSelector
  * @property int|bool $addable
  * @property int|bool $allowUnpub
+ * @property int $derefAsPage
+ * @property array $inputfieldClasses
+ * 
+ * @method string renderAddable()
+ * @method void processInputAddPages(WireInputData $input)
+ * 
+ * @todo make findPagesCode disabled by default
  * 
  */
 class InputfieldPage extends Inputfield implements ConfigurableModule {
+	
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Page',
+			'version' => 106,
+			'summary' => 'Select one or more pages',
+			'permanent' => true,
+		);
+	}
 
+	/**
+	 * @var Inputfield|null
+	 * 
+	 */
 	protected $inputfieldWidget = null;
 
+	/**
+	 * Default options for Inputfield classes
+	 * 
+	 * @var array
+	 * 
+	 */
 	protected static $defaultInputfieldClasses = array(
-		// default options
 		'InputfieldSelect',
 		'InputfieldSelectMultiple',
 		'InputfieldCheckboxes',
@@ -34,8 +59,14 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		'InputfieldAsmSelect',
 		'InputfieldPageListSelect', 
 		'InputfieldPageAutocomplete',
-		); 
+		);
 
+	/**
+	 * Default configuration values
+	 * 
+	 * @var array
+	 * 
+	 */
 	protected static $defaultConfig = array(
 		'parent_id' => 0,
 		'template_id' => 0,
@@ -44,6 +75,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		'labelFieldFormat' => '',
 		'findPagesCode' => '',
 		'findPagesSelector' => '',
+		'derefAsPage' => 0, 
 		'addable' => 0,
 		'allowUnpub' => 0, // This option configured by FieldtypePage:Advanced
 		); 
@@ -62,26 +94,33 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 
 	/**
 	 * PageArray of pages that were added in the request
+	 * 
+	 * @var PageArray|null
 	 *
 	 */
-	protected $pagesAdded; 
-	
-	protected $classesAdded = array();
-	
-	public static function getModuleInfo() {
-		return array(
-			'title' => 'Page',
-			'version' => 106,
-			'summary' => 'Select one or more pages',
-			'permanent' => true, 
-			);
-	}
+	protected $pagesAdded;
 
+	/**
+	 * CSS class names added to the Inputfield (will be applied to delegate Inputfield)
+	 * 
+	 * @var array
+	 * 
+	 */
+	protected $classesAdded = array();
+
+	/**
+	 * Construct
+	 * 
+	 */
 	public function __construct() {
 		$this->set('inputfieldClasses', self::$defaultInputfieldClasses); 
 		parent::__construct();
 	}
 
+	/**
+	 * Init (populate default values)
+	 * 
+	 */
 	public function init() {
 		foreach(self::$defaultConfig as $key => $value) {
 			$this->set($key, $value);
@@ -89,14 +128,32 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		$this->attr('value', $this->wire('pages')->newPageArray()); 
 		parent::init();
 	}
-	
+
+	/**
+	 * Add a CSS class name (extends Inputfield::addClass)
+	 * 
+	 * @param array|string $class
+	 * @param string $property
+	 * @return $this
+	 * 
+	 */
 	public function addClass($class, $property = 'class') {
 		if($property == 'class') {
 			$this->classesAdded[] = $class; 
 		}
 		return parent::addClass($class, $property); 
 	}
-	
+
+	/**
+	 * Set an input attribute
+	 * 
+	 * Overrides Inputfield::setAttribute() to capture 'value' attribute
+	 * 
+	 * @param array|string $key
+	 * @param array|int|string $value
+	 * @return $this
+	 * 
+	 */
 	public function setAttribute($key, $value) {
 
 		if($key == 'value') { 
@@ -149,53 +206,57 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		
 		if(!$field instanceof Field) $field = $page->wire('fields')->get($field);
 		if(!$field instanceof Field) throw new WireException('isValidPage requires a valid Field or field name');
+		
 		if($editPage && $page->id == $editPage->id) {
 			$editPage->set('_isValidPage', "Page is referencing itself and circular page reference not allowed");
 			return false; // prevent circular reference
 		}
+		
 		if($page->wire('pages')->cloning) {
 			return true; // bypass check when clong is active
 		}
 
 		$valid = true;
+		$findPagesSelector = $field->get('findPagesSelector');
+		$parent_id = $field->get('parent_id');
+		$template_id = $field->get('template_id');
 		
-		if($field->findPagesSelector) { 
-			$selector = $field->findPagesSelector; 
+		if($findPagesSelector) { 
+			$selector = $findPagesSelector; 
 			if($editPage) $selector = self::getFindPagesSelector($editPage, $selector); 
 			if(!$page->matches($selector)) {
 				if($editPage) $editPage->set('_isValidPage', "Page $page does not match findPagesSelector: $selector"); 
 				$valid = false;
 			}
 		} 
-		
-		if($field->findPagesCode) {
-			// TODO: we don't currently validate these
-		} 
+	
+		// if($field->findPagesCode) { } // we don't currently validate these
 
-		if($field->parent_id && $field->parent_id != $page->parent_id) {
+		if($parent_id && $parent_id != $page->parent_id) {
 			if(version_compare(PHP_VERSION, '5.3.8') >= 0) {
-				$interfaces = wireClassImplements($field->inputfield);
-				// if(is_subclass_of($field->inputfield, 'InputfieldPageListSelection')) {
+				$interfaces = wireClassImplements($field->get('inputfield'));
 				if(in_array('InputfieldPageListSelection', $interfaces)) {
 					// parent_id represents a root parent
-					$rootParent = $page->wire('pages')->get($field->parent_id); 
+					$rootParent = $page->wire('pages')->get($parent_id); 
 					if(!$page->parents()->has($rootParent)) $valid = false;
 				} else {
 					// parent_id represents a direct parent
 					$valid = false;
 				}
-				if(!$valid && $editPage) $editPage->set('_isValidPage', "Page $page does not have required parent $field->parent_id"); 
+				if(!$valid && $editPage) {
+					$editPage->set('_isValidPage', "Page $page does not have required parent $parent_id");
+				}
 			} else {
 				// PHP version prior to 5.3.8
 				// @deprecated
-				$reflector = new \ReflectionClass($field->inputfield); 
+				$reflector = new \ReflectionClass($field->get('inputfield')); 
 				$valid = $reflector->implementsInterface('InputfieldPageListSelection'); 
 			}
 		}
 		
-		if($field->template_id && $page->template->id != $field->template_id) {
+		if($template_id && $page->template->id != $template_id) {
 			$valid = false;
-			if($editPage) $editPage->set('_isValidPage', "Page $page does not have required template $field->template_id"); 
+			if($editPage) $editPage->set('_isValidPage', "Page $page does not have required template $template_id"); 
 		}
 		
 		return $valid;
@@ -209,6 +270,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 	 * 
 	 */
 	protected function ___findPagesCode(Page $page) {
+		if($page) {}
 		$pages = $this->wire('pages'); // so that it is locally scoped to the eval
 		if(empty($this->findPagesCode)) return $pages->newPageArray();
 		return eval($this->findPagesCode);
@@ -229,6 +291,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 	public function ___getSelectablePages(Page $page) {
 
 		$statusUnder = $this->allowUnpub ? Page::statusTrash : Page::statusUnpublished; 
+		$children = null;
 
 		if($this->configMode) {
 			$children = $this->wire('pages')->newPageArray();
@@ -254,8 +317,10 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		} else {
 			$children = $this->wire('pages')->newPageArray();
 		}
-		
-		if($children->has($page)) $children->remove($page); // don't allow page being edited to be selected
+	
+		if($children && $children->has($page)) {
+			$children->remove($page); // don't allow page being edited to be selected
+		}
 
 		return $children; 
 	} 
@@ -328,6 +393,13 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		return $label;
 	}
 
+	/**
+	 * Get delegate Inputfield for page selection
+	 * 
+	 * @return Inputfield|null
+	 * @throws WireException
+	 * 
+	 */
 	public function getInputfield() {
 
 		if($this->inputfieldWidget && ((string) $this->inputfieldWidget) == $this->inputfield) return $this->inputfieldWidget; 
@@ -342,11 +414,12 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 
 		$inputfield->attr('name', $this->attr('name')); 
 		$inputfield->attr('id', $this->attr('id')); 
-		$inputfield->label = $this->label;
-		$inputfield->description = $this->description;
-
-		if($this->collapsed == Inputfield::collapsedYesAjax || 
-			($this->collapsed == Inputfield::collapsedBlankAjax && $this->isEmpty())) {
+		$inputfield->label = $this->getSetting('label');
+		$inputfield->description = $this->getSetting('description');
+		
+		$collapsed = $this->getSetting('collapsed');
+		if($collapsed == Inputfield::collapsedYesAjax || 
+			($collapsed == Inputfield::collapsedBlankAjax && $this->isEmpty())) {
 			// quick exit when possible due to ajax field, and not being time to render or process it
 			if($this->getParent()) {
 				// limit only to inputfields that have a parent, to keep out of other form contexts like Lister
@@ -361,34 +434,53 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		}
 
 		if(method_exists($inputfield, 'addOption')) {
+			
 			$children = $this->getSelectablePages($page);
-			if($children) foreach($children as $child) {
-				$label = $this->getPageLabel($child);	
-				$inputfield->addOption($child->id, $label);
+			
+			if($children) {
+				foreach($children as $child) {
+					$label = $this->getPageLabel($child);
+					$inputfield->addOption($child->id, $label);
+				}
 			}
+			
 		} else {
-			if($this->parent_id) {
-				$inputfield->parent_id = $this->parent_id;
-			} else if($this->findPagesCode) {
+			
+			$parent_id = $this->getSetting('parent_id');
+			$template_id = $this->getSetting('template_id');
+			$findPagesCode = $this->getSetting('findPagesCode');
+			$findPagesSelector = $this->getSetting('findPagesSelector');
+			$labelFieldName = $this->getSetting('labelFieldName');
+			$labelFieldFormat = $this->getSetting('labelFieldFormat');
+			
+			if($parent_id) {
+				$inputfield->parent_id = $parent_id;
+			} else if($findPagesCode) {
 				// @teppokoivula: use findPagesCode to return single parent page
 				$child = $this->findPagesCode($page);
 				if($child instanceof Page) $inputfield->parent_id = $child->id; 
 			}
-			if($this->template_id) $inputfield->template_id = $this->template_id; 
-			if($this->findPagesSelector) $inputfield->findPagesSelector = $this->findPagesSelector; 
-			if(strlen($this->labelFieldFormat) && $this->labelFieldName === '.') {
-				$inputfield->labelFieldName = $this->labelFieldFormat;
-				$inputfield->labelFieldFormat = $this->labelFieldFormat;
+			
+			if($template_id) $inputfield->template_id = $template_id; 
+			if($findPagesSelector) $inputfield->findPagesSelector = $findPagesSelector; 
+			
+			if(strlen($labelFieldFormat) && $labelFieldName === '.') {
+				$inputfield->labelFieldName = $labelFieldFormat;
+				$inputfield->labelFieldFormat = $labelFieldFormat;
 			} else {
-				$inputfield->labelFieldName = $this->labelFieldName == '.' ? 'name' : $this->labelFieldName;
+				$inputfield->labelFieldName = $labelFieldName == '.' ? 'name' : $labelFieldName;
 				$inputfield->labelFieldFormat = '';
 			}				
 		}
 
-		$ids = array();
 		$value = $this->attr('value'); 
-		if($value instanceof Page) $inputfield->attr('value', $value->id); // derefAsPage
-			else if($value instanceof PageArray) foreach($value as $v) $inputfield->attr('value', $v->id); // derefAsPageArray
+		if($value instanceof Page) {
+			$inputfield->attr('value', $value->id); // derefAsPage
+		} else if($value instanceof PageArray) {
+			foreach($value as $v) {
+				$inputfield->attr('value', $v->id); // derefAsPageArray
+			}
+		}
 
 		// pass long any relevant configuration items
 		foreach($this->data as $key => $value) {
@@ -398,48 +490,78 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		}
 
 		$this->inputfieldWidget = $inputfield;
+		
 		return $inputfield; 
 	}
+
+	/**
+	 * Called before render()
+	 * 
+	 * @param Inputfield $parent
+	 * @param bool $renderValueMode
+	 * @return bool
+	 * 
+	 */
 	
 	public function renderReady(Inputfield $parent = null, $renderValueMode = false) {
+		
 		parent::renderReady($parent, $renderValueMode);
+		
 		$inputfield = $this->getInputfield();
+		
 		if(!$inputfield) {
-			$this->error("Not fully configured  / currently nonfunctional");
+			$this->error($this->_('This field needs to be configured before it can be used.'));
 			return false;
 		}
+		
 		$this->addClass('InputfieldNoFocus', 'wrapClass');
+		
 		return $inputfield->renderReady($this, $renderValueMode);
 	}
 
+	/**
+	 * Render
+	 * 
+	 * @return string
+	 * @throws WireException
+	 * 
+	 */
 	public function ___render() {
 
 		$inputfield = $this->getInputfield();
-		if(!$inputfield) return $this->name;
+		if(!$inputfield) return $this->attr('name');
 		
 		$classes = InputfieldWrapper::getClasses();
 		$class = $inputfield->className();
 		if(isset($classes[$class]['item_content'])) $class .= " " . $classes[$class]['item_content'];
-		foreach($this->classesAdded as $addClass) $inputfield->addClass($addClass);
+		
+		foreach($this->classesAdded as $addClass) {
+			$inputfield->addClass($addClass);
+		}
 
 		$out = 	"\n<div class='$class'>";
 		$out .= $inputfield->render();
 		$out .= $this->renderAddable();
 		
-		if($this->findPagesSelector) {
-			$selector = $this->wire('sanitizer')->entities($this->findPagesSelector); 
+		$findPagesSelector = $this->getSetting('findPagesSelector');
+		$labelFieldFormat = $this->getSetting('labelFieldFormat');
+		$labelFieldName = $this->getSetting('labelFieldName');
+		
+		if($findPagesSelector) {
+			$selector = $this->wire('sanitizer')->entities($findPagesSelector); 
 			$formatName = '';
-			if($this->wire('user')->hasPermission('page-edit') && strlen($this->labelFieldFormat) && $this->labelFieldName === '.') {
+			if($this->wire('user')->hasPermission('page-edit') && strlen($labelFieldFormat) && $labelFieldName === '.') {
 				/** @var ProcessPageSearch $pps */
-				$formatName = "page_$this->name";
+				$formatName = "page_" . $this->attr('name');
 				try {
+					/** @var ProcessPageSearch $pps */
 					$pps = $this->wire('modules')->get('ProcessPageSearch');
-					$pps->setDisplayFormat($formatName, $this->labelFieldFormat);
+					$pps->setDisplayFormat($formatName, $labelFieldFormat);
 				} catch(\Exception $e) {
 					// most likely user does not have access to ProcessPageSearch
 				}
 			}
-			$labelFieldName = $this->labelFieldName == '.' ? 'name' : $this->labelFieldName;	
+			$labelFieldName = $labelFieldName == '.' ? 'name' : $labelFieldName;	
 			$out .= "<input " . 
 				"type='hidden' " . 
 				"class='findPagesSelector' " . 
@@ -453,16 +575,27 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		return $out; 
 	}
 
+	/**
+	 * Render the add page(s) section
+	 * 
+	 * @return string
+	 * @throws WireException
+	 * 
+	 */
 	protected function ___renderAddable() {
+		
+		$parent_id = $this->getSetting('parent_id');
+		$template_id = $this->getSetting('parent_id');
+		$labelFieldName = $this->getSetting('labelFieldName');
 
-		if(!$this->addable || !$this->parent_id || !$this->template_id) return '';
+		if(!$this->getSetting('addable') || !$parent_id || !$template_id) return '';
 
-		if($this->labelFieldName && $this->labelFieldName != 'title') return '';
+		if($labelFieldName && $labelFieldName != 'title') return '';
 
-		$parent = $this->wire('pages')->get($this->parent_id); 
+		$parent = $this->wire('pages')->get($parent_id); 
 
 		$test = $this->wire('pages')->newPage(array(
-			'template' => $this->wire('templates')->get($this->template_id)
+			'template' => $this->wire('templates')->get($template_id)
 		));
 		$test->parent = $parent; 
 		$test->id = -1; // prevents permissions check from failing
@@ -470,7 +603,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		if(!$parent->addable($test)) return ''; 
 		if(!$test->publishable()) return '';
 
-		$inputfield = $this->wire('modules')->get($this->inputfield); 
+		$inputfield = $this->wire('modules')->get($this->getSetting('inputfield')); 
 		if(!$inputfield) return '';
 		$key = "_{$this->name}_add_items";
 
@@ -487,7 +620,8 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		$notes = sprintf($this->_('New pages will be added to %s'), $parent->path);
 		$label ="<i class='fa fa-plus-circle'></i> " . $this->_('Create New'); 
 
-		$out = 	"\n<div class='InputfieldPageAdd'>" . 	
+		$out = 	
+			"\n<div class='InputfieldPageAdd'>" . 	
 			"\n\t<p class='InputfieldPageAddButton'><a href='#'>$label</a></p>" . 
 			"\n\t<p class='InputfieldPageAddItems'>" . 
 			"\n\t\t<label class='description' for='$key'>$description</label>" . 
@@ -548,7 +682,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		$value = $this->attr('value'); 
 		$existingValueStr = $value ? "$value" : '';
 		$newValue = null;
-		$value = $inputfield->value;
+		$value = $inputfield->attr('value');
 		
 		if(is_array($value)) {
 			$newValue = $this->wire('pages')->newPageArray(); 
@@ -558,7 +692,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 				if($id > 0) {	
 					// existing page
 					$page = $this->wire('pages')->get($id); 
-					if($page->hasStatus(Page::statusUnpublished) && !$this->allowUnpub) continue; // disallow unpublished
+					if($page->hasStatus(Page::statusUnpublished) && !$this->getSetting('allowUnpub')) continue; // disallow unpublished
 				} else {
 					// placeholder for new page, to be sorted later
 					$page = $this->wire('pages')->newNullPage(); 
@@ -568,7 +702,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 
 		} else if($value) {
 			$newValue = $this->wire('pages')->get((int) $value); 
-			if($newValue->hasStatus(Page::statusUnpublished) && !$this->allowUnpub) $newValue = null; // disallow unpublished
+			if($newValue->hasStatus(Page::statusUnpublished) && !$this->getSetting('allowUnpub')) $newValue = null; // disallow unpublished
 		}
 
 		$this->setAttribute('value', $newValue); 
@@ -589,7 +723,9 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		if("$newValue" != "$existingValueStr") {
 			$this->trackChange('value'); 
 		} 
+		
 		$this->processInputMode = false; 	
+		
 		return $this; 
 	}
 
@@ -602,25 +738,27 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 	protected function ___processInputAddPages($input) {
 
 		$this->pagesAdded = $this->wire('pages')->newPageArray();
+		$parent_id = $this->getSetting('parent_id');
+		$template_id = $this->getSetting('template_id');
 
-		if(!$this->addable || !$this->parent_id || !$this->template_id) return;
+		if(!$this->getSetting('addable') || !$parent_id || !$template_id) return;
 
 		$user = $this->wire('user'); 
-
 		$key = "_{$this->name}_add_items";
 		$value = trim($input->$key); 
+		
 		if(empty($value)) return;
 
-		$parent = $this->pages->get($this->parent_id);
+		$parent = $this->pages->get($parent_id);
 		$sort = $parent->numChildren;
-		$titles = explode("\n", $value); 
-		$publishable = false;
+		$titles = explode("\n", $value);
 		$n = 0;
 
 		foreach($titles as $title) {
 
 			// check if there is an existing page using this title
-			$existingPage = $parent->child("include=all, templates_id={$this->template_id}, title=" . $this->sanitizer->selectorValue($title)); 
+			$selector = "include=all, templates_id={$this->template_id}, title=" . $this->wire('sanitizer')->selectorValue($title); 
+			$existingPage = $parent->child($selector);
 			if($existingPage->id) {
 				// use existing page
 				$this->pagesAdded->add($existingPage);
@@ -635,7 +773,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 
 			// create a new page
 			$page = $this->wire('pages')->newPage();
-			$page->template = $this->template_id; 
+			$page->template = $template_id; 
 			$page->parent = $parent; 
 			$page->title = trim($title); 
 			$page->sort = $sort++;
@@ -668,6 +806,12 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		}
 	}
 
+	/**
+	 * Does this Inputfield have an empty value?
+	 * 
+	 * @return bool
+	 * 
+	 */
 	public function isEmpty() {
 		$value = $this->attr('value'); 
 
@@ -687,6 +831,13 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		return false; 
 	}
 
+	/**
+	 * Get field configuration Inputfields
+	 * 
+	 * @return InputfieldWrapper
+	 * @throws WireException
+	 * 
+	 */
 	public function ___getConfigInputfields() {
 		// let the module know it's being used for configuration purposes
 		$this->configMode = true; 
@@ -699,6 +850,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		$fieldset->label = $this->_('Selectable Pages');
 		$fieldset->attr('name', '_selectable_pages'); 
 
+		/** @var InputfieldPageListSelect $field */
 		$field = $this->modules->get('InputfieldPageListSelect');
 		$field->setAttribute('name', 'parent_id'); 
 		$field->label = $this->_('Parent of selectable page(s)');
@@ -707,6 +859,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		$field->required = false;
 		$fieldset->append($field); 
 
+		/** @var InputfieldSelect $field */
 		$field = $this->modules->get('InputfieldSelect');
 		$field->setAttribute('name', 'template_id'); 
 		$field->label = $this->_('Template of selectable page(s)');
@@ -716,6 +869,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		$field->collapsed = Inputfield::collapsedBlank;
 		$fieldset->append($field); 
 
+		/** @var InputfieldText $field */
 		$field = $this->modules->get('InputfieldText'); 
 		$field->attr('name', 'findPagesSelector'); 
 		$field->label = $this->_('Custom selector to find selectable pages'); 
@@ -723,11 +877,11 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		$field->description = $this->_('If you want to find selectable pages using a ProcessWire selector rather than selecting a parent page or template (above) then enter the selector to find the selectable pages. This selector will be passed to a $pages->find("your selector"); statement. NOTE: Not currently compatible with PageListSelect input field types.'); // Description for Custom selector to find selectable pages
 		$extra = $this->_('While this overrides parent and template selections above, those selections are still used for validation (de-select them if you do not want that behavior).'); // Additional notes
 		$field->description .= ' ' . $extra;
-
 		$field->notes = $exampleLabel . $this->_('parent=/products/, template=product, sort=name'); // Example of Custom selector to find selectable pages
 		$field->collapsed = Inputfield::collapsedBlank;
 		$fieldset->append($field); 
 
+		/** @var InputfieldTextarea $field */
 		$field = $this->modules->get('InputfieldTextarea'); 
 		$field->attr('name', 'findPagesCode'); 
 		$field->label = $this->_('Custom PHP code to find selectable pages'); 
@@ -743,6 +897,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 
 		$inputfields->append($fieldset); 
 
+		/** @var InputfieldSelect $field */
 		$field = $this->modules->get('InputfieldSelect');
 		$field->attr('name', 'labelFieldName');
 		$field->label = $this->_('Label field');
@@ -780,7 +935,8 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		}
 		$field->attr('value', $this->labelFieldName);
 		$inputfields->append($field); 
-		
+	
+		/** @var InputfieldText $field */
 		$field = $this->modules->get('InputfieldText');
 		$field->attr('name', 'labelFieldFormat');
 		$field->attr('value', $this->labelFieldFormat);
@@ -793,7 +949,9 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		$field->requiredIf = 'labelFieldName=.';
 		$inputfields->add($field);
 
-		if(!$this->inputfield) $this->inputfield = 'InputfieldSelect'; 
+		if(!$this->inputfield) $this->inputfield = 'InputfieldSelect';
+		
+		/** @var InputfieldSelect $field */
 		$field = $this->modules->get('InputfieldSelect');
 		$field->setAttribute('name', 'inputfield'); 
 		$field->setAttribute('value', $this->inputfield); 
@@ -846,6 +1004,13 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		return $inputfields; 
 	}
 
+	/**
+	 * Get module configuration Inputfields
+	 * 
+	 * @param array $data
+	 * @return InputfieldWrapper
+	 * 
+	 */
 	public function getModuleConfigInputfields(array $data) {
 
 		$name = 'inputfieldClasses';
@@ -853,6 +1018,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		if(!isset($data[$name]) || !is_array($data[$name])) $data[$name] = self::$defaultInputfieldClasses; 
 		$fields = $this->wire(new InputfieldWrapper());
 		$modules = $this->wire('modules');
+		/** @var InputfieldAsmSelect $field */
 		$field = $modules->get("InputfieldAsmSelect");
 		$field->attr('name', $name);
 		foreach($modules->find('className^=Inputfield') as $inputfield) {
