@@ -71,11 +71,11 @@ class AdminThemeDefaultHelpers extends WireData {
 	
 		if(!$touch && $loggedin && $this->className() == 'AdminThemeDefaultHelpers') {
 			
-			if($this->wire('config')->debug) {
+			if($this->wire('config')->debug && $this->wire('user')->isSuperuser()) {
 				$label = __('Debug Mode Tools', '/wire/templates-admin/debug.inc');
 				$out .=
 					"<li><a href='#' title='$label' onclick=\"$('#debug_toggle').click();return false;\">" .
-					"<i class='fa fa-cog'></i></a>$separator</li>";
+					"<i class='fa fa-bug'></i></a>$separator</li>";
 			}
 
 			if($this->wire('process') != 'ProcessPageList') {

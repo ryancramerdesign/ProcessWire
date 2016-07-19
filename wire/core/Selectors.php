@@ -110,6 +110,8 @@ class Selectors extends WireArray {
 	public function init($selector) {
 		if(is_array($selector)) {
 			$this->setSelectorArray($selector);
+		} else if(is_object($selector) && $selector instanceof Selector) {
+			$this->add($selector);
 		} else {
 			$this->setSelectorString($selector);
 		}
@@ -288,13 +290,22 @@ class Selectors extends WireArray {
 	 * @throws WireException
 	 *
 	 */
-	protected function create($field, $operator, $value) {
+	public function create($field, $operator, $value) {
+		$not = false;
 		if(!isset(self::$selectorTypes[$operator])) {
-			$debug = $this->wire('config')->debug ? "field='$field', value='$value', selector: '$this->selectorStr'" : "";
-			throw new WireException("Unknown Selector operator: '$operator' -- was your selector value properly escaped? $debug"); 
+			// unrecognized operator, see if it's an alternate placement for NOT "!" statement
+			$op = ltrim($operator, '!');
+			if(isset(self::$selectorTypes[$op])) {
+				$operator = $op;
+				$not = true;
+			} else {
+				$debug = $this->wire('config')->debug ? "field='$field', value='$value', selector: '$this->selectorStr'" : "";
+				throw new WireException("Unknown Selector operator: '$operator' -- was your selector value properly escaped? $debug");
+			}
 		}
 		$class = wireClassName(self::$selectorTypes[$operator], true); 
 		$selector = $this->wire(new $class($field, $value)); 
+		if($not) $selector->not = true;
 		return $selector; 		
 	}
 
@@ -312,7 +323,12 @@ class Selectors extends WireArray {
 		
 		while(strlen($str)) {
 
+			$not = false;
 			$quote = '';	
+			if(strpos($str, '!') === 0) {
+				$str = ltrim($str, '!');
+				$not = true; 
+			}
 			$group = $this->extractGroup($str); 	
 			$field = $this->extractField($str); 
 			$operator = $this->extractOperator($str, $this->getOperatorChars());
@@ -331,6 +347,7 @@ class Selectors extends WireArray {
 				$selector = $this->create($field, $operator, $value);
 				if(!is_null($group)) $selector->group = $group; 
 				if($quote) $selector->quote = $quote; 
+				if($not) $selector->not = true; 
 				$this->add($selector); 
 			}
 
@@ -952,7 +969,11 @@ class Selectors extends WireArray {
 				$fieldsStr = implode('|', $fields);
 				throw new WireException("Value given for '$fieldsStr' is not in provided whitelist");
 			}
-			if($_sanitize) $value = $sanitizer->$_sanitize($value);
+			if($_sanitize === 'selectorValue') {
+				$value = $sanitizer->selectorValue($value, array('useQuotes' => false)); 
+			} else if($_sanitize) {
+				$value = $sanitizer->$_sanitize($value);
+			}
 			$values[] = $value;
 		}
 

@@ -228,7 +228,7 @@ class Pagefile extends WireData {
 		} else {
 			// no JSON values so assume regular language description
 			$languages = $this->wire('languages');
-			$language = $this->wire('user')->language; 
+			$language = $languages ? $this->wire('user')->language : null; 
 
 			if($languages && $language && !$noLang && !$language->isDefault()) {
 				parent::set("description$language", $value); 

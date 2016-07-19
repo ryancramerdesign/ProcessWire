@@ -87,9 +87,13 @@ class InputfieldCheckbox extends Inputfield {
 	public function ___renderValue() {
 		$value = $this->attr('value');
 		if($value != self::uncheckedValueDefault && $value != $this->uncheckedValue) {
-			$value = $this->checkedValue; 
+			$value = $this->wire('sanitizer')->entities($this->checkedValue); 
+			$value = $value === "1" ? $this->_('Checked') : $value;
+			$value = "<i class='fa fa-check-square-o'></i> $value";
 		} else {
-			$value = $this->uncheckedValue;
+			$value = $this->wire('sanitizer')->entities($this->uncheckedValue);
+			$value = empty($value) ? $this->_('Not checked') : $value;
+			$value = "<i class='fa fa-square-o'></i> $value";
 		}
 		return $value; 
 	}

@@ -537,6 +537,11 @@ body:not(.hasWireTabs) #headline .container {
 			margin-left: 0 !important;
 		}
 	}
+
+	// no need to adjust column height when Inputfields are collapsed
+	.Inputfield .maxColHeightSpacer {
+		display: none;
+	}
 	
 }
 

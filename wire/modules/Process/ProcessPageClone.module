@@ -214,7 +214,7 @@ class ProcessPageClone extends Process {
 			$title = $this->wire('fields')->get('title');
 			$titleUseLanguages = $title 
 				&& $this->page->template->fieldgroup->hasField($title) 
-				&& $title->getInputfield($this->page)->useLanguages;
+				&& $title->getInputfield($this->page)->getSetting('useLanguages');
 			$nameUseLanguages = $this->wire('modules')->isInstalled('LanguageSupportPageNames'); 
 			if($titleUseLanguages) $titleField->useLanguages = true;
 			if($nameUseLanguages) $nameField->useLanguages = true; 
@@ -313,7 +313,7 @@ class ProcessPageClone extends Process {
 		$clone = $this->pages->clone($page, $page->parent, $cloneTree);
 		if(!$clone->id) throw new WireException(sprintf($this->_("Unable to clone page %s"), $page->path));
 
-		if($titleField->useLanguages && is_object($clone->title)) {
+		if($titleField->getSetting('useLanguages') && is_object($clone->title)) {
 			foreach($this->wire('languages') as $language) {
 				$valueAttr = $language->isDefault() ? "value" : "value$language->id";
 				$value = $titleField->get($valueAttr);

@@ -46,7 +46,7 @@ function initPageEditForm() {
 	
 	$viewLink.click(function() {
 		var action = $viewLink.attr('data-action');
-		if(action == 'this' || !action.length) return true; 
+		if(action == 'this' || action == 'new' || !action.length) return true; 
 		$viewMenu.find(".page-view-action-" + action + " > a").click();
 		return false;
 	}); 

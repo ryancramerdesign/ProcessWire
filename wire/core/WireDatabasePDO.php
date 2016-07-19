@@ -89,7 +89,7 @@ class WireDatabasePDO extends Wire implements WireDatabase {
 	 */
 	public static function getInstance(Config $config) {
 
-		if(!class_exists('PDO')) {
+		if(!class_exists('\PDO')) {
 			throw new WireException('Required PDO class (database) not found - please add PDO support to your PHP.'); 
 		}
 

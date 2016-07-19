@@ -55,19 +55,29 @@ class InputfieldAsmSelect extends InputfieldSelectMultiple implements Inputfield
 		$this->asmOptions[$key] = $value; 
 	}
 	
-	public function ___render() {
+	/**
+	 * Called before render()
+	 *
+	 * @param Inputfield $parent
+	 * @param bool $renderValueMode
+	 * @return bool
+	 *
+	 */
+	public function renderReady(Inputfield $parent = null, $renderValueMode = false) {
+		
 		if(!empty($this->asmOptions['editLink'])) {
 			$this->wire('modules')->get('JqueryUI')->use('modal');
 		}
-	
+
 		if($this->hasFieldtype == 'FieldtypePage' && $this->usePageEdit && !$this->editLink) {
 			$this->setAsmSelectOption('editLink', $this->wire('config')->urls->admin . 'page/edit/?id={value}');
 			$this->setAsmSelectOption('editLinkOnlySelected', false);
+			$this->setAsmSelectOption('editLinkButtonSelector', ".InputfieldSubmit button.ui-button:visible");
 			$this->setAsmSelectOption('editLinkModal', true);
 		}
 
 		// require javascript and css
-		$class = $this->className(); 
+		$class = $this->className();
 		$info = self::getModuleInfo();
 		$ver = $info['version'];
 		$jsfile = $this->wire('config')->debug ? 'jquery.asmselect.js' : 'jquery.asmselect.min.js';
@@ -75,7 +85,14 @@ class InputfieldAsmSelect extends InputfieldSelectMultiple implements Inputfield
 		$this->config->scripts->add($this->config->urls->$class . "asmselect/$jsfile?v=$ver");
 		$this->config->styles->add($this->config->urls->$class . "$class.css?v=$ver");
 		$this->config->styles->add($this->config->urls->$class . "asmselect/jquery.asmselect.css?v=$ver");
-
+		
+		$this->config->js($this->id, $this->asmOptions); 
+		
+		return parent::renderReady($parent, $renderValueMode);
+	}
+	
+	public function ___render() {
+		
 		$selectedOptions = $this->attr('value'); 
 		
 		foreach($selectedOptions as $id) {
@@ -84,8 +101,6 @@ class InputfieldAsmSelect extends InputfieldSelectMultiple implements Inputfield
 			unset($this->options[$id]); 	
 			$this->addOption($id, $label); 
 		}
-
-		$this->config->js($this->id, $this->asmOptions); 
 
 		return parent::___render();
 	}
@@ -101,6 +116,7 @@ class InputfieldAsmSelect extends InputfieldSelectMultiple implements Inputfield
 		$f->addOption(1, $this->_('Yes (in modal window)'));
 		$f->attr('value', $this->usePageEdit);
 		$f->optionColumns = 1;
+		$f->collapsed = Inputfield::collapsedBlank;
 		$inputfields->add($f);
 		return $inputfields;
 	}

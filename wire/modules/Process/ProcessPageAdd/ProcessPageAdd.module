@@ -198,7 +198,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 		$parents = $this->wire('pages')->find("template=$parentTemplate, include=hidden, limit=500, sort=name"); 
 		if(!count($parents)) throw new WireException("No usable parents match this template"); 
 		if(count($parents) == 1) {
-			$url = "./parent_id=" . $parents->first()->id; 
+			$url = "./?parent_id=" . $parents->first()->id; 
 			if($this->wire('input')->get('modal')) $url .= "&modal=1";
 			$this->wire('session')->redirect($url);
 		}
@@ -367,10 +367,12 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 				throw new WireException("Template {$this->template->name} is not allowed here ({$this->parent->path})");
 			}
 		}
-		
-		if($this->template && (strlen($this->parent->template->childNameFormat) || $this->input->get('name_format'))) {
-			// quick add! 
-			$this->processQuickAdd($this->parent, $this->template); 
+	
+		if($this->template && $this->parent) {
+			// determine whether quick-add can be used
+			if(strlen($this->parent->template->childNameFormat) || $this->input->get('name_format')) {
+				$this->processQuickAdd($this->parent, $this->template);
+			}
 		}
 		
 		$this->form = $this->buildForm();
@@ -629,6 +631,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 					}
 					if(in_array($field->collapsed, array(Inputfield::collapsedNoLocked, Inputfield::collapsedYesLocked))) continue;
 					$inputfield = $field->getInputfield($page);
+					if($this->template && $this->template->noLang) $inputfield->useLanguages = false;
 					$form->append($inputfield);
 					break;
 				}
@@ -652,6 +655,22 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 			$field->slashUrls = $this->template->slashUrls;
 			$label = $this->template->getNameLabel(); 
 			if($label) $field->label = $label;
+			$languages = $this->template->getLanguages();
+		} else {
+			$languages = $this->wire('languages');
+		}
+		if($languages && $this->parent && $this->parent_id > 0) {
+			foreach($languages as $language) {
+				if($language->isDefault()) continue;
+				$field->checkboxChecked = $this->parent->get("status$language") ? true : false;
+			}
+			if($this->template) {
+				// dummy edit page for examination by InputfieldPageName
+				$editPage = $this->wire('pages')->newPage();
+				$editPage->parent = $this->parent;
+				$editPage->template = $this->template;
+				$field->editPage = $editPage;
+			}
 		}
 		$form->append($field); 
 
@@ -688,8 +707,14 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 				if($numFields == 1 && $template->fieldgroup->hasField('title')) { 
 					$isPublishable = 1; 
 					$numPublishable++;
-				} else $isPublishable = 0; 
-				$field->addOption($template->id, $this->getTemplateLabel($template), array('data-publish' => $isPublishable)); 
+				} else {
+					$isPublishable = 0;
+				}
+					
+				$field->addOption($template->id, $this->getTemplateLabel($template), array(
+					'data-publish' => $isPublishable,
+					'data-nolang' => (int) $template->noLang
+				)); 
 			}
 			
 			$field->attr('value', $defaultTemplateId); 
@@ -699,7 +724,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 		$field->attr('id+name', 'template');
 		$field->icon = 'cubes';
 		$field->required = true; 
-		$form->append($field);
+		$field instanceof InputfieldHidden ? $form->append($field) : $form->prepend($field);
 
 		if(count($this->predefinedParents) > 1) {
 			$field = $this->modules->get('InputfieldSelect');
@@ -713,7 +738,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 				if($parent->id == $this->parent_id) $value = $parent->id; 
 			}
 			if($value) $field->attr('value', $value);
-			$form->append($field);
+			$form->prepend($field);
 			
 		} else {
 			$field = $this->modules->get('InputfieldHidden');
@@ -832,7 +857,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 		$page->setEditor($this->editor); 
 	
 		// if languages are in use, make the new page inherit the parent's language status (active vs. inactive)
-		$languages = $this->wire('languages'); 
+		$languages = $template->getLanguages();
 		if($languages) foreach($languages as $language) {
 			if($language->isDefault()) continue; 
 			$languageStatus = $parent->get("status$language"); 
@@ -911,13 +936,13 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 		$this->page->sort = $this->parent->numChildren; 
 
 		$publishNow = $this->page->publishable() && $this->wire('input')->post('submit_publish');
-		$languages = $this->wire('languages'); 
+		$languages = $template->getLanguages();
 
 		foreach($this->page->fieldgroup as $field) {
 			if(!$this->page->hasField($field)) continue;
 			$f = $form->children->get($field->name); 
 			if($f) {
-				if($languages && $f->useLanguages) {
+				if($languages && $f->getSetting('useLanguages')) {
 					// account for language fields (most likely FieldtypePageTitleLanguage)
 					$value = $this->page->get($field->name); 
 					if(is_object($value)) $value->setFromInputfield($f);

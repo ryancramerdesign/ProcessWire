@@ -162,6 +162,8 @@ class PagesLoader extends Wire {
 	 *  - caller: string - optional name of calling function, for debugging purposes, i.e. pages.count
 	 * 	- include: string - Optional inclusion mode of 'hidden', 'unpublished' or 'all'. Default=none. Typically you would specify this
 	 * 		directly in the selector string, so the option is mainly useful if your first argument is not a string.
+	 *  - `stopBeforeID` (int): Stop loading pages once page matching this ID is found (default=0).
+	 *  - `startAfterID` (int): Start loading pages once page matching this ID is found (default=0).
 	 * 	- loadOptions: array - Optional assoc array of options to pass to getById() load options.
 	 * @return PageArray
 	 *
@@ -475,7 +477,13 @@ class PagesLoader extends Wire {
 
 			} else if($options['getFromCache'] && $page = $this->pages->getCache($id)) {
 				// page is already available in the cache	
-				$loaded[$id] = $page;
+				if($template && $page->template->id != $template->id) {
+					// do not load: does not match specified template
+				} else if($parent_id && $page->parent_id != $parent_id) {
+					// do not load: does not match specified parent_id
+				} else {
+					$loaded[$id] = $page;
+				}
 
 			} else if(isset(Page::$loadingStack[$id])) {
 				// if the page is already in the process of being loaded, point to it rather than attempting to load again.
@@ -603,7 +611,6 @@ class PagesLoader extends Wire {
 				$this->error("Class '$class' for Pages::getById() does not exist", Notice::log);
 				$class = 'Page';
 			}
-			if($this->wire('config')->compat2x && class_exists("\\$class")) $class = "\\$class";
 		
 			// page to populate, if provided in 'getOne' mode
 			/** @var Page|null $_page */

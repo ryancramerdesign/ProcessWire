@@ -85,8 +85,9 @@ users can choose from your editor.**
 3. Open the **Custom Editor JS Styles Set** field, and type or paste in:
    `mystyles:/site/modules/InputfieldCKEditor/mystyles.js`
    
-   - ProcessWire's default profile comes with a ready-to-go mystyles.js in the 
-     exact location mentioned above. Feel free to use this. 
+   - ProcessWire's default profile comes with a
+     [ready-to-go mystyles.js](https://github.com/ryancramerdesign/ProcessWire/blob/dev/site-default/modules/InputfieldCKEditor/mystyles.js)
+     in the exact location mentioned above. Feel free to use this. 
 
    - The term **mystyles** is just something we made up, and you
      may use whatever keyword you like, but note you will have to use that same

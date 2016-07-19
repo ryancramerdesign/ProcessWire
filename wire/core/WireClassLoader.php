@@ -126,10 +126,25 @@ class WireClassLoader {
 		}
 		
 		$found = false;
-		$parts = explode("\\", $className);
 		$_parts = array();
-		$name = array_pop($parts);
-		$namespace = implode("\\", $parts);
+		
+		if(__NAMESPACE__) {
+			$parts = explode("\\", $className);
+			$name = array_pop($parts);
+			$namespace = implode("\\", $parts);
+			$_namespace = $namespace; // original and unmodified namespace
+		} else {
+			$_parts = array();
+			if(strpos($className, "\\") !== false) {
+				$parts = explode("\\", $className);
+				$name = array_pop($parts);
+				$namespace = implode("\\", $parts);
+			} else {
+				$name = $className;
+				$namespace = "\\";
+			}
+		}
+		
 		$_namespace = $namespace; // original and unmodified namespace
 	
 		if($this->modules && $this->modules->isModule($className)) {

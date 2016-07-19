@@ -27,29 +27,38 @@ class InputfieldMarkup extends InputfieldWrapper {
 	}	
 
 	public function ___render() {
+		
 		$out = '';
 		$value = $this->attr('value');
+		
 		if(strlen($value)) {
 			$out .= "\n" . $value;
 		}
-		if($this->markupFunction !== null & is_callable($this->markupFunction)) {
-			$out .= "\n" . call_user_func($this->markupFunction, $this);
+		
+		$markupFunction = $this->getSetting('markupFunction');
+		$markupText = $this->getSetting('markupText');
+		$textformatters = $this->getSetting('textformatters');
+		$description = $this->getSetting('description');
+		
+		if($markupFunction !== null & is_callable($markupFunction)) {
+			$out .= "\n" . call_user_func($markupFunction, $this);
 		}
-		if(strlen($this->markupText)) {
-			$out .= "\n" . $this->markupText;
+		if(strlen($markupText)) {
+			$out .= "\n" . $markupText;
 		}
 		$out = trim($out);
 
-		if(count($this->textformatters)) {
-			foreach($this->textformatters as $className) {
+		if(count($textformatters)) {
+			foreach($textformatters as $className) {
 				$t = $this->wire('modules')->get($className);
 				if(!$t) continue; 
 				$t->formatValue($this->wire('page'), $this->wire(new Field()), $out);
 			}	
 		}
 
-		if($this->description) {
-			$out = "\n<p class='description'>{$this->description}</p>" . $out;
+		if($description) {
+			$description = $this->entityEncode($description, Inputfield::textFormatBasic);
+			$out = "\n<p class='description'>{$description}</p>" . $out;
 			$this->description = ''; // prevents it from appearing again at the bottom
 		}
 

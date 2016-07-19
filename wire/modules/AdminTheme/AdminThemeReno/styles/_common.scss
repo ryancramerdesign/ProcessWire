@@ -1185,14 +1185,20 @@ body.pw-init .toggle-icon {
 		margin-left: 3px;
 	}
 
-/**
- * Disregard column width when at mobile size
- *
- */
+	/**
+	 * Disregard column width when at mobile size
+	 *
+	 */
 	.Inputfield {
 		clear: both !important;
 		width: 100% !important;
 		margin-left: 0 !important;
+		
+		.maxColHeightSpacer {
+			// no need to adjust column height when Inputfields are collapsed
+			display: none;
+		}
+
 	}
 
 	.InputfieldHeader,

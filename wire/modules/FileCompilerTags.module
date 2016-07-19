@@ -1,4 +1,15 @@
-<?php namespace ProcessWire; 
+<?php namespace ProcessWire;
+
+/**
+ * FileCompilerTags (example FileCompiler module)
+ * 
+ * Enables {var} or {var.property} variables in markup sections of a file. 
+ * Can be used with any API variable.
+ *
+ * @property string $openTag
+ * @property string $closeTag
+ * 
+ */
 
 class FileCompilerTags extends FileCompilerModule implements ConfigurableModule {
 
@@ -74,6 +85,10 @@ class FileCompilerTags extends FileCompilerModule implements ConfigurableModule 
 				"} else { " .
 					"echo '" . $matches[0][$key] . "';" .
 				"} ?" . ">";
+			
+			if(!strlen(__NAMESPACE__)) {
+				$replacement = str_replace("\\ProcessWire\\", "", $replacement);
+			}
 
 			$replacements[$full] = $replacement;
 		}
@@ -83,6 +98,9 @@ class FileCompilerTags extends FileCompilerModule implements ConfigurableModule 
 	}
 	
 	public function getModuleConfigInputfields(InputfieldWrapper $inputfields) {
+		
+		parent::getModuleConfigInputfields($inputfields);
+		
 		$f = $this->wire('modules')->get('InputfieldText');
 		$f->attr('name', 'openTag');
 		$f->label = $this->_('Open Tag character(s)');

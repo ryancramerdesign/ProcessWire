@@ -122,4 +122,9 @@ p.version {
 #table_bookmarks {
   margin-top: 0.5em; }
 
+.AdminThemeReno a.lister-lightbox {
+  padding: 0 !important; }
+.AdminThemeReno a.lister-lightbox img {
+  margin: 0 !important; }
+
 /*# sourceMappingURL=ProcessPageLister.css.map */

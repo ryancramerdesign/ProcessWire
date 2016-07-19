@@ -207,6 +207,8 @@ class Pages extends Wire {
 	 *  - `caller` (string): Optional name of calling function, for debugging purposes, i.e. pages.count
 	 *  - `include` (string): Optional inclusion mode of 'hidden', 'unpublished' or 'all'. Default=none. Typically you would specify this 
 	 *     directly in the selector string, so the option is mainly useful if your first argument is not a string. 
+	 *  - `stopBeforeID` (int): Stop loading pages once page matching this ID is found (default=0).
+	 *  - `startAfterID` (int): Start loading pages once page matching this ID is found (default=0). 
 	 *  - `lazy` (bool): Specify true to force lazy loading. This is the same as using the Pages::findMany() method (default=false).
 	 *  - `loadOptions` (array): Optional assoc array of options to pass to getById() load options.
 	 * @return PageArray Pages that matched the given selector.
@@ -1064,9 +1066,6 @@ class Pages extends Wire {
 	public function newPageArray(array $options = array()) {
 		$class = 'PageArray';
 		if(!empty($options['pageArrayClass'])) $class = $options['pageArrayClass'];
-		if($this->wire('config')->compat2x && strpos($class, "\\") === false) {
-			if(class_exists("\\$class")) $class = "\\$class";
-		}
 		$class = wireClassName($class, true);
 		$pageArray = $this->wire(new $class());
 		if(!$pageArray instanceof PageArray) $pageArray = $this->wire(new PageArray());
@@ -1087,9 +1086,6 @@ class Pages extends Wire {
 	public function newPage(array $options = array()) {
 		$class = 'Page';
 		if(!empty($options['pageClass'])) $class = $options['pageClass'];
-		if($this->wire('config')->compat2x && strpos($class, "\\") === false) {
-			if(class_exists("\\$class")) $class = "\\$class";
-		}
 		if(isset($options['template'])) {
 			$template = $options['template'];
 			if(!is_object($template)) {
@@ -1117,11 +1113,7 @@ class Pages extends Wire {
 	 * 
 	 */
 	public function newNullPage() {
-		if($this->wire('config')->compat2x && class_exists("\\NullPage")) {
-			$page = new \NullPage();
-		} else {
-			$page = new NullPage();
-		}
+		$page = new NullPage();
 		$this->wire($page);
 		return $page;
 	}

@@ -1404,7 +1404,9 @@ class ProcessField extends Process implements ConfigurableModule {
 				$this->error($e->getMessage()); 
 				if(!$this->field->id) $this->session->redirect("./"); 
 			}
-			$this->session->redirect("edit?id={$this->field->id}"); 
+			$redirectURL = "edit?id={$this->field->id}";
+			if(!$this->wire('input')->get('modal')) $redirectURL .= "#fieldtypeConfig";
+			$this->session->redirect($redirectURL);
 				
 		} else {
 			
@@ -1524,6 +1526,7 @@ class ProcessField extends Process implements ConfigurableModule {
 		$_name = $name;
 		$name = $this->wire('sanitizer')->fieldName($name);
 		$allowed = false;
+		$okay = array('files', 'datetime'); // field names that are okay, even if they collide with something else
 		$error = '';
 		if(empty($name)) {
 			$error = $this->_('Field name is empty'); 
@@ -1531,7 +1534,7 @@ class ProcessField extends Process implements ConfigurableModule {
 			$error = $this->_('Field names may only contain ASCII letters, digits or underscore.');
 		} else if($this->wire('fields')->get($name)) {
 			$error = sprintf($this->_('Field name "%s" is already in use'), $name);
-		} else if($this->wire($name) || $this->wire('fields')->isNative($name)) {
+		} else if(($this->wire($name) || $this->wire('fields')->isNative($name)) && !in_array($name, $okay)) {
 			$error = sprintf($this->_('Field name "%s" is a reserved word'), $name);
 		} else if(preg_match('/^(_|\d)/', $name)) {
 			$error = $this->_('Field names may not begin with "_" or digits');
@@ -1631,7 +1634,7 @@ class ProcessField extends Process implements ConfigurableModule {
 			$this->field->set($name, $value); 
 
 			// account for languages, if used
-			if($languages && $inputfield->useLanguages) {
+			if($languages && $inputfield->getSetting('useLanguages')) {
 				foreach($languages as $language) {
 					$value = $inputfield->get("value" . $language->id);
 					$this->field->set($name . $language->id, $value); 
@@ -2131,14 +2134,6 @@ class ProcessField extends Process implements ConfigurableModule {
 
 		$fields = $this->wire(new InputfieldWrapper());
 		$modules = $this->wire('modules');
-
-		$field = $modules->get("InputfieldCheckbox");
-		$field->attr('name', 'showListFilters');
-		$field->attr('value', 1); 
-		$field->attr('checked', empty($data['showListFilters']) ? '' : 'checked'); 
-		$field->label = $this->_("Show filtering options in Fields list?");
-		$field->description = $this->_("This adds two select boxes to the top of the fields list that let you filter the display of fields by template or type.");
-		$fields->append($field);
 
 		$field = $modules->get("InputfieldCheckbox");
 		$field->attr('name', 'listAfterSave');

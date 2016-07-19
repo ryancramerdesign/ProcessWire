@@ -984,7 +984,7 @@ abstract class Inputfield extends WireData implements Module {
 		foreach($attributes as $attr => $value) {
 
 			// skip over empty attributes
-			if(!is_array($value) && !strlen("$value") && (!$value = $this->get($attr))) continue;
+			if(!is_array($value) && !strlen("$value") && (!$value = $this->attr($attr))) continue;
 
 			// if an attribute has multiple values (like class), then bundle them into a string separated by spaces
 			if(is_array($value)) $value = implode(' ', $value); 
@@ -1437,11 +1437,11 @@ abstract class Inputfield extends WireData implements Module {
 	public function error($text, $flags = 0) {
 		// Override Wire's error method and place errors in the context of their inputfield
 		$key = $this->getErrorSessionKey();
-		$errors = $this->session->$key;			
+		$errors = $this->wire('session')->$key;			
 		if(!is_array($errors)) $errors = array();
 		if(!in_array($text, $errors)) {
 			$errors[] = $text; 
-			$this->session->set($key, $errors); 
+			$this->wire('session')->set($key, $errors); 
 		}
 		$text .= $this->name ? " ($this->name)" : "";
 		return parent::error($text, $flags); 
@@ -1461,10 +1461,10 @@ abstract class Inputfield extends WireData implements Module {
 	 */
 	public function getErrors($clear = false) {
 		$key = $this->getErrorSessionKey();
-		$errors = $this->session->get($key);
+		$errors = $this->wire('session')->get($key);
 		if(!is_array($errors)) $errors = array();
 		if($clear) {
-			$this->session->remove($key); 
+			$this->wire('session')->remove($key); 
 			parent::errors("clear"); 
 		}
 		return $errors; 
@@ -1484,6 +1484,36 @@ abstract class Inputfield extends WireData implements Module {
 		$has = parent::has($key); 
 		if(!$has) $has = isset($this->attributes[$key]); 
 		return $has; 
+	}
+
+	/**
+	 * Does this Inputfield have the given setting?
+	 * 
+	 * Return value does not indicate that it is non-empty, only that the setting is available. 
+	 * 
+	 * #pw-internal
+	 * 
+	 * @param string $key Setting name
+	 * @return bool
+	 * 
+	 */
+	public function hasSetting($key) {
+		return isset($this->data[$key]);
+	}
+
+	/**
+	 * Does this Inputfield have the given attribute?
+	 * 
+	 * Return value does not indicate that it is non-empty, only that the setting is available. 
+	 * 
+	 * #pw-internal
+	 * 
+	 * @param string $key Attribute name
+	 * @return bool
+	 * 
+	 */
+	public function hasAttribute($key) {
+		return isset($this->attributes[$key]);
 	}
 
 	/**
