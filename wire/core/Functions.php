@@ -700,6 +700,9 @@ function wireClassImplements($className, $autoload = true) {
 
 /**
  * ProcessWire namespace aware version of PHP's class_parents() function
+ * 
+ * Returns associative array where array keys are full namespaced class name, and 
+ * values are the non-namespaced classname.
  *
  * @param string|object $className
  * @param bool $autoload

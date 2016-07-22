@@ -198,9 +198,11 @@ function InputfieldRepeaterInit($this) {
 	var $delete = $("<i class='fa fa-trash InputfieldRepeaterTrash'></i>").css('display', 'block');
 	var $toggle = $("<i class='fa InputfieldRepeaterToggle' data-on='fa-toggle-on' data-off='fa-toggle-off'></i>");
 	var cfg = ProcessWire.config.InputfieldRepeater;
-	
-	$toggle.attr('title', cfg.labels.toggle);
-	$delete.attr('title', cfg.labels.remove);
+
+	if(cfg) {
+		$toggle.attr('title', cfg.labels.toggle);
+		$delete.attr('title', cfg.labels.remove);
+	}
 	
 	$("input.InputfieldRepeaterDelete", $this).parents('.InputfieldCheckbox').hide();
 	
