@@ -108,6 +108,13 @@ class Field extends WireData implements Saveable, Exportable {
 	const flagSystemOverride = 32768;
 
 	/**
+	 * Prefix for database tables
+	 * #pw-internal
+	 * 
+	 */
+	const tablePrefix = 'field_';
+
+	/**
 	 * Permanent/native settings to an individual Field
 	 *
 	 * id: Numeric ID corresponding with id in the fields table.
@@ -977,7 +984,7 @@ class Field extends WireData implements Saveable, Exportable {
 		} else {
 			$name = $this->settings['name'];
 			if(!strlen($name)) throw new WireException("Field 'name' is required");
-			$table = "field_" . $name;
+			$table = self::tablePrefix . $name;
 		}
 		if(self::$lowercaseTables) $table = strtolower($table); 
 		return $table;

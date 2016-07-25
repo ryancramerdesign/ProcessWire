@@ -11,6 +11,11 @@
  * #pw-summary Manages all custom fields in ProcessWire
  * 
  * @method Field|null get($key) Get a field by name or id
+ * @method bool changeFieldtype(Field $field1, $keepSettings = false)
+ * @method bool saveFieldgroupContext(Field $field, Fieldgroup $fieldgroup, $namespace = '') 
+ * @method bool deleteFieldDataByTemplate(Field $field, Template $template) #pw-hooker
+ * @method void changedType(Saveable $item, Fieldtype $fromType, Fieldtype $toType) #pw-hooker
+ * @method void changeTypeReady(Saveable $item, Fieldtype $fromType, Fieldtype $toType) #pw-hooker
  *
  */
 
@@ -171,6 +176,7 @@ class Fields extends WireSaveableItems {
 				$database->exec("RENAME TABLE `$prevTable` TO `tmp_$table`"); // QA
 				$database->exec("RENAME TABLE `tmp_$table` TO `$table`"); // QA
 			}
+			$item->type->renamedField($item, str_replace(Field::tablePrefix, '', $prevTable));
 			$item->prevTable = '';
 		}
 
@@ -256,7 +262,7 @@ class Fields extends WireSaveableItems {
 
 		// if it's in use by any fieldgroups, then we don't allow it to be deleted
 		if($item->numFieldgroups()) {
-			$names = $item->getFieldgroups()->implode("', '", "name");
+			$names = $item->getFieldgroups()->implode("', '", (string) "name");
 			throw new WireException("Unable to delete field '{$item->name}' because it is in use by these fieldgroups: '$names'");
 		}
 
@@ -296,7 +302,8 @@ class Fields extends WireSaveableItems {
 
 		// don't clone the 'global' flag
 		if($item->flags & Field::flagGlobal) $item->flags = $item->flags & ~Field::flagGlobal;
-		
+	
+		/** @var Field $item */
 		$item = parent::___clone($item, $name);
 		if($item) $item->prevTable = null;
 		return $item;
@@ -316,8 +323,9 @@ class Fields extends WireSaveableItems {
 	 */
 	public function ___saveFieldgroupContext(Field $field, Fieldgroup $fieldgroup, $namespace = '') {
 
-		// get field without contxt
+		// get field without context
 		$fieldOriginal = $this->get($field->name);
+		$data = array();
 
 		// make sure given field and fieldgroup are valid
 		if(!($field->flags & Field::flagFieldgroupContext)) throw new WireException("Field must be in fieldgroup context before its context can be saved");
@@ -462,10 +470,12 @@ class Fields extends WireSaveableItems {
 
 		$query = $database->prepare("DESCRIBE `$table1`"); // QA
 		$query->execute();
+		/** @noinspection PhpAssignmentInConditionInspection */
 		while($row = $query->fetch(\PDO::FETCH_ASSOC)) $schema1[] = $row['Field'];
 
 		$query = $database->prepare("DESCRIBE `$table2`"); // QA
 		$query->execute();
+		/** @noinspection PhpAssignmentInConditionInspection */
 		while($row = $query->fetch(\PDO::FETCH_ASSOC)) $schema2[] = $row['Field'];
 			
 		foreach($schema1 as $key => $value) {
@@ -489,7 +499,6 @@ class Fields extends WireSaveableItems {
 			}
 		} catch(\Exception $e) {
 			$exception = $e;
-			$result = false;
 			$error = $e->getMessage();
 		}
 
@@ -747,6 +756,7 @@ class Fields extends WireSaveableItems {
 		try {
 			$query->execute();
 			if($options['getPageIDs']) {
+				/** @noinspection PhpAssignmentInConditionInspection */
 				while($id = $query->fetchColumn()) {
 					$return[] = (int) $id;
 				}
@@ -777,7 +787,9 @@ class Fields extends WireSaveableItems {
 	 *
 	 */
 	public static function isNativeName($name) {
-		return wire('fields')->isNative($name);
+		/** @var Fields $fields */
+		$fields = wire('fields');
+		return $fields->isNative($name);
 	}
 
 	/**

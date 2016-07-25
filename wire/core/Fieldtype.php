@@ -43,6 +43,7 @@
  * @method bool replacePageField(Page $src, Page $dst, Field $field)
  * @method bool deleteTemplateField(Template $template, Field $field)
  * @method Field cloneField(Field $field)
+ * @method void renamedField(Field $field, $prevName) 
  * @method void install()
  * @method void uninstall()
  * 
@@ -1196,7 +1197,6 @@ abstract class Fieldtype extends WireData implements Module {
 		return $result;
 	}
 
-	
 	/**
 	 * Delete the given Field from all pages using the given template, without loading those pages.
 	 * 
@@ -1229,6 +1229,22 @@ abstract class Fieldtype extends WireData implements Module {
 	 */
 	public function ___cloneField(Field $field) {
 		return clone $field;
+	}
+
+	/**
+	 * Hook called by Fields::save() after a field using this type has been renamed 
+	 * 
+	 * Note that PW already takes care of renaming the field_[name] table. 
+	 * Most Fieldtypes don't need to do anything here, but this exists just in case.
+	 * 
+	 * #pw-internal
+	 * 
+	 * @param Field $field
+	 * @param string $prevName Previous name (current name can be found in $field->name)
+	 * 
+	 */
+	public function ___renamedField(Field $field, $prevName) {
+		if($field && $prevName) {}
 	}
 
 	/**

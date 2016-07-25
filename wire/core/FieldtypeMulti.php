@@ -850,21 +850,21 @@ abstract class FieldtypeMulti extends Fieldtype {
 				$f->attr('value', $value);
 				$f->columnWidth = 50;
 				$fieldset->add($f);
+				
+				// pagination support
+				if($this->get('usePagination') && count($primaryKeys) === 1) {
+					$f = $this->wire('modules')->get('InputfieldInteger');
+					$f->attr('name', 'paginationLimit');
+					$f->label = $this->_('Pagination limit / items per page');
+					$f->description = $this->_('This limits the number of items loaded/edited per pagination. The value “0” indicates no limit (default).');
+					$f->description .= ' ' . $this->_('Pagination is recommended if you will be working with hundreds to thousands of items (or more).');
+					$f->notes = $this->_('This setting does not take effect unless a selection is made for “Automatic sorting”.');
+					$f->attr('value', $field->paginationLimit ? (int) $field->paginationLimit : 0);
+					$f->columnWidth = 50;
+					$fieldset->add($f);
+				}
 			}
 
-			// pagination support
-			if($this->get('usePagination') && count($primaryKeys) === 1) {
-				$f = $this->wire('modules')->get('InputfieldInteger');
-				$f->attr('name', 'paginationLimit');
-				$f->label = $this->_('Pagination limit / items per page');
-				$f->description = $this->_('This limits the number of items loaded/edited per pagination. The value “0” indicates no limit (default).');
-				$f->description .= ' ' . $this->_('Pagination is recommended if you will be working with hundreds to thousands of items (or more).'); 
-				$f->notes = $this->_('This setting does not take effect unless a selection is made for “Automatic sorting”.');
-				$f->notes .= ' ' . $this->_('Note that paginated tables cannot be saved in draft versions of a page.');
-				$f->attr('value', $field->paginationLimit ? (int) $field->paginationLimit : 0);
-				$f->columnWidth = 50;
-				$fieldset->add($f);
-			}
 		}
 		
 		return $inputfields;
