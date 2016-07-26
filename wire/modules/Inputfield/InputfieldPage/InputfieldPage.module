@@ -585,7 +585,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 	protected function ___renderAddable() {
 		
 		$parent_id = $this->getSetting('parent_id');
-		$template_id = $this->getSetting('parent_id');
+		$template_id = $this->getSetting('template_id');
 		$labelFieldName = $this->getSetting('labelFieldName');
 
 		if(!$this->getSetting('addable') || !$parent_id || !$template_id) return '';
