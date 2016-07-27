@@ -1391,6 +1391,7 @@ function InputfieldImage($) {
 				// Update progress bar
 				xhr.upload.addEventListener("progress", function(evt) {
 					if(!evt.lengthComputable) return;
+					$('body').addClass('pw-uploading');
 					$progressBar.attr("value", parseInt((evt.loaded / evt.total) * 100));
 					$spinner.css('display', 'block');
 				}, false);
@@ -1488,6 +1489,7 @@ function InputfieldImage($) {
 						} else {
 							setupMagnificForSingle($inputfield);
 						}
+						$('body').removeClass('pw-uploading');
 						$fileList.trigger('AjaxUploadDone'); // for things like fancybox that need to be re-init'd
 					}, 500);
 					

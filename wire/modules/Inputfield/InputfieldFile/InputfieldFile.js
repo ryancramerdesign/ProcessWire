@@ -237,6 +237,7 @@ $(document).ready(function() {
 						if(completion > 4) {
 							$progressBarValue.html("<span>" + parseInt(completion) + "%</span>");
 						}
+						$('body').addClass('pw-uploading');
 						/*
 						// code for freezing progressbar during testing
 						$progressBarValue.width("60%");
@@ -320,13 +321,14 @@ $(document).ready(function() {
 					$progressItem.remove();
 					
 					if(doneTimer) clearTimeout(doneTimer); 
-					doneTimer = setTimeout(function() { 
+					doneTimer = setTimeout(function() {
+						$('body').removeClass('pw-uploading');
 						if(maxFiles != 1 && !$fileList.is('.ui-sortable')) initSortable($fileList); 
 						$fileList.trigger('AjaxUploadDone'); // for things like fancybox that need to be re-init'd
 					}, 500); 
 
 				}, false);
-				
+
 				// Here we go
 				xhr.open("POST", postUrl, true);
 				//see:https://github.com/ryancramerdesign/ProcessWire/issues/1487
