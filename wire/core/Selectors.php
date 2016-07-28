@@ -110,6 +110,8 @@ class Selectors extends WireArray {
 	public function init($selector) {
 		if(is_array($selector)) {
 			$this->setSelectorArray($selector);
+		} else if(is_object($selector) && $selector instanceof Selector) {
+			$this->add($selector);
 		} else {
 			$this->setSelectorString($selector);
 		}
@@ -137,6 +139,7 @@ class Selectors extends WireArray {
 	public function import($items) {
 		if(is_string($items)) {
 			$this->extractString($items); 	
+			return $this;
 		} else {
 			return parent::import($items); 
 		}
@@ -144,6 +147,9 @@ class Selectors extends WireArray {
 
 	/**
 	 * Per WireArray interface, return true if the item is a Selector instance
+	 * 
+	 * @param Selector $item
+	 * @return bool
 	 *
 	 */
 	public function isValidItem($item) {
@@ -288,7 +294,7 @@ class Selectors extends WireArray {
 	 * @throws WireException
 	 *
 	 */
-	protected function create($field, $operator, $value) {
+	public function create($field, $operator, $value) {
 		$not = false;
 		if(!isset(self::$selectorTypes[$operator])) {
 			// unrecognized operator, see if it's an alternate placement for NOT "!" statement
@@ -321,7 +327,12 @@ class Selectors extends WireArray {
 		
 		while(strlen($str)) {
 
+			$not = false;
 			$quote = '';	
+			if(strpos($str, '!') === 0) {
+				$str = ltrim($str, '!');
+				$not = true; 
+			}
 			$group = $this->extractGroup($str); 	
 			$field = $this->extractField($str); 
 			$operator = $this->extractOperator($str, $this->getOperatorChars());
@@ -340,6 +351,7 @@ class Selectors extends WireArray {
 				$selector = $this->create($field, $operator, $value);
 				if(!is_null($group)) $selector->group = $group; 
 				if($quote) $selector->quote = $quote; 
+				if($not) $selector->not = true; 
 				$this->add($selector); 
 			}
 
@@ -575,9 +587,14 @@ class Selectors extends WireArray {
 			$value .= $c; 
 			$lastc = $c;
 
-		} while(++$n < self::maxValueLength); 
+		} while(++$n);
+		
+		$len = strlen("$value");
+		if($len) {
+			$str = substr($str, $n);
+			if($len > self::maxValueLength) $value = substr($value, 0, self::maxValueLength);
+		}
 
-		if(strlen("$value")) $str = substr($str, $n);
 		$str = ltrim($str, ' ,"\']})'); // should be executed even if blank value
 
 		// check if a pipe character is present next, indicating an OR value may be provided
@@ -896,6 +913,8 @@ class Selectors extends WireArray {
 			// or array('field', 'operator', 'value', array('whitelist value1', 'whitelist value2', 'etc'))
 			// or array('field', 'operator', 'value')
 			// or array('field', 'value') where '=' is assumed operator
+			$field = '';
+			$value = array();
 			
 			if(count($data) == 4) {
 				list($field, $operator, $value, $_sanitize) = $data;
@@ -961,7 +980,11 @@ class Selectors extends WireArray {
 				$fieldsStr = implode('|', $fields);
 				throw new WireException("Value given for '$fieldsStr' is not in provided whitelist");
 			}
-			if($_sanitize) $value = $sanitizer->$_sanitize($value);
+			if($_sanitize === 'selectorValue') {
+				$value = $sanitizer->selectorValue($value, array('useQuotes' => false)); 
+			} else if($_sanitize) {
+				$value = $sanitizer->$_sanitize($value);
+			}
 			$values[] = $value;
 		}
 

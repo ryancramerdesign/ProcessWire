@@ -407,7 +407,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 	 */
 	public function hookWirePageEditorExecute(HookEvent $event) {
 		$page = $event->object->getPage();
-		if($page->id == 1) {
+		if($page && $page->id == 1) {
 			if($page->name == Pages::defaultRootName) $page->name = '';
 		}
 	}
@@ -424,9 +424,13 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 		$inputfield = $event->object; 
 		if($inputfield->languageSupportLabel) return; // prevent recursion
 
-		$user = $this->wire('user');
 		$page = $this->process instanceof WirePageEditor ? $this->process->getPage() : $this->wire('pages')->newNullPage();
+		if(!$page->id && $inputfield->editPage) $page = $inputfield->editPage;
+		$template = $page->template ? $page->template : null;
+		if($template && $template->noLang) return;
+		
 		/** @var Languages $languages */
+		$user = $this->wire('user');
 		$languages = $this->wire('languages');
 		$savedLanguage = $user->language; 
 		$savedValue = $inputfield->attr('value');
@@ -460,7 +464,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 			$inputfield->checkboxName = "status" . $language->id; 
 			$inputfield->checkboxValue = 1; 
 			$inputfield->checkboxLabel = $checkboxLabel;
-			$inputfield->checkboxChecked = $page->get($inputfield->checkboxName) > 0 || $page->id == 0;
+			if($page->id > 0) $inputfield->checkboxChecked = $page->get($inputfield->checkboxName) > 0; 
 			if(!$editable) $inputfield->attr('disabled', 'disabled');
 			$out .= $inputfield->render();
 		}

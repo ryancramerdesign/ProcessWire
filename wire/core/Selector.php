@@ -20,21 +20,22 @@
  *
  * Serves as the base class for the different Selector types (seen below this class). 
  * 
- * @property string|array $field Field or fields present in the selector (can be string or array)*
+ * @property string|array $field Field or fields present in the selector (can be string or array) [1]
  * @property array $fields Fields that were present in selector (same as $field, but always array)
- * @property string $operator Operator used by the selector**
- * @property string|array $value Value or values present in the selector (can be string or array)*
+ * @property string $operator Operator used by the selector [2]
+ * @property string|array $value Value or values present in the selector (can be string or array) [1]
  * @property array $values Values that were present in selector (same as $value, but always array)
  * @property bool $not Is this a NOT selector? (i.e. returns the opposite if what it would otherwise)
  * @property string|null $group Group name for this selector (if field was prepended with a "group_name@")
  * @property string $quote Type of quotes value was in, or blank if it was not quoted. One of: '"[{(
  * @property string $str String value of selector
+ * @property null|bool $forceMatch When boolean, it forces match (true) or non-match (false). 
  * 
- * *The $field and $value properties may either be an array or string. As a result, we recommend
+ * [1] The $field and $value properties may either be an array or string. As a result, we recommend
  * accessing the $fields or $values properties (instead of $field or $value), because they are always
  * return an array. 
  * 
- * **Operator is determined by the Selector class name, and thus may not be changed without replacing
+ * [2] Operator is determined by the Selector class name, and thus may not be changed without replacing
  * the entire Selector. 
  * 
  * 
@@ -67,6 +68,7 @@ abstract class Selector extends WireData {
 		$this->set('not', $not); 
 		$this->set('group', null); // group name identified with 'group_name@' before a field name
 		$this->set('quote', ''); // if $value in quotes, this contains either: ', ", [, {, or (, indicating quote type (set by Selectors class)
+		$this->set('forceMatch', null); // boolean true to force match, false to force non-match
 	}
 
 	public function get($key) {
@@ -127,6 +129,8 @@ abstract class Selector extends WireData {
 		} else if($this->quote == '[') {
 			if(is_string($value) && Selectors::stringHasSelector($value)) {
 				$value = $this->wire(new Selectors($value));
+			} else if($value instanceof Selectors) {
+				// okay
 			}
 		} else if($type) {
 			throw new WireException("Unknown type '$type' specified to getValue()");
@@ -186,6 +190,9 @@ abstract class Selector extends WireData {
 	 */
 	public function matches($value) {
 
+		$forceMatch = $this->get('forceMatch');
+		if(is_bool($forceMatch)) return $forceMatch;
+		
 		$matches = false;
 		$values1 = is_array($this->value) ? $this->value : array($this->value); 
 		$field = $this->field; 
@@ -256,6 +263,8 @@ abstract class Selector extends WireData {
 	 *
 	 */
 	protected function evaluate($matches) {
+		$forceMatch = $this->get('forceMatch');
+		if(is_bool($forceMatch)) $matches = $forceMatch;
 		if($this->not) return !$matches; 
 		return $matches; 
 	}

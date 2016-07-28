@@ -146,12 +146,28 @@ class PagePermissions extends WireData implements Module {
 
 	/**
 	 * Is the given page editable?
-	 * 
-	 * @param Page $page;
+	 *
+	 * @param Page $page
 	 * @return bool
 	 *
 	 */
 	public function pageEditable(Page $page) {
+		if($this->wire('hooks')->isHooked('PagePermissions::pageEditable()')) {
+			return $this->__call('pageEditable', array($page));
+		} else {
+			return $this->___pageEditable($page);
+		}
+	}
+
+
+	/**
+	 * Hookable implmentation for: Is the given page editable?
+	 * 
+	 * @param Page $page
+	 * @return bool
+	 *
+	 */
+	protected function ___pageEditable(Page $page) {
 
 		$user = $this->wire('user');
 
@@ -228,7 +244,8 @@ class PagePermissions extends WireData implements Module {
 		if($user->id === $page->id && $this->wire('page')->process == 'ProcessProfile' && $user->hasPermission('profile-edit')) return true;
 
 		// if the current process is something other than ProcessUser, they don't have permission
-		if($this->wire('process') != 'ProcessUser') {
+		$process = $this->wire('process');
+		if($process != 'ProcessUser' && (!$process instanceof ProcessPageList) && (!$process instanceof ProcessPageLister)) {
 			return false;
 		}
 	
@@ -641,11 +658,13 @@ class PagePermissions extends WireData implements Module {
 		}
 
 		// check if a $page is provided as the first argument for additional access checking
-		if($addable && isset($event->arguments[0]) && $event->arguments[0] instanceof Page) {
-			$addPage = $event->arguments[0]; 
-			if(count($page->template->childTemplates) && !in_array($addPage->template->id, $page->template->childTemplates)) {
-				$addable = false;
-			}	
+		if($addable) {
+			$addPage = $event->arguments(0);
+			if($addPage && $addPage instanceof Page && $addPage->id) {
+				if(count($page->template->childTemplates) && !in_array($addPage->template->id, $page->template->childTemplates)) {
+					$addable = false;
+				}
+			}
 		}
 	
 		// check additional permissions if in multi-language environment

@@ -17,7 +17,7 @@
  * #pw-order-groups common,traversal,manipulation,date-time,access,output-rendering,status,constants,languages,system,advanced,hooks
  * #pw-use-constants
  *
- * @link http://processwire.com/api/variables/page/ Offical $page Documentation
+ * @link http://processwire.com/api/ref/page/ Offical $page Documentation
  * @link http://processwire.com/api/selectors/ Official Selectors Documentation
  *
  * @property int $id The numbered ID of the current page #pw-group-system
@@ -56,6 +56,7 @@
  * @property PagefilesManager $filesManager The object instance that manages files for this page. #pw-advanced
  * @property bool $outputFormatting Whether output formatting is enabled or not. #pw-advanced
  * @property int $sort Sort order of this page relative to siblings (applicable when manual sorting is used). #pw-group-system
+ * @property int $index Index of this page relative to its siblings, regardless of sort (starting from 0). #pw-group-traversal
  * @property string $sortfield Field that a page is sorted by relative to its siblings (default="sort", which means drag/drop manual) #pw-group-system
  * @property null|array _statusCorruptedFields Field names that caused the page to have Page::statusCorrupted status. #pw-internal
  * @property int $status Page status flags. #pw-group-system #pw-group-status
@@ -112,7 +113,7 @@
  * @method string getMarkup($key) Return the markup value for a given field name or {tag} string. #pw-internal
  * @method string|mixed renderField($fieldName, $file = '') Returns rendered field markup, optionally with file relative to templates/fields/. #pw-internal
  * @method string|mixed renderValue($value, $file) Returns rendered markup for $value using $file relative to templates/fields/. #pw-internal
- *
+ * 
  */
 
 class Page extends WireData implements \Countable, WireMatchable {
@@ -486,6 +487,7 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 *  - "s": property name is accessible in $this->settings using same key
 	 *  - "p": Property name maps to same property name in $this
 	 *  - "m": Property name maps to same method name in $this
+	 *  - "n": Property name maps to same method name in $this, but may be overridden by custom field
 	 *  - [blank]: needs additional logic to be handled ([blank]='')
 	 * 
 	 * @var array
@@ -506,6 +508,7 @@ class Page extends WireData implements \Countable, WireMatchable {
 		'hasChildren' => 'm',
 		'httpUrl' => 'm',
 		'id' => 's',
+		'index' => 'n',
 		'instanceID' => 'p',
 		'isHidden' => 'm',
 		'isLoaded' => 'm',
@@ -923,6 +926,9 @@ class Page extends WireData implements \Countable, WireMatchable {
 			} else if($type == 'm') {
 				// local method
 				return $this->{$key}();
+			} else if($type == 'n') {
+				// local method, possibly overridden by $field
+				if(!$this->wire('fields')->get($key)) return $this->{$key}();
 			} else if($type == 's') {
 				// settings property
 				return $this->settings[$key];
@@ -1186,11 +1192,13 @@ class Page extends WireData implements \Countable, WireMatchable {
 	/**
 	 * Get the value for a non-native page field, and call upon Fieldtype to join it if not autojoined
 	 *
-	 * @param string $key
+	 * @param string $key Name of field to get
+	 * @param string $selector Optional selector to filter load by
 	 * @return null|mixed
 	 *
 	 */
-	protected function getFieldValue($key) {
+	protected function getFieldValue($key, $selector = '') {
+		
 		if(!$this->template) return parent::get($key); 
 		$field = $this->getField($key);
 		$value = parent::get($key); 
@@ -1212,24 +1220,41 @@ class Page extends WireData implements \Countable, WireMatchable {
 			}
 		}
 
-		// if the value is already loaded, return it 
-		if(!is_null($value)) return $this->outputFormatting ? $field->type->formatValue($this, $field, $value) : $value; 
+		if(!is_null($value) && empty($selector)) {
+			// if the non-filtered value is already loaded, return it 
+			return $this->outputFormatting ? $field->type->formatValue($this, $field, $value) : $value;
+		}
+		
 		$track = $this->trackChanges();
 		$this->setTrackChanges(false); 
 		if(!$field->type) return null;
-		$value = $field->type->loadPageField($this, $field); 
-		if(is_null($value)) $value = $field->type->getDefaultValue($this, $field); 
-			else $value = $field->type->wakeupValue($this, $field, $value); 
-
-		// if outputFormatting is being used, turn it off because it's not necessary here and may throw an exception
-		$outputFormatting = $this->outputFormatting; 
-		if($outputFormatting) $this->setOutputFormatting(false); 
-		$this->setFieldValue($key, $value, false);
-		if($outputFormatting) $this->setOutputFormatting(true); 
+	
+		if($selector) {
+			$value = $field->type->loadPageFieldFilter($this, $field, $selector);	
+		} else {
+			$value = $field->type->loadPageField($this, $field);
+		}
 		
-		$value = parent::get($key); 	
+		if(is_null($value)) {
+			$value = $field->type->getDefaultValue($this, $field);
+		} else {
+			$value = $field->type->wakeupValue($this, $field, $value);
+		}
+
+		// turn off output formatting and set the field value, which may apply additional changes
+		$outputFormatting = $this->outputFormatting;
+		if($outputFormatting) $this->setOutputFormatting(false);
+		$this->setFieldValue($key, $value, false);
+		if($outputFormatting) $this->setOutputFormatting(true);
+		$value = parent::get($key);
+		
+		// prevent storage of value if it was filtered when loaded
+		if(!empty($selector)) $this->__unset($key);
+		
 		if(is_object($value) && $value instanceof Wire) $value->resetTrackChanges(true);
 		if($track) $this->setTrackChanges(true); 
+	
+		
 		return $this->outputFormatting ? $field->type->formatValue($this, $field, $value) : $value; 
 	}
 	
@@ -1411,6 +1436,44 @@ class Page extends WireData implements \Countable, WireMatchable {
 		$this->set($key, $value); 
 	}
 
+	/**
+	 * If method call resulted in no handler, this hookable method is called.
+	 *
+	 * If you want to override this method with a hook, see the example below.
+	 * ~~~~~
+	 * $wire->addHookBefore('Wire::callUnknown', function(HookEvent $event) {
+	 *   // Get information about unknown method that was called
+	 *   $methodObject = $event->object;
+	 *   $methodName = $event->arguments(0); // string
+	 *   $methodArgs = $event->arguments(1); // array
+	 *   // The replace option replaces the method and blocks the exception
+	 *   $event->replace = true;
+	 *   // Now do something with the information you have, for example
+	 *   // you might want to populate a value to $event->return if
+	 *   // you want the unknown method to return a value.
+	 * });
+	 * ~~~~~
+	 *
+	 * #pw-hooker
+	 *
+	 * @param string $method Requested method name
+	 * @param array $arguments Arguments provided
+	 * @return null|mixed Return value of method (if applicable)
+	 * @throws WireException
+	 * @see Wire::callUnknown()
+	 *
+	 */
+	protected function ___callUnknown($method, $arguments) {
+		if($this->hasField($method)) {
+			if(count($arguments)) {
+				return $this->getFieldValue($method, $arguments[0]);
+			} else {
+				return $this->get($method); 
+			}
+		} else {
+			return parent::___callUnknown($method, $arguments);
+		}
+	}
 
 	/**
 	 * Set the status setting, with some built-in protections
@@ -1927,10 +1990,16 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 * 
 	 * ~~~~~
 	 * // Get all sibling pages 
-	 * $siblings = $page->siblings(); 
+	 * $siblings = $page->siblings();
+	 * 
+	 * // Get all sibling pages, and exclude current page from the returned value
+	 * $siblings = $page->siblings(false); 
 	 * 
 	 * // Get all siblings having the "product-featured" template, sorted by name
 	 * $featured = $page->siblings("template=product-featured, sort=name");
+	 * 
+	 * // Same as above, while excluding current page
+	 * $featured = $page->siblings("template=product-featured, sort=name", false);
 	 * ~~~~~
 	 * 
 	 * #pw-group-traversal
@@ -1959,30 +2028,36 @@ class Page extends WireData implements \Countable, WireMatchable {
 
 	/**
 	 * Return the next sibling page
-	 *
-	 * If given a PageArray of siblings (containing the current) it will return the next sibling relative to the provided PageArray.
-	 *
-	 * Be careful with this function when the page has a lot of siblings. It has to load them all, so this function is best
-	 * avoided at large scale, unless you provide your own already-reduced siblings list (like from pagination).
-	 *
-	 * When using a selector, note that this method operates only on visible children. If you want something like `include=all`
-	 * or `include=hidden`, they will not work in the selector. Instead, you should provide the siblings already retrieved with
-	 * one of those modifiers, and provide those siblings as the second argument to this function.
+	 * 
+	 * By default, hidden, unpublished and non-viewable pages are excluded. If you want them included, 
+	 * be sure to specify `include=` with hidden, unpublished or all, in your selector.
 	 * 
 	 * ~~~~~
+	 * // Get the next sibling
+	 * $sibling = $page->next();
+	 * 
 	 * // Get the next newest sibling
 	 * $sibling = $page->next("created>$page->created"); 
+	 * 
+	 * // Get the next sibling, even if it isn't viewable
+	 * $sibling = $page->next("include=all");
 	 * ~~~~~
 	 * 
 	 * #pw-group-traversal
 	 *
 	 * @param string|array $selector Optional selector. When specified, will find nearest next sibling that matches. 
-	 * @param PageArray $siblings Optional siblings to use instead of the default. May also be specified as first argument when no selector needed.
+	 * @param PageArray $siblings DEPRECATED: Optional siblings to use instead of the default. Avoid using this argument
+	 *   as it forces this method to use the older/slower functions. 
 	 * @return Page|NullPage Returns the next sibling page, or a NullPage if none found. 
 	 *
 	 */
 	public function next($selector = '', PageArray $siblings = null) {
-		return $this->traversal()->next($this, $selector, $siblings); 
+		if(is_object($selector) && $selector instanceof PageArray) {
+			$siblings = $selector;
+			$selector = '';
+		}
+		if($siblings) return $this->traversal()->nextSibling($this, $selector, $siblings);
+		return $this->traversal()->next($this, $selector);
 	}
 
 	/**
@@ -1990,13 +2065,34 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 * 
 	 * #pw-group-traversal
 	 *
-	 * @param string|array $selector Optional selector. When specified, will filter the found siblings.
-	 * @param PageArray $siblings Optional siblings to use instead of the default. 
-	 * @return Page|NullPage Returns all matching pages after this one.
+	 * @param string|array|bool $selector Optional selector. When specified, will filter the found siblings.
+	 * @param bool|PageArray $getQty Return a count instead of PageArray? (boolean)
+	 *   - If no $selector argument is needed, this may be specified as the first argument.
+	 *   - Legacy support: You may specify a PageArray of siblings to use instead of the default (deprecated, avoid it).
+	 * @param bool $getPrev For internal use, makes this method implement the prevAll() behavior instead.
+	 * @return PageArray|int Returns all matching pages after this one, or integer if $count option specified.
 	 *
 	 */
-	public function nextAll($selector = '', PageArray $siblings = null) {
-		return $this->traversal()->nextAll($this, $selector, $siblings); 
+	public function nextAll($selector = '', $getQty = false, $getPrev = false) {
+		$siblings = null;
+		if(is_object($selector) && $selector instanceof PageArray) {
+			$siblings = $selector;
+			$selector = '';
+		}
+		if(is_object($getQty) && $getQty instanceof PageArray) {
+			$siblings = $getQty;
+			$getQty = false;
+		}
+		if(is_bool($selector)) {
+			$getQty = $selector;
+			$selector = '';
+		}
+		if($getPrev) {
+			if($siblings) return $this->traversal()->prevAllSiblings($this, $selector, $siblings);
+			return $this->traversal()->prevAll($this, $selector, array('qty' => $getQty));
+		}
+		if($siblings) return $this->traversal()->nextAllSiblings($this, $selector, $siblings);
+		return $this->traversal()->nextAll($this, $selector, array('qty' => $getQty));
 	}
 
 	/**
@@ -2006,35 +2102,40 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 *
 	 * @param string|Page|array $selector May either be a selector or Page to stop at. Results will not include this. 
 	 * @param string|array $filter Optional selector to filter matched pages by
-	 * @param PageArray $siblings Optional PageArray of siblings to use instead of all from the page.
+	 * @param PageArray $siblings DEPRECATED: Optional PageArray of siblings to use instead (avoid).
 	 * @return PageArray
 	 *
 	 */
 	public function nextUntil($selector = '', $filter = '', PageArray $siblings = null) {
-		return $this->traversal()->nextUntil($this, $selector, $filter, $siblings); 
+		if($siblings) return $this->traversal()->nextUntilSiblings($this, $selector, $filter, $siblings); 
+		return $this->traversal()->nextUntil($this, $selector, $filter); 
 	}
 
 	/**
 	 * Return the previous sibling page
-	 *
-	 * If given a PageArray of siblings (containing the current) it will return the previous sibling relative to the provided PageArray.
-	 *
-	 * Be careful with this function when the page has a lot of siblings. It has to load them all, so this function is best
-	 * avoided at large scale, unless you provide your own already-reduced siblings list (like from pagination)
-	 *
-	 * When using a selector, note that this method operates only on visible children. If you want something like "include=all"
-	 * or "include=hidden", they will not work in the selector. Instead, you should provide the siblings already retrieved with
-	 * one of those modifiers, and provide those siblings as the second argument to this function.
 	 * 
+	 * ~~~~~
+	 * // Get the previous sibling
+	 * $sibling = $page->prev();
+	 * 
+	 * // Get the previous sibling having field "featured" with value of "1"
+	 * $sibling = $page->prev("featured=1"); 
+	 * ~~~~~
+	 *
 	 * #pw-group-traversal
 	 *
 	 * @param string|array $selector Optional selector. When specified, will find nearest previous sibling that matches. 
-	 * @param PageArray|null $siblings Optional siblings to use instead of the default. May also be specified as first argument when no selector needed.
+	 * @param PageArray|null $siblings DEPRECATED: $siblings Optional siblings to use instead of the default.
 	 * @return Page|NullPage Returns the previous sibling page, or a NullPage if none found. 
 	 *
 	 */
 	public function prev($selector = '', PageArray $siblings = null) {
-		return $this->traversal()->prev($this, $selector, $siblings); 
+		if(is_object($selector) && $selector instanceof PageArray) {
+			$siblings = $selector;
+			$selector = '';
+		}
+		if($siblings) return $this->traversal()->prevSibling($this, $selector, $siblings);
+		return $this->traversal()->prev($this, $selector);
 	}
 
 	/**
@@ -2042,13 +2143,15 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 * 
 	 * #pw-group-traversal
 	 *
-	 * @param string|array $selector Optional selector. When specified, will filter the found siblings.
-	 * @param PageArray|null $siblings Optional siblings to use instead of the default. 
-	 * @return Page|NullPage Returns all matching pages before this one.
+	 * @param string|array|bool $selector Optional selector. When specified, will filter the found siblings.
+	 * @param bool|PageArray $getQty Return a count instead of PageArray? (boolean)
+	 *   - If no $selector argument is needed, this may be specified as the first argument.
+	 *   - Legacy support: You may specify a PageArray of siblings to use instead of the default (deprecated, avoid it).
+	 * @return Page|NullPage|int Returns all matching pages before this one, or integer if $getQty requested.
 	 *
 	 */
-	public function prevAll($selector = '', PageArray $siblings = null) {
-		return $this->traversal()->prevAll($this, $selector, $siblings); 
+	public function prevAll($selector = '', $getQty = false) {
+		return $this->nextAll($selector, $getQty, true);
 	}
 
 	/**
@@ -2058,14 +2161,32 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 *
 	 * @param string|Page|array $selector May either be a selector or Page to stop at. Results will not include this. 
 	 * @param string|array $filter Optional selector to filter matched pages by
-	 * @param PageArray|null $siblings Optional PageArray of siblings to use instead of all from the page.
+	 * @param PageArray|null $siblings DEPRECATED: Optional PageArray of siblings to use instead of default. 
 	 * @return PageArray
 	 *
 	 */
 	public function prevUntil($selector = '', $filter = '', PageArray $siblings = null) {
-		return $this->traversal()->prevUntil($this, $selector, $filter, $siblings); 
+		if($siblings) return $this->traversal()->prevUntilSiblings($this, $selector, $filter, $siblings);
+		return $this->traversal()->prevUntil($this, $selector, $filter); 
 	}
 
+	/**
+	 * Get languages active for this page and viewable by current user
+	 * 
+	 * #pw-group-languages
+	 * 
+	 * @return PageArray|null Returns PageArray of languages, or null if language support is not active.
+	 * 
+	 */
+	public function getLanguages() {
+		$languages = $this->wire('pages')->newPageArray();
+		$templateLanguages = $this->template->getLanguages();
+		if(!$templateLanguages) return null;
+		foreach($templateLanguages as $language) {
+			if($this->viewable($language)) $languages->add($language);
+		}
+		return $languages;
+	}
 
 	/**
 	 * Save the entire page to the database, or just a field from it
@@ -2499,6 +2620,45 @@ class Page extends WireData implements \Countable, WireMatchable {
 		$url = ($https && !$this->wire('config')->https) ? 'https://' . $this->wire('config')->httpHost : '';
 		$url .= $this->wire('config')->urls->admin . "page/edit/?id=$this->id";
 		return $url;
+	}
+
+	/**
+	 * Return the field name by which children are sorted
+	 * 
+	 * - If sort is descending, then field name is prepended with a "-".
+	 * - Returns the value "sort" if pages are unsorted or sorted manually. 
+	 * - Note the return value from this method may be different from the `Page::sortfield` (lowercase) property,
+	 *   as this method considers the sort field specified with the template as well. 
+	 * 
+	 * #pw-group-internal
+	 * 
+	 * @return string
+	 * 
+	 */
+	public function sortfield() {
+		$sortfield = $this->template ? $this->template->sortfield : '';
+		if(!$sortfield) $sortfield = $this->sortfield;
+		if(!$sortfield) $sortfield = 'sort';
+		return $sortfield;
+	}
+
+	/**
+	 * Return the index/position of this page relative to siblings.
+	 * 
+	 * ~~~~~
+	 * $i = $page->index();
+	 * $n = $page->parent->numChildren();
+	 * echo "This page is $i out of $n total pages";
+	 * ~~~~~
+	 * 
+	 * #pw-group-traversal
+	 * 
+	 * @return int Returns index number (zero-based)
+	 * @since 3.0.24
+	 * 
+	 */
+	public function index() {
+		return $this->traversal()->index($this);
 	}
 
 	/**

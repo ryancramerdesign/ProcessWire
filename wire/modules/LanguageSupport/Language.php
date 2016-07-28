@@ -34,7 +34,8 @@ class Language extends Page {
 	 */
 	public function get($key) {
 		if($key == 'translator') return $this->translator();
-		if($key == 'isDefault' || $key == 'isDefaultLanguage') return $this->isDefaultLanguage; 
+		if($key == 'isDefault' || $key == 'isDefaultLanguage') return $this->isDefaultLanguage;
+		if($key == 'isCurrent') return $this->isCurrent();
 		return parent::get($key); 
 	}
 
@@ -56,10 +57,22 @@ class Language extends Page {
 
 	/**
 	 * Returns whether this is the default language
+	 * 
+	 * @return bool
 	 *
 	 */
 	public function isDefault() {
 		return $this->isDefaultLanguage || $this->name == 'default'; 
+	}
+
+	/**
+	 * Returns whether this is the current language
+	 * 
+	 * @return bool
+	 * 
+	 */
+	public function isCurrent() {
+		return $this->id == $this->wire('user')->language->id;
 	}
 
 	/**

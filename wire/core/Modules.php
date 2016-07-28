@@ -218,14 +218,6 @@ class Modules extends WireArray {
 	protected $duplicates;
 
 	/**
-	 * 2.x compatibility mode setting
-	 * 
-	 * @var bool
-	 * 
-	 */
-	protected $compat2x = false;
-
-	/**
 	 * Module file extensions indexed by module name where value 1=.module, and 2=.module.php
 	 * 
 	 * @var array
@@ -327,7 +319,6 @@ class Modules extends WireArray {
 	 * 
 	 */
 	public function init() {
-		$this->compat2x = (bool) $this->wire('config')->compat2x;
 		$this->setTrackChanges(false);
 		$this->loadModuleInfoCache();
 		$this->loadModulesTable();
@@ -493,10 +484,7 @@ class Modules extends WireArray {
 		$className = wireClassName($className, true);
 		$debugKey = $this->debug ? $this->debugTimerStart("newModule($moduleName)") : null;
 		if(!class_exists($className, false)) $this->includeModule($moduleName);
-		if($this->compat2x && class_exists("\\$moduleName")) {
-			// use version in root namespace, for instances like duplicated dependency classes in core/compat2x/Classes.php
-			$className = "\\$moduleName";
-		} else if(!class_exists($className, false)) {
+		if(!class_exists($className, false)) {
 			// attempt 2.x module in dedicated namespace or root namespace
 			$className = $this->getModuleNamespace($moduleName) . $moduleName;
 		}
@@ -1371,7 +1359,7 @@ class Modules extends WireArray {
 	}
 
 	/**
-	 * Include the given filename while accounting for 2.x compatibility if $config->compat2x is active
+	 * Include the given filename 
 	 * 
 	 * @param string $file
 	 * @param string $moduleName
@@ -1379,29 +1367,11 @@ class Modules extends WireArray {
 	 */
 	protected function includeModuleFile($file, $moduleName) {
 		
-		static $compat2x = null;
-		if(is_null($compat2x)) $compat2x = $this->compat2x && $this->wire('config')->debug;
-		
 		$er = null;
-		
-		if($compat2x) {
-			$er = error_reporting();
-			// temporarily avoid expected strict notices when in 2.x compatibility mode
-			error_reporting($er ^ E_STRICT);
-		}
-		
 		$wire1 = ProcessWire::getCurrentInstance();
 		$wire2 = $this->wire();
 		if($wire1 !== $wire2) ProcessWire::setCurrentInstance($wire2);
-			
-		if(strpos($file, '/wire/modules/') === false && $this->wire('config')->moduleCompile) {
-			$namespace = $this->getModuleNamespace($moduleName, array('file' => $file));
-			if($namespace === '\\' || empty($namespace)) {
-				$compiler = new FileCompiler(dirname($file));
-				$compiledFile = $compiler->compile(basename($file));
-				if($compiledFile) $file = $compiledFile;
-			}
-		}
+		$file = $this->compile($moduleName, $file);
 
 		/** @noinspection PhpIncludeInspection */
 		@include_once($file);
@@ -1550,6 +1520,7 @@ class Modules extends WireArray {
 	 * @param array|bool $options Optional associative array that can contain any of the following:
 	 *  - `dependencies` (boolean): When true, dependencies will also be installed where possible. Specify false to prevent installation of uninstalled modules. (default=true)
 	 *  - `resetCache` (boolean): When true, module caches will be reset after installation. (default=true)
+	 *  - `force` (boolean): Force installation, even if dependencies can't be met. 
 	 * @return null|Module Returns null if unable to install, or ready-to-use Module object if successfully installed. 
 	 * @throws WireException
 	 *
@@ -1559,6 +1530,7 @@ class Modules extends WireArray {
 		$defaults = array(
 			'dependencies' => true, 
 			'resetCache' => true, 
+			'force' => false, 
 			);
 		if(is_bool($options)) { 
 			// dependencies argument allowed instead of $options, for backwards compatibility
@@ -1591,7 +1563,12 @@ class Modules extends WireArray {
 				}
 			}
 			if(!$installable) {
-				throw new WireException($error . "Module $class requires: " . implode(", ", $requires)); 
+				$error = sprintf($this->_('Module %s requires: %s'), $class, implode(', ', $requires)) . ' ' . $error;
+				if($options['force']) {
+					$this->warning($this->_('Warning!') . ' ' . $error);
+				} else {
+					throw new WireException($error);
+				}
 			}
 		}
 		
@@ -2349,7 +2326,7 @@ class Modules extends WireArray {
 			$info['name'] = $moduleName;
 			$info['title'] = $moduleName;
 			$info['version'] = $this->wire('config')->version;
-			$info['namespace'] = "\\" . __NAMESPACE__ . "\\";
+			$info['namespace'] = strlen(__NAMESPACE__) ? "\\" . __NAMESPACE__ . "\\" : "";
 			$info['requiresVersions'] = array(
 				'PHP' => array('>=', '5.3.8'),
 				'PHP_modules' => array('=', 'PDO,mysqli'),
@@ -2571,7 +2548,7 @@ class Modules extends WireArray {
 			if(is_null($info['configurable'])) $info['configurable'] = false;
 			if(is_null($info['core'])) $info['core'] = false;
 			if(is_null($info['installed'])) $info['installed'] = true; 
-			if(is_null($info['namespace'])) $info['namespace'] = "\\" . __NAMESPACE__ . "\\";
+			if(is_null($info['namespace'])) $info['namespace'] = strlen(__NAMESPACE__) ? "\\" . __NAMESPACE__ . "\\" : "";
 			if(!empty($info['requiresVersions'])) $info['requires'] = array_keys($info['requiresVersions']);
 			if($moduleName == 'SystemUpdater') $info['configurable'] = 1; // fallback, just in case
 			
@@ -2641,7 +2618,8 @@ class Modules extends WireArray {
 			
 			// namespace
 			if($info['core']) {
-				$info['namespace'] = "\\" . __NAMESPACE__ . "\\"; // default namespace, assumed since all core modules are in default namespace
+				// default namespace, assumed since all core modules are in default namespace
+				$info['namespace'] = strlen(__NAMESPACE__) ? "\\" . __NAMESPACE__ . "\\" : ""; 
 			} else {
 				$info['namespace'] = $this->getModuleNamespace($moduleName, array(
 					'file' => $info['file'],
@@ -2653,7 +2631,7 @@ class Modules extends WireArray {
 		} 
 		
 		if(is_null($info['namespace'])) {
-			$info['namespace'] = "\\" . __NAMESPACE__ . "\\";
+			$info['namespace'] = strlen(__NAMESPACE__) ? "\\" . __NAMESPACE__ . "\\" : "";
 		}
 		
 		if(empty($info['created']) && isset($this->createdDates[$moduleID])) {
@@ -2710,7 +2688,7 @@ class Modules extends WireArray {
 	 */
 	public function getNamespaces() {
 		if(!is_null($this->moduleNamespaceCache)) return $this->moduleNamespaceCache;
-		$defaultNamespace = "\\" . __NAMESPACE__ . "\\";
+		$defaultNamespace = strlen(__NAMESPACE__) ? "\\" . __NAMESPACE__ . "\\" : "";
 		$namespaces = array();
 		foreach($this->moduleInfoCache as $moduleID => $info) {
 			if(!isset($info['namespace']) || $info['namespace'] === $defaultNamespace || $info['namespace'] === "\\") continue;
@@ -2755,16 +2733,21 @@ class Modules extends WireArray {
 		if(empty($options['noCache'])) {
 			$moduleID = $this->getModuleID($moduleName);
 			$info = isset($this->moduleInfoCache[$moduleID]) ? $this->moduleInfoCache[$moduleID] : null;
-			if($info && isset($info['namespace'])) return $info['namespace'];
+			if($info && isset($info['namespace'])) {
+				return $info['namespace'];
+			}
 		}
 		
 		if(empty($options['file'])) {
 			$options['file'] = $this->getModuleFile($moduleName);
 		}
+		
 		if(strpos($options['file'], '/wire/modules/') !== false) {
 			// all core modules use \ProcessWire\ namespace
-			return __NAMESPACE__ . "\\"; 
+			$namespace = strlen(__NAMESPACE__) ? __NAMESPACE__ . "\\" : "";
+			return $namespace;
 		}
+		
 		if(!$options['file'] || !file_exists($options['file'])) {
 			return null;
 		}
@@ -3023,7 +3006,7 @@ class Modules extends WireArray {
 					if(!empty($this->moduleInfoCache[$moduleID]['namespace'])) {
 						$className = rtrim($this->moduleInfoCache[$moduleID]['namespace'], "\\") . "\\$moduleName";
 					} else {
-						$className = "\\" . __NAMESPACE__ . "\\$moduleName";
+						$className = strlen(__NAMESPACE__) ? "\\" . __NAMESPACE__ . "\\$moduleName" : $moduleName;
 					}
 				}
 				$reflector = new \ReflectionClass($className);
@@ -3176,9 +3159,7 @@ class Modules extends WireArray {
 								// not safe to include because this is not just a file with a $config array
 							} else {
 								$ns = $this->getFileNamespace($file);
-								if($ns === '\\' && $this->wire('config')->moduleCompile) {
-									$file = $this->wire('files')->compile($file);
-								}
+								$file = $this->compile($className, $file, $ns);
 								/** @noinspection PhpIncludeInspection */
 								include($file);
 							}
@@ -3312,11 +3293,12 @@ class Modules extends WireArray {
 			// get defaults from ModuleConfig class if available
 			$className = $nsClassName . 'Config';
 			$config = null; // may be overridden by included file
-			$compile = strrpos($className, '\\') < 1 && $this->wire('config')->moduleCompile;
+			// $compile = strrpos($className, '\\') < 1 && $this->wire('config')->moduleCompile;
 			$configFile = '';
 			
 			if(!class_exists($className, false)) {
-				$configFile = $compile ? $this->wire('files')->compile($configurable) : $configurable;
+				$configFile = $this->compile($className, $configurable); 
+				// $configFile = $compile ? $this->wire('files')->compile($configurable) : $configurable;
 				/** @noinspection PhpIncludeInspection */
 				include_once($configFile);
 			}
@@ -3335,7 +3317,8 @@ class Modules extends WireArray {
 				// so we try a regular include() next. 
 				if(is_null($config)) {
 					if(!$configFile) {
-						$configFile = $compile ? $this->wire('files')->compile($configurable) : $configurable;
+						$configFile = $this->compile($className, $configurable);
+						// $configFile = $compile ? $this->wire('files')->compile($configurable) : $configurable;
 					}
 					/** @noinspection PhpIncludeInspection */
 					include($configFile);
@@ -3497,11 +3480,13 @@ class Modules extends WireArray {
 		if(!$file || !is_string($file) || !is_file($file)) return $form;
 	
 		$config = null;
-		$configClass = $this->getModuleNamespace($moduleName) . $moduleName . "Config";
+		$ns = $this->getModuleNamespace($moduleName);
+		$configClass = $ns . $moduleName . "Config";
 		$configFile = '';
-		$compile = strrpos($configClass, "\\") < 1 && $this->wire('config')->moduleCompile;
+		//$compile = strrpos($configClass, "\\") < 1 && $this->wire('config')->moduleCompile;
 		if(!class_exists($configClass)) {
-			$configFile = $compile ? $this->wire('files')->compile($file) : $file;
+			$configFile = $this->compile($moduleName, $file, $ns);
+			// $configFile = $compile ? $this->wire('files')->compile($file) : $file;
 			/** @noinspection PhpIncludeInspection */
 			include_once($configFile);
 		}
@@ -3513,7 +3498,8 @@ class Modules extends WireArray {
 			
 		} else {
 			if(is_null($config)) {
-				if(!$configFile) $configFile = $compile ? $this->wire('files')->compile($file) : $file;
+				$configFile = $this->compile($moduleName, $file, $ns);
+				// if(!$configFile) $configFile = $compile ? $this->wire('files')->compile($file) : $file;
 				/** @noinspection PhpIncludeInspection */
 				include($configFile); // in case of previous include_once 
 			}
@@ -4386,7 +4372,7 @@ class Modules extends WireArray {
 						// no need to store these false, null, 0, or blank array properties
 						unset($data[$moduleID][$key]);
 						
-					} else if($key == 'namespace' && $value == "\\" . __NAMESPACE__ . "\\") {
+					} else if(($key == 'namespace' && $value == "\\" . __NAMESPACE__ . "\\") || (!strlen(__NAMESPACE__) && empty($value))) {
 						// no need to cache default namespace in module info
 						unset($data[$moduleID][$key]);
 						
@@ -4574,6 +4560,55 @@ class Modules extends WireArray {
 	public function error($text, $flags = 0) {
 		$this->log($text); 
 		return parent::error($text, $flags); 
+	}
+
+	/**
+	 * Compile and return the given file for module, if allowed to do so
+	 * 
+	 * @param Module|string $moduleName
+	 * @param string $file Optionally specify the module filename as an optimization
+	 * @param string|null $namespace Optionally specify namespace as an optimization
+	 * @return bool
+	 * 
+	 */
+	public function compile($moduleName, $file = '', $namespace = null) {
+	
+		// don't compile when module compilation is disabled
+		if(!$this->wire('config')->moduleCompile) return false;
+	
+		// if not given a file, track it down
+		if(empty($file)) $file = $this->getModuleFile($moduleName);
+	
+		// don't compile core modules
+		if(strpos($file, '/wire/modules/') !== false) return $file;
+	
+		// if namespace not provided, get it
+		if(is_null($namespace)) {
+			if(is_object($moduleName)) {
+				$className = $moduleName->className(true);
+				$namespace = wireClassName($className, 1);
+			} else if(is_string($moduleName) && strpos($moduleName, "\\") !== false) {
+				$namespace = wireClassName($moduleName, 1);
+			} else {
+				$namespace = $this->getModuleNamespace($moduleName, array('file' => $file));
+			}
+		}
+	
+		// determine if compiler should be used
+		if(__NAMESPACE__) {
+			$compile = $namespace === '\\' || empty($namespace);
+		} else {
+			$compile = trim($namespace, '\\') === 'ProcessWire';
+		}
+	
+		// compile if necessary
+		if($compile) {
+			$compiler = new FileCompiler(dirname($file));
+			$compiledFile = $compiler->compile(basename($file));
+			if($compiledFile) $file = $compiledFile;
+		}
+	
+		return $file;
 	}
 	
 }

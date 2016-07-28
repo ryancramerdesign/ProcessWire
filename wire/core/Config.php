@@ -122,7 +122,6 @@
  * @property string $versionName This is automatically populated with the current PW version name (i.e. 2.5.0 dev) #pw-group-runtime
  * @property int $inputfieldColumnWidthSpacing Used by some admin themes to commmunicate to InputfieldWrapper at runtime. #pw-internal
  * @property bool $debugMarkupQA Set to true to make the MarkupQA class report verbose debugging messages (to superusers). #pw-internal
- * @property bool $compat2x Set to true to enable PW 2.x class compatibility mode (deprecated) #pw-internal
  * 
  * @property int $rootPageID ID of homepage (usually 1) #pw-group-system-IDs
  * @property int $adminRootPageID ID of admin root page #pw-group-system-IDs
@@ -143,6 +142,7 @@
  * @property int $permissionTemplateID #pw-group-system-IDs
  * @property int $externalPageID ID of page assigned to $page API variable when externally bootstrapped #pw-group-system-IDs
  * @property array $preloadPageIDs IDs of pages that will be preloaded at beginning of request #pw-group-system-IDs
+ * @property int $installed Timestamp of when this PW was installed, set automatically for compatibility detection. #pw-group-system
  *
  */
 class Config extends WireData {

@@ -114,18 +114,6 @@ $config->advanced = false;
  */
 $config->demo = false;
 
-/**
- * Enable compatibility with ProcessWire 2.x template files and modules? 
- *
- * When true, many common ProcessWire functions and classes are duplicated in the root namespace.
- * You should still plan to update for 3.x compatibility but enabling this may enable you to 
- * continue using most existing 2.x modules and template files.
- * 
- * @var bool
- *
- */
-$config->compat2x = false;
-
 
 /*** 2. DATES & TIMES *************************************************************************/
 
@@ -273,7 +261,7 @@ $config->userAuthHashType = 'sha1';
  * @var bool
  * 
  */
-$config->templateCompile = true; 
+$config->templateCompile = strlen(__NAMESPACE__) > 0; 
 
 /**
  * Prepend template file 
@@ -796,7 +784,7 @@ $config->dbQueryLogMax = 500;
  * @var bool
  *
  */
-$config->moduleCompile = true;
+$config->moduleCompile = true; 
 
 /**
  * Modules service URL
@@ -1118,3 +1106,14 @@ $config->preloadPageIDs = array(
 	40, // guest user
 );
 
+/**
+ * Unix timestamp of when this ProcessWire installation was installed
+ * 
+ * This is set in /site/config.php by the installer. It is used for auto-detection
+ * of when certain behaviors must remain backwards compatible. When this value is 0
+ * then it is assumed that all behaviors must remain backwards compatible. Once 
+ * established in /site/config.php, this value should not be changed. If your site
+ * config file does not specify this setting, then you should not add it.
+ * 
+ */
+$config->installed = 0;

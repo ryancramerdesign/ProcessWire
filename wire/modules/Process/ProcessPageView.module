@@ -342,7 +342,7 @@ class ProcessPageView extends Process {
 			$urlSegment = substr($it, $pos);
 			$urlSegments[$cnt] = $urlSegment; 
 			$it = substr($it, 0, $pos); // $it no longer includes the urlSegment
-			$selector = "path=" . $this->wire('sanitizer')->selectorValue($it) . ", status<" . Page::statusMax;
+			$selector = "path=" . $this->wire('sanitizer')->selectorValue($it, 2048) . ", status<" . Page::statusMax;
 			$page = $this->pages->get($selector);
 			$cnt++; 
 		}

@@ -27,6 +27,8 @@
  * @property bool $useRoles Whether or not access control is enabled #pw-group-access
  * @property array $editRoles Role IDs with edit access, applicable only if access control is enabled. #pw-group-access
  * @property array $viewRoles Role IDs with view access, applicable only if access control is enabled. #pw-group-access
+ * @property array|null $orderByCols Columns that WireArray values are sorted by (default=null), Example: "sort" or "-created". #pw-internal
+ * @property int|null $paginationLimit Used by paginated WireArray values to indicate limit to use during load. #pw-internal
  * 
  * @method bool viewable(Page $page = null, User $user = null) Is the field viewable on the given $page by the given $user? #pw-group-access
  * @method bool editable(Page $page = null, User $user = null) Is the field editable on the given $page by the given $user? #pw-group-access
@@ -106,6 +108,13 @@ class Field extends WireData implements Saveable, Exportable {
 	const flagSystemOverride = 32768;
 
 	/**
+	 * Prefix for database tables
+	 * #pw-internal
+	 * 
+	 */
+	const tablePrefix = 'field_';
+
+	/**
 	 * Permanent/native settings to an individual Field
 	 *
 	 * id: Numeric ID corresponding with id in the fields table.
@@ -129,6 +138,14 @@ class Field extends WireData implements Saveable, Exportable {
 	 *
 	 */
 	protected $prevTable;
+
+	/**
+	 * A specifically set table name by setTable() for override purposes
+	 * 
+	 * @var string
+	 * 
+	 */
+	protected $setTable = '';
 
 	/**
 	 * If the field type changed, this is the previous fieldtype so that it can be changed at save time
@@ -779,14 +796,19 @@ class Field extends WireData implements Saveable, Exportable {
 
 		// predefined field settings
 		$inputfield->attr('name', $this->name . $contextStr); 
-		$inputfield->label = $this->label;
+		$inputfield->set('label', $this->label);
 
 		// just in case an Inputfield needs to know it's Fieldtype context, or lack of it
-		$inputfield->hasFieldtype = $this->type; 
+		$inputfield->set('hasFieldtype', $this->type); 
 		
 		// custom field settings
 		foreach($this->data as $key => $value) {
-			if($inputfield->has($key)) {
+			if($inputfield instanceof InputfieldWrapper) {
+				$has = $inputfield->hasSetting($key) || $inputfield->hasAttribute($key);
+			} else {
+				$has = $inputfield->has($key);
+			}
+			if($has) {
 				if(is_array($this->trackGets)) $this->trackGets($key); 
 				$inputfield->set($key, $value); 
 			}
@@ -797,7 +819,7 @@ class Field extends WireData implements Saveable, Exportable {
 			$inputfield->collapsed = Inputfield::collapsedHidden;
 		} else if($locked) {
 			// Inputfield is locked as a result of access control
-			$collapsed = $inputfield->collapsed; 
+			$collapsed = $inputfield->getSetting('collapsed'); 
 			$ignoreCollapsed = array(Inputfield::collapsedNoLocked, Inputfield::collapsedYesLocked, Inputfield::collapsedHidden);
 			if(!in_array($collapsed, $ignoreCollapsed)) {
 				// Inputfield is not already locked or hidden, convert to locked equivalent
@@ -957,10 +979,26 @@ class Field extends WireData implements Saveable, Exportable {
 	 */
 	public function getTable() {
 		if(is_null(self::$lowercaseTables)) self::$lowercaseTables = $this->config->dbLowercaseTables ? true : false;
-		$name = $this->settings['name'];
-		if(self::$lowercaseTables) $name = strtolower($name); 
-		if(!strlen($name)) throw new WireException("Field 'name' is required"); 
-		return "field_" . $name;
+		if(!empty($this->setTable)) {
+			$table = $this->setTable;
+		} else {
+			$name = $this->settings['name'];
+			if(!strlen($name)) throw new WireException("Field 'name' is required");
+			$table = self::tablePrefix . $name;
+		}
+		if(self::$lowercaseTables) $table = strtolower($table); 
+		return $table;
+	}
+
+	/**
+	 * Set an override table name, or omit (or null) to restore default table name
+	 * 
+	 * @param null|string $table
+	 * 
+	 */
+	public function setTable($table = null) {
+		$table = empty($table) ? '' : $this->wire('sanitizer')->fieldName($table);
+		$this->setTable = $table;
 	}
 
 	/**

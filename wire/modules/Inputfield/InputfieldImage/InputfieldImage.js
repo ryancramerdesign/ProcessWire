@@ -929,7 +929,7 @@ function InputfieldImage($) {
 		if(typeof data[name] == "undefined") data[name] = {};
 		if(typeof data[name].size == "undefined") data[name].size = parseInt($inputfield.find('.gridImages').attr('data-size'));
 		if(typeof data[name].listSize == "undefined") data[name].listSize = 23;
-		if(typeof data[name].mode == "undefined") data[name].mode = 'grid';
+		if(typeof data[name].mode == "undefined") data[name].mode = $inputfield.find('.gridImages').attr('data-gridMode');
 		//if(typeof data[name].ragged == "undefined") data[name].ragged = $inputfield.find('.gridImages').attr('data-ragged') ? true : false;
 		
 		if(cookieData == null) cookieData = data; // cache
@@ -1391,6 +1391,7 @@ function InputfieldImage($) {
 				// Update progress bar
 				xhr.upload.addEventListener("progress", function(evt) {
 					if(!evt.lengthComputable) return;
+					$('body').addClass('pw-uploading');
 					$progressBar.attr("value", parseInt((evt.loaded / evt.total) * 100));
 					$spinner.css('display', 'block');
 				}, false);
@@ -1488,6 +1489,7 @@ function InputfieldImage($) {
 						} else {
 							setupMagnificForSingle($inputfield);
 						}
+						$('body').removeClass('pw-uploading');
 						$fileList.trigger('AjaxUploadDone'); // for things like fancybox that need to be re-init'd
 					}, 500);
 					

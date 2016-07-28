@@ -364,6 +364,7 @@ class SystemNotifications extends WireData implements Module {
 		if($this->placement == SystemNotificationsConfig::placementCombined) {
 			foreach($notices as $notice) {
 				$notification = $this->noticeToNotification($notice);
+				if(!$notification) continue;
 				$sort = time() + 2592000;
 				while(isset($notifications[$sort])) $sort++;
 				$notifications[$sort] = $notification;
@@ -452,7 +453,7 @@ class SystemNotifications extends WireData implements Module {
 	 * Convert ProcessWire runtime "Notice" objects to runtime Notification objects
 	 * 
 	 * @param Notice $notice
-	 * @return Notification
+	 * @return Notification|bool Returns Notification or boolean false on error
 	 *
 	 */
 	protected function noticeToNotification(Notice $notice) {
@@ -461,7 +462,12 @@ class SystemNotifications extends WireData implements Module {
 			else if($notice instanceof NoticeError) $type = 'error';
 			else $type = 'message';
 
-		$notification = $this->wire('user')->notifications()->getNew($type, false); 
+		$notifications = $this->wire('user')->notifications();
+		if(!$notifications) return false;
+		
+		$notification = $notifications->getNew($type, false);
+		if(!$notification) return false;
+		
 		$notification->setFlag('notice', true); 
 		
 		if($notice->flags & Notice::allowMarkup) $notification->setFlag('markup', true); 

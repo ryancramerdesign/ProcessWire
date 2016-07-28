@@ -365,32 +365,6 @@
   .InputfieldImageUpload .InputfieldImageRefresh {
     margin-bottom: 0; }
 
-.InputfieldImage .InputMask {
-  position: relative;
-  overflow: hidden;
-  line-height: 1 !important;
-  cursor: pointer;
-  font-size: 14px;
-  border: none; }
-  .InputfieldImage .InputMask i {
-    font-size: 14px;
-    margin: 0 3px 0 0; }
-  .InputfieldImage .InputMask:hover {
-    cursor: pointer; }
-  .InputfieldImage .InputMask:active {
-    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2); }
-  .InputfieldImage .InputMask > input[type=file] {
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 100%;
-    -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=0)";
-    filter: alpha(opacity=0);
-    opacity: 0;
-    font-size: 1000px;
-    cursor: inherit;
-    width: 100%; }
-
 .InputfieldImageNarrow .InputfieldHeader .InputfieldImageSizeSlider {
   width: 50px; }
 .InputfieldImageNarrow .InputfieldImageEdit__inner {
@@ -497,22 +471,10 @@
   .InputfieldImageEditAll .gridImage.gridImageUploading .gridImage__inner {
     overflow: hidden; }
   .InputfieldImageEditAll .gridImage__trash {
-    /*
-    position: absolute;
-    background: white;
-    padding: .2em .6em;
-    color: #aaa;
-    cursor: pointer;
-    */
     z-index: 5;
     display: block !important;
     top: 0;
-    right: 0;
-    /*
-    & > input {
-    	display: none;
-    }
-    */ }
+    right: 0; }
   .InputfieldImageEditAll .gridImage__edit {
     display: none; }
   .InputfieldImageEditAll .gridImage__tooltip {
@@ -521,19 +483,7 @@
     background-color: #e83561;
     border-bottom: 8px solid transparent;
     height: 45px;
-    overflow: hidden;
-    			/*
-    			& .gridImage__trash {
-    				background-color: $deleteColor;
-    				color: white;
-    				display: block;
-    
-    				&:hover {
-    					color: white;
-    					background-color: $deleteColor;
-    				}
-    			}
-    			*/ }
+    overflow: hidden; }
     .InputfieldImageEditAll .gridImage--delete .gridImage__overflow {
       display: none; }
     .InputfieldImageEditAll .gridImage--delete .ImageData {

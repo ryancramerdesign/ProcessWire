@@ -24,7 +24,6 @@
  * @property array $groupby
  * @property array $limit
  * @property string $comment Comments for query
- * @property Field $field Some usages set a Field value to the $field property (like PageFinder)
  * 
  * @method $this select($sql, array $params = array())
  * @method $this from($sql)
@@ -33,6 +32,16 @@
  * @method $this where($sql, array $params = array())
  * @method $this groupby($sql)
  * @method $this limit($sql)
+ *
+ * Below are Properties populated by DatabaseQuerySelect objects created by PageFinder.
+ * This is what gets passed to Fieldtype::getMatchQuery() method calls as properties
+ * available from the $query argument. 
+ * 
+ * @property Field $field Field object that is referenced by this query.
+ * @property string $group Selector group (for OR-groups) if applicable.
+ * @property Selector $selector Selector object referenced by this query.
+ * @property Selectors $selectors Original selectors (all) that $selector is part of. 
+ * @property DatabaseQuerySelect $parentQuery Parent query object, if applicable.
  *
  */
 class DatabaseQuerySelect extends DatabaseQuery {

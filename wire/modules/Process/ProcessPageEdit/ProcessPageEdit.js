@@ -22,9 +22,14 @@ function initPageEditForm() {
 		$("#ProcessPageEdit").submit();
 	}); 
 
-	// prevent Firefox from sending two requests for same click
 	$(document).on('click', '#AddPageBtn', function() {
+		// prevent Firefox from sending two requests for same click
 		return false;
+	}).on('click', 'button[type=submit]', function(e) {
+		// alert user when they try to save and an upload is in progress
+		if($('body').hasClass('pw-uploading')) {
+			return confirm($('#ProcessPageEdit').attr('data-uploading')); 
+		}
 	});
 	
 	if(typeof InputfieldSubmitDropdown != "undefined") {
@@ -46,7 +51,7 @@ function initPageEditForm() {
 	
 	$viewLink.click(function() {
 		var action = $viewLink.attr('data-action');
-		if(action == 'this' || !action.length) return true; 
+		if(action == 'this' || action == 'new' || !action.length) return true; 
 		$viewMenu.find(".page-view-action-" + action + " > a").click();
 		return false;
 	}); 

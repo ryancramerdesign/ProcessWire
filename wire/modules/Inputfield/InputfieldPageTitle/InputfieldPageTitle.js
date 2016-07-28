@@ -17,30 +17,33 @@ $(document).ready(function() {
 	if(!$nameField.length || $nameField.val().length) return;
 
 	var $titleField = $(".InputfieldPageTitle input[type=text]"); 
-	var active = true; 
 
 	$(".InputfieldPageName .LanguageSupport input[type=text]").each(function() {
 		// if language support enabled and any of the page names contains something
 		// then prevent title from populating name fields
-		if($(this).val().length > 0) active = false;
+		if($(this).val().length > 0) $(this).addClass('InputfieldPageNameNoUpdate');
 	});
 
-	var titleKeyup = function() {
-		if(!active) return; 
-		// var val = $(this).val().substring(0, 128); 
-		var val = $(this).val(); // @adrian
-		var id = $(this).attr('id').replace(/Inputfield_title_*/, 'Inputfield__pw_page_name'); 
-		$nameField = $("#" + id);  	
-		if($nameField.size() > 0) $nameField.val(val).trigger('blur'); 
+	if($("#ProcessPageAdd").length > 0) {
+		
+		var titleKeyup = function() {
+			// var val = $(this).val().substring(0, 128); 
+			var val = $(this).val(); // @adrian
+			var id = $(this).attr('id').replace(/Inputfield_title_*/, 'Inputfield__pw_page_name');
+			$nameField = $("#" + id);
+			if($nameField.hasClass('InputfieldPageNameNoUpdate')) return;
+			if($nameField.length) $nameField.val(val).trigger('blur');
+		}
+
+		$titleField.bind('keyup change', titleKeyup);
+
+		// $nameField.focus(function() {
+		$('.InputfieldPageName input').change(function() {
+			// if they happen to change the name field on their own, then disable 
+			if($(this).val() != $(this).attr('data-prev')) $(this).addClass('InputfieldPageNameNoUpdate');
+		}).each(function() {
+			$(this).attr('data-prev', $(this).val());
+		});
 	}
-
-	// $titleField.keyup(titleKeyup); 
-	if(active) $titleField.bind('keyup change', titleKeyup);
-
-	// $nameField.focus(function() {
-	if(active) $('.InputfieldPageName input').focus(function() {
-		// if they happen to change the name field on their own, then disable 
-		if($(this).val().length) active = false;
-	}); 
 		
 }); 

@@ -187,10 +187,10 @@ class MarkupPagerNav extends Wire implements Module {
 
 		if(is_null($this->options['page'])) $this->options['page'] = $this->wire('page'); 
 
-		if(empty($this->queryString)) {
+		if(!strlen($this->queryString)) {
 			$whitelist = $this->wire('input')->whitelist->getArray(); 
-			if(empty($this->options['getVars']) && count($whitelist)) $this->setGetVars($whitelist); 
-				else if(!empty($this->options['getVars'])) $this->setGetVars($this->getVars); 
+			if(!count($this->options['getVars']) && count($whitelist)) $this->setGetVars($whitelist); 
+				else if(count($this->options['getVars'])) $this->setGetVars($this->getVars); 
 		}
 
 		$pagerNav = new PagerNav($this->totalItems, $this->itemsPerPage, $this->pageNum); 

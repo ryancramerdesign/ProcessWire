@@ -43,6 +43,7 @@
  * @method bool replacePageField(Page $src, Page $dst, Field $field)
  * @method bool deleteTemplateField(Template $template, Field $field)
  * @method Field cloneField(Field $field)
+ * @method void renamedField(Field $field, $prevName) 
  * @method void install()
  * @method void uninstall()
  * 
@@ -64,7 +65,19 @@ abstract class Fieldtype extends WireData implements Module {
 			); 
 	}
 	 */
-	
+
+	/**
+	 * Filters set by setLoadPageFieldFilters(), or requested by loadPageFieldFilter(), or null when not appliable
+	 * 
+	 * @var null|Selectors
+	 * 
+	 */
+	protected $loadPageFieldFilters = null;
+
+	/**
+	 * Construct
+	 * 
+	 */
 	public function __construct() { }
 
 	/**
@@ -74,7 +87,6 @@ abstract class Fieldtype extends WireData implements Module {
 	 *
 	 */
 	public function init() { }
-
 
 	/**
 	 * Fieldtype modules are singular, in that only one instance is needed per request
@@ -126,7 +138,8 @@ abstract class Fieldtype extends WireData implements Module {
 		// in Inputfield modules. 
 		// 
 		// (!) See `FieldtypeFile` for an example that uses both Page and Field params. 
-		
+	
+		if($page && $field) {}
 		$inputfield = $this->wire('modules')->get('InputfieldText'); 
 		$inputfield->class = $this->className();
 		return $inputfield; 
@@ -150,6 +163,7 @@ abstract class Fieldtype extends WireData implements Module {
 	 *
 	 */
 	public function ___getConfigInputfields(Field $field) {
+		if($field) {}
 		$inputfields = $this->wire(new InputfieldWrapper());	
 		
 		/* 
@@ -180,6 +194,7 @@ abstract class Fieldtype extends WireData implements Module {
 	 * 
 	 */
 	public function ___getConfigArray(Field $field) {
+		if($field) {}
 		return array();
 	}
 
@@ -199,6 +214,7 @@ abstract class Fieldtype extends WireData implements Module {
 	 *
 	 */
 	public function ___getConfigAllowContext(Field $field) {
+		if($field) {}
 		return array(); 
 	}
 
@@ -225,6 +241,7 @@ abstract class Fieldtype extends WireData implements Module {
 		$inputfields = $this->wire(new InputfieldWrapper());	
 
 		if($this->getLoadQueryAutojoin($field, $this->wire(new DatabaseQuerySelect()))) {
+			/** @var InputfieldCheckbox $f */
 			$f = $this->modules->get('InputfieldCheckbox');
 			$f->label = $this->_('Autojoin');
 			$f->icon = 'sign-in';
@@ -297,7 +314,9 @@ abstract class Fieldtype extends WireData implements Module {
 		);
 		foreach($sets as $inputfields) {
 			if(!$inputfields || !count($inputfields)) continue; 
+			/** @var InputfieldWrapper $inputfields */
 			foreach($inputfields->getAll() as $inputfield) {
+				/** @var Inputfield $inputfield */
 				$value = $inputfield->isEmpty() ? '' : $inputfield->value; 
 				if(is_object($value)) $value = (string) $value; 
 				$data[$inputfield->name] = $value; 
@@ -343,6 +362,7 @@ abstract class Fieldtype extends WireData implements Module {
 	 *
 	 */
 	public function ___getCompatibleFieldtypes(Field $field) {
+		if($field) {}
 		$fieldtypes = $this->wire(new Fieldtypes());
 		foreach($this->wire('fieldtypes') as $fieldtype) {
 			if(!$fieldtype instanceof FieldtypeMulti) $fieldtypes->add($fieldtype); 
@@ -386,6 +406,7 @@ abstract class Fieldtype extends WireData implements Module {
 	 *
 	 */
 	public function ___formatValue(Page $page, Field $field, $value) {
+		if($page && $field) {}
 		return $value; 
 	}
 
@@ -436,6 +457,7 @@ abstract class Fieldtype extends WireData implements Module {
 	 *
  	 */
 	public function getBlankValue(Page $page, Field $field) {
+		if($page && $field) {}
 		return '';
 	}
 
@@ -457,6 +479,7 @@ abstract class Fieldtype extends WireData implements Module {
 	 * 
 	 */
 	public function isEmptyValue(Field $field, $value) {
+		if($field) {}
 		return empty($value); 
 	}
 
@@ -479,6 +502,7 @@ abstract class Fieldtype extends WireData implements Module {
 	 *
 	 */
 	public function ___wakeupValue(Page $page, Field $field, $value) {
+		if($page && $field) {}
 		return $value; 	
 	}
 
@@ -500,6 +524,7 @@ abstract class Fieldtype extends WireData implements Module {
 	 *
 	 */
 	public function ___sleepValue(Page $page, Field $field, $value) {
+		if($page && $field) {}
 		return $value; 
 	}
 
@@ -538,6 +563,7 @@ abstract class Fieldtype extends WireData implements Module {
 	 *
 	 */
 	public function ___exportValue(Page $page, Field $field, $value, array $options = array()) {
+		if($options) {}
 		$value = $this->sleepValue($page, $field, $value); 
 		return $value; 
 	}
@@ -683,6 +709,7 @@ abstract class Fieldtype extends WireData implements Module {
 	 *
 	 */
 	public function getDatabaseSchema(Field $field) {
+		if($field) {}
 		$engine = $this->wire('config')->dbEngine; 
 		$charset = $this->wire('config')->dbCharset;
 		$schema = array(
@@ -704,6 +731,95 @@ abstract class Fieldtype extends WireData implements Module {
 		); 
 		return $schema; 
 	}
+
+	/**
+	 * Returns verbose array of database schema information
+	 * 
+	 * Returned array includes the following (or any of these may properties may be requested individually):
+	 * 
+	 * - `table` (string): Name of table for the field
+	 * - `schema` (array): Original schema returned by getDatabaseSchema() method.
+	 * - `all` (bool): True if all data for this field is managed in this table, false if external data dependencies (like files).
+	 * - `cols` (array): Column definitions, excluding cols common to all fields. Keys are col names, values are col types.
+	 * - `columns` (array): Column definitions, including all columns. Keys are col names, values are col types. 
+	 * - `engine` (string): Database engine, typically 'InnoDB' or 'MyISAM'. 
+	 * - `charset` (string): Datbase charset, typically 'UTF8' or 'UTF8MB4'.
+	 * - `primaryKey` (string): Column name (or names CSV) that are used as the primary key.
+	 * - `primaryKeys` (array): Same as above, but as an array.
+	 * - `otherKeys` (array): Other keys/indexes defined for the table. 
+	 * - `transactions` (bool): True if field/table supports transactions, false if not. 
+	 * - `pagination` (bool): True if the fieldtype supports pagination, false if not. 
+	 * - `orderByCols` (bool|array): Array of columns to order by if automatic sorting supported, boolean false if not.
+	 * 
+	 * Descending Fieldtypes generally should not attempt to override this method, unless they need to add
+	 * something to the returned array value. 
+	 * 
+	 * #pw-internal
+	 * 
+	 * @param Field $field
+	 * @param string $property Property to get, or omit to get all properties. 
+	 * @return array|bool|string
+	 * @throws WireException
+	 * 
+	 */
+	public function getDatabaseSchemaVerbose(Field $field, $property = '') {
+	
+		$schema = $this->getDatabaseSchema($field);
+		$info = array(
+			'table' => $field->getTable(),
+			'schema' => $schema,
+			'all' => isset($schema['xtra']['all']) ? $schema['xtra']['all'] : true,
+			'cols' => array(),
+			'columns' => array(),
+			'engine' => '',
+			'charset' => '',
+			'otherKeys' => $schema['keys'], 
+			'primaryKey' => '',
+			'primaryKeys' => array(),
+			'transactions' => false,
+		);
+		
+		unset($info['otherKeys']['primary']);
+	
+		if(!$property || $property == 'columns' || $property == 'cols' || $property == 'autojoin') {
+			foreach($schema as $col => $value) {
+				if($col == 'keys' || $col == 'xtra') continue;
+				$info['columns'][$col] = $value;
+				if($col != 'sort' && $col != 'pages_id') $info['cols'][$col] = $value;
+			}
+		}
+	
+		if(!$property || $property == 'primaryKey' || $property == 'primaryKeys') {
+			if(isset($schema['keys']['primary'])) {
+				$x = explode('(', rtrim($schema['keys']['primary'], ')'));
+				$primaryKeys = explode(',', $x[1]);
+				foreach($primaryKeys as $k => $col) {
+					$primaryKeys[$k] = trim($col, '` ');
+				}
+				$info['primaryKeys'] = $primaryKeys;
+				$info['primaryKey'] = implode(',', $primaryKeys);
+			}
+		}
+	
+		if(!$property || in_array($property, array('engine', 'charset', 'transactions'))) {
+			if(isset($schema['xtra']['append'])) {
+				$append = str_replace(array(' =', '= '), '=', strtoupper($schema['xtra']['append']));
+				foreach(explode(' ', $append) as $x) {
+					if(strpos($x, '=') === false) continue;
+					list($a, $b) = explode('=', $x);
+					if($a == 'ENGINE') $info['engine'] = $b;
+					if($a == 'CHARSET') $info['charset'] = $b;
+				}
+			}
+			if(!$info['engine']) $info['engine'] = $this->wire('config')->dbEngine;
+			if(!$info['charset']) $info['charset'] = $this->wire('config')->dbCharset;
+			if($info['engine']) $info['engine'] = str_replace(array('MYISAM', 'INNODB'), array('MyISAM', 'InnoDB'), $info['engine']);
+			$info['transactions'] = $info['engine'] == 'InnoDB';
+		}
+		
+		return ($property && isset($info[$property])) ? $info[$property] : $info;
+	}
+	
 
 	/**
 	 * Return trimmed database schema array of any parts that aren't needed for data loading
@@ -730,6 +846,7 @@ abstract class Fieldtype extends WireData implements Module {
 	 *
 	 */
 	public function ___getSelectorInfo(Field $field, array $data = array()) {
+		if($data) {}
 		$selectorInfo = $this->wire(new FieldSelectorInfo()); 
 		return $selectorInfo->getSelectorInfo($field); 
 	}
@@ -755,16 +872,17 @@ abstract class Fieldtype extends WireData implements Module {
 		if(!$page->id || !$field->id) return null;
 
 		$database = $this->wire('database');
-		$isMulti = $field->type instanceof FieldtypeMulti;
 		$page_id = (int) $page->id; 
-		$table = $database->escapeTable($field->table); 
+		$schema = $this->getDatabaseSchema($field);
+		$table = $database->escapeTable($field->table);
+		$value = null;
+		$stmt = null;
+		
 		$query = $this->wire(new DatabaseQuerySelect());
 		$query = $this->getLoadQuery($field, $query); 
 		$query->where("$table.pages_id='$page_id'"); 
 		$query->from($table); 
-		if($isMulti) $query->orderby('sort'); 
 
-		$value = null;
 		try {
 			$stmt = $query->prepare();
 			$result = $database->execute($stmt);
@@ -772,29 +890,87 @@ abstract class Fieldtype extends WireData implements Module {
 			$result = false;
 			$this->trackException($e, false, true);
 		}
-		$fieldName = $database->escapeCol($field->name); 
-		$schema = $this->trimDatabaseSchema($this->getDatabaseSchema($field));
-
-		if(!$result) return $value;
-
-		$values = array();
 		
-		while($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
-			$value = array();
-			foreach($schema as $k => $unused) {
-				$key = $fieldName . '__' . $k;
-				$value[$k] = $row[$key];
-			}
-			// if there is just one 'data' field here, then don't bother with the array, just make data the value
-			if(count($value) == 1 && isset($value['data'])) $value = $value['data'];
-			if(!$isMulti) break;
-			$values[] = $value;
-		}
+		if(!$result) return $value;
+		
+		$fieldName = $database->escapeCol($field->name); 
+		$schema = $this->trimDatabaseSchema($schema);
+		$row = $stmt->fetch(\PDO::FETCH_ASSOC);
 		$stmt->closeCursor();
-
-		if($isMulti && count($values)) $value = $values; 
+		
+		if(!$row) return $value;
+		
+		$value = array();
+		foreach($schema as $k => $unused) {
+			// properties from DB are always as "fieldName__column", example "title__data" (see getLoadQuery)
+			$key = $fieldName . '__' . $k;
+			$value[$k] = $row[$key];
+		}
+		
+		// if there is just one 'data' field here, then just make 'data' the value
+		if(count($value) == 1 && isset($value['data'])) $value = $value['data'];
 
 		return $value; 
+	}
+	
+	/**
+	 * Load the given page field from the database table and return a *filtered* value.
+	 *
+	 * This is the same as `Fieldtype::loadPageField()` but enables a selector to be 
+	 * provided which can filter the returned value. 
+	 * 
+	 * As far as core Fieldtypes go, this one is only applicable to FieldtypeMulti derived types. 
+	 *
+	 * #pw-group-loading
+	 *
+	 * @param Page $page Page object to save.
+	 * @param Field $field Field to retrieve from the page.
+	 * @param Selectors|string|array $selector
+	 * @return mixed|null
+	 * @throws WireException
+	 *
+	 */
+	public function ___loadPageFieldFilter(Page $page, Field $field, $selector) {
+		$this->setLoadPageFieldFilters($field, $selector);
+		$value = $this->loadPageField($page, $field);
+		$this->setLoadPageFieldFilters($field, null);
+		return $value;
+	}
+
+	/**
+	 * Set the filters that should be used by the next loadPageField() call
+	 * 
+	 * #pw-internal
+	 * 
+	 * @param Field $field
+	 * @param string|Selectors|null $selectors Selector string or selectors object 
+	 * @return Selectors|null Returns the resulting Selectors object or null if none
+	 * 
+	 */
+	public function setLoadPageFieldFilters(Field $field, $selectors) {
+		if($field) {}
+		if(empty($selectors)) {
+			$this->loadPageFieldFilters = null;	
+		} else if($selectors instanceof Selectors) {
+			$this->loadPageFieldFilters = $selectors; 
+		} else {
+			$this->loadPageFieldFilters = $this->wire(new Selectors($selectors));
+		}
+		return $this->loadPageFieldFilters;
+	}
+
+	/**
+	 * Get the filters (Selectors) that will be used by the next loadPageField() call
+	 * 
+	 * #pw-internal
+	 * 
+	 * @param Field $field
+	 * @return null|Selectors
+	 * 
+	 */
+	public function getLoadPageFieldFilters(Field $field) {
+		if($field) {}
+		return $this->loadPageFieldFilters;
 	}
 
 	/**
@@ -814,7 +990,7 @@ abstract class Fieldtype extends WireData implements Module {
 		$schema = $this->trimDatabaseSchema($this->getDatabaseSchema($field)); 
 		$fieldName = $database->escapeCol($field->name);
 
-		// now load any extra components (if applicable) in a fieldName__SubfieldName format.
+		// now load any extra components (if applicable) in a "fieldName__column" format.
 		foreach($schema as $k => $v) {
 			$query->select("$table.$k AS `{$fieldName}__$k`"); // QA
 		}
@@ -898,7 +1074,7 @@ abstract class Fieldtype extends WireData implements Module {
 			if(is_null($value)) {
 				// check if schema explicitly allows NULL
 				$schema = $this->getDatabaseSchema($field); 
-				$value = isset($schema[$k]) && stripos($schema[$k], ' DEFAULT NULL') ? "NULL" : "''";
+				$value = isset($schema['data']) && stripos($schema['data'], ' DEFAULT NULL') ? "NULL" : "''";
 			} else {
 				$value = "'" . $database->escapeStr($value) . "'";
 			}
@@ -1021,7 +1197,6 @@ abstract class Fieldtype extends WireData implements Module {
 		return $result;
 	}
 
-	
 	/**
 	 * Delete the given Field from all pages using the given template, without loading those pages.
 	 * 
@@ -1054,6 +1229,22 @@ abstract class Fieldtype extends WireData implements Module {
 	 */
 	public function ___cloneField(Field $field) {
 		return clone $field;
+	}
+
+	/**
+	 * Hook called by Fields::save() after a field using this type has been renamed 
+	 * 
+	 * Note that PW already takes care of renaming the field_[name] table. 
+	 * Most Fieldtypes don't need to do anything here, but this exists just in case.
+	 * 
+	 * #pw-internal
+	 * 
+	 * @param Field $field
+	 * @param string $prevName Previous name (current name can be found in $field->name)
+	 * 
+	 */
+	public function ___renamedField(Field $field, $prevName) {
+		if($field && $prevName) {}
 	}
 
 	/**

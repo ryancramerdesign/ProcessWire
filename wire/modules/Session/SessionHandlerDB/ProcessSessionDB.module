@@ -58,9 +58,11 @@ class ProcessSessionDB extends Process {
 		$table = SessionHandlerDB::dbTableName;
 		$database = $this->wire('database');
 		$limit = 500; 
+		$seconds = $mins * 60;
 		
-		$sql = 	"SELECT user_id, pages_id, ip, ua, ts FROM `$table` " . 
-				"WHERE ts > '" . date('Y-m-d H:i:s', (time() - ($mins * 60))) . "' " . 
+		$sql = 	"SELECT user_id, pages_id, ip, ua, UNIX_TIMESTAMP(ts) " . 
+				"FROM `$table` " . 
+				"WHERE ts > DATE_SUB(NOW(), INTERVAL $seconds SECOND) " .
 				"ORDER BY ts DESC LIMIT $limit";
 	
 		$query = $database->prepare($sql);	

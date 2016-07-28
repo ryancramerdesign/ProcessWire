@@ -126,6 +126,7 @@ abstract class DatabaseQuery extends WireData {
 	 * 
 	 * @param string|array $sql
 	 * @param array $params
+	 * @param string $method Method name that the bound values are for
 	 * @return string
 	 * 
 	 */

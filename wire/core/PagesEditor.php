@@ -182,7 +182,7 @@ class PagesEditor extends Wire {
 			if($page->template->noMove && ($page->hasStatus(Page::statusSystem) || $page->hasStatus(Page::statusSystemID) || !$page->isTrash())) {
 				// make sure the page's template allows moves. only move laways allowed is to the trash, unless page has system status
 				$saveable = false;
-				$reason = "Pages using template '{$page->template}' are not moveable (template::noMove)";
+				$reason = "Pages using template '{$page->template}' are not moveable (template::noMove) [{$page->parentPrevious->path} => {$page->parent->path}]";
 
 			} else if($page->parent->template->noChildren) {
 				$saveable = false;

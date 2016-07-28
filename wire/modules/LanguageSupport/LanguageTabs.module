@@ -10,15 +10,17 @@
  * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
  * https://processwire.com
  * 
+ * @property string $tabField Name of field/property to use for tab labels.
+ * 
  *
  */
 
-class LanguageTabs extends WireData implements Module {
+class LanguageTabs extends WireData implements Module, ConfigurableModule {
 
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Languages Support - Tabs',
-			'version' => 113,
+			'version' => 114,
 			'summary' => 'Organizes multi-language fields into tabs for a cleaner easier to use interface.',
 			'author' => 'adamspruijt, ryan', 
 			'singular' => true,
@@ -34,6 +36,10 @@ class LanguageTabs extends WireData implements Module {
 	 * 
 	 */
 	protected $tabs = array();
+	
+	public function __construct() {
+		$this->set('tabField', 'title');
+	}
 
 	/**
 	 * Add hooks, setup JS config, and determine active tab
@@ -77,6 +83,7 @@ class LanguageTabs extends WireData implements Module {
 	 */
 	public function hookRenderInputfieldForm(HookEvent $e) {
 		$this->wire('modules')->loadModuleFileAssets($this); 
+		$this->wire('modules')->get('JqueryCore')->use('longclick');
 		if(strpos($e->return, 'LanguageSupport') === false) return;
 		$id = $e->object->attr('id'); 
 		$e->return .= "<script>setupLanguageTabs($('#$id'));</script>";
@@ -99,14 +106,18 @@ class LanguageTabs extends WireData implements Module {
 	 */
 	public function addTab(Inputfield $inputfield, Language $language) {
 		$liClass = '';
-		$class = $inputfield->isEmpty() ? " class='langTabEmpty'" : "";
-		$title = $this->wire('sanitizer')->entities1($language->get('title|name'));
+		$class = 'langTab' . $language->id;
+		if($inputfield->isEmpty()) $liClass .= 'langTabEmpty ';
+		$title = $language->get($this->tabField);
+		if(empty($title)) $title = $language->get('name');
+		$title = $this->wire('sanitizer')->entities1($title);
 		if(!$this->wire('languages')->editable($language)) {
 			$title = "<s>$title</s>";
-			$liClass = " class='LanguageNotEditable'";
+			$liClass .= 'LanguageNotEditable ';
 		}
 		$id = $inputfield->attr('id'); 
-		$this->tabs[] = "<li$liClass><a$class href='#langTab_$id'>$title</a></li>";
+		$liClass = trim($liClass);
+		$this->tabs[] = "<li class='$liClass'><a data-lang='$language->id' class='$class' href='#langTab_$id'>$title</a></li>";
 	}
 
 	/**
@@ -126,12 +137,29 @@ class LanguageTabs extends WireData implements Module {
 			$inputfield->contentClass .= " langTabsContainer";
 			$tabs = implode('', $this->tabs);
 			$id = $inputfield->attr('id');
-			$content = "<div class='langTabs' id='langTabs_$id'><ul>$tabs</ul>$content</div>";
+			$note = "<small class='langTabsNote detail'><i class='fa fa-fw fa-angle-double-left'></i>" . 
+				$this->_('click+hold to change all tabs') . "</small>";
+			$content = "<div class='langTabs' id='langTabs_$id'>$note<ul>$tabs</ul>$content</div>";
 		} else {
 			// do nothing, just return content because there was only 1 tab (no render necessary)
 		}
 		$this->resetTabs();
 		return $content; 
+	}
+	
+	public function getModuleConfigInputfields(InputfieldWrapper $inputfields) {
+		$f = $this->wire('modules')->get('InputfieldSelect'); 
+		$f->attr('name', 'tabField');
+		$f->label = $this->_('Field to use for tab labels');
+		$f->addOption('name');
+		foreach($this->wire('templates')->get('language')->fieldgroup as $field) {
+			if($field->type instanceof FieldtypeMulti) continue;
+			$f->addOption($field->name);
+		}
+		$f->attr('value', $this->tabField);
+		$f->required = true;
+		$inputfields->add($f);
+		return $inputfields;
 	}
 
 }

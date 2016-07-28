@@ -115,16 +115,16 @@
 			float: right; 
 			padding-right: 0.25em; 
 		}
-		i.toggle-icon {
-			padding-right: 0.5em; 
-			color: lighten($label-link-color, 60%); 
-			line-height: 1.7em; 
-		}
-
 		.ui-icon + .ui-icon,
 		i + i {
 			margin-right: 0.5em; 
 			margin-left: none; 
+		}
+		i.toggle-icon {
+			padding-right: 0.5em;
+			margin-right: 0;
+			color: lighten($label-link-color, 60%);
+			line-height: 1.7em;
 		}
 	}
 

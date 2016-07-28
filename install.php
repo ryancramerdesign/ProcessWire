@@ -615,6 +615,7 @@ class Installer {
 			list($dbVersion) = $query->fetch(\PDO::FETCH_NUM);
 			if(version_compare($dbVersion, "5.6.4", "<")) {
 				$options['dbEngine'] = 'MyISAM';
+				$values['dbEngine'] = 'MyISAM';
 				$this->err("Your MySQL version is $dbVersion and InnoDB requires 5.6.4 or newer. Engine changed to MyISAM.");
 			}
 		}
@@ -719,6 +720,15 @@ class Installer {
 			"\n * " . 
 			"\n */" . 
 			"\n\$config->timezone = '$values[timezone]';" . 	
+			"\n" . 
+			"\n/**" .
+			"\n * Installer: Unix timestamp of date/time installed" .
+			"\n * " .
+			"\n * This is used to detect which when certain behaviors must be backwards compatible." .
+			"\n * Please leave this value as-is." .
+			"\n * " .
+			"\n */" .
+			"\n\$config->installed = " . time() . ";" .
 			"\n\n";
 
 		if(!empty($values['httpHosts'])) {
@@ -731,7 +741,7 @@ class Installer {
 			foreach($values['httpHosts'] as $host) $cfg .= "'$host', ";
 			$cfg = rtrim($cfg, ", ") . ");\n\n";
 		}
-
+		
 		if(($fp = fopen("./site/config.php", "a")) && fwrite($fp, $cfg)) {
 			fclose($fp); 
 			$this->ok("Saved configuration to ./site/config.php"); 

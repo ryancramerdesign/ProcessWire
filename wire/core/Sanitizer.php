@@ -792,6 +792,61 @@ class Sanitizer extends Wire {
 	}
 
 	/**
+	 * Sanitize to ASCII alpha (a-z A-Z)
+	 * 
+	 * #pw-group-strings
+	 * 
+	 * @param string $value Value to sanitize
+	 * @param bool|int $beautify Whether to beautify (See Sanitizer::translate option too)
+	 * @param int $maxLength Maximum length of returned value (default=1024)
+	 * @return string
+	 * 
+	 */
+	public function alpha($value, $beautify = false, $maxLength = 1024) {
+		$value = $this->alphanumeric($value, $beautify, 8192);
+		$numbers = array('0', '1', '2', '3', '4', '5', '6', '7', '8', '9');
+		$value = str_replace($numbers, '', $value);
+		if(strlen($value) > $maxLength) $value = substr($value, 0, $maxLength);
+		return $value;
+	}
+
+	/**
+	 * Sanitize to ASCII alphanumeric (a-z A-Z 0-9)
+	 * 
+	 * #pw-group-strings
+	 *
+	 * @param string $value Value to sanitize
+	 * @param bool|int $beautify Whether to beautify (See Sanitizer::translate option too)
+	 * @param int $maxLength Maximum length of returned value (default=1024)
+	 * @return string
+	 *
+	 */
+	public function alphanumeric($value, $beautify = false, $maxLength = 1024) {
+		$value = $this->nameFilter($value, array('_'), '_', $beautify, $maxLength * 10);
+		$value = str_replace('_', '', $value);
+		if(strlen($value) > $maxLength) $value = substr($value, 0, $maxLength);
+		return $value;
+	}
+
+	/**
+	 * Sanitize string to contain only ASCII digits (0-9)
+	 * 
+	 * #pw-group-strings
+	 *
+	 * @param string $value Value to sanitize
+	 * @param int $maxLength Maximum length of returned value (default=1024)
+	 * @return string
+	 *
+	 */
+	public function digits($value, $maxLength = 1024) {
+		$letters = str_split('_abcdefghijklmnopqrstuvwxyz');
+		$value = strtolower($this->nameFilter($value, array('_'), '_', false, $maxLength * 10));
+		$value = str_replace($letters, '', $value);
+		if(strlen($value) > $maxLength) $value = substr($value, 0, $maxLength);
+		return $value; 
+	}
+
+	/**
 	 * Sanitize and validate an email address
 	 * 
 	 * Returns valid email address, or blank string if it isn't valid.
@@ -1031,7 +1086,10 @@ class Sanitizer extends Wire {
 		}
 	
 		// entity-encode text value, if requested
-		if($options['entities']) $value = $this->entities($value);
+		if($options['entities']) {
+			$value = $this->entities($value);
+			$options['trim'] = str_replace(';', '', $options['trim']);
+		}
 	
 		// trim characters from beginning and end
 		$_value = trim($value, $options['trim'] . $options['newline']);
@@ -1368,34 +1426,51 @@ class Sanitizer extends Wire {
 	 * #pw-group-strings
 	 *
 	 * @param string $value String value to sanitize (assumed to be UTF-8). 
-	 * @param int $maxLength Maximum number of allowed characters (default=100).
+	 * @param array|int $options Options to modify behavior: 
+	 *   - `maxLength` (int): Maximum number of allowed characters (default=100). This may also be specified instead of $options array.
+	 *   - `useQuotes` (bool): Allow selectorValue() function to add quotes if it deems them necessary? (default=true)
+	 *   - If an integer is specified for $options, it is assumed to be the maxLength value. 
 	 * @return string Value ready to be used as the value component in a selector string. 
 	 * 
 	 */
-	public function selectorValue($value, $maxLength = 100) {
+	public function selectorValue($value, $options = array()) {
+		
+		$defaults = array(
+			'maxLength' => 100, 
+			'useQuotes' => true, 
+		);
 
+		if(is_int($options)) {
+			$options = array('maxLength' => $options);
+		} else if(!is_array($options)) {
+			$options = array();
+		}
+		$options = array_merge($defaults, $options);
 		if(!is_string($value)) $value = $this->string($value);
 		$value = trim($value); 
 		$quoteChar = '"';
 		$needsQuotes = false; 
+		$maxLength = $options['maxLength'];
 
-		// determine if value is already quoted and set initial value of needsQuotes
-		// also pick out the initial quote style
-		if(strlen($value) && ($value[0] == "'" || $value[0] == '"')) {
-			$needsQuotes = true; 
+		if($options['useQuotes']) {
+			// determine if value is already quoted and set initial value of needsQuotes
+			// also pick out the initial quote style
+			if(strlen($value) && ($value[0] == "'" || $value[0] == '"')) {
+				$needsQuotes = true;
+			}
+
+			// trim off leading or trailing quotes
+			$value = trim($value, "\"'");
+
+			// if an apostrophe is present, value must be quoted
+			if(strpos($value, "'") !== false) $needsQuotes = true;
+
+			// if commas are present, then the selector needs to be quoted
+			if(strpos($value, ',') !== false) $needsQuotes = true;
+
+			// disallow double quotes -- remove any if they are present
+			if(strpos($value, '"') !== false) $value = str_replace('"', '', $value);
 		}
-
-		// trim off leading or trailing quotes
-		$value = trim($value, "\"'"); 
-
-		// if an apostrophe is present, value must be quoted
-		if(strpos($value, "'") !== false) $needsQuotes = true; 
-
-		// if commas are present, then the selector needs to be quoted
-		if(strpos($value, ',') !== false) $needsQuotes = true; 
-
-		// disallow double quotes -- remove any if they are present
-		if(strpos($value, '"') !== false) $value = str_replace('"', '', $value); 
 
 		// selector value is limited to 100 chars
 		if(strlen($value) > $maxLength) {
@@ -1430,7 +1505,7 @@ class Sanitizer extends Wire {
 		$value = trim($value); // trim any kind of whitespace
 		$value = trim($value, '+!,'); // chars to remove from begin and end 
 		
-		if(!$needsQuotes && strlen($value)) {
+		if(!$needsQuotes && $options['useQuotes'] && strlen($value)) {
 			$a = substr($value, 0, 1); 
 			$b = substr($value, -1); 
 			if((!ctype_alnum($a) && $a != '/') || (!ctype_alnum($b) && $b != '/')) $needsQuotes = true;
@@ -1540,7 +1615,7 @@ class Sanitizer extends Wire {
 			'encoding' => 'UTF-8',
 			'doubleEncode' => true,
 			'allowBrackets' => false, // allow [bracket] tags?
-			'allow' => array('a', 'strong', 'em', 'code', 's', 'span', 'u', 'small'),
+			'allow' => array('a', 'strong', 'em', 'code', 's', 'span', 'u', 'small', 'i'),
 			'disallow' => array(),
 			'linkMarkup' => '<a href="{url}" rel="nofollow" target="_blank">{text}</a>',
 		);

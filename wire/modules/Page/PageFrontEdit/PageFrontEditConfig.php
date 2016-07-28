@@ -101,7 +101,7 @@ class PageFrontEditConfig extends ModuleConfig {
 	
 	public function fieldHelpInputfields(InputfieldWrapper $fieldset, Field $field) {
 		
-		$moreLabel = $this->_('More') . "<i class='fa fa-angle-right'></i>";
+		$moreLabel = $this->_('More') . " [i.fa.fa-angle-right][/i]";
 		
 		$module = $this->wire('modules')->get('PageFrontEdit');
 		$fieldset->description = $this->editHelpText;

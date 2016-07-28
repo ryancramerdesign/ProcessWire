@@ -86,7 +86,6 @@ $(document).ready(function() {
 	/**
 	 * Initialize non-HTML5 uploads
 	 *
-	 */
 	function InitOldSchool() {
 		// $(".InputfieldFileUpload input[type=file]").live('change', function() {
 		$(document).on('change', '.InputfieldFileUpload input[type=file]', function() {
@@ -107,6 +106,53 @@ $(document).ready(function() {
 			$i.slideDown(); 
 		});
 	}
+	 */
+
+	function InitOldSchool() {
+		$("body").addClass("ie-no-drop"); // ??
+
+		$(document).on('change', '.InputfieldFileUpload input[type=file]', function() {
+			
+			var $t = $(this);
+			var $mask = $t.parent(".InputMask");
+
+			if($t.val().length > 1) {
+				$mask.addClass("ui-state-disabled");
+			} else {
+				$mask.removeClass("ui-state-disabled");
+			}
+
+			if($mask.next(".InputMask").length > 0) return; // not the last one
+		
+			var $inputfield = $t.closest('.InputfieldFile');
+			var $upload = $t.closest('.InputfieldFileUpload');
+			var $list = $inputfield.find('.InputfieldFileList');
+			var maxFiles = parseInt($upload.find('.InputfieldFileMaxFiles').val());
+			var numFiles = $list.children('li').length + $upload.find('input[type=file]').length + 1;
+			
+			if(maxFiles > 0 && numFiles >= maxFiles) return;
+
+			$upload.find(".InputMask").not(":last").each(function() {
+				var $m = $(this);
+				if($m.find("input[type=file]").val() < 1) $m.remove();
+			});
+		
+			// add another input
+			var $i = $mask.clone().removeClass("ui-state-disabled");
+			$i.children("input[type=file]").val('');
+			$i.insertAfter($mask);
+			$i.css('margin-left', '0.5em').removeClass('ui-state-active');
+		
+			// update file input to contain file name
+			var name = $t.val();
+			var pos = name.lastIndexOf('/');
+			if(pos === -1) pos = name.lastIndexOf('\\');
+			name = name.substring(pos+1);
+			$mask.find('.ui-button-text').text(name).prepend("<i class='fa fa-fw fa-file-o'></i>");
+			$mask.removeClass('ui-state-active');
+			
+		});
+	}
 
 	/**	
 	 * Initialize HTML5 uploads 
@@ -124,7 +170,7 @@ $(document).ready(function() {
 		} else {
 			var $target = $(".InputfieldFileUpload"); // all 
 		}
-		$target.closest('.ui-widget-content, .InputfieldContent').each(function (i) {
+		$target.closest('.InputfieldContent').each(function (i) {
 			if($(this).hasClass('InputfieldFileInit')) return;
 			initHTML5Item($(this), i);
 			$(this).addClass('InputfieldFileInit');
@@ -140,12 +186,13 @@ $(document).ready(function() {
 			var $postToken = $form.find('input._post_token'); 
 			var postTokenName = $postToken.attr('name');
 			var postTokenValue = $postToken.val();
+			var $uploadData = $this.find('.InputfieldFileUpload');
 
-			var fieldName = $this.find('p.InputfieldFileUpload').data('fieldname');
+			var fieldName = $uploadData.data('fieldname');
 			fieldName = fieldName.slice(0,-2);
 
-			var extensions = $this.find('p.InputfieldFileUpload').data('extensions').toLowerCase();
-			var maxFilesize = $this.find('p.InputfieldFileUpload').data('maxfilesize');
+			var extensions = $uploadData.data('extensions').toLowerCase();
+			var maxFilesize = $uploadData.data('maxfilesize');
 			
 			var filesUpload = $this.find("input[type=file]").get(0);
 			var dropArea = $this.get(0);
@@ -190,6 +237,7 @@ $(document).ready(function() {
 						if(completion > 4) {
 							$progressBarValue.html("<span>" + parseInt(completion) + "%</span>");
 						}
+						$('body').addClass('pw-uploading');
 						/*
 						// code for freezing progressbar during testing
 						$progressBarValue.width("60%");
@@ -273,13 +321,14 @@ $(document).ready(function() {
 					$progressItem.remove();
 					
 					if(doneTimer) clearTimeout(doneTimer); 
-					doneTimer = setTimeout(function() { 
+					doneTimer = setTimeout(function() {
+						$('body').removeClass('pw-uploading');
 						if(maxFiles != 1 && !$fileList.is('.ui-sortable')) initSortable($fileList); 
 						$fileList.trigger('AjaxUploadDone'); // for things like fancybox that need to be re-init'd
 					}, 500); 
 
 				}, false);
-				
+
 				// Here we go
 				xhr.open("POST", postUrl, true);
 				//see:https://github.com/ryancramerdesign/ProcessWire/issues/1487

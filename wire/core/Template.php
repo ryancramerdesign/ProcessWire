@@ -97,7 +97,8 @@
  * @property int $noSettings Don't show a settings tab on pages using this template? (0=use settings tab, 1=no settings tab) #pw-group-behaviors
  * @property int $noChangeTemplate Don't allow pages using this template to change their template? (0=template change allowed, 1=template change not allowed) #pw-group-behaviors
  * @property int $noUnpublish Don't allow pages using this template to ever exist in an unpublished state - if page exists, it must be published. (0=page may be unpublished, 1=page may not be unpublished) #pw-group-behaviors
- * @property int $noShortcut Don't allow pages using this template to appear in shortcut "add new page" menu #pw-group-behaviors
+ * @property int $noShortcut Don't allow pages using this template to appear in shortcut "add new page" menu. #pw-group-behaviors
+ * @property int $noLang Disable multi-language for this template (when language support active). #pw-group-behaviors
  * 
  * Other
  * 
@@ -237,6 +238,7 @@ class Template extends WireData implements Saveable, Exportable {
 		'noChangeTemplate' => 0, 	// don't allow pages using this template to change their template?
 		'noShortcut' => 0, 		// don't allow pages using this template to appear in shortcut "add new page" menu
 		'noUnpublish' => 0,		// don't allow pages using this template to ever exist in an unpublished state - if page exists, it must be published 
+		'noLang' => 0,          // disable languages for this template (if multi-language support active)
 		'compile' => 3,		// Set to 1 to compile, set to 2 to compile file and included files, 3 for auto, or 0 to disable
 		'nameContentTab' => 0, 		// pages should display the 'name' field on the content tab?	
 		'noCacheGetVars' => '',		// GET vars that trigger disabling the cache (only when cache_time > 0)
@@ -1010,6 +1012,25 @@ class Template extends WireData implements Saveable, Exportable {
 			}
 		}
 		return $icon;
+	}
+
+	/**
+	 * Get languages allowed for this template or null if language support not active.
+	 * 
+	 * #pw-group-identification
+	 * 
+	 * @return PageArray|Languages|null Returns a PageArray of Language objects, or NULL if language support not active.
+	 * 
+	 */
+	public function getLanguages() {
+		/** @var Languages $languages */
+		$languages = $this->wire('languages');
+		if(!$languages) return null;
+		if(!$this->noLang) return $languages;
+		$langs = $this->wire('pages')->newPageArray();
+		// if noLang set, then only default language is included
+		$langs->add($languages->getDefault());
+		return $langs;
 	}
 
 	/**

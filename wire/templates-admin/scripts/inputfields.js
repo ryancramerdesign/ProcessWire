@@ -1105,15 +1105,20 @@ function InputfieldStates($target) {
 	$(document).on('change', '.InputfieldFormConfirm :input, .InputfieldFormConfirm .Inputfield', function() {
 		var $this = $(this);	
 		if($this.hasClass('Inputfield')) {
-			$this.addClass('InputfieldStateChanged');
+			// an .Inputfield element
+			if(!$this.hasClass('InputfieldIgnoreChanges')) $this.addClass('InputfieldStateChanged');
 			return false;
 		} else {
+			// an :input element
+			if($this.hasClass('InputfieldIgnoreChanges') || $this.closest('.InputfieldIgnoreChanges').length) return false;
 			$this.closest('.Inputfield').addClass('InputfieldStateChanged');
 		}
 	});
+	
 	$(document).on('submit', '.InputfieldFormConfirm', function() {
 		$(this).addClass('InputfieldFormSubmitted');
 	});
+	
 	window.addEventListener("beforeunload", InputfieldFormBeforeUnloadEvent);
 }
 

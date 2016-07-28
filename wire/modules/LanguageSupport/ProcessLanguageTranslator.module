@@ -66,6 +66,14 @@ class ProcessLanguageTranslator extends Process {
 	protected $translator = null;
 
 	/**
+	 * File pointer for search index file
+	 * 
+	 * @var null
+	 * 
+	 */
+	protected $fp = null;
+
+	/**
 	 * Initialize the module and setup the variables above
 	 *
 	 */
@@ -80,6 +88,10 @@ class ProcessLanguageTranslator extends Process {
 		}
 		// else throw new WireException("No language specified"); 
 		parent::init();
+	}
+	
+	public function __destruct() {
+		if($this->fp) fclose($this->fp);
 	}
 
 	/**
@@ -173,7 +185,7 @@ class ProcessLanguageTranslator extends Process {
 		//$form->description = sprintf("Select file(s) for translation to %s", $this->language->get('title|name'));
 		$languageTitle = $this->language->get('title|name');
 		$form->description = sprintf($this->_('Select a file (or multiple files) and click Submit to create new %s translation files.'), $languageTitle);
-		$useCache = $this->input->post->submit_refresh ? false : true;
+		$useCache = $this->input->post('submit_refresh') || $this->input->get('refresh') ? false : true;
 
 		$files = array(
 			'site' => $this->findTranslatableFiles($this->wire('config')->paths->site, $useCache),
@@ -304,18 +316,25 @@ class ProcessLanguageTranslator extends Process {
 	 * Process the 'add' form: file input manually
 	 * 
 	 * @param Inputfield $field
+	 * @param string $sourceFilename Optional
 	 * @return bool
 	 *
 	 */
-	protected function ___processAdd($field) {
+	protected function ___processAdd($field = null, $sourceFilename = '') {
 
-		$filename = str_replace(array('\\', '..'), array('/', ''), $this->input->post->filename);
-		$field->attr('value', $filename);
+		if($sourceFilename) {
+			$filename = $sourceFilename;
+		} else {
+			$filename = $filename = $this->input->post('filename');
+		}
+		
+		$filename = str_replace(array('\\', '..'), array('/', ''), $filename);
+		if($field) $field->attr('value', $filename);
 		$pathname = $this->config->paths->root . ltrim($filename, '/');
 
 		if(is_file($pathname)) {
 
-			$this->session->get('CSRF')->validate();
+			if(!$sourceFilename) $this->session->get('CSRF')->validate();
 			$this->message(sprintf($this->_('Found %s'), $filename)); // Found [filename]
 
 			if($this->parseTranslatableFile($pathname)) {
@@ -330,7 +349,7 @@ class ProcessLanguageTranslator extends Process {
 			}
 			
 		} else {
-			$field->error($this->_('File does not exist'));
+			$this->error($this->_('File does not exist'));
 		}
 
 		return false;
@@ -422,7 +441,13 @@ class ProcessLanguageTranslator extends Process {
 
 		$textdomain = $this->input->get->textdomain;
 		$file = $this->translator->textdomainToFilename($textdomain);
-		if(!$file) throw new WireException($this->_('Unable to load textdomain'));
+		if(!$file) {
+			if($this->input->get('filename')) {
+				$this->processAdd(null, $this->input->get('filename')); 
+			} else {
+				throw new WireException($this->_('Unable to load textdomain'));
+			}
+		}
 		$file = $this->config->paths->root . $file;
 
 		if(!is_file($file)) {
@@ -570,6 +595,12 @@ class ProcessLanguageTranslator extends Process {
 		} else {
 			$cacheKey = '';
 		}
+		
+		if(is_null($this->fp)) {
+			$f = $this->language->filesManager()->path() . '.phrase-index.txt'; // @todo make hidden
+			if(is_file($f)) unlink($f);
+			$this->fp = fopen($f, "a");
+		}
 
 		$files = array();
 		$dirs = array();
@@ -618,20 +649,32 @@ class ProcessLanguageTranslator extends Process {
 			if($found) {
 				$pathname = str_replace($root, '/', $pathname);
 				$files[$pathname] = $pathname;
+				if(preg_match_all('/\b(?:_[_nx]\(|->_[nx]?\()[\'"](.+?)[\'"]\)/', $text, $matches)) {
+					foreach($matches[1] as $key => $phrase) {
+						$phrase = str_replace(array('|', '^', "\n", "\r", "\t"), ' ', $phrase);
+						fwrite($this->fp, "|$phrase");
+					}
+					$textdomain = $this->translator->filenameToTextdomain($pathname);
+					fwrite($this->fp, "|^$textdomain:$pathname\n");
+				}
 			}
 		}
 
 		$level++;
 		if($level <= 20) { // 20=max directory nesting level
 			foreach($dirs as $dir) {
-				$_files = $this->findTranslatableFiles($dir);
+				$_files = $this->findTranslatableFiles($dir, $useCache);
 				$files = array_merge($files, $_files);
 			}
 		}
 		$level--;
-
+		
 		if($cacheKey) {
 			$this->session->set($this, $cacheKey, $files);
+		}
+		
+		if($this->fp && !$level) {
+			$this->message($this->_('Built search phrase index') . " - $path"); 
 		}
 
 		return $files;

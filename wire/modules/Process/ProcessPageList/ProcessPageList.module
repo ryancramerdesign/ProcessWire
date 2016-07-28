@@ -170,7 +170,11 @@ class ProcessPageList extends Process implements ConfigurableModule {
 				if($parent->id > 1 && $parent->id != $this->id) $openPageIDs[] = $parent->id;
 			}
 		} else if(!$isAjax && $this->wire('page')->process == $this) {
-			$openPageIDs = $this->wire('input')->cookie->array('pagelist_open');	
+			if($this->id) {
+				// leave openPageIDs as empty array
+			} else {
+				$openPageIDs = $this->wire('input')->cookie->array('pagelist_open');
+			}
 		}
 		
 		if($isAjax) {
