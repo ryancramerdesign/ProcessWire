@@ -304,6 +304,7 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 			$wrap->name = "repeater_item_{$page->id}";
 			$wrap->wrapAttr('data-page', $page->id);
 			$wrap->wrapAttr('data-type', $this->getRepeaterItemType($page));
+			$wrap->wrapAttr('data-editUrl', $page->editUrl()); // if needed by any Inputfields within like InputfieldFile/InputfieldImage
 			$wrap->set('useDependencies', false);
 			
 			if($isOpen) {
@@ -483,8 +484,10 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 		$collapse = $this->field->get('repeaterCollapse');
 		$forIDs = null; 
 		if($loading == FieldtypeRepeater::loadingAll && $collapse != FieldtypeRepeater::collapseNone) $forIDs = array();
+		list($editorUrl, $queryString) = explode('?', $this->page->editUrl());
 		
 		$this->wire('config')->js('InputfieldRepeater', array(
+			'editorUrl' => $editorUrl, 
 			'labels' => array(
 				'remove' => $this->_x('Delete this item', 'repeater-item-action'), 
 				'toggle' => $this->_x('Toggle published/unpublished', 'repeater-item-action')

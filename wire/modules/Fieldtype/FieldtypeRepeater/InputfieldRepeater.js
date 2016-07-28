@@ -118,7 +118,7 @@ function InputfieldRepeaterItemOpened(e) {
 	var itemID = parseInt($item.attr('data-page'));
 	var repeaterID = $repeater.attr('id');
 	var fieldName = repeaterID.replace('wrap_Inputfield_', '');
-	var ajaxURL = ProcessWire.config.urls.admin + 'page/edit/?id=' + pageID + '&field=' + fieldName + '&repeater_edit=' + itemID;
+	var ajaxURL = ProcessWire.config.InputfieldRepeater.editorUrl + '?id=' + pageID + '&field=' + fieldName + '&repeater_edit=' + itemID;
 	var $spinner = $item.find('.InputfieldRepeaterDrag');
 	var $inputfields = $loaded.closest('.Inputfields');
 	
@@ -326,7 +326,7 @@ function InputfieldRepeaterInit($this) {
 			// get addItem from ajax
 			var pageID = $addLink.closest('.InputfieldRepeater').attr('data-page'); // $("#Inputfield_id").val();
 			var fieldName = $addLink.closest('.InputfieldRepeater').attr('id').replace('wrap_Inputfield_', '');
-			var ajaxURL = ProcessWire.config.urls.admin + 'page/edit/?id=' + pageID + '&field=' + fieldName + '&repeater_add=' + $addLink.attr('data-type') + '&repeater_not=';
+			var ajaxURL = ProcessWire.config.InputfieldRepeater.editorUrl + '?id=' + pageID + '&field=' + fieldName + '&repeater_add=' + $addLink.attr('data-type') + '&repeater_not=';
 			var $spinner = $addLink.parent().find('.InputfieldRepeaterSpinner');
 			
 			$spinner.removeClass($spinner.attr('data-off')).addClass($spinner.attr('data-on'));	

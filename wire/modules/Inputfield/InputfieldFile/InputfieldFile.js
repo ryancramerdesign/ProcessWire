@@ -179,7 +179,8 @@ $(document).ready(function() {
 		function initHTML5Item($this, i) {
 
 			var $form = $this.parents('form'); 
-			var postUrl = $form.attr('action'); 
+			var $repeaterItem = $this.closest('.InputfieldRepeaterItem');
+			var postUrl = $repeaterItem.length ? $repeaterItem.attr('data-editUrl') : $form.attr('action');
 			postUrl += (postUrl.indexOf('?') > -1 ? '&' : '?') + 'InputfieldFileAjax=1';
 
 			// CSRF protection
