@@ -42,7 +42,7 @@ require_once(dirname(__FILE__) . '/PagerNav.php');
  * 
  * @property int $numPageLinks 10 number of links that the pagination navigation should have (typically 10)
  * @property array $getVars get vars that should appear in the pagination, or leave empty and populate $input->whitelist (preferred)
- * @property string $baseUrl the baseUrl from which the navigiation item links will start (default='')
+ * @property string $baseUrl the baseUrl from which the navigation item links will start (default='')
  * @property null|Page $page the current Page, or leave NULL to autodetect
  * @property string $listMarkup List container markup. Place {out} where you want the individual items rendered (default="<ul class='MarkupPagerNav'>{out}</ul>")
  * @property string $itemMarkup List item markup. Place {class} for item class (required), and {out} for item content. (default="<li class='{class}'>{out}</li>")
@@ -50,7 +50,7 @@ require_once(dirname(__FILE__) . '/PagerNav.php');
  * @property string $currentLinkMarkup Link markup for current page. Place {url} for href attribute and {out} for label content. (default="<a href='{url}'><span>{out}</span></a>")
  * @property string $nextItemLabel label used for the 'Next' button (default='Next')
  * @property string $previousItemLabel label used for the 'Previous' button (default='Prev')
- * @property string $separatorItemLabel label used in the seperator item (default='&hellip;')
+ * @property string $separatorItemLabel label used in the separator item (default='&hellip;')
  * @property string $separatorItemClass Class for separator item (default='MarkupPagerNavSeparator')
  * @property string $firstItemClass Class for first item (default='MarkupPagerNavFirst')
  * @property string $firstNumberItemClass Class for first numbered item (default='MarkupPagerNavFirstNum')
@@ -120,7 +120,7 @@ class MarkupPagerNav extends Wire implements Module {
 		// label used for the 'Previous' button
 		'previousItemLabel' => 'Prev', 
 
-		// label used in the seperator item
+		// label used in the separator item
 		'separatorItemLabel' => '&hellip;', 
 
 		// default classes used for list items, according to the type. 
@@ -169,7 +169,7 @@ class MarkupPagerNav extends Wire implements Module {
 	 * Render the output for the pagination
 	 *
 	 * @param WirePaginatable $items Pages used in the pagination that have had a "limit=n" selector applied when they were loaded. 
-	 * @param array $options Any options to override the defnults. For the defaults see MarkupPagerNav::$options
+	 * @param array $options Any options to override the defaults. For the defaults see MarkupPagerNav::$options
 	 * @return string
 	 *
 	 */
