@@ -593,7 +593,8 @@ abstract class FieldtypeMulti extends Fieldtype {
 
 		try {
 			// attempt lock if possible
-			if($database->exec("LOCK TABLES `$table` WRITE")) $locked = true;
+			if($database->exec("LOCK TABLES `$table` WRITE")); 
+			$locked = true;
 		} catch(\Exception $e) {
 			// nothing ever happened, it's all just stories
 		}
