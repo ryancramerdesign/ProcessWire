@@ -195,7 +195,9 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 
 		/** @var Selectors $selectors */
 		$selectors = $event->arguments[0]; 
-		$pageFinderOptions = $event->object->getOptions();
+		/** @var PageFinder $pageFinder */
+		$pageFinder = $event->object; 
+		$pageFinderOptions = $pageFinder->getOptions();
 
 		// determine which fields are used in repeaters
 		if(is_null($fieldsUsedInRepeaters)) {
@@ -293,7 +295,7 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 		if(!$repeaterPage->id) return; 
 
 		// check that the given repeaterPage is actually a repeater component of the ownerPage
-		if(!$this->isRepeaterItemValidOnPage($repeaterPage, $ownerPage)) {
+		if($repeaterPage->id != $ownerPage->id && !$this->isRepeaterItemValidOnPage($repeaterPage, $ownerPage)) {
 			$this->error("Repeater item $repeaterPage not valid for owner page $ownerPage");
 			return;
 		}
@@ -402,6 +404,7 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 		// update id attribute of the Inputfield itself
 		// so that anything in InputfieldFile referring to it's overall id attribute
 		// reflects the actual id attribute of the Inputfield
+		/** @var Inputfield $inputfield */
 		$inputfield = $event->object; 
 		$id = $inputfield->attr('id');
 		$id = str_replace($_SERVER['HTTP_X_FIELDNAME'], $this->ajaxFieldName, $id); 

@@ -139,6 +139,7 @@ class Selectors extends WireArray {
 	public function import($items) {
 		if(is_string($items)) {
 			$this->extractString($items); 	
+			return $this;
 		} else {
 			return parent::import($items); 
 		}
@@ -146,6 +147,9 @@ class Selectors extends WireArray {
 
 	/**
 	 * Per WireArray interface, return true if the item is a Selector instance
+	 * 
+	 * @param Selector $item
+	 * @return bool
 	 *
 	 */
 	public function isValidItem($item) {
@@ -583,9 +587,14 @@ class Selectors extends WireArray {
 			$value .= $c; 
 			$lastc = $c;
 
-		} while(++$n < self::maxValueLength); 
+		} while(++$n);
+		
+		$len = strlen("$value");
+		if($len) {
+			$str = substr($str, $n);
+			if($len > self::maxValueLength) $value = substr($value, 0, self::maxValueLength);
+		}
 
-		if(strlen("$value")) $str = substr($str, $n);
 		$str = ltrim($str, ' ,"\']})'); // should be executed even if blank value
 
 		// check if a pipe character is present next, indicating an OR value may be provided
@@ -904,6 +913,8 @@ class Selectors extends WireArray {
 			// or array('field', 'operator', 'value', array('whitelist value1', 'whitelist value2', 'etc'))
 			// or array('field', 'operator', 'value')
 			// or array('field', 'value') where '=' is assumed operator
+			$field = '';
+			$value = array();
 			
 			if(count($data) == 4) {
 				list($field, $operator, $value, $_sanitize) = $data;

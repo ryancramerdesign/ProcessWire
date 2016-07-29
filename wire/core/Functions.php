@@ -33,7 +33,7 @@ function wire($name = 'wire') {
  * Both functions exist more for consistent naming depending on usage. 
  *
  * @deprecated
- * @param string $name If ommitted, returns a Fuel object with references to all the fuel.
+ * @param string $name If omitted, returns a Fuel object with references to all the fuel.
  * @return mixed Fuel value if available, NULL if not. 
  *
  */
@@ -700,6 +700,9 @@ function wireClassImplements($className, $autoload = true) {
 
 /**
  * ProcessWire namespace aware version of PHP's class_parents() function
+ * 
+ * Returns associative array where array keys are full namespaced class name, and 
+ * values are the non-namespaced classname.
  *
  * @param string|object $className
  * @param bool $autoload

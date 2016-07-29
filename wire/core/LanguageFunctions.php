@@ -14,7 +14,7 @@
  * Perform a language translation
  * 
  * @param string $text Text for translation. 
- * @param string $textdomain Textdomain for the text, may be class name, filename, or something made up by you. If ommitted, a debug backtrace will attempt to determine it automatically.
+ * @param string $textdomain Textdomain for the text, may be class name, filename, or something made up by you. If omitted, a debug backtrace will attempt to determine it automatically.
  * @param string $context Name of context - DO NOT USE with this function for translation as it won't be parsed for translation. Use only with the _x() function, which will be parsed. 
  * @return string Translated text or original text if translation not available.
  *
@@ -49,7 +49,7 @@ function __($text, $textdomain = null, $context = '') {
  * 
  * @param string $text Text for translation. 
  * @param string $context Name of context
- * @param string $textdomain Textdomain for the text, may be class name, filename, or something made up by you. If ommitted, a debug backtrace will attempt to determine automatically.
+ * @param string $textdomain Textdomain for the text, may be class name, filename, or something made up by you. If omitted, a debug backtrace will attempt to determine automatically.
  * @return string Translated text or original text if translation not available.
  *
  */
@@ -63,7 +63,7 @@ function _x($text, $context, $textdomain = null) {
  * @param string $textSingular Singular version of text (when there is 1 item)
  * @param string $textPlural Plural version of text (when there are multiple items or 0 items)
  * @param int $count Quantity of items, should be 0 or more.
- * @param string $textdomain Textdomain for the text, may be class name, filename, or something made up by you. If ommitted, a debug backtrace will attempt to determine automatically.
+ * @param string $textdomain Textdomain for the text, may be class name, filename, or something made up by you. If omitted, a debug backtrace will attempt to determine automatically.
  * @return string Translated text or original text if translation not available.
  *
  */

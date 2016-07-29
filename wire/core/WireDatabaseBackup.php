@@ -15,7 +15,7 @@
  * Initialization
  * ==============
  * $backup = new WireDatabaseBackup('/path/to/backups/');
- * $backup->setDatabase($this->database); // optional, if ommitted it will attempt it's own connection
+ * $backup->setDatabase($this->database); // optional, if omitted it will attempt it's own connection
  * $backup->setDatabaseConfig($this->config); // optional, only if setDatabase() was called
  * 
  * Backup

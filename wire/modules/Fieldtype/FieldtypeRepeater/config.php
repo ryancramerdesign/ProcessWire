@@ -199,7 +199,7 @@ class FieldtypeRepeaterConfigHelper extends Wire {
 			$f->attr('name', '_deleteOldReady');
 			$f->label = $this->_('Delete old/unused repeater items?');
 			$f->description = sprintf($this->_('There are **%d** old/unused repeater item(s), check this box to delete them.'), $numOldReady);
-			$f->notes = $this->_('A repeater item is considered old if it is at least 3 days and and not yet been populated or published.');
+			$f->notes = $this->_('A repeater item is considered old if it is at least 3 days and not yet been populated or published.');
 			$f->icon = 'warning';
 			$inputfields->add($f);
 		}

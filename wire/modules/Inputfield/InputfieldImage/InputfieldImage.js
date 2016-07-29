@@ -1080,7 +1080,9 @@ function InputfieldImage($) {
 		function initHTML5Item($this, i) {
 
 			var $form = $this.parents('form');
-			var postUrl = $form.attr('action');
+			var $repeaterItem = $this.closest('.InputfieldRepeaterItem');
+			var postUrl = $repeaterItem.length ? $repeaterItem.attr('data-editUrl') : $form.attr('action');
+			
 			postUrl += (postUrl.indexOf('?') > -1 ? '&' : '?') + 'InputfieldFileAjax=1';
 
 			// CSRF protection
@@ -1391,6 +1393,7 @@ function InputfieldImage($) {
 				// Update progress bar
 				xhr.upload.addEventListener("progress", function(evt) {
 					if(!evt.lengthComputable) return;
+					$('body').addClass('pw-uploading');
 					$progressBar.attr("value", parseInt((evt.loaded / evt.total) * 100));
 					$spinner.css('display', 'block');
 				}, false);
@@ -1488,6 +1491,7 @@ function InputfieldImage($) {
 						} else {
 							setupMagnificForSingle($inputfield);
 						}
+						$('body').removeClass('pw-uploading');
 						$fileList.trigger('AjaxUploadDone'); // for things like fancybox that need to be re-init'd
 					}, 500);
 					

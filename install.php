@@ -615,6 +615,7 @@ class Installer {
 			list($dbVersion) = $query->fetch(\PDO::FETCH_NUM);
 			if(version_compare($dbVersion, "5.6.4", "<")) {
 				$options['dbEngine'] = 'MyISAM';
+				$values['dbEngine'] = 'MyISAM';
 				$this->err("Your MySQL version is $dbVersion and InnoDB requires 5.6.4 or newer. Engine changed to MyISAM.");
 			}
 		}

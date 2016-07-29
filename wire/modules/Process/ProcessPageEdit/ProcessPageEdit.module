@@ -529,6 +529,7 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 		$form->attr('enctype', 'multipart/form-data'); 
 		$form->attr('class', 'ui-helper-clearfix template_' . $this->page->template . ' class_' . $this->page->className); 
 		$form->attr('autocomplete', 'off');
+		$form->attr('data-uploading', $this->_('Are you sure? An upload is currently in progress and it may be lost if you proceed.'));
 		
 		$settings = $this->wire('config')->pageEdit;
 		if(empty($settings) || !isset($settings['confirm']) || !empty($settings['confirm'])) {

@@ -658,11 +658,13 @@ class PagePermissions extends WireData implements Module {
 		}
 
 		// check if a $page is provided as the first argument for additional access checking
-		if($addable && isset($event->arguments[0]) && $event->arguments[0] instanceof Page) {
-			$addPage = $event->arguments[0]; 
-			if(count($page->template->childTemplates) && !in_array($addPage->template->id, $page->template->childTemplates)) {
-				$addable = false;
-			}	
+		if($addable) {
+			$addPage = $event->arguments(0);
+			if($addPage && $addPage instanceof Page && $addPage->template && $page->template) {
+				if(count($page->template->childTemplates) && !in_array($addPage->template->id, $page->template->childTemplates)) {
+					$addable = false;
+				}
+			}
 		}
 	
 		// check additional permissions if in multi-language environment

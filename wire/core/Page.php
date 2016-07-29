@@ -113,7 +113,7 @@
  * @method string getMarkup($key) Return the markup value for a given field name or {tag} string. #pw-internal
  * @method string|mixed renderField($fieldName, $file = '') Returns rendered field markup, optionally with file relative to templates/fields/. #pw-internal
  * @method string|mixed renderValue($value, $file) Returns rendered markup for $value using $file relative to templates/fields/. #pw-internal
- *
+ * 
  */
 
 class Page extends WireData implements \Countable, WireMatchable {
@@ -1192,11 +1192,13 @@ class Page extends WireData implements \Countable, WireMatchable {
 	/**
 	 * Get the value for a non-native page field, and call upon Fieldtype to join it if not autojoined
 	 *
-	 * @param string $key
+	 * @param string $key Name of field to get
+	 * @param string $selector Optional selector to filter load by
 	 * @return null|mixed
 	 *
 	 */
-	protected function getFieldValue($key) {
+	protected function getFieldValue($key, $selector = '') {
+		
 		if(!$this->template) return parent::get($key); 
 		$field = $this->getField($key);
 		$value = parent::get($key); 
@@ -1218,24 +1220,41 @@ class Page extends WireData implements \Countable, WireMatchable {
 			}
 		}
 
-		// if the value is already loaded, return it 
-		if(!is_null($value)) return $this->outputFormatting ? $field->type->formatValue($this, $field, $value) : $value; 
+		if(!is_null($value) && empty($selector)) {
+			// if the non-filtered value is already loaded, return it 
+			return $this->outputFormatting ? $field->type->formatValue($this, $field, $value) : $value;
+		}
+		
 		$track = $this->trackChanges();
 		$this->setTrackChanges(false); 
 		if(!$field->type) return null;
-		$value = $field->type->loadPageField($this, $field); 
-		if(is_null($value)) $value = $field->type->getDefaultValue($this, $field); 
-			else $value = $field->type->wakeupValue($this, $field, $value); 
-
-		// if outputFormatting is being used, turn it off because it's not necessary here and may throw an exception
-		$outputFormatting = $this->outputFormatting; 
-		if($outputFormatting) $this->setOutputFormatting(false); 
-		$this->setFieldValue($key, $value, false);
-		if($outputFormatting) $this->setOutputFormatting(true); 
+	
+		if($selector) {
+			$value = $field->type->loadPageFieldFilter($this, $field, $selector);	
+		} else {
+			$value = $field->type->loadPageField($this, $field);
+		}
 		
-		$value = parent::get($key); 	
+		if(is_null($value)) {
+			$value = $field->type->getDefaultValue($this, $field);
+		} else {
+			$value = $field->type->wakeupValue($this, $field, $value);
+		}
+
+		// turn off output formatting and set the field value, which may apply additional changes
+		$outputFormatting = $this->outputFormatting;
+		if($outputFormatting) $this->setOutputFormatting(false);
+		$this->setFieldValue($key, $value, false);
+		if($outputFormatting) $this->setOutputFormatting(true);
+		$value = parent::get($key);
+		
+		// prevent storage of value if it was filtered when loaded
+		if(!empty($selector)) $this->__unset($key);
+		
 		if(is_object($value) && $value instanceof Wire) $value->resetTrackChanges(true);
 		if($track) $this->setTrackChanges(true); 
+	
+		
 		return $this->outputFormatting ? $field->type->formatValue($this, $field, $value) : $value; 
 	}
 	
@@ -1417,6 +1436,44 @@ class Page extends WireData implements \Countable, WireMatchable {
 		$this->set($key, $value); 
 	}
 
+	/**
+	 * If method call resulted in no handler, this hookable method is called.
+	 *
+	 * If you want to override this method with a hook, see the example below.
+	 * ~~~~~
+	 * $wire->addHookBefore('Wire::callUnknown', function(HookEvent $event) {
+	 *   // Get information about unknown method that was called
+	 *   $methodObject = $event->object;
+	 *   $methodName = $event->arguments(0); // string
+	 *   $methodArgs = $event->arguments(1); // array
+	 *   // The replace option replaces the method and blocks the exception
+	 *   $event->replace = true;
+	 *   // Now do something with the information you have, for example
+	 *   // you might want to populate a value to $event->return if
+	 *   // you want the unknown method to return a value.
+	 * });
+	 * ~~~~~
+	 *
+	 * #pw-hooker
+	 *
+	 * @param string $method Requested method name
+	 * @param array $arguments Arguments provided
+	 * @return null|mixed Return value of method (if applicable)
+	 * @throws WireException
+	 * @see Wire::callUnknown()
+	 *
+	 */
+	protected function ___callUnknown($method, $arguments) {
+		if($this->hasField($method)) {
+			if(count($arguments)) {
+				return $this->getFieldValue($method, $arguments[0]);
+			} else {
+				return $this->get($method); 
+			}
+		} else {
+			return parent::___callUnknown($method, $arguments);
+		}
+	}
 
 	/**
 	 * Set the status setting, with some built-in protections

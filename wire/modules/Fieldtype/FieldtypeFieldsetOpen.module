@@ -166,6 +166,34 @@ class FieldtypeFieldsetOpen extends Fieldtype {
 		$template->fieldgroup->remove($closer); 
 		$this->message("Also removed '$closer', which accompanies '$field'"); 
 	}
+
+	/**
+	 * Hook called by Fields::save() after a field using this type has been renamed
+	 *
+	 * Note that PW already takes care of renaming the field_[name] table.
+	 * Most Fieldtypes don't need to do anything here, but this exists just in case.
+	 *
+	 * #pw-internal
+	 *
+	 * @param Field $field
+	 * @param string $prevName Previous name (current name can be found in $field->name)
+	 *
+	 */
+	public function ___renamedField(Field $field, $prevName) {
+		// avoid ending up in infinite loop, since FieldtypeFieldsetClose extends this
+		if($this instanceof FieldtypeFieldsetClose) return;
+		// rename the _END field to match this one
+		$fields = $this->wire('fields');
+		$endField = $fields->get($field->name . self::fieldsetCloseIdentifier);
+		if(!$endField) {
+			$endField = $fields->get($prevName . self::fieldsetCloseIdentifier);
+			if($endField) {
+				$endField->name = $field->name . self::fieldsetCloseIdentifier;
+				$fields->save($endField);
+			}
+		}
+		parent::___renamedField($field, $prevName); 
+	}
 }
 
 
