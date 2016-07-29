@@ -53,7 +53,7 @@ class PagesEditor extends Wire {
 	 * @param string|int|Page $parent Parent path, ID or Page object
 	 * @param string $name Optional name or title of page. If none provided, one will be automatically assigned based on microtime stamp.
 	 * 	If you want to specify a different name and title then specify the $name argument, and $values['title'].
-	 * @param array $values Field values to assign to page (optional). If $name is ommitted, this may also be 3rd param.
+	 * @param array $values Field values to assign to page (optional). If $name is omitted, this may also be 3rd param.
 	 * @return Page Returned page has output formatting off.
 	 * @throws WireException When some criteria prevents the page from being saved.
 	 *

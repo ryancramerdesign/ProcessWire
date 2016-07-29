@@ -789,7 +789,7 @@ class WireCache extends Wire {
 	 * Get information about all the caches in this WireCache
 	 * 
 	 * @param bool $verbose Whether to be more verbose for human readability
-	 * @param string $name Optionally specify name of cache to get info. If ommitted, all caches are included.
+	 * @param string $name Optionally specify name of cache to get info. If omitted, all caches are included.
 	 * @return array of arrays of cache info
 	 * 
 	 */

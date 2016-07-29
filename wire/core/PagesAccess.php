@@ -15,7 +15,7 @@
  * 	- templates_id: The template that sets this pages access
  *
  * Pages using templates that already define their access (determined by $template->useRoles) 
- * are ommitted from the pages_access table, as they aren't necessary. 
+ * are omitted from the pages_access table, as they aren't necessary. 
  *
  * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
  * https://processwire.com

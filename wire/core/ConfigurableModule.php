@@ -66,7 +66,7 @@ interface ConfigurableModule {
 	 * 1. You are working with the module in the same context that it is when running,
 	 *    thus you can pull config values and API vars directly from $this->something.
 	 * 2. It can be extended in descending classes.
-	 * 3. The $data argument can be ommitted, as you don't need it since all config
+	 * 3. The $data argument can be omitted, as you don't need it since all config
 	 *    properties can be accessed directly from $this->[any property]. 
 	 * 4. You can specify an optional $inputfields argument in your function definition
 	 *    and if present, ProcessWire will prepare an InputfieldWrapper for you, saving

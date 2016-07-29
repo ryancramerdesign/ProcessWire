@@ -89,7 +89,7 @@ class SessionCSRF extends Wire {
 	 * Note that a single call to hasValidToken($id) or validate($id) will invalidate the single use token.
 	 * So call them once and store your result if you need the result multiple times. 
 	 *
-	 * @param int|string $id Optional unique ID/name for this token (of ommitted one is generated automatically)
+	 * @param int|string $id Optional unique ID/name for this token (of omitted one is generated automatically)
 	 * @return array ("id' => "token ID", "name" => "token name", "value" => "token value", "time" => created timestamp)
 	 *
 	 */

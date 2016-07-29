@@ -336,7 +336,7 @@ class WireHooks {
 		}
 
 		if(is_null($toMethod)) {
-			// $toObject has been ommitted and a procedural function specified instead
+			// $toObject has been omitted and a procedural function specified instead
 			// $toObject may also be a closure
 			$toMethod = $toObject;
 			$toObject = null;
