@@ -263,8 +263,19 @@ abstract class FieldtypeMulti extends Fieldtype {
 				foreach($keys as $key) {
 					$v = isset($value[$key]) ? $value[$key] : null;
 					if(is_null($v)) {
+						// value is NULL, determine how to handle it
 						if(empty($schema)) $schema = $this->getDatabaseSchema($field); 
-						$sql .= isset($schema[$key]) && stripos($schema[$key], ' DEFAULT NULL') ? "NULL, " : "'', ";
+						$useNULL = false;
+						if(isset($schema[$key])) {
+							if(stripos($schema[$key], ' DEFAULT NULL')) {
+								// use the default NULL value
+								$useNULL = true;
+							} else if(stripos($schema[$key], ' AUTO_INCREMENT')) {
+								// potentially a primary key, some SQL modes require NULL (rather than blank) for auto increment
+								$useNULL = true;
+							}
+						}
+						$sql .= $useNULL ? "NULL, " : "'', ";
 					} else {
 						$sql .= "'" . $database->escapeStr("$v") . "', ";
 					}
