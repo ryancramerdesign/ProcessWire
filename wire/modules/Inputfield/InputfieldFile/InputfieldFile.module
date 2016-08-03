@@ -237,7 +237,7 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 						$descriptionFieldLabel = "<s>$descriptionFieldLabel</s>";
 					}
 					$tabID = "langTab_{$id}__$language";
-					$tabs .= "<li><a href='#$tabID'>$descriptionFieldLabel</a></li>";
+					$tabs .= "<li><a data-lang='$language' class='langTab$language' href='#$tabID'>$descriptionFieldLabel</a></li>";
 					$out .= "<div class='InputfieldFileDescription LanguageSupport' data-language='$language' id='$tabID'>"; // open wrapper
 				} else {
 					$out .= "<div class='InputfieldFileDescription'>"; // open wrapper
