@@ -38,6 +38,13 @@ class InputfieldText extends Inputfield {
 		$this->set('requiredAttr', 0);
 		$this->set('initValue', ''); // optional initial value
 		$this->set('stripTags', false); // strip tags from input?
+
+		// if multi-language, support placeholders for each language
+		$languages = $this->wire('languages');
+		if($languages) foreach($languages as $language) {
+			// set to blank value so that Field::getInputfield() will recogize this setting is for InputfieldText 
+			if(!$language->isDefault()) $this->set("placeholder$language", '');
+		}
 	}
 
 	public function ___render() {
@@ -148,6 +155,14 @@ class InputfieldText extends Inputfield {
 		$field->setAttribute('value', $this->attr('placeholder')); 
 		$field->description = $this->_('Optional placeholder phrase of text that appears in the field when blank.'); 
 		$field->collapsed = Inputfield::collapsedBlank;
+		if($this->wire('languages')) {
+			$field->useLanguages = true;
+			foreach($this->wire('languages') as $language) {
+				if($language->isDefault()) continue;
+				$value = $this->getSetting("placeholder$language");
+				if(!is_null($value)) $field->set("value$language", $value);
+			}
+		}
 		$inputfields->append($field);
 
 		$field = $this->modules->get('InputfieldText');
