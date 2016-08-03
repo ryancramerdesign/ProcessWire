@@ -986,6 +986,8 @@ class WireDatabaseBackup {
 	 * @param string $filename1 Original filename
 	 * @param string $filename2 Filename that may have statements that will update/override those in filename1
 	 * @param array $options
+	 * @return bool True on success, false on fail. 
+	 * @throws \Exception|WireException if $options['haltOnErrors'] == true. 
 	 * 
 	 */
 	public function restoreMerge($filename1, $filename2, $options) {
@@ -994,16 +996,19 @@ class WireDatabaseBackup {
 		$creates1 = $this->findCreateTables($filename1, $options); 
 		$creates2 = $this->findCreateTables($filename2, $options); 
 		$creates = array_merge($creates1, $creates2); // CREATE TABLE statements in filename2 override those in filename1
+		$numErrors = 0;
 		
 		foreach($creates as $table => $create) {
-			if($options['allowDrop']) $this->executeQuery("DROP TABLE IF EXISTS `$table`", $options);
-			$this->executeQuery($create, $options);
+			if($options['allowDrop']) {
+				if(!$this->executeQuery("DROP TABLE IF EXISTS `$table`", $options)) $numErrors++;
+			}
+			if(!$this->executeQuery($create, $options)) $numErrors++;
 		}
 		
 		$inserts = $this->findInserts($filename1); 
 		foreach($inserts as $table => $tableInserts) {
 			foreach($tableInserts as $insert) {
-				$this->executeQuery($insert, $options); 
+				if(!$this->executeQuery($insert, $options)) $numErrors++;
 			}
 		}
 	
@@ -1028,9 +1033,11 @@ class WireDatabaseBackup {
 					}
 					$insert = rtrim($insert, ", ") . ";";
 				}
-				$this->executeQuery($insert, $options); 
+				if(!$this->executeQuery($insert, $options)) $numErrors++;
 			}
 		}
+		
+		return $numErrors === 0;
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1136,7 +1143,7 @@ class WireDatabaseBackup {
 				throw $e;
 			}
 		}
-		return $result;
+		return $result === false ? false : true;
 	}
 
 	/**
