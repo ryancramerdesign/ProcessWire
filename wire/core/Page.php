@@ -2183,7 +2183,7 @@ class Page extends WireData implements \Countable, WireMatchable {
 		$templateLanguages = $this->template->getLanguages();
 		if(!$templateLanguages) return null;
 		foreach($templateLanguages as $language) {
-			if($this->viewable($language)) $languages->add($language);
+			if($this->viewable($language, false)) $languages->add($language);
 		}
 		return $languages;
 	}

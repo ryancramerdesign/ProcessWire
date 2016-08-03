@@ -468,9 +468,12 @@ class PagePermissions extends WireData implements Module {
 	 * Hook for Page::viewable() or Page::viewable($user) method
 	 * 
 	 * Is the page viewable by the current user? (or specified user)
-	 * Optionally specify $user object to hook as first argument to check for a specific User. 
-	 * Optionally specify a field name (or Field object) to hook as first argument to check for specific field.
-	 * Optionally specify boolean false as first or second argument to hook to bypass template filename check.
+	 * 
+	 * - Optionally specify User object to hook as first argument to check for a specific User.
+	 * - Optionally specify a field name (or Field object) as first argument to check for specific field.
+	 * - Optionally specify Language object or language name as first argument to check if viewable 
+	 *   in that language (requires LanguageSupportPageNames module).
+	 * - Optionally specify boolean false as first or second argument to bypass template filename check.
 	 *
 	 * @param HookEvent $event
 	 *
