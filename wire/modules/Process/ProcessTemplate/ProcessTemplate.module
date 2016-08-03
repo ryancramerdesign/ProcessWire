@@ -443,6 +443,7 @@ class ProcessTemplate extends Process {
 					else $templateNames = array($templateName); 
 				foreach($templateNames as $name) {
 					$name = $this->wire('sanitizer')->name(basename($name)); 
+					if(!strlen($name)) continue;
 					if($this->wire('templates')->get($name) || $this->wire('fieldgroups')->get($name)) {	
 						$this->error($name . " - " . $this->_('Name is already in use')); 
 					} else {
@@ -453,10 +454,12 @@ class ProcessTemplate extends Process {
 
 			foreach($postTemplates as $basename) {
 				// if(!in_array($basename, $templateFiles)) continue; 
+				$basename = $this->wire('sanitizer')->name($basename);
+				if(!strlen($basename)) continue; 
 				
 				try {
 					$template = $this->wire(new Template());
-					$template->name = $this->wire('sanitizer')->name($basename); 
+					$template->name = $basename;
 					$fieldgroup = $this->wire(new Fieldgroup());
 					$fieldgroup->name = $template->name;
 					$fieldgroup->save();
