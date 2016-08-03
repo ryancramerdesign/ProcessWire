@@ -438,6 +438,8 @@ class ProcessLanguage extends ProcessPageType {
 			
 			$row = array();
 			foreach($header as $key => $name) {
+				if($key === 0) $name = 'original';
+				if($key === 1) $name = 'translated';
 				$row[$name] = $csvData[$key];
 			}
 			
