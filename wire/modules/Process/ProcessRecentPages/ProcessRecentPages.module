@@ -275,7 +275,7 @@ class ProcessRecentPages extends Process {
 			if(count($items)) { 
 				$out .= $table->render();
 			} else {
-				$out .= "<p>$this->labels[nothing]</p>";
+				$out .= "<p>" . $this->labels['nothing'] . "</p>";
 			}	
 		}
 		return $out; 
