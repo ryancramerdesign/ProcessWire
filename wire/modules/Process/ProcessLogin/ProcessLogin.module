@@ -12,6 +12,13 @@
  * https://processwire.com
  * 
  * @property bool $allowForgot Whether the ProcessForgotPassword module is installed. 
+ * 
+ * @method void beforeLogin() #pw-hooker
+ * @method void afterLogin() #pw-hooker
+ * @method void executeLogout() #pw-hooker
+ * @method void afterLoginRedirect() #pw-hooker
+ * @method string renderLoginForm() #pw-hooker
+ * @method InputfieldForm buildLoginForm() #pw-hooker
  *
  */
 
@@ -27,10 +34,34 @@ class ProcessLogin extends Process {
 		);
 	}
 
+	/**
+	 * @var Inputfield
+	 * 
+	 */
 	protected $nameField;
-	protected $passField; 
-	protected $submitField; 
-	protected $form; 
+	
+	/**
+	 * @var Inputfield
+	 *
+	 */
+	protected $passField;
+
+	/**
+	 * @var InputfieldSubmit
+	 * 
+	 */
+	protected $submitField;
+
+	/**
+	 * @var InputfieldForm
+	 * 
+	 */
+	protected $form;
+
+	/**
+	 * @var int
+	 * 
+	 */
 	protected $id; 
 
 	/**
@@ -105,6 +136,8 @@ class ProcessLogin extends Process {
 	
 	/**
 	 * Check if login posted and attempt login, otherwise render the login form
+	 * 
+	 * @return string
 	 *
 	 */
 	public function ___execute() {
@@ -118,7 +151,8 @@ class ProcessLogin extends Process {
 			return "<p><a href='$url'>" . $this->_('Continue') . "</a></p>";
 		}
 
-		if($this->input->get->forgot && $this->allowForgot) {
+		if($this->input->get('forgot') && $this->allowForgot) {
+			/** @var ProcessForgotPassword $process */
 			$process = $this->modules->get("ProcessForgotPassword"); 
 			return $process->execute();
 		}
@@ -135,7 +169,7 @@ class ProcessLogin extends Process {
 			return $this->renderLoginForm();
 		}
 
-		$name = $this->wire('sanitizer')->username($this->nameField->attr('value')); 
+		$name = $this->wire('sanitizer')->pageName($this->nameField->attr('value')); 
 		$pass = substr($this->passField->attr('value'), 0, 128); 
 	
 		if($this->wire('session')->login($name, $pass)) {
@@ -314,13 +348,15 @@ class ProcessLogin extends Process {
 		$this->nameField = $this->modules->get('InputfieldText');
 		$this->nameField->set('label', $this->_('Username')); // Login form: username field label
 		$this->nameField->attr('id+name', 'login_name'); 
-		$this->nameField->attr('class', $this->className() . 'Name'); 
+		$this->nameField->attr('class', $this->className() . 'Name');
+		$this->nameField->collapsed = Inputfield::collapsedNever;
 
 		$this->passField = $this->modules->get('InputfieldText');
 		$this->passField->set('label', $this->_('Password')); // Login form: password field label
 		$this->passField->attr('id+name', 'login_pass'); 
 		$this->passField->attr('type', 'password'); 
-		$this->passField->attr('class', $this->className() . 'Pass'); 
+		$this->passField->attr('class', $this->className() . 'Pass');
+		$this->passField->collapsed = Inputfield::collapsedNever;
 
 		$this->submitField = $this->modules->get('InputfieldSubmit');
 		$this->submitField->attr('name', 'login_submit'); 
@@ -339,6 +375,7 @@ class ProcessLogin extends Process {
 
 		if($this->isAdmin) {
 			// detect hidpi at login (populated from js)
+			/** @var InputfieldHidden $f */
 			$f = $this->modules->get('InputfieldHidden');
 			$f->attr('id+name', 'login_hidpi');
 			$f->attr('value', 0);
@@ -356,11 +393,14 @@ class ProcessLogin extends Process {
 
 	/**
 	 * Render the login form
+	 * 
+	 * @return string
 	 *
 	 */
 	protected function ___renderLoginForm() {
 		if($this->wire('input')->get('login')) {
 			$this->afterLoginRedirect();
+			return '';
 		} else {
 			// note the space after 'Login ' is intentional to separate it from the Login button for translation purposes
 			$this->headline($this->_('Login ')); // Headline for login form page
