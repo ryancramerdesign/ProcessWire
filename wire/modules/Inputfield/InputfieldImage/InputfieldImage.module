@@ -355,7 +355,7 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		if(($this->maxWidth && $pagefile->width > $this->maxWidth) || ($this->maxHeight && $pagefile->height > $this->maxHeight)) {
 			if($this->maxReject) {
 				$actualDimensions = $pagefile->width . '×' . $pagefile->height;
-				$requiredDimensions = $this->maxWidth . '×' . $this->maxWidth;
+				$requiredDimensions = $this->maxWidth . '×' . $this->maxHeight;
 				throw new WireException(
 					sprintf($this->_('Image of %s exceeds maximum allowed size'), $actualDimensions) . " ($requiredDimensions)"
 				);
