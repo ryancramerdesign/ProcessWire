@@ -498,9 +498,9 @@ class InputfieldCKEditor extends InputfieldTextarea {
 				}
 			}
 	
-			// remove gratitutious whitespace added by CKEditor
+			// remove gratuitous whitespace added by CKEditor
 			if(in_array(self::toggleCleanP, $toggles)) {
-				$value = str_replace(array('<p><br /></p>', '<p>&nbsp;</p>', '<p></p>', '<p> </p>'), '', $value); 
+				$value = str_replace(array('<p><br /></p>', '<p>&nbsp;</p>', "<p>\xc2\xa0</p>", '<p></p>', '<p> </p>'), '', $value);
 			}
 	
 			// convert non-breaking space to regular space
