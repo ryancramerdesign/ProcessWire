@@ -315,12 +315,14 @@ class ProcessLogin extends Process {
 		$this->nameField->set('label', $this->_('Username')); // Login form: username field label
 		$this->nameField->attr('id+name', 'login_name'); 
 		$this->nameField->attr('class', $this->className() . 'Name'); 
+		$this->nameField->collapsed = Inputfield::collapsedNever; 
 
 		$this->passField = $this->modules->get('InputfieldText');
 		$this->passField->set('label', $this->_('Password')); // Login form: password field label
 		$this->passField->attr('id+name', 'login_pass'); 
 		$this->passField->attr('type', 'password'); 
 		$this->passField->attr('class', $this->className() . 'Pass'); 
+		$this->passField->collapsed = Inputfield::collapsedNever; 
 
 		$this->submitField = $this->modules->get('InputfieldSubmit');
 		$this->submitField->attr('name', 'login_submit'); 
