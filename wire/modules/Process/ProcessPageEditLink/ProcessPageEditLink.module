@@ -293,15 +293,50 @@ class ProcessPageEditLink extends Process implements ConfigurableModule {
 		return wireEncodeJSON($files);
 	}
 
+	/**
+	 * Get array of info about files attached to given Page
+	 *
+	 * @param Page $page
+	 * @return array Associative array of "/url/to/file.pdf" => "Field label: basename"
+	 *
+	 */
 	protected function getFiles() {
 		$files = array();
-		if($this->page->id) foreach($this->page->fields as $f) {
-			if(!$f->type instanceof FieldtypeFile) continue;
-			foreach($this->page->get($f->name) as $file) {
-				$files[$file->url] = $f->getLabel() . ': ' . $file->basename; 
-			}
+		$page = $this->page;
+		// As the link generator might be called in a repeater, we need to find the containing page		
+		$n = 0;
+		while(strpos($page->className(), 'Repeater') !== false && ++$n < 10) {
+			$page = $page->getForPage();
+		}
+		if($page->id) {
+			$files = $this->getFilesPage($page);
 		}
 		asort($files); 
+		return $files;
+	}
+
+	/**
+	 * Get array of info about files attached to given Page, including any repeater items
+	 * 
+	 * @param Page $page
+	 * @return array Associative array of "/url/to/file.pdf" => "Field label: basename"
+	 * 
+	 */
+	protected function getFilesPage(Page $page, $prefix = '') {
+		$files = array();
+		foreach($page->template->fieldgroup as $field) {
+			/** @var Fieldtype $type */
+			$type = $field->type;
+			if($type instanceof FieldtypeFile) {
+				foreach($page->get($field->name) as $file) {
+					$files[$file->url] = $prefix . $field->getLabel() . ': ' . $file->basename;
+				}
+			} else if(strpos($type->className(), 'FieldtypeRepeater') !== false) {
+				foreach($page->get($field->name) as $repeaterPage){
+					$files = array_merge($this->getFilesPage($repeaterPage, $field->getLabel() . ': '), $files);
+				}
+			} 
+		}
 		return $files;
 	}
 
