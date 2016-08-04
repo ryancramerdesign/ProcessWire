@@ -111,21 +111,48 @@ class ImageSizerEngineIMagick extends ImageSizerEngine {
 	}
 
 	/**
-	 * Is IMagick supported?
+	 * Is IMagick supported? Is the current image(sub)format supported?
 	 * 
 	 * @param string $action
 	 * @return bool
 	 * 
 	 */
-	public function supported($action = '') {
+	/**
+	 * Is IMagick supported? Is the current image(sub)format supported?
+	 *
+	 * @param string $action
+	 * @return bool
+	 *
+	 */
+	public function supported($action = 'imageformat') {
+
+		// first we check parts that are mandatory for all $actions
 		if(!class_exists("\\IMagick")) return false;
-		if($action == 'install') return true;
-		$filename = $this->getFilename();
-		if($filename) {
-			$exts = array('jpg', 'jpeg', 'png');
-			if(!in_array(strtolower(pathinfo($filename, \PATHINFO_EXTENSION)), $exts)) return false;
+
+		// and if it passes the mandatory requirements, we check particularly aspects here
+		switch($action) {
+
+			case 'imageformat':
+				// compare current imagefile infos fetched from ImageInspector
+				$requested = $this->getImageInfo(false);
+				switch($requested) {
+					case 'jpg':
+						return true;
+					case 'png24':
+					case 'png24-trans':
+					case 'png24-alpha':
+						return true;
+					default:
+						return false;
+				}
+				break;
+
+			case 'install':
+				return true;
+
+			default:
+				return false;
 		}
-		return true;
 	}
 
 	/**

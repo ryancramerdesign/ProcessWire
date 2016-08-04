@@ -72,6 +72,12 @@ class ImageSizer extends Wire {
 	protected $initialized = false;
 
 	/**
+	 * @var null|false|array
+	 *
+	 */
+	protected $inspectionResult = null;
+
+	/**
 	 * Construct the ImageSizer for a single image
 	 * 
 	 * @param string $filename Filename to resize. Omit only if instantiating class for a getEngines() call.
@@ -90,7 +96,9 @@ class ImageSizer extends Wire {
 		$this->initialOptions = $options;
 		
 		if(strlen($filename)) {
-			$this->engine = $this->newImageSizerEngine($filename, $options);
+			$imageInspector = new ImageInspector($filename);
+			$this->inspectionResult = $imageInspector->inspect($filename, true);
+			$this->engine = $this->newImageSizerEngine($filename, $options, $this->inspectionResult);
 		}
 	}
 	
@@ -135,14 +143,22 @@ class ImageSizer extends Wire {
 	 *
 	 * @param string $filename
 	 * @param array $options
+	 * @param null|array $inspectionResult
 	 * @return ImageSizerEngine|null
 	 * @throws WireException
 	 *
 	 */
-	protected function newImageSizerEngine($filename = '', array $options = array()) {
+	protected function newImageSizerEngine($filename = '', array $options = array(), $inspectionResult = null) {	
 		
 		if(empty($filename)) $filename = $this->filename;
 		if(empty($options)) $options = $this->initialOptions;
+		if(empty($inspectionResult)) $inspectionResult = $this->inspectionResult;
+		
+		if(empty($inspectionResult) && $filename && is_readable($filename)) {
+			$imageInspector = new ImageInspector($filename);
+			$inspectionResult = $imageInspector->inspect($filename, true);
+			$this->inspectionResult = $inspectionResult;
+		}
 		
 		$engine = null;
 	
@@ -150,7 +166,7 @@ class ImageSizer extends Wire {
 		foreach($this->getEngines() as $engineName) {
 			if($this->forceEngineName && $engineName != $this->forceEngineName) continue;
 			$e = $this->wire('modules')->get($engineName);
-			$e->prepare($filename, $options);	
+			$e->prepare($filename, $options, $inspectionResult);	
 			if($e->supported()) {
 				$engine = $e;
 				break;
@@ -159,7 +175,7 @@ class ImageSizer extends Wire {
 		
 		if(!$engine) {
 			// fallback to default
-			$engine = $this->newDefaultImageSizerEngine($filename, $options);
+			$engine = $this->newDefaultImageSizerEngine($filename, $options, $inspectionResult);
 		}
 		
 		return $engine;
@@ -170,14 +186,16 @@ class ImageSizer extends Wire {
 	 * 
 	 * @param string $filename
 	 * @param array $options
+	 * @param null|array $inspectionResult
 	 * @return ImageSizerEngine|null
 	 * @throws WireException
 	 * 
 	 */
-	protected function newDefaultImageSizerEngine($filename = '', $options = array()) {
+	protected function newDefaultImageSizerEngine($filename = '', $options = array(), $inspectionResult = null) {
 		
 		if(empty($filename)) $filename = $this->filename;
 		if(empty($options)) $options = $this->initialOptions;
+		if(empty($inspectionResult)) $inspectionResult = $this->inspectionResult;
 		
 		if($this->forceEngineName && $this->forceEngineName != $this->defaultEngineName) {
 			throw new WireException("Forced engine $this->forceEngineName is not supported for this operation");
@@ -187,7 +205,7 @@ class ImageSizer extends Wire {
 		/** @var ImageSizerEngine $engine */
 		$engine = new $engineClass();
 		$this->wire($engine);
-		$engine->prepare($filename, $options);
+		$engine->prepare($filename, $options, $inspectionResult);
 		if(!$engine->supported()) $engine = null;
 		
 		return $engine;
@@ -319,6 +337,47 @@ class ImageSizer extends Wire {
 	public function getOptions() { return $this->engine->getOptions(); }
 	public function getEngine() { return $this->engine; }
 	public function __get($key) { return $this->engine->__get($key); }
+
+	/**
+	 * ImageInformation from Image Inspector in short form or full RawInfoData
+	 *
+	 * @param bool $rawData
+	 * @return string|array
+	 *
+	 */
+	public function getImageInfo($rawData = false) {
+		
+		if($rawData) return $this->inspectionResult;
+		$imageType = $this->inspectionResult['info']['imageType'];
+		$type = '';
+		$indexed = '';
+		$trans = '';
+		$animated = '';
+		
+		switch($imageType) {
+			case \IMAGETYPE_JPEG:
+				$type = 'jpg';
+				$indexed = '';
+				$trans = '';
+				$animated = '';
+				break;
+			case \IMAGETYPE_GIF:
+				$type = 'gif';
+				$indexed = '';
+				$trans = $this->inspectionResult['info']['trans'] ? '-trans' : '';
+				$animated = $this->inspectionResult['info']['animated'] ? '-anim' : '';
+				break;
+			case \IMAGETYPE_PNG:
+				$type = 'png';
+				$indexed = 'Indexed' == $this->inspectionResult['info']['colspace'] ? '8' : '24';
+				$trans = $this->inspectionResult['info']['alpha'] ? '-alpha' : '';
+				$trans = is_array($this->inspectionResult['info']['trans']) ? '-trans' : $trans;
+				$animated = '';
+				break;
+		}
+		
+		return $type . $indexed . $trans . $animated;
+	}
 
 	/**
 	 * Given an unknown cropping value, return the validated internal representation of it

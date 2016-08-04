@@ -313,6 +313,14 @@ abstract class ImageSizerEngine extends WireData implements Module, Configurable
 	 */
 	protected $moduleConfigData = array();
 
+	/**
+	 * Collection of Imagefile and -format Informations from ImageInspector
+	 * 
+	 * @var null|array
+	 *
+	 */
+	protected $inspectionResult = null;
+
 	/******************************************************************************************************/
 	
 	public function __construct() {
@@ -328,17 +336,22 @@ abstract class ImageSizerEngine extends WireData implements Module, Configurable
 	 *
 	 * @param string $filename
 	 * @param array $options
+	 * @param null|array $inspectionResult
 	 *
 	 */
-	public function prepare($filename, $options = array()) {
+	public function prepare($filename, $options = array(), $inspectionResult = null) {
 
 		// ensures the resize doesn't timeout the request (with at least 30 seconds)
 		$this->setTimeLimit();
 
+		// when invoked from Pageimage, $inspectionResult holds the InfoCollection from ImageInspector, otherwise NULL
+		// if it is invoked manually and its value is NULL, the method loadImageInfo() will fetch the infos
+		$this->inspectionResult = $inspectionResult;
+
 		// filling all options with global custom values from config.php
 		$options = array_merge($this->wire('config')->imageSizerOptions, $options);
 		$this->setOptions($options);
-		$this->loadImageInfo($filename, true);
+		$this->loadImageInfo($filename, false);
 	}
 	
 	/*************************************************************************************************
@@ -349,11 +362,11 @@ abstract class ImageSizerEngine extends WireData implements Module, Configurable
 	/**
 	 * Is this ImageSizer class ready only means: does the server / system provide all Requirements!
 	 *
-	 * @param string $action Optional type of action supported, for future use.
+	 * @param string $action Optional type of action supported.
 	 * @return bool
 	 *
 	 */
-	abstract public function supported($action = '');
+	abstract public function supported($action = 'imageformat');
 
 	/**
 	 * Process the image resize
@@ -399,7 +412,7 @@ abstract class ImageSizerEngine extends WireData implements Module, Configurable
 	 */
 
 	/**
-	 * Load the image information (width/height) using PHP's getimagesize function
+	 * Load all image information from ImageInspector (Module)
 	 *
 	 * @param string $filename
 	 * @param bool $reloadAll
@@ -407,48 +420,71 @@ abstract class ImageSizerEngine extends WireData implements Module, Configurable
 	 *
 	 */
 	protected function loadImageInfo($filename, $reloadAll = false) {
-
-		$this->filename = $filename;
-		$this->extension = strtolower(pathinfo($filename, \PATHINFO_EXTENSION));
-
-		$additionalInfo = array();
-
-		$this->info = @getimagesize($filename, $additionalInfo);
-		if($this->info === false) throw new WireException(basename($filename) . " - not a recognized image");
-		$this->info['channels'] = isset($this->info['channels']) && $this->info['channels'] > 0 && $this->info['channels'] <= 4 ? $this->info['channels'] : 3;
-
-		if(function_exists("exif_imagetype")) {
-			$this->imageType = exif_imagetype($filename);
-
-		} else if(isset($info[2])) {
-			// imagetype (IMAGETYPE_GIF, IMAGETYPE_JPEG, IMAGETYPE_PNG)
-			$this->imageType = $info[2];
-
-		} else if(isset($this->supportedImageTypes[$this->extension])) {
-			$this->imageType = $this->supportedImageTypes[$this->extension];
+		// if the engine is invoked manually, we need to inspect the image first
+		if(empty($this->inspectionResult) || $reloadAll) {
+			$imageInspector = new ImageInspector($filename);
+			$this->inspectionResult = $imageInspector->inspect($filename, true);
 		}
+		if(null === $this->inspectionResult) throw new WireException("no valid filename passed to image inspector");
+		if(false === $this->inspectionResult) throw new WireException(basename($filename) . " - not a recognized image");
+
+		$this->filename = $this->inspectionResult['filename'];
+		$this->extension = $this->inspectionResult['extension'];
+		$this->imageType = $this->inspectionResult['imageType'];
 
 		if(!in_array($this->imageType, $this->supportedImageTypes)) {
 			throw new WireException(basename($filename) . " - not a supported image type");
 		}
 
-		// width, height
-		$this->setImageInfo($this->info[0], $this->info[1]);
-
-		// read metadata if present and if its the first call of the method
-		if(is_array($additionalInfo) && $reloadAll) {
-			$appmarker = array();
-			foreach($additionalInfo as $k => $v) {
-				$appmarker[$k] = substr($v, 0, strpos($v, null));
-			}
-			$this->info['appmarker'] = $appmarker;
-			if(isset($additionalInfo['APP13'])) {
-				$iptc = iptcparse($additionalInfo["APP13"]);
-				if(is_array($iptc)) $this->iptcRaw = $iptc;
-			}
-		}
+		$this->info = $this->inspectionResult['info'];
+		$this->iptcRaw = $this->inspectionResult['iptcRaw'];
+		// set width & height
+		$this->setImageInfo($this->info['width'], $this->info['height']);
 	}
 
+	/**
+	 * ImageInformation from Image Inspector
+	 * in short form or full RawInfoData
+	 *
+	 * @param bool $rawData
+	 * @return string|array
+	 * @todo this appears to be a duplicate of what's in ImageSizer class?
+	 *
+	 */
+	protected function getImageInfo($rawData = false) {
+		if($rawData) return $this->inspectionResult;
+		$imageType = $this->inspectionResult['info']['imageType'];
+		
+		$type = '';
+		$indexed = '';
+		$trans = '';
+		$animated = '';
+		
+		switch($imageType) {
+			case \IMAGETYPE_JPEG:
+				$type = 'jpg';
+				$indexed = '';
+				$trans = '';
+				$animated = '';
+				break;
+			case \IMAGETYPE_GIF:
+				$type = 'gif';
+				$indexed = '';
+				$trans = $this->inspectionResult['info']['trans'] ? '-trans' : '';
+				$animated = $this->inspectionResult['info']['animated'] ? '-anim' : '';
+				break;
+			case \IMAGETYPE_PNG:
+				$type = 'png';
+				$indexed = 'Indexed' == $this->inspectionResult['info']['colspace'] ? '8' : '24';
+				$trans = is_array($this->inspectionResult['info']['trans']) ? '-trans' : '';
+				$trans = $this->inspectionResult['info']['alpha'] ? '-alpha' : $trans;
+				$animated = '';
+				break;
+		}
+		
+		return $type . $indexed . $trans . $animated;
+	}
+	
 	/**
 	 * Default IPTC Handling
 	 *
@@ -1231,140 +1267,28 @@ abstract class ImageSizerEngine extends WireData implements Module, Configurable
 			'7' => array(90, 1),
 			'8' => array(90, 0)
 		);
-		if(!function_exists('exif_read_data')) return false;
-		$exif = @exif_read_data($this->filename, 'IFD0');
-		if(!is_array($exif)
-			|| !isset($exif['Orientation'])
-			|| !in_array(strval($exif['Orientation']), array_keys($corrections))
-		) {
+		
+		if(!isset($this->info['orientation']) || !isset($corrections[strval($this->info['orientation'])])) {
 			return false;
 		}
-		$correctionArray = $corrections[strval($exif['Orientation'])];
+		
+		$correctionArray = $corrections[strval($this->info['orientation'])];
+		
 		return true;
 	}
 
+
 	/**
 	 * Check for alphachannel in PNGs
-	 *
-	 * This method by Horst, who also credits initial code as coming from the FPDF project:
-	 * http://www.fpdf.org/
 	 *
 	 * @return bool
 	 *
 	 */
 	protected function hasAlphaChannel() {
-
-		$errors = array();
-		$a = array();
-		$f = @fopen($this->filename, 'rb');
-
-		if($f === false) return false;
-
-		// Check signature
-		if(@fread($f, 8) != chr(137) . 'PNG' . chr(13) . chr(10) . chr(26) . chr(10)) {
-			@fclose($f);
-			return false;
-		}
-
-		// Read header chunk
-		@fread($f, 4);
-		if(@fread($f, 4) != 'IHDR') {
-			@fclose($f);
-			return false;
-		}
-
-		$a['width'] = $this->freadint($f);
-		$a['height'] = $this->freadint($f);
-		$a['bits'] = ord(@fread($f, 1));
-		$a['alpha'] = false;
-
-		$ct = ord(@fread($f, 1));
-		if($ct == 0) {
-			$a['channels'] = 1;
-			$a['colspace'] = 'DeviceGray';
-		} else if($ct == 2) {
-			$a['channels'] = 3;
-			$a['colspace'] = 'DeviceRGB';
-		} else if($ct == 3) {
-			$a['channels'] = 1;
-			$a['colspace'] = 'Indexed';
-		} else {
-			$a['channels'] = $ct;
-			$a['colspace'] = 'DeviceRGB';
-			$a['alpha'] = true; // alphatransparency in 24bit images !
-		}
-
-		if($a['alpha']) return true;   // early return
-
-		if(ord(@fread($f, 1)) != 0) $errors[] = 'Unknown compression method!';
-		if(ord(@fread($f, 1)) != 0) $errors[] = 'Unknown filter method!';
-		if(ord(@fread($f, 1)) != 0) $errors[] = 'Interlacing not supported!';
-
-		// Scan chunks looking for palette, transparency and image data
-		// http://www.w3.org/TR/2003/REC-PNG-20031110/#table53
-		// http://www.libpng.org/pub/png/book/chapter11.html#png.ch11.div.6
-		@fread($f, 4);
-		$pal = '';
-		$trns = '';
-		$counter = 0;
-
-		do {
-			$n = $this->freadint($f);
-			$counter += $n;
-			$type = @fread($f, 4);
-
-			if($type == 'PLTE') {
-				// Read palette
-				$pal = @fread($f, $n);
-				@fread($f, 4);
-
-			} else if($type == 'tRNS') {
-				// Read transparency info
-				$t = @fread($f, $n);
-				if($ct == 0) {
-					$trns = array(ord(substr($t, 1, 1)));
-				} else if($ct == 2) {
-					$trns = array(ord(substr($t, 1, 1)), ord(substr($t, 3, 1)), ord(substr($t, 5, 1)));
-				} else {
-					$pos = strpos($t, chr(0));
-					if(is_int($pos)) {
-						$trns = array($pos);
-					}
-				}
-				@fread($f, 4);
-				break;
-
-			} else if($type == 'IEND' || $type == 'IDAT' || $counter >= 2048) {
-				break;
-
-			} else {
-				fread($f, $n + 4);
-			}
-
-		} while($n);
-
-		@fclose($f);
-		if($a['colspace'] == 'Indexed' and empty($pal)) $errors[] = 'Missing palette!';
-		if(count($errors) > 0) $a['errors'] = $errors;
-		if(!empty($trns)) $a['alpha'] = true;  // alphatransparency in 8bit images !
-
-		return $a['alpha'];
-	}
-
-	/**
-	 * reads a 4-byte integer from file (@horst)
-	 *
-	 * @param filepointer
-	 *
-	 * @return mixed
-	 *
-	 */
-	protected function freadint(&$f) {
-		$i = ord(@fread($f, 1)) << 24;
-		$i += ord(@fread($f, 1)) << 16;
-		$i += ord(@fread($f, 1)) << 8;
-		$i += ord(@fread($f, 1));
-		return $i;
+		if(!isset($this->info['alpha']) && !isset($this->info['trans'])) return false;
+		if(isset($this->info['alpha']) && $this->info['alpha']) return true;
+		if(isset($this->info['trans']) && $this->info['trans']) return true;
+		return false;
 	}
 
 	/**
