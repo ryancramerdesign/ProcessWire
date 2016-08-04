@@ -38,6 +38,12 @@ class ImageSizer extends Wire {
 	protected $filename = null;
 
 	/**
+	 * @var null|false|array
+	 *
+	 */
+	protected $inspectionResult = null;
+
+	/**
 	 * @var array
 	 *
 	 */
@@ -90,7 +96,9 @@ class ImageSizer extends Wire {
 		$this->initialOptions = $options;
 		
 		if(strlen($filename)) {
-			$this->engine = $this->newImageSizerEngine($filename, $options);
+			$imageInspector = new ImageInspector($filename);
+			$this->inspectionResult = $imageInspector->inspect($filename, true);
+			$this->engine = $this->newImageSizerEngine($filename, $options, $this->inspectionResult);
 		}
 	}
 	
@@ -139,10 +147,15 @@ class ImageSizer extends Wire {
 	 * @throws WireException
 	 *
 	 */
-	protected function newImageSizerEngine($filename = '', array $options = array()) {
+	protected function newImageSizerEngine($filename = '', array $options = array(), $inspectionResult = null) {
 		
 		if(empty($filename)) $filename = $this->filename;
 		if(empty($options)) $options = $this->initialOptions;
+		if(empty($inspectionResult)) $inspectionResult = $this->inspectionResult;
+		if($filename && is_readable($filename) && empty($inspectionResult)) {
+			$imageInspector = new ImageInspector($filename);
+			$this->inspectionResult = $inspectionResult = $imageInspector->inspect($filename, true);
+		}
 		
 		$engine = null;
 	
@@ -150,7 +163,7 @@ class ImageSizer extends Wire {
 		foreach($this->getEngines() as $engineName) {
 			if($this->forceEngineName && $engineName != $this->forceEngineName) continue;
 			$e = $this->wire('modules')->get($engineName);
-			$e->prepare($filename, $options);	
+			$e->prepare($filename, $options, $inspectionResult);	
 			if($e->supported()) {
 				$engine = $e;
 				break;
@@ -159,9 +172,9 @@ class ImageSizer extends Wire {
 		
 		if(!$engine) {
 			// fallback to default
-			$engine = $this->newDefaultImageSizerEngine($filename, $options);
+			$engine = $this->newDefaultImageSizerEngine($filename, $options, $inspectionResult);
 		}
-		
+
 		return $engine;
 	}
 
@@ -174,9 +187,10 @@ class ImageSizer extends Wire {
 	 * @throws WireException
 	 * 
 	 */
-	protected function newDefaultImageSizerEngine($filename = '', $options = array()) {
+	protected function newDefaultImageSizerEngine($filename = '', $options = array(), $inspectionResult = null) {
 		
 		if(empty($filename)) $filename = $this->filename;
+		if(empty($inspectionResult)) $inspectionResult = $this->inspectionResult;
 		if(empty($options)) $options = $this->initialOptions;
 		
 		if($this->forceEngineName && $this->forceEngineName != $this->defaultEngineName) {
@@ -187,7 +201,7 @@ class ImageSizer extends Wire {
 		/** @var ImageSizerEngine $engine */
 		$engine = new $engineClass();
 		$this->wire($engine);
-		$engine->prepare($filename, $options);
+		$engine->prepare($filename, $options, $inspectionResult);
 		if(!$engine->supported()) $engine = null;
 		
 		return $engine;
@@ -320,6 +334,44 @@ class ImageSizer extends Wire {
 	public function getEngine() { return $this->engine; }
 	public function __get($key) { return $this->engine->__get($key); }
 
+	
+	/**
+	 * ImageInformation from Image Inspector
+	 * in short form or full RawInfoData
+	 *
+	 * @param bool $rawData
+	 * @return string|array
+	 *
+	 */
+	public function getImageInfo($rawData = false) {
+		if($rawData) return $this->inspectionResult;
+		$imageType = $this->inspectionResult['info']['imageType'];
+		switch($imageType) {
+			case \IMAGETYPE_JPEG:
+				$type = 'jpg';
+				$indexed = '';
+				$trans = '';
+				$animated = '';
+				break;
+			case \IMAGETYPE_GIF:
+				$type = 'gif';
+				$indexed = '';
+				$trans = $this->inspectionResult['info']['trans'] ? '-trans' : '';
+				$animated = $this->inspectionResult['info']['animated'] ? '-anim' : '';
+				break;
+			case \IMAGETYPE_PNG:
+				$type = 'png';
+				$indexed = 'Indexed' == $this->inspectionResult['info']['colspace'] ? '8' : '24';
+				$trans = $this->inspectionResult['info']['alpha'] ? '-alpha' : '';
+				$trans = is_array($this->inspectionResult['info']['trans']) ? '-trans' : $trans;
+				$animated = '';
+				break;
+		}
+		#$orientation = '';
+		#if($this->inspectionResult['info']['orientation'] > 1 && $this->inspectionResult['info']['orientation'] < 9) $orientation = '-orient';
+		return $type . $indexed . $trans . $animated;
+	}
+
 	/**
 	 * Given an unknown cropping value, return the validated internal representation of it
 	 *
@@ -421,7 +473,7 @@ class ImageSizer extends Wire {
 		}
 		$info = getimagesize($filename);
 		if(\IMAGETYPE_GIF != $info[2]) return false;
-		if(ImageSizerEngineGD::checkMemoryForImage(array($info[0], $info[1]))) {
+		if(ImageSizerEngineGD::checkMemoryForImage(array($info['width'], $info['height']))) {
 			return (bool) preg_match('/\x00\x21\xF9\x04.{4}\x00(\x2C|\x21)/s', file_get_contents($filename));
 		}
 		// we have not enough free memory to load the complete image at once, so we do it in chunks
