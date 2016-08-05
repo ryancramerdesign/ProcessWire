@@ -1116,6 +1116,7 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 */
 	public function ___getUnknown($key) {
 		// $key unused is intentional, for access by hooks
+		if($key) {}
 		return null;
 	}
 
@@ -2759,14 +2760,24 @@ class Page extends WireData implements \Countable, WireMatchable {
 	 * 
 	 * #pw-advanced
 	 * 
-	 * @param string $fieldName Optional field to limit to, typically the name of a fieldset or tab.
+	 * @param string|array $fieldName Optional field to limit to, typically the name of a fieldset or tab.
+	 *  - Or optionally specify array of $options (See `Fieldgroup::getPageInputfields()` for options). 
 	 * @return null|InputfieldWrapper Returns an InputfieldWrapper array of Inputfield objects, or NULL on failure. 
 	 *
 	 */
 	public function getInputfields($fieldName = '') {
 		$of = $this->of();
 		if($of) $this->of(false);
-		$wrapper = $this->template ? $this->template->fieldgroup->getPageInputfields($this, '', $fieldName) : null;
+		if($this->template) {
+			if(is_array($fieldName) && !ctype_digit(implode('', array_keys($fieldName)))) {
+				// fieldName is an associative array of options for Fieldgroup::getPageInputfields
+				$wrapper = $this->template->fieldgroup->getPageInputfields($this, $fieldName);
+			} else {
+				$wrapper = $this->template->fieldgroup->getPageInputfields($this, '', $fieldName);
+			}
+		} else {
+			$wrapper = null;
+		}
 		if($of) $this->of(true);
 		return $wrapper;
 	}

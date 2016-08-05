@@ -489,17 +489,37 @@ class Fieldgroup extends WireArray implements Saveable, Exportable, HasLookupIte
 	 * #pw-group-retrieval
 	 *
 	 * @param Page $page Page that the Inputfields will be for. 
-	 * @param string $contextStr Optional context string to append to all the Inputfield names (optional, helpful for things like repeaters).
+	 * @param string|array $contextStr Optional context string to append to all the Inputfield names, OR array of options. 
+	 *  - Optional context string is helpful for things like repeaters.
+	 *  - You may instead specify associative array of any method arguments if preferred. 
 	 * @param string|array $fieldName Limit to a particular fieldName(s) or field IDs (optional).
 	 *  - If specifying a single field (name or ID) and it refers to a fieldset, then all fields in that fieldset will be included. 
 	 *  - If specifying an array of field names/IDs the returned InputfieldWrapper will maintain the requested order. 
 	 * @param string $namespace Additional namespace for the Inputfield context (optional).
+	 * @param bool $flat Returns all Inputfields in a flattened InputfieldWrapper (default=true). 
 	 * @return InputfieldWrapper Returns an InputfieldWrapper that acts as a container for multiple Inputfields.
 	 *
 	 */
-	public function getPageInputfields(Page $page, $contextStr = '', $fieldName = '', $namespace = '') {
-
+	public function getPageInputfields(Page $page, $contextStr = '', $fieldName = '', $namespace = '', $flat = true) {
+		
+		if(is_array($contextStr)) {
+			// 2nd argument is instead an array of options
+			$defaults = array(
+				'contextStr' => '', 	
+				'fieldName' => $fieldName, 
+				'namespace' => $namespace,
+				'flat' => $flat, 
+			);
+			$options = $contextStr;
+			$options = array_merge($defaults, $options);
+			$contextStr = $options['contextStr'];
+			$fieldName = $options['fieldName'];
+			$namespace = $options['namespace'];
+			$flat = $options['flat'];
+		}
+		
 		$container = $this->wire(new InputfieldWrapper());
+		$containers = array();
 		$inFieldset = false;
 		$inModalGroup = '';
 	
@@ -570,7 +590,23 @@ class Fieldgroup extends WireArray implements Saveable, Exportable, HasLookupIte
 				
 			} else if($field->modal && $field->type instanceof FieldtypeFieldsetOpen) {
 				// field requires modal
-				$inModalGroup = $field->name; 
+				$inModalGroup = $field->name;
+
+			} else if(!$flat && $field->type instanceof FieldtypeFieldsetOpen) {
+				// new fieldset in non-flat mode
+				if($field->type instanceof FieldtypeFieldsetClose) {
+					// restore back to previous container
+					if(count($containers)) $container = array_pop($containers);
+				} else {
+					// start a new container
+					$inputfield = $field->getInputfield($page, $contextStr);
+					if(!$inputfield) $inputfield = $this->wire(new InputfieldWrapper());
+					if($inputfield->collapsed == Inputfield::collapsedHidden) continue;
+					$container->add($inputfield);
+					$containers[] = $container;
+					$container = $inputfield; // container is now the child InputfieldWrapper
+				}
+				continue;
 			}
 
 			$inputfield = $field->getInputfield($page, $contextStr);

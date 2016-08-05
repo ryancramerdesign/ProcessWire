@@ -2,26 +2,16 @@
 
 /**
  * Image Inspector
- *
+ * 
+ * Upgrades ImageSizer and ImageSizerEngines with more in depth information of imagefiles and -formats.
+ * 
  * Copyright (C) 2016 by Horst Nogajski and Ryan Cramer
  * This file licensed under Mozilla Public License v2.0 http://mozilla.org/MPL/2.0/
+ * 
+ * For modules that extend this, use: autoload=false, singular=false. 
  *
  */
 class ImageInspector extends WireData {
-
-	/*
-	public static function getModuleInfo() {
-		return array(
-			'title' => 'Image Inspector',
-			'version' => 3,
-			'summary' => "Upgrades ImageSizer and ImageSizerEngines with more in depth information of imagefiles and -formats.",
-			'author' => 'Horst Nogajski',
-			#'permanent' => true,
-			'autoload' => false,
-			'singular' => false
-		);
-	}
-	*/
 
 	/**
 	 * Filename to be inspected
@@ -110,6 +100,9 @@ class ImageInspector extends WireData {
 			$imageType = exif_imagetype($this->filename);
 		} else if(isset($this->supportedImageTypes[$this->extension])) {
 			$imageType = $this->supportedImageTypes[$this->extension];
+		} else {
+			// default fallback so that $imageType is defined
+			$imageType = \IMAGETYPE_JPEG;
 		}
 		$this->info['width'] = $info[0];
 		$this->info['height'] = $info[1];
@@ -283,98 +276,7 @@ class ImageInspector extends WireData {
 	 * @return bool
 	 *
 	 */
-	protected function loadImageInfoJpg() {}
-
-	/**
-	 * Module info: not-autoload
-	 *
-	 * @return bool
-	 *
-	 */
-	public function isAutoload() {
-		return false;
+	protected function loadImageInfoJpg() {
 	}
-
-	/**
-	 * Module info: not singular
-	 *
-	 * @return bool
-	 *
-	 */
-	public function isSingular() {
-		return false;
-	}
-
-	/**
-	 * Set module config data for ConfigurableModule interface
-	 *
-	 * @param array $data
-	 *
-	 */
-	public function setConfigData(array $data) {
-		if(count($data)) $this->moduleConfigData = $data;
-		foreach($data as $key => $value) {
-			if($key == 'sharpening') {
-				$this->setSharpening($value);
-			} else if($key == 'quality') {
-				$this->setQuality($value);
-			} else {
-				$this->set($key, $value);
-			}
-		}
-	}
-
-	/**
-	 * Get module config data
-	 *
-	 * @return array
-	 *
-	 */
-	public function getConfigData() {
-		return $this->moduleConfigData;
-	}
-
-	/**
-	 * Module configuration
-	 *
-	 * @param InputfieldWrapper $inputfields
-	 *
-	public function getModuleConfigInputfields(InputfieldWrapper $inputfields) {
-
-//		$f = $this->wire('modules')->get('InputfieldRadios');
-//		$f->attr('name', 'inspector_depth_jpg');
-//		$f->label = $this->_('JPEG');
-//		$f->addOption('medium', $this->_('medium'));
-//		$f->addOption('full', $this->_('full'));
-//		$f->optionColumns = 1;
-//		$f->attr('value', $this->inspector_depth_jpg);
-//		$f->icon = 'image';
-//		$f->width = 33;
-//		$inputfields->add($f);
-//		
-//		$f = $this->wire('modules')->get('InputfieldRadios');
-//		$f->attr('name', 'inspector_depth_png');
-//		$f->label = $this->_('PNG');
-//		$f->addOption('medium', $this->_('medium'));
-//		$f->addOption('full', $this->_('full'));
-//		$f->optionColumns = 1;
-//		$f->attr('value', $this->inspector_depth_png);
-//		$f->icon = 'image';
-//		$f->width = 34;
-//		$inputfields->add($f);
-//		
-//		$f = $this->wire('modules')->get('InputfieldRadios');
-//		$f->attr('name', 'inspector_depth_gif');
-//		$f->label = $this->_('GIF');
-//		$f->addOption('medium', $this->_('medium'));
-//		$f->addOption('full', $this->_('full'));
-//		$f->optionColumns = 1;
-//		$f->attr('value', $this->inspector_depth_gif);
-//		$f->icon = 'image';
-//		$f->width = 33;
-//		$inputfields->add($f);
-
-	}
-	 */
 
 }

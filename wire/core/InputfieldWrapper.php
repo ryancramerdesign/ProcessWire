@@ -1262,6 +1262,30 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 		}
 		return $populated;
 	}
+
+	/**
+	 * Get an array of all family below this (recursively) for debugging purposes
+	 * 
+	 * #pw-internal
+	 * 
+	 * @return array
+	 * 
+	 */
+	public function debugMap() {
+		$a = array();
+		foreach($this as $in) {
+			$info = array(
+				'id' => $in->id, 
+				'name' => $in->name, 
+				'type' => $in->className(), 
+			);
+			if($in instanceof InputfieldWrapper) {
+				$info['children'] = $in->debugMap();
+			}
+			$a[] = $info;
+		}
+		return $a;
+	}
 	
 }
 

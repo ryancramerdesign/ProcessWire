@@ -74,7 +74,8 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 		$this->noticeLocked = $this->_("This page is locked for edits"); // Init error: Page is locked
 		$this->noticeNoAccess = $this->_("You don't have access to edit"); // Init error: User doesn't have access
 
-		$id = (int) $this->input->post('id');
+		$postID = (int) $this->input->post('id');
+		$id = $postID;
 		if(!$id) $id = (int) $this->input->get('id');
 
 		if(!$id) {
@@ -112,17 +113,20 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 		}
 
 		// determine if we're going to be dealing with a save/post request
-		$this->isPost = ($this->input->post->id > 0 && (((int) $this->input->post->id) === $this->page->id)) || $this->config->ajax && (count($_POST) || isset($_SERVER['HTTP_X_FIELDNAME'])); 
+		$this->isPost = ($postID > 0 && ($postID === $this->page->id)) 
+			|| ($this->config->ajax && (count($_POST) || isset($_SERVER['HTTP_X_FIELDNAME']))); 
 
 		// after confirming that the page is editable, if the current user is the one that created the page 
 		// then temporarily give both the page and the user the special "owner" role 
 
+		/*
 		if($this->page->createdUserID == $this->user->id) {
 			// TODO for new user system, old part commented out below but kept for reference:
 			// $ownerRole = $this->roles->get(Role::ownerRoleID); 
 			// $this->page->addRole($ownerRole); 
 			// $this->user->addRole($ownerRole); 
 		}
+		*/
 
 		if(!$this->isPost) { 
 			$this->setupHeadline();
@@ -588,6 +592,11 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 					// open new tab
 					$tabOpen = $inputfield; 
 					$tabViewable = $this->page->viewable($inputfield->attr('name'));
+					if($this->isPost) {
+						// only remove non-visible tabs when in post/save mode, for proper processInput()
+						if(!$tabViewable) $contentTab->remove($inputfield);
+						continue;
+					}
 					$tabWrap = $this->wire(new InputfieldWrapper());
 					$tabWrap->attr('title', $tabOpen->getSetting('label'));
 					$tabWrap->id = $tabOpen->attr('id');
@@ -688,7 +697,7 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 	 */
 	protected function ___buildFormContent() {
 
-		$fields = $this->page->getInputfields();
+		$fields = $this->page->getInputfields(array('flat' => !$this->isPost));
 		$id = $this->className() . 'Content'; 
 		$title = $this->page->template->getTabLabel('content'); 
 		if(!$title) $title = $this->_('Content'); // Tab Label: Content

@@ -678,6 +678,8 @@ class Pages extends Wire {
 	 * 2. In a multi-language environment, you must specify the `$useLanguages` option to be true, if you
 	 *    want a result for a $path that is (or might be) a multi-language path. Otherwise, multi-language
 	 *    paths will make this method return a NullPage (or 0 if getID option is true).
+	 * 3. Partial paths may also match, so long as the partial path is completely unique in the site.
+	 *    If you don't want that behavior, double check the path of the returned page.
 	 * 
 	 * ~~~~~
 	 * // Get a page by path 

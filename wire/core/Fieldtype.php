@@ -36,6 +36,7 @@
  * @method bool createField(Field $field)
  * @method array getSelectorInfo(Field $field, array $data = array())
  * @method mixed|null loadPageField(Page $page, Field $field)
+ * @method mixed|null loadPageFieldFilter(Page $page, Field $field, $selector)
  * @method bool savePageField(Page $page, Field $field)
  * @method bool deleteField(Field $field)
  * @method bool deletePageField(Page $page, Field $field)
