@@ -590,13 +590,14 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 			foreach($contentTab as $inputfield) {
 				if(!$tabOpen && $inputfield->className == 'InputfieldFieldsetTabOpen') {
 					// open new tab
-					$tabOpen = $inputfield; 
 					$tabViewable = $this->page->viewable($inputfield->attr('name'));
 					if($this->isPost) {
 						// only remove non-visible tabs when in post/save mode, for proper processInput()
 						if(!$tabViewable) $contentTab->remove($inputfield);
+						// during post requests, this goes no further, as theres no need for visual tab manipulation
 						continue;
 					}
+					$tabOpen = $inputfield; 
 					$tabWrap = $this->wire(new InputfieldWrapper());
 					$tabWrap->attr('title', $tabOpen->getSetting('label'));
 					$tabWrap->id = $tabOpen->attr('id');
@@ -618,7 +619,7 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 						$this->addTab($tabOpen->id, $this->wire('sanitizer')->entities1($tabOpen->label));
 					}
 					
-				} else if($tabOpen) {
+				} else if($tabOpen && !$this->isPost) {
 					// already have a tab open
 					if($inputfield->attr('name') == $tabOpen->attr('name') . '_END') {
 						// close tab
@@ -631,9 +632,11 @@ class ProcessPageEdit extends Process implements WirePageEditor, ConfigurableMod
 					$contentTab->remove($inputfield); 
 				}
 			}
-			
-			$form->append($contentTab); 
-			foreach($tabs as $tab) $form->append($tab); 
+
+			$form->append($contentTab);
+			if(!$this->isPost) {
+				foreach($tabs as $tab) $form->append($tab);
+			}
 	
 			if($this->page->addable() || $this->page->numChildren) $form->append($this->buildFormChildren()); 
 			if(!$this->page->template->noSettings && $this->useSettings) $form->append($this->buildFormSettings()); 
