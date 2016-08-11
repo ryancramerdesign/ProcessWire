@@ -180,6 +180,41 @@ $config->sessionNameSecure = '';
 $config->sessionExpireSeconds = 86400;
 
 /**
+ * Are sessions allowed?
+ * 
+ * Use this to determine at runtime whether or not a session is allowed for the current request. 
+ * Otherwise, this should always be boolean TRUE. When using this option, we recommend 
+ * providing a callable function like below. Make sure that you put in some logic to enable
+ * sessions on admin pages at minimum. The callable function receives a single $wire argument
+ * which is the ProcessWire instance. 
+ * 
+ * Note that the API is not fully ready when this function is called, so the current $page and
+ * the current $user are not yet known, nor is the $input API variable available. 
+ * 
+ * Also note that if anything in the request calls upon $session->CSRF, then a session is 
+ * automatically enabled. 
+ *
+ * ~~~~~
+ * $config->sessionAllow = function($session) {
+ * 
+ *   // if there is a session cookie, a session is likely already in use so keep it going
+ *   if($session->hasCookie()) return true;
+ * 
+ *   // if URL is an admin URL, allow session
+ *   if(strpos($_SERVER['REQUEST_URI'], $session->config->urls->admin) === 0) return true;
+ * 
+ *   // otherwise disallow session
+ *   return false;
+ * };
+ * ~~~~~
+ * 
+ * @var bool|callable Should be boolean, or callable that returns boolean. 
+ * 
+ */
+$config->sessionAllow = true; 
+
+
+/**
  * Use session challenge?
  * 
  * Should login sessions have a challenge key? (for extra security, recommended)
@@ -804,7 +839,7 @@ $config->moduleServiceURL = 'http://modules.processwire.com/export-json/';
  * @var string
  *
  */
-$config->moduleServiceKey = 'pw250';
+$config->moduleServiceKey = (__NAMESPACE__ ? 'pw300' : 'pw280');
 
 /**
  * Substitute modules
@@ -1018,10 +1053,10 @@ $config->usePoweredBy = true;
  */
 
 /**
- * https: This is automatically set to TRUE when the request is an HTTPS request
+ * https: This is automatically set to TRUE when the request is an HTTPS request, null when not determined.
  *
  */
-$config->https = false;
+$config->https = null;
 
 /**
  * ajax: This is automatically set to TRUE when the request is an AJAX request.

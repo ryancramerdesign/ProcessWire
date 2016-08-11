@@ -13,7 +13,7 @@
  * @link http://processwire.com/api/variables/user/ Offical $user API variable Documentation
  *
  * @property string $email Get or set email address for this user.
- * @property string $pass Set the user’s password. 
+ * @property string|Password $pass Set the user’s password. 
  * @property PageArray $roles Get the roles this user has. 
  * @property Language $language User language, applicable only if LanguageSupport installed.
  * 

@@ -15,13 +15,18 @@
  * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
  * https://processwire.com
  *
- *
- * @see http://processwire.com/api/cheatsheet/#session Cheatsheet
- * @see http://processwire.com/api/variables/session/ Offical $session API variable Documentation
+ * @see https://processwire.com/api/ref/session/ Session documentation
  *
  * @method User login() login($name, $pass) Login the user identified by $name and authenticated by $pass. Returns the user object on successful login or null on failure.
  * @method Session logout() logout() Logout the current user, and clear all session variables.
- * @method redirect() redirect($url, $http301 = true) Redirect this session to the specified URL. 
+ * @method void redirect() redirect($url, $http301 = true) Redirect this session to the specified URL. 
+ * @method void init() Initialize session (called automatically by constructor) #pw-hooker
+ * @method bool authenticate(User $user, $pass) #pw-hooker
+ * @method bool isValidSession($userID) #pw-hooker
+ * @method bool allowLogin($name) #pw-hooker
+ * @method void loginSuccess(User $user) #pw-hooker
+ * @method void loginFailure($name, $reason) #pw-hooker
+ * @method void logoutSuccess(User $user) #pw-hooker
  *
  * Expected $config variables include: 
  * ===================================
@@ -81,28 +86,90 @@ class Session extends Wire implements \IteratorAggregate {
 	protected $skipMaintenance = false;
 
 	/**
+	 * Has the Session::init() method been called?
+	 * 
+	 * @var bool
+	 * 
+	 */
+	protected $sessionInit = false;
+
+	/**
+	 * Name of key/index within $_SESSION where PW keeps its session data
+	 * 
+	 * @var string
+	 * 
+	 */
+	protected $sessionKey = '';
+
+	/**
+	 * Data storage when no session initialized 
+	 * 
+	 * @var array
+	 * 
+	 */
+	protected $data = array();
+
+	/**
+	 * True if there is an external session provider
+	 * 
+	 * @var bool
+	 * 
+	 */
+	protected $isExternal = false;
+
+	/**
+	 * True if this is a secondary instance of ProcessWire
+	 * @var bool
+	 * 
+	 */
+	protected $isSecondary = false;
+
+	/**
 	 * Start the session and set the current User if a session is active
 	 *
 	 * Assumes that you have already performed all session-specific ini_set() and session_name() calls 
 	 * 
 	 * @param ProcessWire $wire
+	 * @throws WireException
 	 *
 	 */
 	public function __construct(ProcessWire $wire) {
 
 		$wire->wire($this);
 		$this->config = $this->wire('config'); 
-		$this->init();
-		$className = $this->className();
+		$this->sessionKey = $this->className();
+		
+		$instanceID = $wire->getProcessWireInstanceID();
+		if($instanceID) {
+			$this->isSecondary = true; 
+			$this->sessionKey .= $instanceID;
+		}
+
 		$user = null;
-
-		if(empty($_SESSION[$className])) $_SESSION[$className] = array();
-
-		if($userID = $this->get('_user', 'id')) {
-			if($this->isValidSession($userID)) {
-				$user = $this->wire('users')->get($userID); 
-			} else {
-				$this->logout();
+		$sessionAllow = $this->config->sessionAllow;
+		
+		if(is_null($sessionAllow)) {
+			$sessionAllow = true;
+		} else if(is_bool($sessionAllow)) {
+			// okay, keep as-is
+		} else if(is_callable($sessionAllow)) {
+			// call function that returns boolean
+			$sessionAllow = call_user_func_array($sessionAllow, array($this));
+			if(!is_bool($sessionAllow)) throw new WireException("\$config->sessionAllow callable must return boolean");
+		} else {
+			$sessionAllow = true;
+		}
+		
+		if($sessionAllow) {
+			$this->init();
+			if(empty($_SESSION[$this->sessionKey])) $_SESSION[$this->sessionKey] = array();
+			$userID = $this->get('_user', 'id');
+			if($userID) {
+				if($this->isValidSession($userID)) {
+					$user = $this->wire('users')->get($userID);
+				} else {
+					$this->logout();
+				}
 			}
 		}
 
@@ -110,15 +177,33 @@ class Session extends Wire implements \IteratorAggregate {
 		$this->wire('users')->setCurrentUser($user); 	
 
 		foreach(array('message', 'error', 'warning') as $type) {
-			$items = $this->get($type); 
+			$items = $this->get($type);
 			if(is_array($items)) foreach($items as $item) {
 				list($text, $flags) = $item;
-				parent::$type($text, $flags); 
+				parent::$type($text, $flags);
 			}
 			// $this->remove($type);
 		}
-		
+	
 		$this->setTrackChanges(true);
+	}
+
+	/**
+	 * Are session cookie(s) present?
+	 * 
+	 * @param bool $checkLogin Specify true to check instead for challenge cookie (which indicates login may be active). 
+	 * @return bool Returns true if session cookie present, false if not. 
+	 * 
+	 */
+	public function hasCookie($checkLogin = false) {
+		if($this->config->https && $this->config->sessionCookieSecure) {
+			$name = $this->config->sessionNameSecure;
+			if(!$name) $name = $this->config->sessionName . 's';
+		} else {
+			$name = $this->config->sessionName;
+		}
+		if($checkLogin) $name .= "_challenge";
+		return !empty($_COOKIE[$name]);
 	}
 
 	/**
@@ -127,10 +212,25 @@ class Session extends Wire implements \IteratorAggregate {
 	 * Provided here in any case anything wants to hook in before session_start()
 	 * is called to provide an alternate save handler.
 	 * 
+	 * #pw-hooker
+	 * 
 	 */
-	protected function ___init() {
-		
+	public function ___init() {
+
+		if($this->sessionInit) return;
 		if(!$this->config->sessionName) return;
+		$this->sessionInit = true;
+
+		if(function_exists("\\session_status")) {
+			// abort session init if there is already a session active	
+			// note: there is no session_status() function prior to PHP 5.4
+			if(session_status() === PHP_SESSION_ACTIVE) {
+				// use a more unique sessionKey when there is an external session provider
+				$this->isExternal = true; 
+				$this->sessionKey = str_replace($this->className(), 'ProcessWire', $this->sessionKey);
+				return;
+			}
+		}
 
 		if($this->config->https && $this->config->sessionCookieSecure) {
 			ini_set('session.cookie_secure', 1); // #1264
@@ -159,6 +259,10 @@ class Session extends Wire implements \IteratorAggregate {
 		}
 		
 		@session_start();
+		
+		if(!empty($this->data)) {
+			foreach($this->data as $key => $value) $this->set($key, $value);
+		}
 	}
 
 	/**
@@ -289,14 +393,19 @@ class Session extends Wire implements \IteratorAggregate {
 	 */
 	public function get($key, $_key = null) {
 		if($key == 'CSRF') {
+			if(!$this->sessionInit) $this->init(); // init required for CSRF
 			if(is_null($this->CSRF)) $this->CSRF = $this->wire(new SessionCSRF());
 			return $this->CSRF; 
 		} else if(!is_null($_key)) {
 			// namespace
 			return $this->getFor($key, $_key);
 		}
-		$className = $this->className();
-		$value = isset($_SESSION[$className][$key]) ? $_SESSION[$className][$key] : null;
+		if($this->sessionInit) {
+			$value = isset($_SESSION[$this->sessionKey][$key]) ? $_SESSION[$this->sessionKey][$key] : null;
+		} else {
+			if($key == 'config') return $this->config;
+			$value = isset($this->data[$key]) ? $this->data[$key] : null;
+		}
 		
 		if(is_null($value) && is_null($_key) && strpos($key, '_user_') === 0) {
 			// for backwards compatiblity with non-core modules or templates that may be checking _user_[property]
@@ -315,8 +424,12 @@ class Session extends Wire implements \IteratorAggregate {
 	 *
 	 */
 	public function getAll($ns = null) {
-		if(!is_null($ns)) return $this->getFor($ns, ''); 
-		return $_SESSION[$this->className()]; 
+		if(!is_null($ns)) return $this->getFor($ns, '');
+		if($this->sessionInit) {
+			return $_SESSION[$this->sessionKey];
+		} else {
+			return $this->data;
+		}
 	}
 
 	/**
@@ -349,11 +462,14 @@ class Session extends Wire implements \IteratorAggregate {
 	 *
 	 */
 	public function set($key, $value, $_value = null) {
-		if(!is_null($_value)) return $this->setFor($key, $value, $_value); 
-		$className = $this->className();
+		if(!is_null($_value)) return $this->setFor($key, $value, $_value);
 		$oldValue = $this->get($key); 
-		if($value !== $oldValue) $this->trackChange($key, $oldValue, $value); 
-		$_SESSION[$className][$key] = $value; 
+		if($value !== $oldValue) $this->trackChange($key, $oldValue, $value);
+		if($this->sessionInit) {
+			$_SESSION[$this->sessionKey][$key] = $value;
+		} else {
+			$this->data[$key] = $value;
+		}
 		return $this; 
 	}
 
@@ -425,12 +541,22 @@ class Session extends Wire implements \IteratorAggregate {
 	 *
 	 */
 	public function remove($key, $_key = null) {
-		if(is_null($_key)) {	
-			unset($_SESSION[$this->className()][$key]); 
-		} else if(is_bool($_key)) {
-			unset($_SESSION[$this->className()][$this->getNamespace($key)]); 
+		if($this->sessionInit) {
+			if(is_null($_key)) {
+				unset($_SESSION[$this->sessionKey][$key]);
+			} else if(is_bool($_key)) {
+				unset($_SESSION[$this->sessionKey][$this->getNamespace($key)]);
+			} else {
+				unset($_SESSION[$this->sessionKey][$this->getNamespace($key)][$_key]);
+			}
 		} else {
-			unset($_SESSION[$this->className()][$this->getNamespace($key)][$_key]); 
+			if(is_null($_key)) {
+				unset($this->data[$key]);
+			} else if(is_bool($_key)) {
+				unset($this->data[$this->getNamespace($key)]);
+			} else {
+				unset($this->data[$this->getNamespace($key)][$_key]);
+			}
 		}
 		return $this; 
 	}
@@ -503,7 +629,8 @@ class Session extends Wire implements \IteratorAggregate {
 	 *
 	 */
 	public function getIterator() {
-		return new \ArrayObject($_SESSION[$this->className()]); 
+		$data = $this->sessionInit ? $_SESSION[$this->sessionKey] : $this->data;
+		return new \ArrayObject($data); 
 	}
 
 	/**
@@ -567,10 +694,11 @@ class Session extends Wire implements \IteratorAggregate {
 	 * @param bool $force Specify boolean true to login user without requiring a password ($pass argument can be blank, or anything).
 	 * 	You can also use the `$session->forceLogin($user)` method to force a login without a password. 
 	 * @return User|null Return the $user if the login was successful or null if not. 
+	 * @throws WireException
 	 *
 	 */
 	public function ___login($name, $pass, $force = false) {
-	
+		
 		$user = null;		
 		if(is_object($name) && $name instanceof User) {
 			$user = $name;
@@ -685,6 +813,7 @@ class Session extends Wire implements \IteratorAggregate {
 	 *
 	 */
 	public function ___allowLogin($name) {
+		if($name) {}
 		return true; 
 	}
 
@@ -716,21 +845,29 @@ class Session extends Wire implements \IteratorAggregate {
 	 * 
 	 * #pw-group-authentication
 	 *
+	 * @param bool $startNew Start a new session after logout? (default=true)
 	 * @return $this
+	 * @throws WireException if session is disabled
 	 *
 	 */
-	public function ___logout() {
+	public function ___logout($startNew = true) {
 		$sessionName = session_name();
-		$_SESSION = array();
-		$time = time() - 42000;
-		$secure = $this->config->sessionCookieSecure ? (bool) $this->config->https : false;
-		if(isset($_COOKIE[$sessionName])) setcookie($sessionName, '', $time, '/', null, $secure, true);
-		if(isset($_COOKIE[$sessionName . "_challenge"])) setcookie($sessionName . "_challenge", '', $time, '/', null, $secure, true);
-		session_destroy();
-		session_name($sessionName); 
-		$this->init();
-		session_regenerate_id(true);
-		$_SESSION[$this->className()] = array();
+		if($this->sessionInit) {
+			if(!$this->isExternal && !$this->isSecondary) {
+				$_SESSION = array();
+			}
+		} else {
+			$this->data = array();
+		}
+		$this->removeCookies();
+		$this->sessionInit = false;
+		if($startNew) {
+			session_destroy();
+			session_name($sessionName);
+			$this->init();
+			session_regenerate_id(true);
+			$_SESSION[$this->sessionKey] = array();
+		}
 		$user = $this->wire('user');
 		if($user) $this->logoutSuccess($user); 
 		$guest = $this->wire('users')->getGuestUser();
@@ -738,6 +875,22 @@ class Session extends Wire implements \IteratorAggregate {
 		$this->wire('users')->setCurrentUser($guest);
 		$this->trackChange('logout', $user, $guest); 
 		return $this; 
+	}
+
+	/**
+	 * Remove all cookies used by the session
+	 * 
+	 */
+	protected function removeCookies() {
+		$sessionName = session_name();
+		$time = time() - 42000;
+		$secure = $this->config->sessionCookieSecure ? (bool) $this->config->https : false;
+		if(isset($_COOKIE[$sessionName])) {
+			setcookie($sessionName, '', $time, '/', null, $secure, true);
+		}
+		if(isset($_COOKIE[$sessionName . "_challenge"])) {
+			setcookie($sessionName . "_challenge", '', $time, '/', null, $secure, true);
+		}
 	}
 
 	/**
@@ -769,12 +922,18 @@ class Session extends Wire implements \IteratorAggregate {
 	public function ___redirect($url, $http301 = true) {
 
 		// if there are notices, then queue them so that they aren't lost
-		$notices = $this->wire('notices'); 
-		if(count($notices)) foreach($notices as $notice) {
-			if($notice instanceof NoticeWarning) $noticeType = 'warning';
-				else if($notice instanceof NoticeError) $noticeType = 'error';
-				else $noticeType = 'message';
-			$this->queueNotice($notice->text, $noticeType, $notice->flags); 
+		if($this->sessionInit) {
+			$notices = $this->wire('notices');
+			if(count($notices)) foreach($notices as $notice) {
+				if($notice instanceof NoticeWarning) {
+					$noticeType = 'warning';
+				} else if($notice instanceof NoticeError) {
+					$noticeType = 'error';
+				} else {
+					$noticeType = 'message';
+				}
+				$this->queueNotice($notice->text, $noticeType, $notice->flags);
+			}
 		}
 
 		// perform the redirect
@@ -801,7 +960,7 @@ class Session extends Wire implements \IteratorAggregate {
 	 * 
 	 */
 	public function close() {
-		session_write_close();
+		if($this->sessionInit) session_write_close();
 	}
 
 	/**
@@ -815,6 +974,7 @@ class Session extends Wire implements \IteratorAggregate {
 	 * 
 	 */
 	protected function queueNotice($text, $type, $flags) {
+		if(!$this->sessionInit) return;
 		$items = $this->get($type);
 		if(is_null($items)) $items = array();
 		$item = array($text, $flags); 
@@ -884,7 +1044,7 @@ class Session extends Wire implements \IteratorAggregate {
 	 */
 	public function maintenance() {
 
-		if($this->skipMaintenance) return;
+		if($this->skipMaintenance || !$this->sessionInit) return;
 		
 		// prevent multiple calls, just in case
 		$this->skipMaintenance = true; 

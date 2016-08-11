@@ -1367,16 +1367,30 @@ class Modules extends WireArray {
 	 */
 	protected function includeModuleFile($file, $moduleName) {
 		
-		$er = null;
 		$wire1 = ProcessWire::getCurrentInstance();
 		$wire2 = $this->wire();
-		if($wire1 !== $wire2) ProcessWire::setCurrentInstance($wire2);
+		
+		// check if there is more than one PW instance active
+		if($wire1 !== $wire2) {
+			// multi-instance is active, don't autoload module if class already exists
+			// first do a fast check, which should catch any core modules 
+			if(class_exists(__NAMESPACE__ . "\\$moduleName", false)) return;
+			// next do a slower check, figuring out namespace
+			$ns = $this->getModuleNamespace($moduleName, array('file' => $file));
+			$className = trim($ns, "\\") . "\\$moduleName";
+			if(class_exists($className, false)) return;
+			// if this point is reached, module is not yet in memory in either instance
+			// temporarily set the $wire instance to 2nd instance during include()
+			ProcessWire::setCurrentInstance($wire2);
+		}
+
+		// get compiled version (if it needs compilation)
 		$file = $this->compile($moduleName, $file);
 
 		/** @noinspection PhpIncludeInspection */
-		@include_once($file);
-		if(!is_null($er)) error_reporting($er);
-		
+		include_once($file);
+	
+		// set instance back, if multi-instance
 		if($wire1 !== $wire2) ProcessWire::setCurrentInstance($wire1);
 	}
 
