@@ -28,7 +28,7 @@ class ProcessWire extends Wire {
 
 	const versionMajor = 3; 
 	const versionMinor = 0; 
-	const versionRevision = 29; 
+	const versionRevision = 30; 
 	const versionSuffix = 'devns';
 	
 	const indexVersion = 300; // required version for index.php file (represented by PROCESSWIRE define)
@@ -644,8 +644,6 @@ class ProcessWire extends Wire {
 		
 		$config = new Config();
 		$config->dbName = '';
-		
-		if($scheme) $config->https = $scheme === 'https'; 
 		$siteDir = 'site';
 
 		// check what rootPath is referring to
@@ -756,6 +754,7 @@ class ProcessWire extends Wire {
 			$config->httpHost = $httpHost;
 			if(!in_array($httpHost, $config->httpHosts)) $config->httpHosts[] = $httpHost;
 		}
+		if($scheme) $config->https = ($scheme === 'https'); 
 
 		return $config;
 	}
