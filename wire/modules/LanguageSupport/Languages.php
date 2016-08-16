@@ -376,7 +376,6 @@ class Languages extends PagesType {
 			} else {
 				// if the page-edit-lang-none permission doesn't exist, then it's not applicable
 				$has = $user->hasPermission('page-edit');
-				$this->message("none has=" . (int) $has);
 			}
 			$this->editableCache[$cacheKey] = $has;
 			

@@ -829,6 +829,10 @@ class ProcessTemplate extends Process {
 		$select->setAsmSelectOption('sortable', true); 
 		$select->setAsmSelectOption('editLink', $this->wire('config')->urls->admin . "setup/field/edit?id={value}&fieldgroup_id={$template->fieldgroup->id}&modal=1&process_template=1"); 
 		$select->setAsmSelectOption('hideDeleted', false);
+		
+		if(in_array($template->id, $this->wire('config')->userTemplateIDs)) {
+			$select->notes = sprintf($this->_('To configure what fields a user can edit in their profile, see the [profile module settings](%s).'), $this->wire('config')->urls->admin . 'module/edit?name=ProcessProfile');
+		}
 
 		foreach($template->fieldgroup as $field) {
 			$field = $template->fieldgroup->getField($field->id, true); // get in context

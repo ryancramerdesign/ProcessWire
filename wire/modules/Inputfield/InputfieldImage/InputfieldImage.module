@@ -660,6 +660,8 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 	 */
 	protected function ___renderButtons($pagefile, $id, $n) {
 		
+		if(!$this->useImageEditor) return '';
+		
 		$pageID = $pagefile->pagefiles->page->id;
 		$variations = $this->getPagefileVariations($pagefile);
 		$variationCount = count($variations);

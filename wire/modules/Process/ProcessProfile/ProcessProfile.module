@@ -17,12 +17,16 @@ class ProcessProfile extends Process implements ConfigurableModule, WirePageEdit
 		return array(
 			'title' => __('User Profile', __FILE__), // getModuleInfo title          
 			'summary' => __('Enables user to change their password, email address and other settings that you define.', __FILE__), // getModuleInfo summary 
-			'version' => 101, 
+			'version' => 102, 
 			'permanent' => true, 
 			'permission' => 'profile-edit',
 			);
 	}
 
+	/**
+	 * @var User
+	 * 
+	 */
 	protected $user; 
 
 	public function __construct() {
@@ -30,29 +34,44 @@ class ProcessProfile extends Process implements ConfigurableModule, WirePageEdit
 	}
 
 	public function init() {
-		return parent::init();
+		parent::init();
 	}
 
 	public function ___execute() {
 		
+		$fieldName = '';
+		if(isset($_SERVER['HTTP_X_FIELDNAME'])) {
+			$fieldName = $this->sanitizer->fieldName($_SERVER['HTTP_X_FIELDNAME']);
+		}
+
 		$this->user = $this->wire('user'); 
 		$this->headline($this->_("Profile:") . ' ' . $this->user->name); // Primary Headline (precedes the username)
-		$form = $this->buildForm();
+		$form = $this->buildForm($fieldName);
 		
-		if($this->input->post->submit_save_profile) {
-			$this->processInput($form); 
-			$this->session->redirect("./"); 
+		if($this->input->post('submit_save_profile') || $fieldName) {
+			$this->processInput($form, $fieldName); 
+			if($fieldName) {
+				// no need to redirect
+			} else {
+				$this->session->redirect("./");
+			}
+				
 		} else { 
 			return $form->render();
 		}
+		return '';
 	}	
 
 	/**
 	 * Build the form fields for adding a page
+	 * 
+	 * @param string $fieldName
+	 * @return InputfieldForm
 	 *
 	 */
-	protected function buildForm() {
+	protected function buildForm($fieldName = '') {
 
+		/** @var InputfieldForm $form */
 		$form = $this->modules->get('InputfieldForm');
 
 		$form->attr('id', 'ProcessProfile'); 
@@ -64,16 +83,29 @@ class ProcessProfile extends Process implements ConfigurableModule, WirePageEdit
 
 		foreach($this->user->fields as $field) {
 			if($field->name == 'roles' || !in_array($field->name, $this->profileFields)) continue;
+			if($fieldName && $field->name !== $fieldName) continue;
+			/** @var Field $field */
 			$field = $this->user->fields->getFieldContext($field);
+			/** @var Inputfield $inputfield */
 			$inputfield = $field->getInputfield($this->user);
 			$inputfield->value = $this->user->get($field->name);
 			if($field->name == 'admin_theme' && !$inputfield->value) $inputfield->value = 'AdminThemeDefault';
-			if($field->type instanceof FieldtypeFile) $inputfield->noAjax = true; 
-			if($field->type instanceof FieldtypeImage) $inputfield->useImageEditor = false;
+			if($field->type instanceof FieldtypeImage && !$this->user->hasPermission('page-edit-images', $this->user)) {
+				$inputfield->set('useImageEditor', false);
+			}
 			if($field->type instanceof FieldtypePassword && $field->name == 'pass') $inputfield->attr('autocomplete', 'off');
 			$form->add($inputfield); 
 		}
+	
+		/** @var InputfieldHidden $f */
+		$f = $this->modules->get('InputfieldHidden');
+		$f->attr('id', 'Inputfield_id');
+		$f->attr('name', 'id'); 
+		$f->attr('value', $this->user->id);
+		$f->addClass('InputfieldAllowAjaxUpload');
+		$form->add($f);
 
+		/** @var InputfieldSubmit $field */
 		$field = $this->modules->get('InputfieldSubmit');
 		$field->attr('id+name', 'submit_save_profile'); 
 		$field->addClass('head_button_clone'); 
@@ -84,9 +116,12 @@ class ProcessProfile extends Process implements ConfigurableModule, WirePageEdit
 
 	/**
 	 * Save the submitted page add form
+	 * 
+	 * @param Inputfield $form
+	 * @param string $fieldName
 	 *
 	 */
-	protected function processInput(Inputfield $form) {
+	protected function processInput(Inputfield $form, $fieldName = '') {
 
 		$user = $this->user; 
 		$form->processInput($this->input->post);
@@ -102,8 +137,9 @@ class ProcessProfile extends Process implements ConfigurableModule, WirePageEdit
 		foreach($user->fields as $field) {
 
 			if($field->name == 'roles' || !in_array($field->name, $this->profileFields)) continue;
+			if($fieldName && $field->name !== $fieldName) continue; 
+			
 			$field = $this->user->fields->getFieldContext($field);
-		
 			$inputfield = $form->get($field->name); 	
 			$value = $inputfield->attr('value'); 
 			
