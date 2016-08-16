@@ -461,10 +461,13 @@ class Sanitizer extends Wire {
 		if(strpos($value, 'xn-') === 0) $value = substr($value, 3);
 
 		// word separators that we always allow 
-		$separators = array('.', '-', '_');
+		$separators = array('.', '-', '_'); 
+	
+		// we let regular pageName handle chars like these, if they appear without other UTF-8
+		$extras = array('.', '-', '_', ' ', ',', ';', ':', '(', ')', '!', '?', '&', '%', '$', '#', '@');
 
 		// proceed only if value has some non-ascii characters
-		if(ctype_alnum(str_replace($separators, '', $value))) return $this->pageName($value);
+		if(ctype_alnum(str_replace($extras, '', $value))) return $this->pageName($value);
 
 		// validate that all characters are in our whitelist
 		$whitelist = $this->wire('config')->pageNameWhitelist;
@@ -481,8 +484,19 @@ class Sanitizer extends Wire {
 				// character that is in blacklist
 				$replacements[] = $c;
 			} else if($whitelist !== false && mb_strpos($whitelist, $c) === false) {
-				// character that is not in whitelist
-				$replacements[] = $c;
+				// character that is not in whitelist, double check case variants
+				$cLower = mb_strtolower($c);
+				$cUpper = mb_strtoupper($c);
+				if($cLower !== $c && mb_strpos($whitelist, $cLower) !== false) {
+					// allow character and convert to lowercase variant
+					$value = mb_substr($value, 0, $n) . $cLower . mb_substr($value, $n+1);
+				} else if($cUpper !== $c && mb_strpos($whitelist, $cUpper) !== false) {
+					// allow character and convert to uppercase varient
+					$value = mb_substr($value, 0, $n) . $cUpper . mb_substr($value, $n+1);
+				} else {
+					// queue character to be replaced
+					$replacements[] = $c;
+				}
 			}
 		}
 
