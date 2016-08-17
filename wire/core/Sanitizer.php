@@ -573,8 +573,8 @@ class Sanitizer extends Wire {
 			$_value = $value;
 			$parts = array();
 			while(strlen($_value)) {
-				$part = mb_substr($_value, 0, 20);
-				$_value = mb_substr($_value, 20);
+				$part = mb_substr($_value, 0, 12);
+				$_value = mb_substr($_value, 12);
 				$parts[] = $this->punyEncodeName($part);
 			}
 			$value = implode('__', $parts);
