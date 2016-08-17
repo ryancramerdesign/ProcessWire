@@ -57,8 +57,14 @@ var ProcessWireAdmin = {
 		}).on('click', '.ui-button', function() {
 			$(this).removeClass("ui-state-default").addClass("ui-state-active"); // .effect('highlight', {}, 100); 
 		}).on('click', 'a > button', function() {
-			// make buttons with <a> tags click to the href of the <a>
-			window.location = $(this).parent("a").attr('href');
+			var $a = $(this).parent();
+			var target = $a.attr('target');
+			if(typeof target != "undefined" && target == '_blank') {
+				// skip
+			} else {
+				// make buttons with <a> tags click to the href of the <a>
+				window.location = $a.attr('href');
+			}
 		});
 	},
 
