@@ -717,6 +717,9 @@ class PagesEditor extends Wire {
 			// OR page is NEW and is the first child of it's parent
 			// OR $page->_forceSaveParents is set (debug/debug, can be removed later)
 			$this->saveParents($page->parent_id, $page->parent->numChildren);
+			
+		} else if($page->parentPrevious && $page->parent->numChildren > 1 && $page->parent->parent_id > 1) {
+			$this->saveParents($page->parent->parent_id, $page->parent->parent->numChildren);
 		}
 
 		if($page->parentPrevious && $page->parentPrevious->numChildren == 0) {
