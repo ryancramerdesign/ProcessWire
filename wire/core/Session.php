@@ -27,6 +27,8 @@
  * @method void loginSuccess(User $user) #pw-hooker
  * @method void loginFailure($name, $reason) #pw-hooker
  * @method void logoutSuccess(User $user) #pw-hooker
+ * 
+ * @property SessionCSRF $CSRF
  *
  * Expected $config variables include: 
  * ===================================

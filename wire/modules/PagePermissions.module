@@ -289,7 +289,6 @@ class PagePermissions extends WireData implements Module {
 	/**
 	 * Can the current user add/remove the given role from other users?
 	 * 
-	 * @param User $user
 	 * @param string|Role|int $role
 	 * @return bool
 	 * 
@@ -581,11 +580,14 @@ class PagePermissions extends WireData implements Module {
 	 *
 	 */
 	public function deleteable($event) {
+		/** @var Page $page */
 		$page = $event->object;
+		/** @var User $user */
 		$user = $this->wire('user'); 
 		if($page->isLocked()) {
 			$deleteable = false;
 		} else if($page instanceof User && $user->hasPermission('user-admin')) {
+			/** @var User $page */
 			$deleteable = true;
 			if($page->id == $user->id) $deleteable = false; // can't delete self
 			if($page->hasRole('superuser') && !$user->hasRole('superuser')) $deleteable = false; // non-superuser can't delete superuser
@@ -609,18 +611,32 @@ class PagePermissions extends WireData implements Module {
 	/**
 	 * Is the page trashable by the current user?
 	 * 
+	 * Optionally specify boolean true for first argument to make this method behave as: "Is page deleteable OR trashable?"
+	 * 
 	 * @param HookEvent $event
 	 *
 	 */
 	public function trashable($event) {
 		/** @var Page $page */
 		$page = $event->object;
-		if($page->hasStatus(Page::statusTrash) || $page->template->noTrash) {
-			// if page is already in trash, or template doesn't allow placement in trash, we return false
-			$event->return = false;
-			return;
+		$event->return = false;
+		
+		if($event->arguments(0) !== true) {
+			if($page->hasStatus(Page::statusTrash) || $page->template->noTrash) {
+				// if page is already in trash, or template doesn't allow placement in trash, we return false
+				return;
+			}
 		}
-		$this->deleteable($event);
+		
+		if(!$page->isLocked()) {
+			$this->deleteable($event);
+			if(!$event->return && $this->wire('permissions')->has('page-edit-trash-created') && $page->editable()) {
+				// page can be trashable if user created it
+				$user = $this->wire('user');
+				$trashable = ($page->created_users_id === $user->id && $user->hasPermission('page-edit-trash-created', $page));
+				$event->return = $trashable;
+			}
+		}
 	}
 
 	/**
@@ -739,6 +755,7 @@ class PagePermissions extends WireData implements Module {
 	 *
 	 */
 	public function moveable($event) {
+		/** @var Page $page */
 		$page = $event->object; 
 		$moveable = $page->editable('parent');
 		if($moveable && count($event->arguments) && $event->arguments[0] instanceof Page) {
@@ -757,6 +774,7 @@ class PagePermissions extends WireData implements Module {
 	 *
 	 */
 	public function sortable($event) {
+		/** @var Page $page */
 		$page = $event->object; 
 		$sortable = false; 
 		if($page->id > 1 && $page->editable() && $this->user->hasPermission('page-sort', $page->parent)) $sortable = true; 
@@ -773,11 +791,13 @@ class PagePermissions extends WireData implements Module {
 	 */
 	public function publishable($event) {
 
+		/** @var User $user */
 		$user = $this->wire('user');
 		$event->return = true;
 
 		if($user->isSuperuser()) return;
 
+		/** @var Page $page */
 		$page = $event->object; 
 
 		// if page isn't editable, it certainly can't be publishable
