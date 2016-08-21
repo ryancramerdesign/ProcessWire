@@ -93,6 +93,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 			'rotateLeft' => $this->_('Rotate to the left'), 
 			'flipHorizontal' => $this->_('Flip horizontal'),
 			'flipVertical' => $this->_('Flip vertical'),
+			'noAccess' => $this->_('You do not have access to edit images on this page.'),
 		);
 	}
 
@@ -175,8 +176,19 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 			if($this->page->id === $user->id && $fieldName
 				&& $this->wire('modules')->get('PagePermissions')->userFieldEditable($fieldName)) {
 				// user editing allowed images field in their profile
+			} else if(strpos($this->page->className(), 'Repeater') !== false) {
+				/** @var RepeaterPage $p */
+				$p = $this->page; 
+				while(strpos($p->className(), 'Repeater') !== false) {
+					$p = $p->getForPage();
+				}
+				if($p && $p->id && $p->editable()) {
+					// okay
+				} else {
+					throw new WireException($this->labels['noAccess']);
+				}
 			} else {
-				throw new WireException("You do not have access to images on this page");
+				throw new WireException($this->labels['noAccess']);
 			}
 		}
 
@@ -544,7 +556,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 	public function checkImageEditPermission($throw = true) {
 		if(!$this->rte && !$this->wire('user')->hasPermission('page-edit-images', $this->page)) {
 			if($throw) {
-				throw new WirePermissionException($this->_('You do not have access to edit images on this page.'));
+				throw new WirePermissionException($this->labels['noAccess']);
 			} else {
 				return false;
 			}
