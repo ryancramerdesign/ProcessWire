@@ -29,14 +29,26 @@ ckeLoadPlugins();
  */
 function ckeBlurEvent(event) {
 	var editor = event.editor;
+	var $textarea = $(editor.element.$);
 	if(editor.checkDirty()) {
 		// value changed
-		var $textarea = $(editor.element.$);
 		if($textarea.length) {
 			if($textarea.is("textarea")) $textarea.change();
 			$textarea.closest(".Inputfield").addClass('InputfieldStateChanged');
 		}
 	}
+}
+
+/**
+ * Event called when an editor is focused
+ *
+ * @param event
+ *
+ */
+function ckeFocusEvent(event) {
+	var editor = event.editor;
+	var $textarea = $(editor.element.$);
+	$textarea.trigger('pw-focus');
 }
 
 /**
@@ -62,10 +74,13 @@ function ckeResizeEvent(event) {
 function ckeInitEvents(editor) {
 	
 	editor.on('blur', ckeBlurEvent);
+	editor.on('focus', ckeFocusEvent);
 	editor.on('change', ckeBlurEvent);
 	editor.on('resize', ckeResizeEvent);
+
+	var $textarea = $(editor.element.$);
+	var $inputfield = $textarea.closest('.Inputfield.InputfieldColumnWidth');
 	
-	var $inputfield = $(editor.element.$).closest('.Inputfield.InputfieldColumnWidth');
 	if($inputfield.length) setTimeout(function() {
 		$inputfield.trigger('heightChanged');
 	}, 1000);

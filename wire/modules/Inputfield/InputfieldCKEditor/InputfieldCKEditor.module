@@ -33,7 +33,7 @@ class InputfieldCKEditor extends InputfieldTextarea {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'CKEditor',
-			'version' => 156, 
+			'version' => 157, 
 			'summary' => __('CKEditor textarea rich text editor.', __FILE__),
 			'installs' => array('MarkupHTMLPurifier'), 
 			);
@@ -84,7 +84,7 @@ class InputfieldCKEditor extends InputfieldTextarea {
 	 * Version number for CKEditor directory
 	 *
 	 */
-	const CKEDITOR_VERSION = '4.5.5';
+	const CKEDITOR_VERSION = '4.5.10';
 
 	/**
 	 * Instance of MarkupHTMLPurifier module
@@ -662,6 +662,10 @@ class InputfieldCKEditor extends InputfieldTextarea {
 			else $f->notes .= "\n" . $this->_('WARNING: it is not currently installed. You should install it before enabling inline mode.'); 
 		$f->optionColumns = 1;
 		$wrapper->add($f); 
+	
+		// character and word counter option not available for inline editors
+		$f = $inputfields->getChildByName('showCount');
+		if($f) $f->notes = $this->_('Counter is supported for regular CKEditor fields, but not inline CKEditor fields.');
 
 		$f = $this->modules->get("InputfieldRadios"); 
 		$f->label = $this->_('Use ACF?'); 
