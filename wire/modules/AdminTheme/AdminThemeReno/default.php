@@ -47,7 +47,7 @@ $extras = $adminTheme->getExtraMarkup();
 <html class="<?php echo $helpers->renderBodyClass(); ?>" lang="<?php echo $helpers->_('en'); 
 	/* this intentionally on a separate line */ ?>">
 <head>
-	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta charset="utf-8" />
 	<meta name="robots" content="noindex, nofollow" />
 	<meta name="google" content="notranslate" />
 	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
