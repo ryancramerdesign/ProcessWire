@@ -33,7 +33,7 @@
 ?><!DOCTYPE html>
 <html lang="<?php echo _x('en', 'HTML language code'); ?>">
 <head>
-	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta charset="utf-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
 	<title><?php echo $title; ?></title>
 	<meta name="description" content="<?php echo $page->summary; ?>" />
