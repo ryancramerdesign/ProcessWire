@@ -141,6 +141,8 @@ class InputfieldText extends Inputfield {
 			if($attrs['minlength'] > 0) $attrs['data-minlength'] = $attrs['minlength'];
 			unset($attrs['minlength']);
 		}
+		
+		if(isset($attrs['maxlength']) && (int) $attrs['maxlength'] < 1) unset($attrs['maxlength']);
 
 		return $attrs; 
 	}
