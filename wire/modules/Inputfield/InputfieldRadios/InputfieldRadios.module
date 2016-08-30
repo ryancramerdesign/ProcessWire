@@ -44,7 +44,7 @@ class InputfieldRadios extends InputfieldSelect {
 				// don't bother setting a width, we will let them float where they want instead
 				$ulClass = 'InputfieldRadiosFloated';
 			}
-			$out = "\n\t<ul class='$ulClass ui-helper-clearfix'>";
+			$out = "\n\t<ul class='$ulClass pw-clearfix ui-helper-clearfix'>";
 
 		} else {
 			$out = "\n\t<ul class='InputfieldRadiosStacked'>"; 

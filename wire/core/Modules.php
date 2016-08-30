@@ -1085,7 +1085,7 @@ class Modules extends WireArray {
 	 * ~~~~~
 	 *
 	 * @param string|int $key Module name (also accepts database ID)
-	 * @return Module|null Returns a Module or null if not found
+	 * @return Module|_Module|null Returns a Module or null if not found
 	 * @throws WirePermissionException If module requires a particular permission the user does not have
 	 * @see Modules::getModule(), Modules::isInstalled()
 	 *
@@ -1135,7 +1135,7 @@ class Modules extends WireArray {
 	 * 
 	 * @param string|int $key Module name or database ID.
 	 * @param array $options Optional settings to change load behavior, see method description for details. 
-	 * @return Module|null Returns ready-to-use module or NULL if not found.
+	 * @return Module|_Module|null Returns ready-to-use module or NULL if not found.
 	 * @throws WirePermissionException If module requires a particular permission the user does not have
 	 * @see Modules::get()
 	 *
@@ -1367,16 +1367,30 @@ class Modules extends WireArray {
 	 */
 	protected function includeModuleFile($file, $moduleName) {
 		
-		$er = null;
 		$wire1 = ProcessWire::getCurrentInstance();
 		$wire2 = $this->wire();
-		if($wire1 !== $wire2) ProcessWire::setCurrentInstance($wire2);
+		
+		// check if there is more than one PW instance active
+		if($wire1 !== $wire2) {
+			// multi-instance is active, don't autoload module if class already exists
+			// first do a fast check, which should catch any core modules 
+			if(class_exists(__NAMESPACE__ . "\\$moduleName", false)) return;
+			// next do a slower check, figuring out namespace
+			$ns = $this->getModuleNamespace($moduleName, array('file' => $file));
+			$className = trim($ns, "\\") . "\\$moduleName";
+			if(class_exists($className, false)) return;
+			// if this point is reached, module is not yet in memory in either instance
+			// temporarily set the $wire instance to 2nd instance during include()
+			ProcessWire::setCurrentInstance($wire2);
+		}
+
+		// get compiled version (if it needs compilation)
 		$file = $this->compile($moduleName, $file);
 
 		/** @noinspection PhpIncludeInspection */
-		@include_once($file);
-		if(!is_null($er)) error_reporting($er);
-		
+		include_once($file);
+	
+		// set instance back, if multi-instance
 		if($wire1 !== $wire2) ProcessWire::setCurrentInstance($wire1);
 	}
 
@@ -1610,6 +1624,7 @@ class Modules extends WireArray {
 		// note: the module's install is called here because it may need to know it's module ID for installation of permissions, etc. 
 		if(method_exists($module, '___install') || method_exists($module, 'install')) {
 			try {
+				/** @var _Module $module */
 				$module->install();
 				
 			} catch(\PDOException $e) {
@@ -1958,6 +1973,7 @@ class Modules extends WireArray {
 		
 		if(method_exists($module, '___uninstall') || method_exists($module, 'uninstall')) {
 			// note module's uninstall method may throw an exception to abort the uninstall
+			/** @var _Module $module */
 			$module->uninstall();
 		}
 		$database = $this->wire('database'); 
@@ -3286,7 +3302,7 @@ class Modules extends WireArray {
 		if(!$configurable) return false;
 		if(!is_array($data)) $data = $this->getConfig($module);
 
-		$nsClassName = '\\' . $module->className(true);
+		$nsClassName = $module->className(true);
 		$moduleName = $module->className(false);
 		
 		if(is_string($configurable) && is_file($configurable) && strpos(basename($configurable), $moduleName) === 0) {
@@ -3334,6 +3350,7 @@ class Modules extends WireArray {
 		}
 
 		if(method_exists($module, 'setConfigData') || method_exists($module, '___setConfigData')) {
+			/** @var _Module $module */
 			$module->setConfigData($data); 
 			return true;
 		}
@@ -3429,7 +3446,7 @@ class Modules extends WireArray {
 		if($configurableInterface) {
 			if(is_int($configurableInterface) && $configurableInterface > 1 && $configurableInterface < 20) {
 				// non-static 
-				/** @var ConfigurableModule $module */
+				/** @var ConfigurableModule|Module|_Module $module */
 				if($configurableInterface === 2) {
 					// requires no arguments
 					$module = $this->getModule($moduleName);
@@ -3482,11 +3499,8 @@ class Modules extends WireArray {
 		$config = null;
 		$ns = $this->getModuleNamespace($moduleName);
 		$configClass = $ns . $moduleName . "Config";
-		$configFile = '';
-		//$compile = strrpos($configClass, "\\") < 1 && $this->wire('config')->moduleCompile;
 		if(!class_exists($configClass)) {
 			$configFile = $this->compile($moduleName, $file, $ns);
-			// $configFile = $compile ? $this->wire('files')->compile($file) : $file;
 			/** @noinspection PhpIncludeInspection */
 			include_once($configFile);
 		}
@@ -3564,7 +3578,7 @@ class Modules extends WireArray {
 			$this->includeModule($module); 
 			$module = wireClassName($module, true);
 			if(method_exists($module, 'isSingular')) {
-				/** @var Module $moduleInstance */
+				/** @var Module|_Module $moduleInstance */
 				$moduleInstance = $this->wire(new $module());
 				return $moduleInstance->isSingular();
 			}
@@ -4188,7 +4202,7 @@ class Modules extends WireArray {
 	 * 
 	 * This calls the module's ___upgrade($fromVersion, $toVersion) method. 
 	 * 
-	 * @param Module $module
+	 * @param Module|_Module $module
 	 * @param int|string $fromVersion
 	 * @param int|string $toVersion
 	 * 

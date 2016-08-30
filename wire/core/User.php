@@ -5,7 +5,7 @@
  *
  * A type of Page used for storing an individual User
  * 
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * ProcessWire 3.x (development), Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  * #pw-summary The $user API variable is a type of page representing the current user, and the User class is Page type used for all users.
@@ -13,9 +13,12 @@
  * @link http://processwire.com/api/variables/user/ Offical $user API variable Documentation
  *
  * @property string $email Get or set email address for this user.
- * @property string $pass Set the user’s password. 
+ * @property string|Password $pass Set the user’s password. 
  * @property PageArray $roles Get the roles this user has. 
  * @property Language $language User language, applicable only if LanguageSupport installed.
+ * 
+ * @method bool hasPagePermission($name, Page $page = null) #pw-internal
+ * @method bool hasTemplatePermission($name, $template) #pw-internal
  * 
  * Additional notes regarding the $user->pass property: 
  * Note that when getting, this returns a hashed version of the password, so it is not typically useful to get this property. 
@@ -155,12 +158,23 @@ class User extends Page {
 	 */
 	public function hasPermission($name, $context = null) {
 		// This method serves as the public interface to the hasPagePermission and hasTemplatePermission methods.
+		
 		if(is_null($context) || $context instanceof Page) {
-			return $this->wire('hooks')->isHooked('hasPagePermission()') ? $this->hasPagePermission($name, $context) : $this->___hasPagePermission($name, $context);
+			if($this->wire('hooks')->isHooked('hasPagePermission()')) {
+				return $this->hasPagePermission($name, $context);
+			} else {
+				return $this->___hasPagePermission($name, $context);
+			}
 		}
+		
 		if($context instanceof Template) {
-			return $this->wire('hooks')->isHooked('hasTemplatePermission()') ? $this->hasTemplatePermission($name, $context) : $this->___hasTemplatePermission($name, $context); 
+			if($this->wire('hooks')->isHooked('hasTemplatePermission()')) {
+				return $this->hasTemplatePermission($name, $context); 
+			} else {
+				return $this->___hasTemplatePermission($name, $context);
+			}
 		}
+		
 		return false;
 	}
 
@@ -291,6 +305,8 @@ class User extends Page {
 		$has = false;
 
 		foreach($roles as $role) {
+			/** @var Role $role */
+			
 			// @todo much of this logic has been duplicated in Role::hasPermission, so code within this foreach() may be partially redundant
 
 			if(!$template->hasRole($role)) continue; 

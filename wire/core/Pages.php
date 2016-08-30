@@ -345,6 +345,7 @@ class Pages extends Wire {
 	 * - `adjustName` (boolean): Adjust page name to ensure it is unique within its parent (default=false)
 	 * - `forceID` (integer): Use this ID instead of an auto-assigned one (new page) or current ID (existing page)
 	 * - `ignoreFamily` (boolean): Bypass check of allowed family/parent settings when saving (default=false)
+	 * - `noHooks` (boolean): Prevent before/after save hooks (default=false), please also use $pages->___save() for call.
 	 * @return bool True on success, false on failure
 	 * @throws WireException
 	 * @see Page::save(), Pages::saveField()
@@ -371,6 +372,7 @@ class Pages extends Wire {
 	 * @param string|Field $field Field object or name (string)
 	 * @param array|string $options Optionally specify one or more of the following to modify default behavior:
 	 * - `quiet` (boolean): Specify true to bypass updating of modified user and time (default=false). 
+	 * - `noHooks` (boolean): Prevent before/after save hooks (default=false), please also use $pages->___saveField() for call.
 	 * @return bool True on success, false on failure
 	 * @throws WireException
 	 * @see Page::save(), Page::setAndSave(), Pages::save()
@@ -678,6 +680,8 @@ class Pages extends Wire {
 	 * 2. In a multi-language environment, you must specify the `$useLanguages` option to be true, if you
 	 *    want a result for a $path that is (or might be) a multi-language path. Otherwise, multi-language
 	 *    paths will make this method return a NullPage (or 0 if getID option is true).
+	 * 3. Partial paths may also match, so long as the partial path is completely unique in the site.
+	 *    If you don't want that behavior, double check the path of the returned page.
 	 * 
 	 * ~~~~~
 	 * // Get a page by path 

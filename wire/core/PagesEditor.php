@@ -421,12 +421,13 @@ class PagesEditor extends Wire {
 	 *
 	 * @param Page $page
 	 * @param array $options Optional array with the following optional elements:
-	 * 		'uncacheAll' => boolean - Whether the memory cache should be cleared (default=true)
-	 * 		'resetTrackChanges' => boolean - Whether the page's change tracking should be reset (default=true)
-	 * 		'quiet' => boolean - When true, modified date and modified_users_id won't be updated (default=false)
-	 *		'adjustName' => boolean - Adjust page name to ensure it is unique within its parent (default=false)
-	 * 		'forceID' => integer - use this ID instead of an auto-assigned on (new page) or current ID (existing page)
-	 * 		'ignoreFamily' => boolean - Bypass check of allowed family/parent settings when saving (default=false)
+	 * 	- `uncacheAll` (boolean): Whether the memory cache should be cleared (default=true)
+	 * 	- `resetTrackChanges` (boolean): Whether the page's change tracking should be reset (default=true)
+	 * 	- `quiet` (boolean): When true, modified date and modified_users_id won't be updated (default=false)
+	 *	- `adjustName` (boolean): Adjust page name to ensure it is unique within its parent (default=false)
+	 * 	- `forceID` (integer): Use this ID instead of an auto-assigned on (new page) or current ID (existing page)
+	 * 	- `ignoreFamily` (boolean): Bypass check of allowed family/parent settings when saving (default=false)
+	 *  - `noHooks` (boolean): Prevent before/after save hooks from being called (default=false)
 	 * @return bool True on success, false on failure
 	 * @throws WireException
 	 *
@@ -439,6 +440,7 @@ class PagesEditor extends Wire {
 			'adjustName' => false,
 			'forceID' => 0,
 			'ignoreFamily' => false,
+			'noHooks' => false, 
 		);
 
 		if(is_string($options)) $options = Selectors::keyValueStringToArray($options);
@@ -462,16 +464,22 @@ class PagesEditor extends Wire {
 			throw new WireException("Can't save page {$page->id}: {$page->path}: $reason");
 		}
 
-		if($page->hasStatus(Page::statusUnpublished) && $page->template->noUnpublish) $page->removeStatus(Page::statusUnpublished);
+		if($page->hasStatus(Page::statusUnpublished) && $page->template->noUnpublish) {
+			$page->removeStatus(Page::statusUnpublished);
+		}
 
 		if($page->parentPrevious) {
-			if($page->isTrash() && !$page->parentPrevious->isTrash()) $this->pages->trash($page, false);
-			else if($page->parentPrevious->isTrash() && !$page->parent->isTrash()) $this->pages->restore($page, false);
+			if($page->isTrash() && !$page->parentPrevious->isTrash()) {
+				$this->pages->trash($page, false);
+			} else if($page->parentPrevious->isTrash() && !$page->parent->isTrash()) {
+				$this->pages->restore($page, false);
+			}
 		}
 
 		if(!$this->savePageQuery($page, $options)) return false;
 		$result = $this->savePageFinish($page, $isNew, $options);
 		if($language) $user->language = $language; // restore language
+		
 		return $result;
 	}
 
@@ -495,8 +503,8 @@ class PagesEditor extends Wire {
 		$userID = $user ? $user->id : $config->superUserPageID;
 		$systemVersion = $config->systemVersion;
 		if(!$page->created_users_id) $page->created_users_id = $userID;
-		if($page->isChanged('status')) $this->pages->statusChangeReady($page);
-		$extraData = $this->pages->saveReady($page);
+		if($page->isChanged('status') && empty($options['noHooks'])) $this->pages->statusChangeReady($page);
+		$extraData = empty($options['noHooks']) ? $this->pages->saveReady($page) : array();
 		$sql = '';
 
 		if(strpos($page->name, $this->untitledPageName) === 0) $this->pages->setupPageName($page);
@@ -532,8 +540,11 @@ class PagesEditor extends Wire {
 			// quiet option, use existing values already populated to page, when present
 			$data['modified_users_id'] = (int) ($page->modified_users_id ? $page->modified_users_id : $userID);
 			$data['created_users_id'] = (int) ($page->created_users_id ? $page->created_users_id : $userID);
-			if($page->modified > 0) $data['modified'] = date('Y-m-d H:i:s', $page->modified);
-			else if($isNew) $sql = 'modified=NOW()';
+			if($page->modified > 0) {
+				$data['modified'] = date('Y-m-d H:i:s', $page->modified);
+			} else if($isNew) {
+				$sql = 'modified=NOW()';
+			}
 			if(!$isNew && $page->created > 0) $data['created'] = date('Y-m-d H:i:s', $page->created);
 		}
 
@@ -631,6 +642,7 @@ class PagesEditor extends Wire {
 	 *
 	 */
 	protected function savePageFinish(Page $page, $isNew, array $options) {
+		
 		$changes = $page->getChanges();
 		$changesValues = $page->getChanges(true);
 
@@ -647,7 +659,7 @@ class PagesEditor extends Wire {
 		// if page hasn't changed, don't continue further
 		if(!$page->isChanged() && !$isNew) {
 			$this->pages->debugLog('save', '[not-changed]', true);
-			$this->pages->saved($page, array());
+			if(empty($options['noHooks'])) $this->pages->saved($page, array());
 			return true;
 		}
 
@@ -684,7 +696,9 @@ class PagesEditor extends Wire {
 		if($isNew) {
 			$page->setIsNew(false);
 			$triggerAddedPage = $page;
-		} else $triggerAddedPage = null;
+		} else {
+			$triggerAddedPage = null;
+		}
 
 		// check for template changes
 		if($page->templatePrevious && $page->templatePrevious->id != $page->template->id) {
@@ -717,6 +731,9 @@ class PagesEditor extends Wire {
 			// OR page is NEW and is the first child of it's parent
 			// OR $page->_forceSaveParents is set (debug/debug, can be removed later)
 			$this->saveParents($page->parent_id, $page->parent->numChildren);
+			
+		} else if($page->parentPrevious && $page->parent->numChildren > 1 && $page->parent->parent_id > 1) {
+			$this->saveParents($page->parent->parent_id, $page->parent->parent->numChildren);
 		}
 
 		if($page->parentPrevious && $page->parentPrevious->numChildren == 0) {
@@ -725,12 +742,14 @@ class PagesEditor extends Wire {
 		}
 
 		// trigger hooks
-		$this->pages->saved($page, $changes, $changesValues);
-		if($triggerAddedPage) $this->pages->added($triggerAddedPage);
-		if($page->namePrevious && $page->namePrevious != $page->name) $this->pages->renamed($page);
-		if($page->parentPrevious) $this->pages->moved($page);
-		if($page->templatePrevious) $this->pages->templateChanged($page);
-		if(in_array('status', $changes)) $this->pages->statusChanged($page);
+		if(empty($options['noHooks'])) {
+			$this->pages->saved($page, $changes, $changesValues);
+			if($triggerAddedPage) $this->pages->added($triggerAddedPage);
+			if($page->namePrevious && $page->namePrevious != $page->name) $this->pages->renamed($page);
+			if($page->parentPrevious) $this->pages->moved($page);
+			if($page->templatePrevious) $this->pages->templateChanged($page);
+			if(in_array('status', $changes)) $this->pages->statusChanged($page);
+		}
 
 		$this->pages->debugLog('save', $page, true);
 
@@ -744,7 +763,9 @@ class PagesEditor extends Wire {
 	 *
 	 * @param Page $page
 	 * @param string|Field $field Field object or name (string)
-	 * @param array|string $options Specify option 'quiet' => true, to bypass updating of modified_users_id and modified time.
+	 * @param array|string $options Specify options: 
+	 *  - `quiet` (boolean): Specify true to bypass updating of modified_users_id and modified time (default=false). 
+	 *  - `noHooks` (boolean): Specify true to bypass calling of before/after save hooks (default=false). 
 	 * @return bool True on success
 	 * @throws WireException
 	 *
@@ -753,17 +774,33 @@ class PagesEditor extends Wire {
 
 		$reason = '';
 		if(is_string($options)) $options = Selectors::keyValueStringToArray($options);
-		if($page->isNew()) throw new WireException("Can't save field from a new page - please save the entire page first");
-		if(!$this->isSaveable($page, $reason, $field, $options)) throw new WireException("Can't save field from page {$page->id}: {$page->path}: $reason");
-		if($field && (is_string($field) || is_int($field))) $field = $this->wire('fields')->get($field);
-		if(!$field instanceof Field) throw new WireException("Unknown field supplied to saveField for page {$page->id}");
-		if(!$page->fieldgroup->hasField($field)) throw new WireException("Page {$page->id} does not have field {$field->name}");
+		
+		if($page->isNew()) {
+			throw new WireException("Can't save field from a new page - please save the entire page first");
+		}
+		
+		if(!$this->isSaveable($page, $reason, $field, $options)) {
+			throw new WireException("Can't save field from page {$page->id}: {$page->path}: $reason");
+		}
+		
+		if($field && (is_string($field) || is_int($field))) {
+			$field = $this->wire('fields')->get($field);
+		}
+		
+		if(!$field instanceof Field) {
+			throw new WireException("Unknown field supplied to saveField for page {$page->id}");
+		}
+		
+		if(!$page->fieldgroup->hasField($field)) {
+			throw new WireException("Page {$page->id} does not have field {$field->name}");
+		}
 
 		$value = $page->get($field->name);
 		if($value instanceof Pagefiles || $value instanceof Pagefile) $page->filesManager()->save();
 		$page->trackChange($field->name);
 
-		$this->pages->saveFieldReady($page, $field);
+		if(empty($options['noHooks'])) $this->pages->saveFieldReady($page, $field);
+		
 		if($field->type->savePageField($page, $field)) {
 			$page->untrackChange($field->name);
 			if(empty($options['quiet'])) {
@@ -776,12 +813,13 @@ class PagesEditor extends Wire {
 				$database->execute($query);
 			}
 			$return = true;
-			$this->pages->savedField($page, $field);
+			if(empty($options['noHooks'])) $this->pages->savedField($page, $field);
 		} else {
 			$return = false;
 		}
 
 		$this->pages->debugLog('saveField', "$page:$field", $return);
+		
 		return $return;
 	}
 

@@ -22,6 +22,8 @@
  * @property bool $useDependencies Whether or not to consider `showIf` and `requiredIf` dependencies during processing (default=true). #pw-internal
  * @property bool|null $InputfieldWrapper_isPreRendered Whether or not children have been pre-rendered (internal use only) #pw-internal
  * @property InputfieldsArray|null $children Inputfield instances that are direct children of this InputfieldWrapper.  #pw-group-properties
+ * 
+ * @method string renderInputfield(Inputfield $inputfield, $renderValueMode = false) #pw-group-output
  *
  */
 
@@ -114,7 +116,13 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 		$this->set('useDependencies', true); // whether or not to use consider field dependencies during processing
 		// allow optional override of any above settings with a $config->InputfieldWrapper array. 
 		$settings = $this->wire('config')->InputfieldWrapper; 
-		if(is_array($settings)) foreach($settings as $key => $value) $this->set($key, $value);
+		if(is_array($settings)) foreach($settings as $key => $value) {
+			if($key == 'requiredLabel') {
+				$this->requiredLabel = $value;
+			} else {
+				$this->set($key, $value);
+			}
+		}
 		$this->set('renderValueMode', false); 
 		$this->set('quietMode', false); // suppress label, description and notes
 	}
@@ -358,6 +366,8 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 		$lastInputfield = null;
 		$_markup = array_merge(self::$defaultMarkup, self::$markup);
 		$_classes = array_merge(self::$defaultClasses, self::$classes);
+		$markup = array();
+		$classes = array();
 		$useColumnWidth = true;
 		$renderAjaxInputfield = $this->wire('config')->ajax ? $this->wire('input')->get('renderInputfieldAjax') : null;
 		
@@ -378,6 +388,7 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 				
 				$skip = true;
 				foreach($inputfield->getParents() as $parent) {
+					/** @var InputfieldWrapper $parent */
 					if($parent->attr('id') == $renderAjaxInputfield) $skip = false;
 				}
 				if($skip && !empty($parents)) continue;
@@ -1233,6 +1244,7 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 			if($inputfield instanceof InputfieldWrapper) continue; 
 			$name = $inputfield->attr('name');
 			if(!$name) continue;
+			$value = null;
 			if(is_array($data)) {
 				// array
 				$value = isset($data[$name]) ? $data[$name] : null;
@@ -1249,6 +1261,30 @@ class InputfieldWrapper extends Inputfield implements \Countable, \IteratorAggre
 			$populated[$name] = $name;
 		}
 		return $populated;
+	}
+
+	/**
+	 * Get an array of all family below this (recursively) for debugging purposes
+	 * 
+	 * #pw-internal
+	 * 
+	 * @return array
+	 * 
+	 */
+	public function debugMap() {
+		$a = array();
+		foreach($this as $in) {
+			$info = array(
+				'id' => $in->id, 
+				'name' => $in->name, 
+				'type' => $in->className(), 
+			);
+			if($in instanceof InputfieldWrapper) {
+				$info['children'] = $in->debugMap();
+			}
+			$a[] = $info;
+		}
+		return $a;
 	}
 	
 }

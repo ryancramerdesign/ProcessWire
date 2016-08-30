@@ -37,7 +37,7 @@ class FileCompilerTags extends FileCompilerModule implements ConfigurableModule 
 	public function compileMarkup($data) {
 
 		$markup =& $data;
-		if(strpos($markup, '{') === false || strpos($markup, '}') === false) return $markup;
+		if(strpos($markup, $this->openTag) === false || strpos($markup, $this->closeTag) === false) return $markup;
 
 		$replacements = array();
 		$openTag = preg_quote($this->openTag, '#');

@@ -304,7 +304,7 @@ class ProcessLanguageTranslator extends Process {
 					return $this->session->redirect("../edit/?language_id={$this->language->id}&textdomain=" . reset($newTextdomains));
 				} else if(count($newTextdomains) > 1) {
 					// render form again
-					return $this->session->redirect("../add/?language_id={$this->language->id}");
+					return $this->session->redirect("../../languages/edit/?id={$this->language->id}");
 				}
 			}
 
@@ -488,10 +488,13 @@ class ProcessLanguageTranslator extends Process {
 		if($this->session->getFor($this, 'untranslated')) $field->attr('checked', 'checked');
 		$form->prepend($field);
 
+		/** @var InputfieldSubmit $submit */
 		$submit = $this->modules->get("InputfieldSubmit");
 		$submit->attr('id+name', 'save_translations');
 		$submit->value = $this->_x('Save', 'button');
 		$submit->attr('class', $submit->attr('class') . ' head_button_clone');
+		$submit->addActionValue('exit', $this->_('Save + Exit'), 'times');
+		$submit->addActionValue('next', $this->_('Save + Next'), 'edit');
 		$form->add($submit);
 
 		if($this->input->post->save_translations) $this->processEdit($form, $textdomain, $translations);
@@ -538,7 +541,35 @@ class ProcessLanguageTranslator extends Process {
 
 		$this->translator->saveTextdomain($textdomain);
 		$this->message(sprintf($this->_('Saved %s'), $textdomain));
-		$this->session->redirect("./?textdomain=$textdomain");
+	
+		// button actions
+		$action = $this->wire('input')->post('_action_value'); 	
+		if($action == 'exit') {
+			// save and exit
+			$this->session->redirect("../../languages/edit/?id={$this->language->id}");
+		} else if($action == 'next') {
+			// save and edit next file
+			$nextTextdomain = false;
+			foreach(array('language_files_site', 'language_files') as $fieldName) {
+				foreach($this->language->get($fieldName) as $pagefile) {
+					if($nextTextdomain === true) {
+						$nextTextdomain = basename($pagefile->name, '.json');	
+						break;
+					} else {
+						if(basename($pagefile->name, '.json') == $textdomain) $nextTextdomain = true;
+					}
+				}
+				if(is_string($nextTextdomain)) break;
+			}
+			if(is_bool($nextTextdomain)) {
+				$nextTextdomain = $textdomain;
+				$this->warning($this->_('There is no next file to edit.'));
+			}
+			$this->session->redirect("./?textdomain=$nextTextdomain&language_id={$this->language->id}");
+		} else {
+			// save and continue editing (default)
+			$this->session->redirect("./?textdomain=$textdomain&language_id={$this->language->id}");
+		}
 	}
 
 	/**

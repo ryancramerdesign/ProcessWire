@@ -318,6 +318,10 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 
 	/**
 	 * Given a page and language, return the path to the page in that language
+	 * 
+	 * @param Page $page
+	 * @param Language $language
+	 * @return string
 	 *
 	 */
 	public function getPagePath(Page $page, Language $language) {
@@ -581,7 +585,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 	 * Add a Page::localPath function with optional $language as argument
 	 *
 	 * event param Language|string|int Optional language 
-	 * event return string Localized language name or blank if not set
+	 * event return string Localized language path
 	 *
 	 */
 	public function hookPageLocalPath(HookEvent $event) {
@@ -594,7 +598,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 	 * Add a Page::localUrl function with optional $language as argument
 	 *
 	 * event param Language|string|int Optional language 
-	 * event return string Localized language name or blank if not set
+	 * event return string Localized language URL
 	 *
 	 */
 	public function hookPageLocalUrl(HookEvent $event) {

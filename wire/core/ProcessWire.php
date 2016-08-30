@@ -28,7 +28,7 @@ class ProcessWire extends Wire {
 
 	const versionMajor = 3; 
 	const versionMinor = 0; 
-	const versionRevision = 28; 
+	const versionRevision = 32; 
 	const versionSuffix = 'devns';
 	
 	const indexVersion = 300; // required version for index.php file (represented by PROCESSWIRE define)
@@ -88,14 +88,45 @@ class ProcessWire extends Wire {
 	 */
 	protected $shutdown = null;
 	
+	
 	/**
-	 * Given a Config object, instantiates ProcessWire and it's API
+	 * Create a new ProcessWire instance
 	 * 
-	 * @param Config $config
+	 * ~~~~~
+	 * // A. Current directory assumed to be root of installation
+	 * $wire = new ProcessWire(); 
+	 * 
+	 * // B: Specify a Config object as returned by ProcessWire::buildConfig()
+	 * $wire = new ProcessWire($config); 
+	 * 
+	 * // C: Specify where installation root is
+	 * $wire = new ProcessWire('/server/path/');
+	 * 
+	 * // D: Specify installation root path and URL
+	 * $wire = new ProcessWire('/server/path/', '/url/');
+	 * 
+	 * // E: Specify installation root path, scheme, hostname, URL
+	 * $wire = new ProcessWire('/server/path/', 'https://hostname/url/'); 
+	 * ~~~~~
+	 * 
+	 * @param Config|string|null $config May be any of the following: 
+	 *  - A Config object as returned from ProcessWire::buildConfig(). 
+	 *  - A string path to PW installation.
+	 *  - You may optionally omit this argument if current dir is root of PW installation. 
+	 * @param string $rootURL URL or scheme+host to installation. 
+	 *  - This is only used if $config is omitted or a path string.
+	 *  - May also include scheme & hostname, i.e. "http://hostname.com/url" to force use of scheme+host.
+	 *  - If omitted, it is determined automatically. 
+	 * @throws WireException if given invalid arguments
  	 *
 	 */ 
-	public function __construct(Config $config) {
+	public function __construct($config = null, $rootURL = '/') {
+	
+		if(empty($config)) $config = getcwd();
+		if(is_string($config)) $config = self::buildConfig($config, $rootURL);
+		if(!$config instanceof Config) throw new WireException("No configuration information available");
 		
+		// this is reset in the $this->config() method based on current debug mode
 		ini_set('display_errors', true);
 		error_reporting(E_ALL | E_STRICT);
 
@@ -149,8 +180,10 @@ class ProcessWire extends Wire {
 		if(!$config->templateExtension) $config->templateExtension = 'php';
 		if(!$config->httpHost) $config->httpHost = $this->getHttpHost($config); 
 
-		$config->https = (!empty($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) == 'on') 
-			|| (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443);
+		if($config->https === null) {
+			$config->https = (!empty($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) == 'on')
+				|| (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443);
+		}
 		
 		$config->ajax = (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] == 'XMLHttpRequest');
 		$config->cli = (!isset($_SERVER['SERVER_SOFTWARE']) && (php_sapi_name() == 'cli' || ($_SERVER['argc'] > 0 && is_numeric($_SERVER['argc']))));
@@ -332,7 +365,7 @@ class ProcessWire extends Wire {
 	 */
 	protected function initVar($name, $value) {
 		if($this->debug) Debug::timer("boot.load.$name");
-		$value->init();
+		if($name != 'session') $value->init();
 		if($this->debug) Debug::saveTimer("boot.load.$name"); 
 	}
 
@@ -576,7 +609,8 @@ class ProcessWire extends Wire {
 	 * Build a Config object for booting ProcessWire
 	 * 
 	 * @param string $rootPath Path to root of installation where ProcessWire's index.php file is located.
-	 * @param string $rootURL Should be specified only for secondary ProcessWire instances.
+	 * @param string $rootURL Should be specified only for secondary ProcessWire instances. 
+	 *   May also include scheme & hostname, i.e. "http://hostname.com/url" to force use of scheme+host. 
 	 * @return Config
 	 * 
 	 */
@@ -585,16 +619,46 @@ class ProcessWire extends Wire {
 		if(DIRECTORY_SEPARATOR != '/') {
 			$rootPath = str_replace(DIRECTORY_SEPARATOR, '/', $rootPath);
 		}
+
+		if(strpos($rootPath, '..') !== false) $rootPath = realpath($rootPath);
+		
+		$httpHost = '';
+		$scheme = '';
+		
+		if($rootURL && strpos($rootURL, '://')) {
+			// rootURL is specifying scheme and hostname
+			list($scheme, $httpHost) = explode('://', $rootURL);
+			if(strpos($httpHost, '/')) {
+				list($httpHost, $rootURL) = explode('/', $httpHost, 2);	
+				if(empty($rootURL)) $rootURL = '/';
+			} else {
+				$rootURL = '/';
+			}
+			$scheme = strtolower($scheme);
+			$httpHost = strtolower($httpHost);
+		}
 		
 		$rootPath = rtrim($rootPath, '/');
 		$_rootURL = $rootURL;
 		if(is_null($rootURL)) $rootURL = '/';
-		$httpHost = '';
+		
 		$config = new Config();
 		$config->dbName = '';
+		$siteDir = 'site';
+
+		// check what rootPath is referring to
+		if(strpos($rootPath, '/site')) {
+			$parts = explode('/', $rootPath);
+			$testDir = array_pop($parts);
+			if(($testDir === 'site' || strpos($testDir, 'site-') === 0) && is_file("$rootPath/config.php")) {
+				// rootPath was given as a /site/ directory rather than root directory
+				$rootPath = '/' . implode('/', $parts); // remove siteDir from rootPath
+				$siteDir = $testDir; // set proper siteDir
+			}
+		} 
 
 		if(isset($_SERVER['HTTP_HOST'])) {
-			$httpHost = strtolower($_SERVER['HTTP_HOST']);
+			$host = $httpHost ? $httpHost : strtolower($_SERVER['HTTP_HOST']);
 
 			// when serving pages from a web server
 			if(is_null($_rootURL)) $rootURL = rtrim(dirname($_SERVER['SCRIPT_NAME']), "/\\") . '/';
@@ -616,26 +680,26 @@ class ProcessWire extends Wire {
 		} else {
 			// when included from another app or command line script
 			$config->internal = false;
+			$host = '';
 		}
 		
 		// Allow for an optional /index.config.php file that can point to a different site configuration per domain/host.
-		$siteDir = 'site';
 		$indexConfigFile = $rootPath . "/index.config.php";
 
 		if(is_file($indexConfigFile) 
 			&& !function_exists("\\ProcessWire\\ProcessWireHostSiteConfig")
 			&& !function_exists("\\ProcessWireHostSiteConfig")) {
 			// optional config file is present in root
-			/** @noinspection PhpIncludeInspection */
 			$hostConfig = array();
+			/** @noinspection PhpIncludeInspection */
 			@include($indexConfigFile);
 			if(function_exists("\\ProcessWire\\ProcessWireHostSiteConfig")) {
 				$hostConfig = ProcessWireHostSiteConfig();
 			} else if(function_exists("\\ProcessWireHostSiteConfig")) {
 				$hostConfig = \ProcessWireHostSiteConfig();
 			}
-			if($httpHost && isset($hostConfig[$httpHost])) {
-				$siteDir = $hostConfig[$httpHost];
+			if($host && isset($hostConfig[$host])) {
+				$siteDir = $hostConfig[$host];
 			} else if(isset($hostConfig['*'])) {
 				$siteDir = $hostConfig['*']; // default override
 			}
@@ -673,18 +737,24 @@ class ProcessWire extends Wire {
 
 		// Include system config defaults
 		/** @noinspection PhpIncludeInspection */
-		include("$rootPath/$wireDir/config.php");
+		require("$rootPath/$wireDir/config.php");
 
 		// Include site-specific config settings
 		$configFile = $config->paths->site . "config.php";
 		$configFileDev = $config->paths->site . "config-dev.php";
 		if(is_file($configFileDev)) {
 			/** @noinspection PhpIncludeInspection */
-			@include($configFileDev);
+			@require($configFileDev);
 		} else if(is_file($configFile)) {
 			/** @noinspection PhpIncludeInspection */
-			@include($configFile);
+			@require($configFile);
 		}
+		
+		if($httpHost) {
+			$config->httpHost = $httpHost;
+			if(!in_array($httpHost, $config->httpHosts)) $config->httpHosts[] = $httpHost;
+		}
+		if($scheme) $config->https = ($scheme === 'https'); 
 
 		return $config;
 	}

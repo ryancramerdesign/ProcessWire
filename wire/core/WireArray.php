@@ -520,7 +520,9 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 				return $items;
 			} else {
 				// selector array
-				return $this->findOne($key);
+				$item = $this->findOne($key);
+				if($item === false) $item = null;
+				return $item;
 			}
 		}
 
@@ -528,7 +530,11 @@ class WireArray extends Wire implements \IteratorAggregate, \ArrayAccess, \Count
 		if(isset($this->data[$key])) return $this->data[$key]; 
 
 		// check if key contains a selector
-		if(Selectors::stringHasOperator($key)) return $this->findOne($key); 
+		if(Selectors::stringHasOperator($key)) {
+			$item = $this->findOne($key);
+			if($item === false) $item = null;
+			return $item;
+		}
 		
 		if(strpos($key, '{') !== false && strpos($key, '}')) {
 			// populate a formatted string with {tag} vars

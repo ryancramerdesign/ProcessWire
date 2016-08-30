@@ -45,23 +45,45 @@ class ImageSizerEngineGD extends ImageSizerEngine {
 	}
 
 	/**
-	 * Return whether or not GD can proceed 
-	 * 
+	 * Return whether or not GD can proceed - Is the current image(sub)format supported?
+	 *
 	 * @param string $action
 	 * @return bool
-	 * 
+	 *
 	 */
-	public function supported($action = '') {
+	public function supported($action = 'imageformat') {
+		// first we check parts that are mandatory for all $actions
 		if(!function_exists('gd_info')) return false;
-		/*
-		$gd  = gd_info();
-		$jpg = isset($gd['JPEG Support']) ? $gd['JPEG Support'] : false;
-		$png = isset($gd['PNG Support']) ? $gd['PNG Support'] : false;
-		$gif = isset($gd['GIF Read Support']) && isset($gd['GIF Create Support']) ? $gd['GIF Create Support'] : false;
-		$freetype = isset($gd['FreeType Support']) ? $gd['FreeType Support'] : false;
-		$this->config->gdReady = true;
-		*/
-		return true;
+		// and if it passes the mandatory requirements, we check particularly aspects here
+		
+		switch($action) {
+			case 'imageformat':
+				// compare current imagefile infos fetched from ImageInspector
+				$requested = $this->getImageInfo(false);
+				switch($requested) {
+					case 'gif-anim':
+					case 'gif-trans-anim':
+						// Animated GIF images are not supported, but GD renders the first image of the animation
+						#return false;
+					default:
+						return true;
+				}
+				break;
+
+			case 'install':
+				/*
+				$gd  = gd_info();
+				$jpg = isset($gd['JPEG Support']) ? $gd['JPEG Support'] : false;
+				$png = isset($gd['PNG Support']) ? $gd['PNG Support'] : false;
+				$gif = isset($gd['GIF Read Support']) && isset($gd['GIF Create Support']) ? $gd['GIF Create Support'] : false;
+				$freetype = isset($gd['FreeType Support']) ? $gd['FreeType Support'] : false;
+				$this->config->gdReady = true;
+				*/
+				return true;
+
+			default:
+				return false;
+		}
 	}
 
 	/**
@@ -93,7 +115,7 @@ class ImageSizerEngineGD extends ImageSizerEngine {
 		(!empty($orientations[0]) || !empty($orientations[1])) ? true : false);
 
 		// check if we can load the sourceimage into ram
-		if(self::checkMemoryForImage(array($this->info[0], $this->info[1], $this->info['channels'])) === false) {
+		if(self::checkMemoryForImage(array($this->info['width'], $this->info['height'], $this->info['channels'])) === false) {
 			throw new WireException(basename($srcFilename) . " - not enough memory to load");
 		}
 
@@ -139,7 +161,7 @@ class ImageSizerEngineGD extends ImageSizerEngine {
 		// if there is requested to crop _before_ resize, we do it here @horst
 		if(is_array($this->cropExtra)) {
 			// check if we can load a second copy from sourceimage into ram
-			if(self::checkMemoryForImage(array($this->info[0], $this->info[1], 3)) === false) {
+			if(self::checkMemoryForImage(array($this->info['width'], $this->info['height'], 3)) === false) {
 				throw new WireException(basename($srcFilename) . " - not enough memory to load a copy for cropExtra");
 			}
 

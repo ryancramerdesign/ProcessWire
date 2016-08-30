@@ -503,7 +503,7 @@ function InputfieldImage($) {
 			if($el.closest(".InputfieldImageEdit").length) {
 				closeEdit(null, $el.parents(".gridImages"));
 				
-			} else if($el.is("input") && $el.closest(".InputfieldImageEditAll").length) {
+			} else if($el.is("input, textarea") && $el.closest(".InputfieldImageEditAll").length) {
 				// clicked input in "edit all" mode, disable sortable, focus it then assign a blur event
 				$el.focus().one('blur', function() {
 					$el.closest('.gridImages').sortable('enable'); // re-enable sortable on blur

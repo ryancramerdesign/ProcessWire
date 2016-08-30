@@ -36,6 +36,7 @@
  * @method bool createField(Field $field)
  * @method array getSelectorInfo(Field $field, array $data = array())
  * @method mixed|null loadPageField(Page $page, Field $field)
+ * @method mixed|null loadPageFieldFilter(Page $page, Field $field, $selector)
  * @method bool savePageField(Page $page, Field $field)
  * @method bool deleteField(Field $field)
  * @method bool deletePageField(Page $page, Field $field)
@@ -125,7 +126,7 @@ abstract class Fieldtype extends WireData implements Module {
 	 * 
 	 * @param Page $page Page that the Inputfield will be for
 	 * @param Field $field Field that the Inputfield will be for
-	 * @return Inputfield
+	 * @return Inputfield|null Returns Inputfield or null if not applicable/available.
 	 *
 	 */
 	public function getInputfield(Page $page, Field $field) {

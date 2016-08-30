@@ -162,6 +162,8 @@ class PagesType extends Wire implements \IteratorAggregate, \Countable {
 
 	/**
 	 * Each loaded page is passed through this function for additional checks if needed
+	 * 
+	 * @param Page $page
 	 *	
 	 */
 	protected function loaded(Page $page) { }
@@ -452,7 +454,10 @@ class PagesType extends Wire implements \IteratorAggregate, \Countable {
 	 * @return array Optional extra data to add to pages save query.
 	 *
 	 */
-	public function ___saveReady(Page $page) { return array(); }
+	public function ___saveReady(Page $page) { 
+		if($page) {}
+		return array(); 
+	}
 
 	/**
 	 * Hook called after a page is successfully saved

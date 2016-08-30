@@ -435,7 +435,11 @@ abstract class FieldtypeMulti extends Fieldtype {
 				if($col === 'sort') {
 					$desc = strpos($value, '-') === 0 ? '-' : '';
 					$sort = $sanitizer->fieldName(ltrim($value, '-'));
-					if(isset($schema[$sort])) $orderByCols[] = $desc . $sort;
+					if(isset($schema[$sort])) {
+						$orderByCols[] = $desc . $sort;
+					} else if($sort === 'random') {
+						$orderByCols[] = $sort;
+					}
 					
 				} else if($col === 'limit') {
 					$value = (int) $value;
@@ -467,8 +471,13 @@ abstract class FieldtypeMulti extends Fieldtype {
 			foreach($orderByCols as $key => $col) {
 				$desc = strpos($col, '-') === 0 ? ' DESC' : '';
 				$col = $sanitizer->fieldName(ltrim($col, '-'));
-				if(!array_key_exists($col, $schema)) continue;
-				$sorts[$key] = $database->escapeCol($col) . $desc;
+				if($col === 'random') {
+					$sorts = array('RAND()');
+					break;
+				} else {
+					if(!array_key_exists($col, $schema)) continue;
+					$sorts[$key] = $database->escapeCol($col) . $desc;
+				}
 			}
 			$query->orderby = $sorts;
 			$query->data('_orderByCols', $orderByCols); // just in case needed elsewhere

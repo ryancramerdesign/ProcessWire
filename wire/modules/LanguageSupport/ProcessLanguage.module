@@ -256,7 +256,7 @@ class ProcessLanguage extends ProcessPageType {
 		
 		$btn1 = $this->wire('modules')->get('InputfieldButton'); 
 		$btn1->href = "{$translationUrl}add/?language_id={$page->id}";
-		$btn1->value = $this->_('Translate File'); 
+		$btn1->value = $this->_('Find Files to Translate'); 
 		$btn1->icon = 'plane';
 		if($inputfield->name == 'language_files') $btn1->addClass('head_button_clone');
 		$out .= $btn1->render();
@@ -438,6 +438,8 @@ class ProcessLanguage extends ProcessPageType {
 			
 			$row = array();
 			foreach($header as $key => $name) {
+				if($key === 0) $name = 'original';
+				if($key === 1) $name = 'translated';
 				$row[$name] = $csvData[$key];
 			}
 			

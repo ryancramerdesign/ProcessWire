@@ -100,6 +100,17 @@
 			opacity: 1.0;
 		}
 	}
+	
+	&.InputfieldRenderValueMode {
+		.InputfieldRepeaterDrag {
+			margin-right: 0.25em;
+			opacity: 0.5;
+			&:hover {
+				cursor: not-allowed;
+				opacity: 0.5;
+			}
+		}
+	}
 }
 
 .AdminThemeReno .InputfieldRepeaterItem > .InputfieldHeader .ui-priority-secondary {

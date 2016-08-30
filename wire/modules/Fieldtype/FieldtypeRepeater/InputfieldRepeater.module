@@ -21,7 +21,7 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 		return array(
 			'title' => __('Repeater', __FILE__), // Module Title
 			'summary' => __('Repeats fields from another template. Provides the input for FieldtypeRepeater.', __FILE__), // Module Summary
-			'version' => 104,
+			'version' => 105,
 			'requires' => 'FieldtypeRepeater',
 			);
 	}
@@ -69,6 +69,14 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 	 * 
 	 */
 	protected $inputfieldClasses = array();
+
+	/**
+	 * Are we currently in render value mode? (i.e. render values, but not inputs)
+	 * 
+	 * @var bool
+	 * 
+	 */
+	protected $renderValueMode = false;
 
 	/**
 	 * Set config defaults
@@ -193,7 +201,7 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 			try {
 				// the following forces assets to be loaded
 				$inputfield = $field->getInputfield($this->page);
-				$inputfield->renderReady(null, false);
+				if($inputfield) $inputfield->renderReady(null, false);
 			} catch(\Exception $e) {
 				$this->warning("Repeater '$this->name' preload '$field': " . $e->getMessage(), Notice::debug);
 			}
@@ -472,13 +480,17 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 			$repeaterAdd = $input->get('repeater_add');
 			$repeaterEdit = (int) $input->get('repeater_edit');
 			if($repeaterAdd !== null && !$noAjaxAdd) {
-				return $this->renderAjaxNewItem();
+				return $this->renderValueMode ? '' : $this->renderAjaxNewItem();
 			} else if($repeaterEdit) {
-				return $this->buildForm($repeaterEdit)->render();
+				if($this->renderValueMode) {
+					return $this->buildForm($repeaterEdit)->renderValue();
+				} else {
+					return $this->buildForm($repeaterEdit)->render();
+				}
 			}
 		}
-		
-		$out = $this->renderFooter($noAjaxAdd);
+	
+		$out = $this->renderValueMode ? '' : $this->renderFooter($noAjaxAdd);
 
 		$loading = $this->field->get('repeaterLoading');
 		$collapse = $this->field->get('repeaterCollapse');
@@ -495,6 +507,19 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 		));
 
 		return $this->buildForm(0, $forIDs)->render() . $out; 
+	}
+
+	/**
+	 * Render value (no inputs)
+	 * 
+	 * @return string
+	 * 
+	 */
+	public function ___renderValue() {
+		$this->renderValueMode = true; 
+		$out = $this->render();
+		$this->renderValueMode = false;
+		return $out; 
 	}
 
 	/**

@@ -19,9 +19,30 @@
 
 class Users extends PagesType {
 
-	protected $currentUser = null; 
+	/**
+	 * Current user
+	 * 
+	 * @var User|null
+	 * 
+	 */
+	protected $currentUser = null;
+
+	/**
+	 * Cached guest user
+	 * 
+	 * @var User|null
+	 * 
+	 */
 	protected $guestUser = null;
-	
+
+	/**
+	 * Construct
+	 * 
+	 * @param ProcessWire $wire
+	 * @param array $templates
+	 * @param array $parents
+	 * 
+	 */
 	public function __construct(ProcessWire $wire, $templates = array(), $parents = array()) {
 		parent::__construct($wire, $templates, $parents);
 		$this->setPageClass('User'); 

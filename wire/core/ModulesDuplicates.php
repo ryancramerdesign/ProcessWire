@@ -296,7 +296,9 @@ class ModulesDuplicates extends Wire {
 		} else {
 			$flags = $this->wire('modules')->getFlags($basename);
 		}
-		if(!($installed[$basename]['flags'] & Modules::flagsDuplicate)) {
+		if($flags & Modules::flagsDuplicate) {
+			// flags already represent duplicate status
+		} else {
 			// make database aware this module has multiple files by adding the duplicate flag
 			$this->numNewDuplicates++; // trigger update needed
 			$flags = $flags | Modules::flagsDuplicate;

@@ -281,8 +281,8 @@ function PageFrontEditInit($) {
 					orig.html(data.formatted[key]);
 					copy.html(data.unformatted[key]);
 					copy.data('prev', null);
-					copy.hide();
-					orig.show();
+					copy.hide().trigger('pw-reloaded');
+					orig.show().trigger('pw-reloaded');
 				});
 
 				btnSaved.show();
@@ -349,6 +349,7 @@ function PageFrontEditInit($) {
 					var html = t.children().html();
 					t.html(html);
 				}
+				t.trigger('pw-reloaded');
 				setBusy(false);
 			});
 		});

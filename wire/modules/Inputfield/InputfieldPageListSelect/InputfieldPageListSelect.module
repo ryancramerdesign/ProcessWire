@@ -2,6 +2,15 @@
 
 /**
  * A Page List Selector for selecting a single page
+ * 
+ * @property int $parent_id
+ * @property string $labelFieldName
+ * @property string $startLabel
+ * @property string $cancelLabel
+ * @property string $selectLabel
+ * @property string $unselectLabel
+ * @property string $moreLabel
+ * @property bool $showPath
  *
  */
 class InputfieldPageListSelect extends Inputfield implements InputfieldPageListSelection {
