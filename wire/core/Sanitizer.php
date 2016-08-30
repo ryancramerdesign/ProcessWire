@@ -1631,7 +1631,7 @@ class Sanitizer extends Wire {
 			'allowBrackets' => false, // allow [bracket] tags?
 			'allow' => array('a', 'strong', 'em', 'code', 's', 'span', 'u', 'small', 'i'),
 			'disallow' => array(),
-			'linkMarkup' => '<a href="{url}" rel="nofollow" target="_blank">{text}</a>',
+			'linkMarkup' => '<a href="{url}" rel="noopener noreferrer nofollow" target="_blank">{text}</a>',
 		);
 
 		if($options === true || (is_int($options) && $options > 0)) $defaults['fullMarkdown'] = $options;
