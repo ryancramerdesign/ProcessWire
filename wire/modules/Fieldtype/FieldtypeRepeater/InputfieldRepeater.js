@@ -194,7 +194,8 @@ function InputfieldRepeaterInit($this) {
 	//if(!$inputfields.length) return;
 	if($inputfields.hasClass('InputfieldRepeaterInit')) return;
 	$inputfields.addClass('InputfieldRepeaterInit');
-	
+
+	var renderValueMode = $inputfields.closest('.InputfieldRenderValueMode').length > 0;
 	var $delete = $("<i class='fa fa-trash InputfieldRepeaterTrash'></i>").css('display', 'block');
 	var $toggle = $("<i class='fa InputfieldRepeaterToggle' data-on='fa-toggle-on' data-off='fa-toggle-off'></i>");
 	var cfg = ProcessWire.config.InputfieldRepeater;
@@ -219,8 +220,10 @@ function InputfieldRepeaterInit($this) {
 			}
 			$t.addClass('ui-state-default InputfieldRepeaterHeaderInit');
 			$t.prepend("<i class='fa fa-fw " + icon + " InputfieldRepeaterDrag'></i>")
-			$t.prepend($toggle.clone(true).addClass($t.parent().hasClass('InputfieldRepeaterOff') ? 'fa-toggle-off' : 'fa-toggle-on'));
-			$t.prepend($delete.clone(true));
+			if(!renderValueMode) {
+				$t.prepend($toggle.clone(true).addClass($t.parent().hasClass('InputfieldRepeaterOff') ? 'fa-toggle-off' : 'fa-toggle-on'));
+				$t.prepend($delete.clone(true));
+			}
 			InputfieldRepeaterAdjustLabel($item, false);
 		});
 	}
@@ -230,6 +233,8 @@ function InputfieldRepeaterInit($this) {
 	} else {
 		setupRepeaterHeaders($(".InputfieldRepeaterItem > .InputfieldHeader", $this));
 	}
+	
+	if(renderValueMode) return;
 
 	$(".InputfieldRepeaterDrag", $this).hover(function() {
 		$(this).parent('label').addClass('ui-state-focus');
