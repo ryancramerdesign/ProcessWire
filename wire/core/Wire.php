@@ -262,6 +262,7 @@ abstract class Wire implements WireTranslatable, WireFuelable, WireTrackable {
 
 		if(isset($options['namespace']) && $options['namespace'] === true) {
 			$className = get_class($this);
+			if(strpos($className, '\\') === false) $className = "\\$className";
 		} else {
 			$className = wireClassName($this, false);
 		}
