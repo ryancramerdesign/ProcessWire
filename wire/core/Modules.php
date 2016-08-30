@@ -3302,7 +3302,7 @@ class Modules extends WireArray {
 		if(!$configurable) return false;
 		if(!is_array($data)) $data = $this->getConfig($module);
 
-		$nsClassName = '\\' . $module->className(true);
+		$nsClassName = $module->className(true);
 		$moduleName = $module->className(false);
 		
 		if(is_string($configurable) && is_file($configurable) && strpos(basename($configurable), $moduleName) === 0) {
