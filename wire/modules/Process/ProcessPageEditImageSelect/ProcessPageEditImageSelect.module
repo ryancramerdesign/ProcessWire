@@ -1000,11 +1000,13 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 				if($rebuildVariations && $this->field->adminThumbs) {
 					// remove original thumbnail
 					$inputfield = $this->field->getInputfield($this->page);
-					$thumb = $inputfield->getAdminThumb($original);
-					$thumb = $thumb['thumb'];
-					if($thumb->url != $original->url) {
-						// there is a thumbnail, distinct from the original image
-						unlink($thumb->filename);
+					if($inputfield) {
+						$thumb = $inputfield->getAdminThumb($original);
+						$thumb = $thumb['thumb'];
+						if($thumb->url != $original->url) {
+							// there is a thumbnail, distinct from the original image
+							unlink($thumb->filename);
+						}
 					}
 				}
 				

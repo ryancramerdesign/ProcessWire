@@ -562,6 +562,7 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 		$page = $event->arguments[0];
 		$template = $page ? $page->template : null;
 		$inputfield = $event->return; 
+		if(!$inputfield) return;
 		$translatable = array('label', 'description', 'notes');
 		if($inputfield->attr('placeholder') !== null) $translatable[] = 'placeholder';
 		$languages = $template ? $template->getLanguages() : $this->wire('languages'); 

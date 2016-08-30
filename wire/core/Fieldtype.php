@@ -126,7 +126,7 @@ abstract class Fieldtype extends WireData implements Module {
 	 * 
 	 * @param Page $page Page that the Inputfield will be for
 	 * @param Field $field Field that the Inputfield will be for
-	 * @return Inputfield
+	 * @return Inputfield|null Returns Inputfield or null if not applicable/available.
 	 *
 	 */
 	public function getInputfield(Page $page, Field $field) {

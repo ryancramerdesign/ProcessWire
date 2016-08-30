@@ -18,7 +18,7 @@ class FieldtypeCache extends Fieldtype {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Cache',
-			'version' => 101,
+			'version' => 102,
 			'summary' => 'Caches the values of other fields for fewer runtime queries. Can also be used to combine multiple text fields and have them all be searchable under the cached field name.'
 			);
 	}
@@ -117,14 +117,22 @@ class FieldtypeCache extends Fieldtype {
 
 		$numPages = 0;
 		$numTemplates = 0; 
+		$max = 500;
+		$saveOptions = array(
+			'quiet' => true, 
+			'noHooks' => true, 
+		);
 
 		foreach($this->templates as $template) {
 			if(!$template->fields->has($field)) continue; 
 			$numTemplates++;
-			$numTemplatePages = 0; 
-			$pages = $this->pages->find("template=$template, include=all"); 
+			$numTemplatePages = 0;
+			$selector = "template=$template, include=all";
+			$total = $this->pages->count($selector);
+			$pages = $total > $max ? $this->pages->findMany($selector) : $this->pages->find($selector);
+			set_time_limit(60 * 5);
 			foreach($pages as $page) {
-				$page->save($field->name); 
+				$this->pages->___saveField($page, $field, $saveOptions);
 				$numPages++;
 				$numTemplatePages++; 
 			}

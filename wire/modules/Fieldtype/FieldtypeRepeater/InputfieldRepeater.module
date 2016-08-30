@@ -193,7 +193,7 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 			try {
 				// the following forces assets to be loaded
 				$inputfield = $field->getInputfield($this->page);
-				$inputfield->renderReady(null, false);
+				if($inputfield) $inputfield->renderReady(null, false);
 			} catch(\Exception $e) {
 				$this->warning("Repeater '$this->name' preload '$field': " . $e->getMessage(), Notice::debug);
 			}

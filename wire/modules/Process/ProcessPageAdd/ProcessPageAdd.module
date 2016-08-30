@@ -631,8 +631,10 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 					}
 					if(in_array($field->collapsed, array(Inputfield::collapsedNoLocked, Inputfield::collapsedYesLocked))) continue;
 					$inputfield = $field->getInputfield($page);
-					if($this->template && $this->template->noLang) $inputfield->useLanguages = false;
-					$form->append($inputfield);
+					if($inputfield) {
+						if($this->template && $this->template->noLang) $inputfield->useLanguages = false;
+						$form->append($inputfield);
+					}
 					break;
 				}
 			}
@@ -642,7 +644,8 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 				if(in_array($field->collapsed, array(Inputfield::collapsedNoLocked, Inputfield::collapsedYesLocked))) {
 					// skip it
 				} else {
-					$form->append($field->getInputfield($page));
+					$inputfield = $field->getInputfield($page);
+					if($inputfield) $form->append($inputfield);
 				}
 			}
 		}
