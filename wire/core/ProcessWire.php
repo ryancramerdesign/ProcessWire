@@ -611,10 +611,13 @@ class ProcessWire extends Wire {
 	 * @param string $rootPath Path to root of installation where ProcessWire's index.php file is located.
 	 * @param string $rootURL Should be specified only for secondary ProcessWire instances. 
 	 *   May also include scheme & hostname, i.e. "http://hostname.com/url" to force use of scheme+host. 
+	 * @param array $options Options to modify default behaviors (experimental): 
+	 *  - `siteDir` (string): Name of "site" directory in $rootPath that contains site's config.php, no slashes (default="site").
 	 * @return Config
 	 * 
 	 */
-	public static function buildConfig($rootPath, $rootURL = null) {
+	public static function buildConfig($rootPath, $rootURL = null, array $options = array()) {
+		
 		
 		if(DIRECTORY_SEPARATOR != '/') {
 			$rootPath = str_replace(DIRECTORY_SEPARATOR, '/', $rootPath);
@@ -624,6 +627,7 @@ class ProcessWire extends Wire {
 		
 		$httpHost = '';
 		$scheme = '';
+		$siteDir = isset($options['siteDir']) ? $options['siteDir'] : 'site';
 		
 		if($rootURL && strpos($rootURL, '://')) {
 			// rootURL is specifying scheme and hostname
@@ -644,13 +648,12 @@ class ProcessWire extends Wire {
 		
 		$config = new Config();
 		$config->dbName = '';
-		$siteDir = 'site';
-
+		
 		// check what rootPath is referring to
-		if(strpos($rootPath, '/site')) {
+		if(strpos($rootPath, "/$siteDir")) {
 			$parts = explode('/', $rootPath);
 			$testDir = array_pop($parts);
-			if(($testDir === 'site' || strpos($testDir, 'site-') === 0) && is_file("$rootPath/config.php")) {
+			if(($testDir === $siteDir || strpos($testDir, 'site-') === 0) && is_file("$rootPath/config.php")) {
 				// rootPath was given as a /site/ directory rather than root directory
 				$rootPath = '/' . implode('/', $parts); // remove siteDir from rootPath
 				$siteDir = $testDir; // set proper siteDir
@@ -706,7 +709,7 @@ class ProcessWire extends Wire {
 		}
 
 		// other default directories
-		$wireDir = 'wire';
+		$wireDir = "wire";
 		$coreDir = "$wireDir/core";
 		$assetsDir = "$siteDir/assets";
 		$adminTplDir = 'templates-admin';
