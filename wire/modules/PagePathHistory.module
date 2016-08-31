@@ -315,6 +315,7 @@ class PagePathHistory extends WireData implements Module {
 			try {
 				$query->execute();
 			} catch(\Exception $e) {
+				if(strpos($e->getMessage(), '1054') !== false) $this->upgrade(1, 2);
 				$this->wire('log')->error('PagePathHistory::getPage() - ' . $e->getMessage());
 				$error = true;
 			}
