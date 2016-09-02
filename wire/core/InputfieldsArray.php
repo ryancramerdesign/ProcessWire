@@ -5,11 +5,18 @@
  *
  * The default numeric indexing of a WireArray is not overridden.
  *
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
+ * https://processwire.com
+ *
  */
+
 class InputfieldsArray extends WireArray {
 
 	/**
 	 * Per WireArray interface, only Inputfield instances are accepted.
+	 * 
+	 * @param Wire $item
+	 * @return bool
 	 *
 	 */
 	public function isValidItem($item) {
@@ -18,6 +25,9 @@ class InputfieldsArray extends WireArray {
 
 	/**
 	 * Extends the find capability of WireArray to descend into the Inputfield children
+	 * 
+	 * @param string $selector
+	 * @return WireArray|InputfieldsArray
 	 *
 	 */
 	public function find($selector) {

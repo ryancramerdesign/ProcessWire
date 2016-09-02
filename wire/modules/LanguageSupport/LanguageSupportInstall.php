@@ -6,7 +6,7 @@
  * Split off into a seprate class/file because it's only needed once and 
  * didn't want to keep all this code in the main module that's loaded every request.
  *
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  *

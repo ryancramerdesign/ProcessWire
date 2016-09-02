@@ -5,7 +5,7 @@
  *
  * Provides same functionality as WireSaveableItems except that this class includes joining/modification of a related lookup table
  * 
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  */

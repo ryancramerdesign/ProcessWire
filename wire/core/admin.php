@@ -6,7 +6,18 @@
  * This file is designed for inclusion by /site/templates/admin.php template and all the variables 
  * it references are from your template namespace. 
  *
- * Copyright 2015 by Ryan Cramer
+ * Copyright 2016 by Ryan Cramer
+ * 
+ * @var Config $config
+ * @var User $user
+ * @var Modules $modules
+ * @var Pages $pages
+ * @var Page $page
+ * @var ProcessWire $wire
+ * @var WireInput $input
+ * @var Sanitizer $sanitizer
+ * @var Session $session
+ * @var Notices $notices
  * 
  *
  */
@@ -17,6 +28,8 @@ header("X-Frame-Options: SAMEORIGIN");
 
 /**
  * Ensures a modal GET variable is retained through redirects, when appropriate
+ * 
+ * @param HookEvent $event
  *
  */
 function _hookSessionRedirectModal(HookEvent $event) {
@@ -30,10 +43,10 @@ function _hookSessionRedirectModal(HookEvent $event) {
 /**
  * Check if the current HTTP host is recognized and generate error if not
  * 
- * @param $config
+ * @param Config $config
  * 
  */
-function _checkForHttpHostError($config) {
+function _checkForHttpHostError(Config $config) {
 
 	$valid = false;
 	$httpHost = strtolower($config->httpHost); 
@@ -93,9 +106,10 @@ if($page->process && $page->process != 'ProcessPageView') {
 				// admin themes in /site/modules/ may be compiled
 				$initFile = $wire->files->compile($initFile);
 			}
+			/** @noinspection PhpIncludeInspection */
 			include($initFile);
 		}
-		if($input->get->modal) $session->addHookBefore('redirect', null, '_hookSessionRedirectModal'); 
+		if($input->get('modal')) $session->addHookBefore('redirect', null, '_hookSessionRedirectModal'); 
 		$content = $controller->execute();
 
 	} catch(Wire404Exception $e) {
@@ -107,6 +121,7 @@ if($page->process && $page->process != 'ProcessPageView') {
 			$content = $controller->jsonMessage($e->getMessage(), true); 
 
 		} else if($user->isGuest()) {
+			/** @var Process $process */
 			$process = $modules->get("ProcessLogin"); 
 			$content = $process->execute();
 		} else {
@@ -155,6 +170,7 @@ if($controller && $controller->isAjax()) {
 	if(strpos($adminThemeFile, $config->paths->site) === 0) {
 		$adminThemeFile = $wire->files->compile($adminThemeFile);
 	}
+	/** @noinspection PhpIncludeInspection */
 	require($adminThemeFile);
 	$session->removeNotices();
 }

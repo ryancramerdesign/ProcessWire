@@ -6,7 +6,7 @@
  * Class for managing Language-type pages.
  * Acts as the $wire->languages API variable. 
  *
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  * 
  * @property LanguageTabs|null $tabs Current LanguageTabs module instance, if installed

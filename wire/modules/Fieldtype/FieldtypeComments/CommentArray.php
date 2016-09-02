@@ -6,7 +6,7 @@
  * Maintains an array of multiple Comment instances.
  * Serves as the value referenced when a FieldtypeComment field is reference from a Page.
  * 
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  *

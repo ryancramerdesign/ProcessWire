@@ -12,7 +12,7 @@
  * This file is licensed under the MIT license
  * https://processwire.com/about/license/mit/
  *
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  */
@@ -218,6 +218,8 @@ class CacheFile extends Wire {
 
 	/**
 	 * Removes just the given file, as opposed to remove() which removes the entire cache for primaryID
+	 * 
+	 * @param string $filename
 	 *
 	 */
 	protected function removeFilename($filename) {

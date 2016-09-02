@@ -12,7 +12,7 @@
  * @todo can we implement next() and prev() like on Page, as alias to getNext() and getPrev()?
  * @todo narrow down to one method of addition and removal, especially for removal, i.e. make shift() run through remove()
  * 
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  * 
  * @method WireArray and($item)

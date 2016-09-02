@@ -3,7 +3,7 @@
 /**
  * ProcessWire shutdown handler
  *
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  *  
  * Look for errors at shutdown and log them, plus echo the error if the page is editable
  *

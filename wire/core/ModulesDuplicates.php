@@ -6,7 +6,7 @@
  * Provides functions for managing sitautions where more than one
  * copy of the same module is intalled. This is a helper for the Modules class.
  *
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  */
@@ -247,6 +247,7 @@ class ModulesDuplicates extends Wire {
 		$query->bindValue(':flag', Modules::flagsDuplicate, \PDO::PARAM_INT);
 		$query->execute();
 
+		/** @noinspection PhpAssignmentInConditionInspection */
 		while($row = $query->fetch(\PDO::FETCH_NUM)) {
 			list($class, $flags) = $row;
 			if(empty($this->duplicates[$class])) {

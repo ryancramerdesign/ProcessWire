@@ -3,17 +3,13 @@
 /**
  * ProcessWire Templates
  *
- * Manages and provides access to all the Template instances
+ * WireArray of Template instances as used by Templates class.
  *
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  */
 
-/**
- * WireArray of Template instances
- *
- */
 class TemplatesArray extends WireArray {
 
 	public function isValidItem($item) {

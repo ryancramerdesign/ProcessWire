@@ -5,7 +5,7 @@
  *
  * Manages the table for the sortfield property for Page children.
  * 
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  */

@@ -15,7 +15,7 @@
  * of most other methods provided in this Fieldtype class accounts for most situations already. 
  * #pw-body
  * 
- * ProcessWire 3.x (development), Copyright 2016 by Ryan Cramer
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  * 
  * 

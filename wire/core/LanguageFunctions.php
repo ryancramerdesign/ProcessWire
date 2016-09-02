@@ -5,7 +5,7 @@
  *
  * Provide GetText like language translation functions to ProcessWire
  * 
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  */
@@ -18,11 +18,11 @@
  * @param string $context Name of context - DO NOT USE with this function for translation as it won't be parsed for translation. Use only with the _x() function, which will be parsed. 
  * @return string Translated text or original text if translation not available.
  *
- *
  */
 function __($text, $textdomain = null, $context = '') {
 	if(!wire('languages')) return $text; 
 	if(!$language = wire('user')->language) return $text; 
+	/** @var Language $language */
 	if(!$language->id) return $text; 
 	if(is_null($textdomain)) {
 		if(defined('DEBUG_BACKTRACE_IGNORE_ARGS')) {

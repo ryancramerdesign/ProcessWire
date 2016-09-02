@@ -5,7 +5,7 @@
  *
  * Initializes all the ProcessWire classes and prepares them for API use
  * 
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  * 
  * @todo: get language permissions to work with extra actions
@@ -28,7 +28,7 @@ class ProcessWire extends Wire {
 
 	const versionMajor = 3; 
 	const versionMinor = 0; 
-	const versionRevision = 32; 
+	const versionRevision = 33; 
 	const versionSuffix = 'devns';
 	
 	const indexVersion = 300; // required version for index.php file (represented by PROCESSWIRE define)

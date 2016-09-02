@@ -10,7 +10,7 @@
  * #pw-body Field objects are managed by the `$fields` API variable. 
  * #pw-use-constants
  * 
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  * @property int $id Numeric ID of field in the database #pw-group-properties
@@ -524,14 +524,17 @@ class Field extends WireData implements Saveable, Exportable {
 	public function setName($name) {
 		$name = $this->wire('sanitizer')->fieldName($name);
 
-		if(Fields::isNativeName($name))
+		if($this->wire('fields')->isNative($name)) {
 			throw new WireException("Field may not be named '$name' because it is a reserved word");
+		}
 
-		if($this->wire('fields') && ($f = $this->wire('fields')->get($name)) && $f->id != $this->id)
+		if($this->wire('fields') && ($f = $this->wire('fields')->get($name)) && $f->id != $this->id) {
 			throw new WireException("Field may not be named '$name' because it is already used by another field");
+		}
 
-		if(strpos($name, '__') !== false)
+		if(strpos($name, '__') !== false) {
 			throw new WireException("Field name '$name' may not have double underscores because this usage is reserved by the core");
+		}
 
 		if($this->settings['name'] != $name) {
 			if($this->settings['name'] && ($this->settings['flags'] & Field::flagSystem)) {
@@ -542,6 +545,7 @@ class Field extends WireData implements Saveable, Exportable {
 		}
 
 		$this->settings['name'] = $name;
+		
 		return $this;
 	}
 

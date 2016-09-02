@@ -1,44 +1,20 @@
 <?php namespace ProcessWire;
 
 /**
- * ProcessWire Inputfield
- *
- * Base class for Inputfield modules. 
+ * ProcessWire Inputfield - base class for Inputfield modules.
  * 
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
- */
-
-/**
- * Inputfields that implement this interface always have a $value attribute that is an array
- *
- */
-interface InputfieldHasArrayValue { }
-
-
-/**
  * An Inputfield for an actual form input field widget, and this is provided as the base class
  * for different kinds of form input widgets provided as modules. 
  *
  * The class supports a parent/child hierarchy so that a given Inputfield can contain Inputfields
  * below it. An example would be the relationship between fieldsets and fields in a form. 
+ * Parent Inputfields are almost always of type InputfieldWrapper. 
  *
- * An Inputfield is typically associated with a Fieldtype module. 
- *
- * All Inputfields have the following properties at minimum: 
- *
- * Inputfield::id 
- * 	A unique string identifier for this Inputfield
- *
- * Inputfield::class
- *	Class name(s) to be rendered with the Inputfield HTML output
- *
- * Inputfield::name
- * 	Corresponds to HTML "name" attribute
- *
- * Inputfield::value
- *	The current value of the field. May correspond go the XHTML "value" attribute on some inputs. 
+ * An Inputfield is typically associated with a Fieldtype module when used for ProcessWire fields. 
+ * Most Inputfields can also be used on their own. 
  *
  * #pw-order-groups attribute-methods,attribute-properties,settings,traversal,labels,appearance,behavior,other,output,input,states
  * #pw-use-constants

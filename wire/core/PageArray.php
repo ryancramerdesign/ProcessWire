@@ -16,7 +16,7 @@
  * `$pages->find()` and `$page->children()` are common examples. 
  * #pw-body
  * 
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  * 
  * @method string getMarkup($key = null) Render a simple/default markup value for each item #pw-internal

@@ -6,7 +6,7 @@
  * It also contains the hooks for altering the output of the InputfieldFile to hold language info and links.
  * This is the process assigned to processwire/setup/languages/.
  *
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  *

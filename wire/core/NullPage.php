@@ -25,7 +25,7 @@
  * Placeholder class for non-existant and non-saveable Page.
  * Many API functions return a NullPage to indicate no match. 
  *
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  * 
  * @property int $id The id property will always be 0 for a NullPage. 

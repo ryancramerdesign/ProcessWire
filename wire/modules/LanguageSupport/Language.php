@@ -3,7 +3,7 @@
 /**
  * ProcessWire Language (single) Page Class
  *
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  *
@@ -19,6 +19,8 @@ class Language extends Page {
 
 	/**
 	 * Construct a new Language instance
+	 * 
+	 * @param Template $tpl
 	 *
 	 */
 	public function __construct(Template $tpl = null) {
@@ -30,6 +32,9 @@ class Language extends Page {
 
 	/**
 	 * Get a value from the language page (intercepting translator and isDefault)
+	 * 
+	 * @param string $key
+	 * @return mixed
 	 *
 	 */
 	public function get($key) {
@@ -41,6 +46,8 @@ class Language extends Page {
 
 	/**
 	 * Return an instance of the translator prepared for this language
+	 * 
+	 * @return LanguageTranslator
 	 *
 	 */
 	public function translator() {

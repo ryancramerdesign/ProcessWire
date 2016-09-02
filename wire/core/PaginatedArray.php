@@ -13,7 +13,7 @@
  * #pw-body
  * #pw-summary-manipulation In most cases you will not need these manipulation methods as core API calls already take care of this. 
  *
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  */

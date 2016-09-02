@@ -321,6 +321,7 @@ class FileCompiler extends Wire {
 			if(count($compilers)) {
 				ksort($compilers);
 				foreach($compilers as $module) {
+					/** @var FileCompilerModule $module */
 					$module->setSourceFile($sourceFile);
 					$data = $module->compile($data);
 				}
@@ -617,6 +618,7 @@ class FileCompiler extends Wire {
 			} else {
 				$ns = '';
 			}
+			if($ns) {}
 			if(stripos($data, $class) === false) continue; // quick exit if class name not referenced in data
 			
 			$patterns = array(
@@ -662,6 +664,7 @@ class FileCompiler extends Wire {
 				$functionName = '\\' . $function;
 				$ns = '';
 			}
+			if($ns) {}
 			/** @noinspection PhpUnusedLocalVariableInspection */
 			if(stripos($data, $function) === false) continue; // if function name not mentioned in data, quick exit
 		

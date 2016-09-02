@@ -7,7 +7,7 @@
  * so that it can be included by outside tools for restoring/exporting, with the main
  * example of that being the ProcessWire installer. 
  *
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  * 
  * USAGE

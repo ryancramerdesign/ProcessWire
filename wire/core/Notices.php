@@ -2,17 +2,13 @@
 
 /**
  * ProcessWire Notices
- *
+ * 
+ * Base class that holds a message, source class, and timestamp.
  * Contains notices/messages used by the application to the user. 
  * 
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
- */
-
-/**
- * Base class that holds a message, source class, and timestamp
- * 
  * @property string $text Text of notice
  * @property string $class Class of notice
  * @property int $timestamp When the notice was generated
@@ -173,6 +169,7 @@ class Notices extends WireArray {
 	}
 	
 	protected function addLog($item) {
+		/** @var Notice $item */
 		$text = $item->text;
 		if($this->wire('config')->debug && $item->class) $text .= " ($item->class)"; 
 		$this->wire('log')->save($item->getName(), $text); 

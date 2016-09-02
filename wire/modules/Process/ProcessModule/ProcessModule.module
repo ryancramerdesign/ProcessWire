@@ -11,7 +11,7 @@
  * This version also lifts several pieces of code from Soma's Modules Manager
  * specific to the parts involved with downloading modules from the directory.
  * 
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  * 
  * @todo add support for module configuration inputfields with useLanguages option

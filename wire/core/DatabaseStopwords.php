@@ -5,7 +5,7 @@
  *
  * MySQL stopwords, primarily for use with filtering fulltext queries
  * 
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  *
@@ -54,6 +54,8 @@ class DatabaseStopwords {
 
 	/**
 	 * Get all stopwords
+	 * 
+	 * @return array
 	 *
 	 */
 	static public function getAll() {
@@ -62,6 +64,9 @@ class DatabaseStopwords {
 
 	/**
 	 * Is the provided word a stopword?
+	 * 
+	 * @param string $word
+	 * @return bool
 	 *
 	 */
 	static public function has($word) {
@@ -70,6 +75,8 @@ class DatabaseStopwords {
 
 	/**
 	 * Add a stopword to the list
+	 * 
+	 * @param string $word
 	 *
 	 */
 	static public function add($word) {
@@ -78,6 +85,8 @@ class DatabaseStopwords {
 
 	/**
 	 * Remove a word from the stopwords
+	 * 
+	 * @param string $word
 	 *
 	 */
 	static public function remove($word) {

@@ -7,7 +7,7 @@
  * #pw-body Template objects also maintain several properties which can affect the render behavior of pages using it. 
  * #pw-order-groups identification,manipulation,family,URLs,access,files,cache,page-editor,behaviors,other
  * 
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  * 
  * @todo add multi-language option for redirectLogin setting

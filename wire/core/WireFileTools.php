@@ -5,9 +5,10 @@
  * 
  * #pw-summary Helpers for working with files and directories. 
  *
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
+ * @method bool include($filename, array $vars = array(), array $options = array())
  *
  */
 

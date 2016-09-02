@@ -12,7 +12,7 @@
  * and likewise a value set in $session won't appear in $_SESSION.  It's also good to use this class
  * over the $_SESSION superglobal just in case we ever need to replace PHP's session handling in the future.
  * 
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  * @see https://processwire.com/api/ref/session/ Session documentation

@@ -10,7 +10,7 @@
  * in order to save resources. As a result, anything iterating through these Modules should check to make sure it's not a ModulePlaceholder
  * before using it. If it's a ModulePlaceholder, then the real Module can be instantiated/retrieved by $modules->get($className).
  * 
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  * 
  * #pw-summary Loads and manages all modules in ProcessWire. 
@@ -226,6 +226,14 @@ class Modules extends WireArray {
 	protected $moduleFileExts = array();
 
 	/**
+	 * Dir for core modules relative to root path, i.e. '/wire/modules/'
+	 * 
+	 * @var string
+	 * 
+	 */
+	protected $coreModulesDir = '';
+
+	/**
 	 * Properties that only appear in 'verbose' moduleInfo
 	 * 
 	 * @var array
@@ -269,6 +277,7 @@ class Modules extends WireArray {
 	 */
 	public function __construct($path) {
 		$this->addPath($path); 
+		$this->coreModulesDir = '/' . $this->wire('config')->urls->data('modules');
 	}
 
 	/**
@@ -2657,7 +2666,7 @@ class Modules extends WireArray {
 		if($options['verbose']) {
 			// the file property is not stored in the verbose cache, but provided as a verbose key
 			$info['file'] = $this->getModuleFile($moduleName);
-			if($info['file']) $info['core'] = strpos($info['file'], '/wire/modules/') !== false; // is it core?
+			if($info['file']) $info['core'] = strpos($info['file'], $this->coreModulesDir) !== false; // is it core?
 		}
 		
 		// if($this->debug) $this->message("getModuleInfo($moduleName) " . ($fromCache ? "CACHE" : "NO-CACHE")); 
@@ -2758,7 +2767,7 @@ class Modules extends WireArray {
 			$options['file'] = $this->getModuleFile($moduleName);
 		}
 		
-		if(strpos($options['file'], '/wire/modules/') !== false) {
+		if(strpos($options['file'], $this->coreModulesDir) !== false) {
 			// all core modules use \ProcessWire\ namespace
 			$namespace = strlen(__NAMESPACE__) ? __NAMESPACE__ . "\\" : "";
 			return $namespace;
@@ -4594,7 +4603,7 @@ class Modules extends WireArray {
 		if(empty($file)) $file = $this->getModuleFile($moduleName);
 	
 		// don't compile core modules
-		if(strpos($file, '/wire/modules/') !== false) return $file;
+		if(strpos($file, $this->coreModulesDir) !== false) return $file;
 	
 		// if namespace not provided, get it
 		if(is_null($namespace)) {

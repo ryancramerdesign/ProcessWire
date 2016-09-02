@@ -10,7 +10,7 @@
  * Typically you would iterate through the field and generate your own output. But if you just need
  * something simple, or are testing, then this may fit your needs. 
  * 
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  *
