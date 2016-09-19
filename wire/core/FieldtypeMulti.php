@@ -5,7 +5,7 @@
  *
  * Interface and some functionality for Fieldtypes that can contain multiple values.
  * 
- * ProcessWire 3.x (development), Copyright 2016 by Ryan Cramer
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  * 
  * @method bool savePageFieldRows(Page $page, Field $field, $value)

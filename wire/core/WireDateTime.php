@@ -5,7 +5,7 @@
  * 
  * #pw-summary The $datetime API variable provides helpers for working with dates/times and conversion between formats.
  * 
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  * 
  */

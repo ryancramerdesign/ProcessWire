@@ -165,7 +165,7 @@ class MarkupFieldtype extends WireData implements Module {
 	 * 
 	 * Classes descending from MarkupFieldtype this would implement their own method. 
 	 * 
-	 * @param $value The unformatted value to render. 
+	 * @param mixed $value The unformatted value to render. 
 	 * @return string
 	 * 
 	 */
@@ -267,7 +267,6 @@ class MarkupFieldtype extends WireData implements Module {
 		if($value instanceof Pagefiles || $value instanceof Pagefile) {
 			$out = $this->renderInputfieldValue($value);
 		} else {
-			$className = get_class($value);
 			$out = (string) $value;
 			if($out === wireClassName($value, false) || $out === wireClassName($value, true)) {
 				// just the class name probably isn't useful here, see if we can do do something else with it
@@ -307,6 +306,7 @@ class MarkupFieldtype extends WireData implements Module {
 			}
 			$out = "<div class='$inputfield->wrapClass'>$out</div>";
 		} else {
+			/** @var InputfieldWrapper $wrapper */
 			$wrapper = $this->wire(new InputfieldWrapper());
 			$wrapper->quietMode = true;
 			$wrapper->add($inputfield);

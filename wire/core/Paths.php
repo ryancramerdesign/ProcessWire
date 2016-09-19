@@ -5,7 +5,7 @@
  *
  * Maintains lists of file paths, primarily used by the ProcessWire configuration.
  * 
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  * 
  * This file is licensed under the MIT license

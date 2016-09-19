@@ -3,7 +3,7 @@
 /**
  * ProcessWire boot
  *
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  */
@@ -57,7 +57,10 @@ $corePreloads = array(
 	'Fieldtypes.php',
 	'Fields.php',
 	'FieldsArray.php',
+	'Fieldgroup.php',
+	'FieldgroupsArray.php',
 	'Fieldgroups.php',
+	'TemplatesArray.php',
 	'Templates.php',
 	'Pages.php',
 	'PagesSortfields.php',
@@ -68,7 +71,6 @@ $corePreloads = array(
 	'DatabaseQuery.php',
 	'DatabaseQuerySelect.php',
 	'Selectors.php',
-	'Fieldgroup.php',
 	'Template.php',
 	'Page.php',
 	'NullPage.php',
@@ -83,6 +85,7 @@ $corePreloads = array(
 	'Roles.php',
 	'Users.php',
 	'Session.php',
+	'WireInputData.php',
 	'WireInput.php',
 	'Process.php',
 	'PageFinder.php',
@@ -100,5 +103,6 @@ $corePreloads = array(
 );	
 
 foreach($corePreloads as $file) {
+	/** @noinspection PhpIncludeInspection */
 	include_once(PROCESSWIRE_CORE_PATH . $file);
 }

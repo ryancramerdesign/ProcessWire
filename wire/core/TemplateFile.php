@@ -5,7 +5,7 @@
  *
  * A template file that will be loaded and executed as PHP, and it's output returned
  * 
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  * 
  * @property bool $halt

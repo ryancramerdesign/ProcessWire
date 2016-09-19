@@ -5,7 +5,7 @@
  * 
  * Implements page manipulation methods of the $pages API variable
  *
- * ProcessWire 3.x (development), Copyright 2016 by Ryan Cramer
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  * 
  */ 

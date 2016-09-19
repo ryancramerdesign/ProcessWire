@@ -8,7 +8,7 @@
  * This file is licensed under the MIT license
  * https://processwire.com/about/license/mit/
  * 
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  */
@@ -196,6 +196,7 @@ class WireClassLoader {
 		}
 		
 		if($found) {
+			/** @noinspection PhpIncludeInspection */
 			include_once($found);
 			if($this->debug) {
 				$file = $this->wire ? str_replace($this->wire->wire('config')->paths->root, '/', $found) : $found;
@@ -208,11 +209,23 @@ class WireClassLoader {
 		$level--;
 		if($this->debug) array_pop($levelHistory);
 	}
-	
+
+	/**
+	 * Enable or disable debug mode
+	 * 
+	 * @param bool $debug
+	 * 
+	 */
 	public function setDebug($debug) {
 		$this->debug = (bool) $debug; 
 	}
-	
+
+	/**
+	 * Get log of debug events
+	 * 
+	 * @return array of strings
+	 * 
+	 */
 	public function getDebugLog() {
 		return $this->debugLog;
 	}

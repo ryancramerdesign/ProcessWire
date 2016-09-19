@@ -13,7 +13,7 @@
  * are separated in the API in case want want to have fieldgroups used by 
  * multiple templates in the future (like ProcessWire 1.x).
  * 
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  * 
  * @property int $id Fieldgroup database ID #pw-group-retrieval
@@ -176,7 +176,6 @@ class Fieldgroup extends WireArray implements Saveable, Exportable, HasLookupIte
 	 * 
 	 * #pw-internal
 	 * 
-	 * @internal
 	 * @param Field $field
 	 * @return bool
 	 *

@@ -1,29 +1,25 @@
 <?php namespace ProcessWire; 
 
 /**
- * ProcessWire WireInputData and WireInput
- *
+ * WireInputData manages one of GET, POST, COOKIE, or whitelist
+ * 
  * WireInputData and the WireInput class together form a simple
  * front end to PHP's $_GET, $_POST, and $_COOKIE superglobals.
  *
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
- * https://processwire.com
- *
- */
-
-/**
- * WireInputData manages one of GET, POST, COOKIE, or whitelist
- *
  * Vars retrieved from here will not have to consider magic_quotes.
- * No sanitization or filtering is done, other than disallowing multi-dimensional arrays in input.
+ * No sanitization or filtering is done, other than disallowing 
+ * multi-dimensional arrays in input.
  *
- * WireInputData specifically manages one of: get, post, cookie or whitelist, whereas the Input class
- * provides access to the 3 InputData instances.
+ * WireInputData specifically manages one of: get, post, cookie or 
+ * whitelist, whereas the WireInput class provides access to the 3 
+ * InputData instances.
  *
  * Each WireInputData is not instantiated unless specifically asked for.
+ * 
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
+ * https://processwire.com
  *
- *
- * @link http://processwire.com/api/variables/input/ Offical $input API variable Documentation
+ * @link http://processwire.com/api/ref/input/ Offical $input API variable documentation
  *
  * @method string name($varName) Sanitize to ProcessWire name format
  * @method string varName($varName) Sanitize to PHP variable name format
@@ -55,31 +51,64 @@
  * @method bool bool($varName) Sanitize value to boolean (true or false)
  *
  *
- *
  */
 class WireInputData extends Wire implements \ArrayAccess, \IteratorAggregate, \Countable {
 
+	/**
+	 * Whether or not slashes should be stripped
+	 * 
+	 * @var bool|int
+	 * 
+	 */
 	protected $stripSlashes = false;
+
+	/**
+	 * Input data container
+	 * 
+	 * @var array
+	 * 
+	 */
 	protected $data = array();
 
+	/**
+	 * Construct
+	 * 
+	 * @param array $input Associative array of variables to store
+	 * 
+	 */
 	public function __construct(array $input = array()) {
 		$this->useFuel(false);
 		$this->stripSlashes = get_magic_quotes_gpc();
 		$this->setArray($input);
 	}
 
+	/**
+	 * Set associative array of variables to store
+	 * 
+	 * @param array $input
+	 * @return $this
+	 * 
+	 */
 	public function setArray(array $input) {
 		foreach($input as $key => $value) $this->__set($key, $value);
 		return $this;
 	}
 
+	/**
+	 * Get associative array of all input variables
+	 * 
+	 * @return array
+	 * 
+	 */
 	public function getArray() {
 		return $this->data;
 	}
 
 	/**
+	 * Set an input value
+	 * 
 	 * @param string $key
-	 * @param ixed $value
+	 * @param mixed $value
 	 *
 	 */
 	public function __set($key, $value) {
@@ -88,6 +117,15 @@ class WireInputData extends Wire implements \ArrayAccess, \IteratorAggregate, \C
 		$this->data[$key] = $value;
 	}
 
+	/**
+	 * Clean an array of data
+	 * 
+	 * Removes multi-dimensional arrays and slashes (if applicable) 
+	 * 
+	 * @param array $a
+	 * @return array
+	 * 
+	 */
 	protected function cleanArray(array $a) {
 		$clean = array();
 		foreach($a as $key => $value) {
@@ -98,17 +136,25 @@ class WireInputData extends Wire implements \ArrayAccess, \IteratorAggregate, \C
 		return $clean;
 	}
 
+	/**
+	 * Set whether or not slashes should be stripped
+	 * 
+	 * @param $stripSlashes
+	 * 
+	 */
 	public function setStripSlashes($stripSlashes) {
 		$this->stripSlashes = $stripSlashes ? true : false;
 	}
 
 	/**
+	 * Get an input value
+	 * 
 	 * @param string $key
 	 * @return mixed|null
 	 *
 	 */
 	public function __get($key) {
-		if($key == 'whitelist') return $this->whitelist;
+		// if($key == 'whitelist') return $this->whitelist;
 		return isset($this->data[$key]) ? $this->data[$key] : null;
 	}
 
@@ -145,7 +191,7 @@ class WireInputData extends Wire implements \ArrayAccess, \IteratorAggregate, \C
 	}
 
 	public function __unset($key) {
-		return $this->offsetUnset($key);
+		$this->offsetUnset($key);
 	}
 
 	public function queryString() {
@@ -164,7 +210,6 @@ class WireInputData extends Wire implements \ArrayAccess, \IteratorAggregate, \C
 	 */
 	public function __call($method, $arguments) {
 		$sanitizer = $this->wire('sanitizer');
-		$methodName = $method;
 		$method = ltrim($method, '_');
 		if(!method_exists($sanitizer, $method)) {
 			$method = "___$method";

@@ -6,7 +6,7 @@
  * Provides implementation for Page traversal functions.
  * Based upon the jQuery traversal functions. 
  *
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  */

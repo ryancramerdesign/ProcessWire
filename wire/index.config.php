@@ -5,7 +5,7 @@
  *
  * If used, this file should be copied/moved to the ProcessWire installation root directory.
  *
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  * 
  */

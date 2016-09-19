@@ -10,7 +10,7 @@
  * 
  * See the Module interface (Module.php) for details about each method. 
  * 
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  * This file is licensed under the MIT license
@@ -82,7 +82,7 @@ abstract class ModuleJS extends WireData implements Module {
 	 *
 	 * @param string $name
 	 * @param string $file
-	 * @return this
+	 * @return $this
 	 *
 	 */
 	public function addComponent($name, $file) {
@@ -94,7 +94,7 @@ abstract class ModuleJS extends WireData implements Module {
 	 * Add an array of optional components
 	 *
 	 * @param array $components
-	 * @return this
+	 * @return $this
 	 *
 	 */
 	public function addComponents(array $components) {
@@ -150,7 +150,7 @@ abstract class ModuleJS extends WireData implements Module {
 	 * Use an extra named component
 	 *
 	 * @param $name
-	 * @return this
+	 * @return $this
 	 *
 	 */
 	public function ___use($name) {

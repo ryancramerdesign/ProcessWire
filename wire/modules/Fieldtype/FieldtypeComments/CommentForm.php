@@ -8,7 +8,7 @@
  * Use of this is optional, and it's primarily here for example purposes. 
  * You can make your own markup/output for the form directly in your own templates. 
  * 
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  */

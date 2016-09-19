@@ -8,7 +8,7 @@
  * This file is licensed under the MIT license
  * https://processwire.com/about/license/mit/
  * 
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  */
@@ -17,6 +17,8 @@
  * For classes that are saved to a database or disk.
  *
  * Item must have a gettable/settable 'id' property for this interface as well
+ * 
+ * @property int $id
  *
  */
 interface Saveable {
@@ -334,7 +336,7 @@ interface WirePaginatable {
 	 * Set the total number of items, if more than are in the WireArray.
 	 *
 	 * @param int $total
-	 * @return this
+	 * @return $this
 	 *
 	 */
 	public function setTotal($total);
@@ -353,7 +355,7 @@ interface WirePaginatable {
 	 * Set the limit that was used in pagination.
 	 *
 	 * @param int $numLimit
-	 * @return this
+	 * @return $this
 	 *
 	 */
 	public function setLimit($numLimit);
@@ -372,7 +374,7 @@ interface WirePaginatable {
 	 * Set the starting offset that was used for pagination.
 	 *
 	 * @param int $numStart;
-	 * @return this
+	 * @return $this
 	 *
 	 */
 	public function setStart($numStart);
@@ -440,3 +442,10 @@ interface LanguagesValueInterface {
 	public function setFromInputfield(Inputfield $inputfield);
 
 }
+
+/**
+ * Inputfields that implement this interface always have a $value attribute that is an array
+ *
+ */
+interface InputfieldHasArrayValue { }
+

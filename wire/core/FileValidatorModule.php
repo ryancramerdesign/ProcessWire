@@ -166,6 +166,7 @@ abstract class FileValidatorModule extends WireData implements Module {
 	public function getField() {
 		$field = $this->_field ? $this->_field : null;
 		if(!$field && $this->_pagefile) return $this->_pagefile->field;
+		return $field;
 	}
 
 	/**

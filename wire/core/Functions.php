@@ -5,7 +5,7 @@
  *
  * Common API functions useful outside of class scope
  * 
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  */
@@ -18,7 +18,7 @@
  * The distinction may not matter in most cases.
  *
  * @param string $name If omitted, returns a Fuel object with references to all the fuel.
- * @return mixed Fuel value if available, NULL if not. 
+ * @return null|ProcessWire|Wire|Session|Page|Pages|Modules|User|Users|Roles|Permissions|Templates|Fields|Fieldtypes|Sanitizer|Config|Notices|WireDatabasePDO|WireHooks|WireDateTime|WireFileTools|WireMailTools|WireInput|string|mixed
  *
  */
 function wire($name = 'wire') {
@@ -83,7 +83,11 @@ endif;
  *
  */
 function wireEncodeJSON(array $data, $allowEmpty = false, $beautify = false) {
-	if($allowEmpty !== true) $data = wire('sanitizer')->minArray($data, $allowEmpty, true); 
+	if($allowEmpty !== true) {
+		/** @var Sanitizer $sanitizer */
+		$sanitizer = wire('sanitizer');
+		$data = $sanitizer->minArray($data, $allowEmpty, true);
+	}
 	if(!count($data)) return '';
 	$flags = 0; 
 	if($beautify && defined("JSON_PRETTY_PRINT")) $flags = JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE;
@@ -121,7 +125,9 @@ function wireDecodeJSON($json) {
  *
  */
 function wireMinArray(array $data, $allowEmpty = false, $convert = false) {
-	return wire('sanitizer')->minArray($data, $allowEmpty, $convert);
+	/** @var Sanitizer $sanitizer */
+	$sanitizer = wire('sanitizer');
+	return $sanitizer->minArray($data, $allowEmpty, $convert);
 }
 
 
@@ -136,7 +142,9 @@ function wireMinArray(array $data, $allowEmpty = false, $convert = false) {
  *
  */ 
 function wireMkdir($path, $recursive = false, $chmod = null) {
-	return wire('files')->mkdir($path, $recursive, $chmod);
+	/** @var WireFileTools $files */
+	$files = wire('files');
+	return $files->mkdir($path, $recursive, $chmod);
 }
 
 /**
@@ -148,7 +156,9 @@ function wireMkdir($path, $recursive = false, $chmod = null) {
  *
  */ 
 function wireRmdir($path, $recursive = false) {
-	return wire('files')->rmdir($path, $recursive);
+	/** @var WireFileTools $files */
+	$files = wire('files');
+	return $files->rmdir($path, $recursive);
 }
 
 /**
@@ -156,14 +166,16 @@ function wireRmdir($path, $recursive = false) {
  * 
  * @param string $path May be a directory or a filename
  * @param bool $recursive If set to true, all files and directories in $path will be recursively set as well.
- * @param string If you want to set the mode to something other than PW's chmodFile/chmodDir settings, 
+ * @param string $chmod If you want to set the mode to something other than PW's chmodFile/chmodDir settings, 
 	you may override it by specifying it here. Ignored otherwise. Format should be a string, like "0755".
  * @return bool Returns true if all changes were successful, or false if at least one chmod failed. 
  * @throws WireException when it receives incorrect chmod format
  *
  */ 
 function wireChmod($path, $recursive = false, $chmod = null) {
-	return wire('files')->chmod($path, $recursive, $chmod);
+	/** @var WireFileTools $files */
+	$files = wire('files');
+	return $files->chmod($path, $recursive, $chmod);
 }
 
 /**
@@ -181,7 +193,9 @@ function wireChmod($path, $recursive = false, $chmod = null) {
  * 
  */
 function wireCopy($src, $dst, $options = array()) {
-	return wire('files')->copy($src, $dst, $options);
+	/** @var WireFileTools $files */
+	$files = wire('files');
+	return $files->copy($src, $dst, $options);
 }
 
 /**
@@ -194,7 +208,9 @@ function wireCopy($src, $dst, $options = array()) {
  * 
  */
 function wireUnzipFile($file, $dst) {
-	return wire('files')->unzip($file, $dst);
+	/** @var WireFileTools $files */
+	$files = wire('files');
+	return $files->unzip($file, $dst);
 }
 
 /**
@@ -210,14 +226,16 @@ function wireUnzipFile($file, $dst) {
  * 	- overwrite (boolean): Replaces ZIP file if already present (rather than adding to it) (default=false)
  * 	- exclude (array): Files or directories to exclude
  * 	- dir (string): Directory name to prepend to added files in the ZIP
- * @return Returns associative array of:
+ * @return array Returns associative array of:
  * 	- files => array(all files that were added), 
  * 	- errors => array(files that failed to add, if any)
  * @throws WireException Original ZIP file creation error conditions result in WireException being thrown.
  * 
  */
 function wireZipFile($zipfile, $files, array $options = array()) {
-	return wire('files')->zip($zipfile, $files, $options);
+	/** @var WireFileTools $fileTools */
+	$fileTools = wire('files');
+	return $fileTools->zip($zipfile, $files, $options);
 }
 
 /**
@@ -263,7 +281,9 @@ function wireSendFile($filename, array $options = array(), array $headers = arra
  *
  */
 function wireRelativeTimeStr($ts, $abbreviate = false, $useTense = true) {
-	return wire('datetime')->relativeTimeStr($ts, $abbreviate, $useTense);
+	/** @var WireDateTime $datetime */
+	$datetime = wire('datetime');
+	return $datetime->relativeTimeStr($ts, $abbreviate, $useTense);
 }
 
 
@@ -316,9 +336,10 @@ function wireRelativeTimeStr($ts, $abbreviate = false, $useTense = true) {
  * @return int|WireMail Returns number of messages sent or WireMail object if no arguments specified. 
  *
  */
-
 function wireMail($to = '', $from = '', $subject = '', $body = '', $options = array()) { 
-	return wire('mail')->send($to, $from, $subject, $body, $options);
+	/** @var WireMail $mail */
+	$mail = wire('mail');
+	return $mail->send($to, $from, $subject, $body, $options);
 }
 
 
@@ -433,7 +454,9 @@ function wirePopulateStringTags($str, $vars, array $options = array()) {
  * 
  */
 function wireTempDir($name, $options = array()) {
-	return wire('files')->tempDir($name, $options);
+	/** @var WireFileTools $files */
+	$files = wire('files');
+	return $files->tempDir($name, $options);
 }
 
 /**
@@ -462,7 +485,9 @@ function wireTempDir($name, $options = array()) {
  * 
  */
 function wireRenderFile($filename, array $vars = array(), array $options = array()) {
-	return wire('files')->render($filename, $vars, $options);
+	/** @var WireFileTools $files */
+	$files = wire('files');
+	return $files->render($filename, $vars, $options);
 }
 
 /**
@@ -488,7 +513,9 @@ function wireRenderFile($filename, array $vars = array(), array $options = array
  * 
  */
 function wireIncludeFile($filename, array $vars = array(), array $options = array()) {
-	return wire('files')->include($filename, $vars, $options);
+	/** @var WireFileTools $files */
+	$files = wire('files');
+	return $files->include($filename, $vars, $options);
 }
 
 /**
@@ -516,7 +543,9 @@ function wireIncludeFile($filename, array $vars = array(), array $options = arra
  * 
  */
 function wireDate($format = '', $ts = null) {
-	return wire('datetime')->date($format, $ts);
+	/** @var WireDateTime $datetime */
+	$datetime = wire('datetime');
+	return $datetime->date($format, $ts);
 }
 
 

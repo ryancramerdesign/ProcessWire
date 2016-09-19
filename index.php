@@ -10,7 +10,7 @@
  * do so after you have installed the site, as the installer is not informed
  * of any changes made in this file. 
  * 
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  * @version 3.0

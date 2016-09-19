@@ -5,56 +5,16 @@
  *
  * Maintains collections of Fieldgroup instances. 
  * 
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
+ * 
+ * @method int saveContext(Fieldgroup $fieldgroup)
+ * @method array getExportData(Fieldgroup $fieldgroup)
+ * @method array setImportData(Fieldgroup $fieldgroup, array $data)
  *
  *
  */
 
-/**
- * Array of Fieldgroup instances, as used by the Fieldgroups class
- *
- */
-class FieldgroupsArray extends WireArray {
-
-	/**
-	 * Per WireArray interface, this class only carries Fieldgroup instances
-	 *
-	 */
-	public function isValidItem($item) {
-		return $item instanceof Fieldgroup; 
-	}
-
-	/**
-	 * Per WireArray interface, items are keyed by their ID
-	 *
-	 */
-	public function getItemKey($item) {
-		return $item->id; 
-	}
-
-	/**
-	 * Per WireArray interface, keys must be integers
-	 *
-	 */
-	public function isValidKey($key) {
-		return is_int($key); 
-	}
-
-	/**
-	 * Per WireArray interface, return a blank Fieldgroup
-	 *
-	 */
-	public function makeBlankItem() {
-		return $this->wire(new Fieldgroup());
-	}
-
-}
-
-/**
- * Maintains collection of all fieldgroups
- *
- */
 class Fieldgroups extends WireSaveableItemsLookup {
 
 	/**
@@ -152,7 +112,6 @@ class Fieldgroups extends WireSaveableItemsLookup {
 	 */
 	public function getTemplates(Fieldgroup $fieldgroup) {
 		$templates = $this->wire(new TemplatesArray());
-		$cnt = 0;
 		foreach($this->wire('templates') as $tpl) {
 			if($tpl->fieldgroup->id == $fieldgroup->id) $templates->add($tpl); 
 		}
@@ -172,6 +131,8 @@ class Fieldgroups extends WireSaveableItemsLookup {
 	public function ___save(Saveable $item) {
 
 		$database = $this->wire('database');
+		
+		/** @var Fieldgroup $item */
 
 		if($item->id && $item->removedFields) {
 
@@ -204,6 +165,7 @@ class Fieldgroups extends WireSaveableItemsLookup {
 			$query = $database->prepare("SELECT fields_id, data FROM fieldgroups_fields WHERE fieldgroups_id=:item_id"); 
 			$query->bindValue(":item_id", (int) $item->id, \PDO::PARAM_INT); 
 			$query->execute();
+			/** @noinspection PhpAssignmentInConditionInspection */
 			while($row = $query->fetch(\PDO::FETCH_ASSOC)) {
 				$contextData[$row['fields_id']] = $row['data'];
 			}

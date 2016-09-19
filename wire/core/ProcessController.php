@@ -5,7 +5,7 @@
  *
  * Loads and executes Process Module instance and determines access.
  * 
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  */
@@ -26,6 +26,8 @@ class ProcessControllerPermissionException extends WirePermissionException { }
  * A Controller for Process* Modules
  *
  * Intended to be used by templates that call upon Process objects
+ * 
+ * @method string execute()
  *
  */
 class ProcessController extends Wire {

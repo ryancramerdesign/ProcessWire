@@ -17,7 +17,7 @@
  * 
  * Runtime errors are logged to: /site/assets/logs/markup-qa-errors.txt
  * 
- * ProcessWire 3.x (development), Copyright 2016 by Ryan Cramer
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  * 
  */ 
@@ -290,6 +290,7 @@ class MarkupQA extends Wire {
 		
 			if(strpos($href, '//')) {
 				// scheme and hostname present
+				/** @noinspection PhpUnusedLocalVariableInspection */
 				list($x, $host) = explode('//', $href);
 				if($host != $this->wire('config')->httpHost && !in_array($host, $this->wire('config')->httpHosts)) {
 					$counts['external']++;
@@ -329,6 +330,7 @@ class MarkupQA extends Wire {
 				// resolved to a page
 				if($languages) {
 					$page = $this->wire('pages')->get($pageID);
+					/** @var Language $language */
 					$language = $this->wire('modules')->get('LanguageSupportPageNames')->getPagePathLanguage($path, $page);
 					$pwid = !$language || $language->isDefault() ? $pageID : "$pageID-$language";
 				} else {

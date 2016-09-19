@@ -5,7 +5,7 @@
  *
  * Simple cache for storing strings (encoded or otherwise) and serves as $cache API var
  * 
- * ProcessWire 3.x (development), Copyright 2016 by Ryan Cramer
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  * #pw-summary Provides easy, persistent caching of markup, strings, arrays or PageArray objects. 

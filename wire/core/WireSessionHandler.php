@@ -7,7 +7,7 @@
  * It provides the interface and some basic functions. For an example, see:
  * /wire/modules/Session/SessionHandlerDB/SessionHandlerDB.module
  * 
- * ProcessWire 3.x (development), Copyright 2015 by Ryan Cramer
+ * ProcessWire 3.x, Copyright 2016 by Ryan Cramer
  * https://processwire.com
  *
  *
