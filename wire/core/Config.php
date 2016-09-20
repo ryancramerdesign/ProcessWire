@@ -40,6 +40,7 @@
  * 
  * @property array $contentTypes Array of extensions and the associated MIME type for each (for template file output). #pw-group-template-files
  * @property array $fileContentTypes Array of extensions and the associated MIME type for each (for file output). See /wire/config.php for details and defaults. #pw-group-files
+ * @property array $fileCompilerOptions Array of options for FileCompiler class. See /wire/config.php for details and defaults. #pw-group-files
  * 
  * @property string $chmodDir Octal string permissions assigned to directories created by ProcessWire #pw-group-files
  * @property string $chmodFile Octal string permissions assigned to files created by ProcessWire #pw-group-files
