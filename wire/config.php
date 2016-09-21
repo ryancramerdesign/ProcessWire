@@ -1052,9 +1052,13 @@ $config->preloadCacheNames = array(
 $config->allowExceptions = false;
 
 /**
- * Use the X-Powered-By header?
+ * X-Powered-By header behavior
+ *
+ * - true: Sends the generic PW header, replacing any other powered-by headers (recommended). 
+ * - false: Sends blank powered-by, replacing any other powered-by headers.
+ * - null: Sends no powered-by, existing server powered-by headers will pass through.
  * 
- * @var bool
+ * @var bool|null
  * 
  */
 $config->usePoweredBy = true;
