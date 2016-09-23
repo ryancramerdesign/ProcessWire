@@ -29,17 +29,19 @@ class TextformatterMarkdownExtra extends Textformatter implements ConfigurableMo
 	const flavorParsedown = 4;
 	const flavorMarkdownExtra = 2;
 	const flavorRCD = 16; // add RCD extensions to one of above, @see markdownExtensions() method
+	const linebreaksDefault = '';
 	
 	public function __construct() {
 		$this->set('flavor', self::flavorDefault); 
+		$this->set('linebreaks', self::linebreaksDefault);
 	}
 
 	public function format(&$str) {
-		$str = $this->markdown($str, $this->flavor); 
+		$str = $this->markdown($str, $this->flavor, $this->linebreaks); 
 	}
 	
 	public function formatValue(Page $page, Field $field, &$value) {
-		$value = $this->markdown($value, $this->flavor);
+		$value = $this->markdown($value, $this->flavor, $this->linebreaks);
 	}
 
 	/**
@@ -50,7 +52,7 @@ class TextformatterMarkdownExtra extends Textformatter implements ConfigurableMo
 	 * @return string Processed string
 	 * 
 	 */
-	public function markdown($str, $flavor = 0) {
+	public function markdown($str, $flavor = 0, $linebreaks = '') {
 	
 		if(!class_exists("\\Parsedown")) {
 			require_once(dirname(__FILE__) . "/parsedown/Parsedown.php");
@@ -59,17 +61,16 @@ class TextformatterMarkdownExtra extends Textformatter implements ConfigurableMo
 		if($flavor & self::flavorParsedown) {
 			// regular parsedown
 			$parsedown = new \Parsedown();
-			$str = $parsedown->text($str);
-			
 		} else {
 			// parsedown extra 
 			if(!class_exists("\\ParsedownExtra")) {
 				require_once(dirname(__FILE__) . "/parsedown-extra/ParsedownExtra.php");
 			}
-			$extra = new \ParsedownExtra();
-			$str = $extra->text($str);
+			$parsedown = new \ParsedownExtra();
 		}
-		
+
+		if ($linebreaks) $parsedown->setBreaksEnabled(true);
+		$str = $parsedown->text($str);
 		if($flavor & self::flavorRCD) $this->markdownExtensions($str);
 		
 		return $str; 
@@ -107,6 +108,13 @@ class TextformatterMarkdownExtra extends Textformatter implements ConfigurableMo
 		$f->addOption(self::flavorParsedown, 'Parsedown'); 
 		$f->attr('value', isset($data['flavor']) ? (int) $data['flavor'] : self::flavorDefault); 
 		$inputfields->add($f);
+
+		$f = $this->wire('modules')->get('InputfieldCheckbox');
+		$f->attr('name', 'linebreaks');
+		$f->label = $this->_('Enable Linebreaks');
+		$f->attr('checked', $data['linebreaks'] === 1 ? 'checked' : self::linebreaksDefault);
+		$inputfields->add($f);
+
 		return $inputfields; 
 	}
 }
