@@ -10,7 +10,12 @@
 
 function ProcessPageListInit() {
 	if(ProcessWire.config.ProcessPageList) {
-		$('#' + ProcessWire.config.ProcessPageList.containerID).ProcessPageList(ProcessWire.config.ProcessPageList);
+		for (var containerID in ProcessWire.config.ProcessPageList) {
+			var $container = $('#' + containerID);
+			if ($container.children('.PageListRoot').length) return;
+			var config = ProcessWire.config.ProcessPageList[containerID];
+			$container.ProcessPageList(config);
+		}
 	}
 }
 
@@ -119,7 +124,7 @@ $(document).ready(function() {
 			spinnerMarkup: "<span class='PageListLoading'><i class='ui-priority-secondary fa fa-fw fa-spin fa-spinner'></i></span>",
 		
 			// session field name that holds page label format, when used
-			labelName: '',
+			labelName: ''
 		};
 	
 		// array of "123.0" (page_id.start) that are currently open (used in non-select mode only)
@@ -204,7 +209,7 @@ $(document).ready(function() {
 					}
 				}
 				
-				$(document).on('mouseover', '.PageListItem', function(e) {
+				$container.on('mouseover', '.PageListItem', function(e) {
 
 					if($root.is(".PageListSorting") || $root.is(".PageListSortSaving")) return;
 					if(!$(this).children('a:first').is(":hover")) return;
@@ -375,7 +380,7 @@ $(document).ready(function() {
 						updateOpenPageIDs();
 					}); 
 					return false;	
-				}
+				};
 		
 				var $separator = null;
 				var $blankItem = null;
@@ -736,11 +741,11 @@ $(document).ready(function() {
 							var href = $(this).attr('href');
 							var actionName = href.match(/[\?&]action=([-_a-zA-Z0-9]+)/)[1];
 							var pageID = parseInt(href.match(/[\?&]id=([0-9]+)/)[1]);
-							var tokenName = $("#PageListContainer").attr('data-token-name');
-							var tokenValue = $("#PageListContainer").attr('data-token-value');
+							var tokenName = $container.attr('data-token-name');
+							var tokenValue = $container.attr('data-token-value');
 							var postData = {
 								action: actionName,
-								id: pageID, 
+								id: pageID
 							};
 							postData[tokenName] = tokenValue;
 							$li.append($spinner);
