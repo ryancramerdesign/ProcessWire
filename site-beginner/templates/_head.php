@@ -10,8 +10,10 @@
 </head>
 <body class='has-sidebar'>
 
+	<a href="#main" class="visually-hidden element-focusable bypass-to-main">Skip to content</a>
+
 	<!-- top navigation -->
-	<ul class='topnav'><?php 
+	<ul class='topnav' role='navigation'><?php
 
 		// top navigation consists of homepage and its visible children
 		$homepage = $pages->get('/'); 
@@ -40,12 +42,13 @@
 
 	<!-- search form -->
 	<form class='search' action='<?php echo $pages->get('template=search')->url; ?>' method='get'>
-		<input type='text' name='q' placeholder='Search' value='' />
-		<button type='submit' name='submit'>Search</button>
+		<label for='search' class='visually-hidden'>Search:</label>
+		<input id='search' type='text' name='q' placeholder='Search' value='' />
+		<button type='submit' name='submit' class='visually-hidden'>Search</button>
 	</form>
 
 	<!-- breadcrumbs -->
-	<div class='breadcrumbs'><?php 
+	<div class='breadcrumbs' role='navigation' aria-label='You are here:'><?php
 
 		// breadcrumbs are the current page's parents
 		foreach($page->parents() as $item) {
@@ -56,5 +59,5 @@
 
 	?></div>
 
-	<div id='main'>
+	<main id='main'>
 

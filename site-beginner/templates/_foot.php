@@ -1,6 +1,6 @@
 
 
-	</div><!--/#main-->
+	</main><!--/#main-->
 
 	<!-- footer -->
 	<footer id='footer'>
