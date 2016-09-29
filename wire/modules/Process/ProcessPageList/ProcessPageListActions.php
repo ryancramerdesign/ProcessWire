@@ -162,7 +162,7 @@ class ProcessPageListActions extends Wire {
 			}
 		}
 
-		if($this->superuser) {
+		if($user->hasPermission('page-delete', $page)) {
 			$trashIcon = "<i class='fa fa-trash-o'></i>&nbsp;";
 			if($page->trashable()) {
 				$extras['trash'] = array(
