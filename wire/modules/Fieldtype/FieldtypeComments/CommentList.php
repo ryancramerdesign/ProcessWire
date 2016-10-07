@@ -62,6 +62,7 @@ class CommentList extends Wire implements CommentListInterface {
 		'upvoteFormat' => '&uarr;{cnt}',
 		'downvoteFormat' => '&darr;{cnt}', 
 		'depth' => 0, 
+		'replyLabel' => 'Reply',
 		); 
 
 	/**
@@ -75,6 +76,7 @@ class CommentList extends Wire implements CommentListInterface {
 
 		$h3 = $this->_('h3'); // Headline tag
 		$this->options['headline'] = "<$h3>" . $this->_('Comments') . "</$h3>"; // Header text
+		$this->options['replyLabel'] = $this->_('Reply');
 		
 		if(empty($options['commentHeader'])) {
 			if(empty($options['dateFormat'])) {
@@ -208,7 +210,7 @@ class CommentList extends Wire implements CommentListInterface {
 			$out .=
 				"\n\t\t<div class='CommentFooter'>" . 
 				"\n\t\t\t<p class='CommentAction'>" .
-				"\n\t\t\t\t<a class='CommentActionReply' data-comment-id='$comment->id' href='#Comment{$comment->id}'>" . $this->_('Reply') . "</a> " .
+				"\n\t\t\t\t<a class='CommentActionReply' data-comment-id='$comment->id' href='#Comment{$comment->id}'>" . $this->options['replyLabel'] . "</a> " .
 				($permalink ? "\n\t\t\t\t$permalink" : "") . 
 				"\n\t\t\t</p>" . 
 				"\n\t\t</div>";

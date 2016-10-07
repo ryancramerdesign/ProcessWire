@@ -1059,7 +1059,11 @@ class PageFinder extends Wire {
 				$subValue = $database->escapeCol($subValue);
 				$tableAlias = "_sort_$fieldName". ($subValue ? "_$subValue" : '');
 				$table = $database->escapeTable($field->table);
-				$blankValue = $field->type->getBlankValue(new NullPage(), $field);
+				if($field->type instanceof FieldtypePage) {
+					$blankValue = new PageArray();
+				} else {
+					$blankValue = $field->type->getBlankValue(new NullPage(), $field);
+				}
 
 				$query->leftjoin("$table AS $tableAlias ON $tableAlias.pages_id=pages.id");
 

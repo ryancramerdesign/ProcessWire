@@ -226,6 +226,62 @@ class CommentArray extends PaginatedArray implements WirePaginatable {
 		}
 		return $isIdentical;
 	}
+
+	/**
+	 * Get an average of all star ratings for all comments in this CommentsArray
+	 * 
+	 * @param bool $allowPartial Allow partial stars? If true, returns a float. If false, returns int.  
+	 * @param bool $getCount If true, this method returns an array(stars, count) where count is number of ratings.
+	 * @return int|float|false|array Returns false for stars value if no ratings yet.
+	 * 
+	 */	
+	public function stars($allowPartial = true, $getCount = false) {
+		$total = 0;
+		$count = 0;
+		$stars = false;
+		foreach($this as $comment) {
+			if(!$comment->stars) continue;
+			$total += $comment->stars;
+			$count++;
+		}
+		if($count) {
+			$stars = $total / $count;
+			$stars = $allowPartial ? round($stars, 2) : (int) round($stars);
+		}
+		if($getCount) return array($stars, $count);
+		return $stars;
+	}
+
+	/**
+	 * Render combined star rating for all comments in this CommentsArray
+	 * 
+	 * @param bool $showCount Specify true to include how many ratings the average is based on
+	 * @param array $options Overrides of stars and/or count, see $defaults in method
+	 * @return string
+	 * 
+	 */
+	public function renderStars($showCount = false, $options = array()) {
+		$defaults = array(
+			'stars' => null, // optionally override the combined stars value (stars and count must both be specified)
+			'count' => null, // optionally override the combined count value (stars and count must both be specified)
+			'blank' => true, // return blank string if no ratings yet?
+			'partials' => true, // allow partial stars?
+			'schema' => '', // may be 'rdfa', 'microdata' or blank. Used only if showCount=true. 
+			'input' => false, // allow input? (may not be combined with 'partials' option)
+		);
+		$options = array_merge($defaults, $options);
+		if(!is_null($options['stars'])) {
+			$stars = $options['stars'];
+			$count = (int) $options['count'];
+		} else {
+			list($stars, $count) = $this->stars($options['partials'], true);
+		}
+		if(!$count && $options['blank']) return '';
+		$commentStars = new CommentStars();
+		$out = $commentStars->render($stars, $options['input']);
+		if($showCount) $out .= $commentStars->renderCount((int) $count, $stars, $options['schema']);
+		return $out; 
+	}
 }
 
 

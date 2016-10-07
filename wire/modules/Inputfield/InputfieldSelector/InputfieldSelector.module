@@ -364,7 +364,8 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		// make users selectable if there are under 100 of them
 		// otherwise utilize the user ID property
 		$users = array(); 
-		$numUsers = $this->wire('pages')->count("template=user, include=all"); 
+		$userTemplates = implode('|', $this->wire('config')->userTemplateIDs);
+		$numUsers = $this->wire('pages')->count("template=$userTemplates, include=all");
 		if($numUsers < 100) { 
 			foreach($this->wire('users') as $user) {
 				$users[$user->id] = $user->name; 

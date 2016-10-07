@@ -1155,7 +1155,7 @@ class Page extends WireData implements Countable, WireMatchable {
 	 * @throws WireException if given impossible $parent or parent changes aren't allowed
 	 *
 	 */
-	protected function setParent(Page $parent) {
+	public function setParent(Page $parent) {
 		if($this->parent && $this->parent->id == $parent->id) return $this; 
 		if($parent->id && $this->id == $parent->id || $parent->parents->has($this)) {
 			throw new WireException("Page cannot be its own parent");
