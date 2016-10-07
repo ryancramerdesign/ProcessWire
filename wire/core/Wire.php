@@ -84,6 +84,8 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 */
 	protected $useFuel = true;
 
+	public function __construct() {}
+
 	/**
 	 * Add fuel to all classes descending from Wire
 	 *

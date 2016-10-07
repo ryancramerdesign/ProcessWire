@@ -251,6 +251,11 @@ class ProcessLogin extends Process {
 		$indexVersion = ProcessWire::indexVersion; 
 		$htaccessVersion = ProcessWire::htaccessVersion;
 		
+		$this->warning(
+			"Please note: This version of ProcessWire is from the old repository. The new repositories are located at: " . 
+			"<a target='_blank' href='https://github.com/processwire/'>github.com/processwire</a>", Notice::allowMarkup
+		);
+		
 		if(PROCESSWIRE < $indexVersion) {
 			$this->warning(
 				"Not urgent, but note that your root index.php file is not up-to-date with this ProcessWire version - please update it when possible. " . 
