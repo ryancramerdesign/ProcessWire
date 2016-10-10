@@ -129,7 +129,7 @@ class CommentList extends Wire implements CommentListInterface {
 		return $out;
 	}
 	
-	protected function renderList($parent_id = 0, $depth = 0) {
+	protected function ___renderList($parent_id = 0, $depth = 0) {
 		$out = $parent_id ? '' : $this->renderCheckActions();
 		$comments = $this->options['depth'] > 0 ? $this->getReplies($parent_id) : $this->comments;
 		if(!count($comments)) return $out;
@@ -157,7 +157,7 @@ class CommentList extends Wire implements CommentListInterface {
 	 * @return string 
 	 *
 	 */
-	public function renderItem(Comment $comment, $depth = 0) {
+	public function ___renderItem(Comment $comment, $depth = 0) {
 
 		$text = $comment->getFormatted('text'); 
 		$cite = $comment->getFormatted('cite'); 
@@ -226,7 +226,7 @@ class CommentList extends Wire implements CommentListInterface {
 		return $out; 	
 	}
 	
-	public function renderVotes(Comment $comment) {
+	public function ___renderVotes(Comment $comment) {
 		
 		if(!$this->options['useVotes']) return '';
 		
@@ -251,7 +251,7 @@ class CommentList extends Wire implements CommentListInterface {
 		return $out; 
 	}
 	
-	public function renderStars(Comment $comment) {
+	public function ___renderStars(Comment $comment) {
 		if(!$this->options['useStars']) return '';
 		if(!$comment->stars) return '';
 		$commentStars = new CommentStars();
