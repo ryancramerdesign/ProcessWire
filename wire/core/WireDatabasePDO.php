@@ -319,6 +319,21 @@ class WireDatabasePDO extends Wire implements WireDatabase {
 	public function closeConnection() {
 		$this->pdo = null;
 	}
+        
+        /**
+         * Tries to query the db and if it fails tries to reconnect
+         * @return boolean
+         */
+        public function ping() {
+            try {
+                $this->pdo->query('SELECT 1');
+            } catch (PDOException $e) {
+                //force reconnect
+                $this->closeConnection();
+                $this->pdo();
+            }
+            return true;
+        }
 
 	/**
 	 * Retrieve new instance of WireDatabaseBackups ready to use with this connection
@@ -346,3 +361,4 @@ class WireDatabasePDO extends Wire implements WireDatabase {
 	}
 
 }
+
