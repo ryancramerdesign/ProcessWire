@@ -98,6 +98,15 @@ class MarkupAdminDataTable extends ModuleJS {
 		}
 		return $row;
 	}
+	
+	public function updateRow($key, array $a) {
+		$this->rows[$key] = $this->setupRow($a);
+		return $this;
+	}
+	
+	public function getRows() {
+		return $this->rows;
+	}
 
 	public function action(array $action) {
 		foreach($action as $label => $url) { 
