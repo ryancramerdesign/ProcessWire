@@ -508,6 +508,16 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 				'label' => $this->_('Limit'), 
 				'operators' => array('=')
 				),
+			'start' => array(
+				'input' => 'integer', 
+				'label' => $this->_('Start'), 
+				'operators' => array('=')
+				),
+			'end' => array(
+				'input' => 'integer', 
+				'label' => $this->_('End'), 
+				'operators' => array('=')
+				),
 			'include' => array(
 				'input' => 'select', 
 				'label' => $this->_('Include'), 
