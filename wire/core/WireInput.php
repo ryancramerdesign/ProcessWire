@@ -322,7 +322,7 @@ class WireInput {
 			$this->urlSegments = $urlSegments; 
 		} else {
 			// set
-			$this->urlSegments[$num] = wire('sanitizer')->name($value); 	
+			$this->urlSegments[$num] = wire('sanitizer')->name($value,false,false);
 		}
 	}
 
