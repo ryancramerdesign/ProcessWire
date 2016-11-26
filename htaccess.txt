@@ -26,11 +26,11 @@ ErrorDocument 404 /index.php
 # -----------------------------------------------------------------------------------------------
 
 <Files favicon.ico>
-  ErrorDocument 404 "The requested file favicon.ico was not found.
+  ErrorDocument 404 "The requested file favicon.ico was not found."
 </Files>
 
 <Files robots.txt>
-  ErrorDocument 404 "The requested file robots.txt was not found.
+  ErrorDocument 404 "The requested file robots.txt was not found."
 </Files>
 
 # -----------------------------------------------------------------------------------------------
