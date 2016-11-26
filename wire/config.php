@@ -469,7 +469,8 @@ $config->imageSizerOptions = array(
 	'sharpening' => 'soft', // sharpening: none | soft | medium | strong
 	'quality' => 90, // quality: 1-100 where higher is better but bigger
 	'hidpiQuality' => 60, // Same as above quality setting, but specific to hidpi images
-	'defaultGamma' => 2.0, // defaultGamma: 0.5 to 4.0 or -1 to disable gamma correction (default=2.0)
+	'defaultGamma' => 2.2, // defaultGamma: 0.5 to 4.0 or -1 to disable gamma correction (default=2.2)
+	'useUSM' => true, // sharpening with the UnsharpMaskAlgorithm, is toggled off on systems with low memory
 	);
 
 /**

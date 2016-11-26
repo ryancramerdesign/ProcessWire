@@ -133,6 +133,14 @@ class ImageSizer extends Wire {
 	protected $flip = '';
 
 	/**
+	 * Indicates which sharpening algorythm should be used
+	 * 
+	 * @var bool
+	 * 
+	 */
+	protected $useUSM = true; 
+
+	/**
 	 * default gamma correction: 0.5 - 4.0 | -1 to disable gammacorrection, default = 2.0
 	 * 
 	 * can be overridden by setting it to $config->imageSizerOptions['defaultGamma']
@@ -140,12 +148,6 @@ class ImageSizer extends Wire {
 	 * 
 	 */
 	protected $defaultGamma = 2.0;
-
-	/**
-	 * Factor to use when determining if enough memory available for resize. 
-	 *
-	 */
-	protected $memoryCheckFactor = 2.2; 
 
 	/**
 	 * Other options for 3rd party use
@@ -178,6 +180,7 @@ class ImageSizer extends Wire {
 		'scale', 
 		'rotate',
 		'flip', 
+		'useUSM', 
 		);
 
 	/**
@@ -234,10 +237,6 @@ class ImageSizer extends Wire {
 	
 		// ensures the resize doesn't timeout the request (with at least 30 seconds)
 		$this->setTimeLimit(); 
-
-		// set the use of UnSharpMask as default, can be overwritten per pageimage options
-		// or per $config->imageSizerOptions in site/config.php
-		$this->options['useUSM'] = true;
 
 		// filling all options with global custom values from config.php
 		$options = array_merge($this->wire('config')->imageSizerOptions, $options); 
@@ -410,7 +409,7 @@ class ImageSizer extends Wire {
 			
 			
 			if(self::checkMemoryForImage(array(imagesx($image), imagesy($image), 3)) === false) {
-				throw new WireException(basename($source) . " - not enough memory to copy the final cropExtra");
+				throw new WireException(basename($source) . " - not enough memory to copy the final image");
 			}
 			$thumb = imagecreatetruecolor(imagesx($image), imagesy($image));          // create the final memory image
 			$this->prepareImageLayer($thumb, $image);
@@ -423,7 +422,6 @@ class ImageSizer extends Wire {
 			if(self::checkMemoryForImage(array($gdWidth, $gdHeight, 3)) === false) {
 				throw new WireException(basename($source) . " - not enough memory to resize to the final image");
 			}
-
 			$thumb = imagecreatetruecolor($gdWidth, $gdHeight);
 			$this->prepareImageLayer($thumb, $image);
 			imagecopyresampled($thumb, $image, 0, 0, 0, 0, $gdWidth, $gdHeight, $this->image['width'], $this->image['height']);
@@ -435,7 +433,6 @@ class ImageSizer extends Wire {
 			if(self::checkMemoryForImage(array($gdWidth, $gdHeight, 3)) === false) {
 				throw new WireException(basename($source) . " - not enough memory to resize to the intermediate image");
 			}
-
 			$thumb2 = imagecreatetruecolor($gdWidth, $gdHeight);
 			$this->prepareImageLayer($thumb2, $image);
 			imagecopyresampled($thumb2, $image, 0, 0, 0, 0, $gdWidth, $gdHeight, $this->image['width'], $this->image['height']);
@@ -443,19 +440,35 @@ class ImageSizer extends Wire {
 			if(self::checkMemoryForImage(array($targetWidth, $targetHeight, 3)) === false) {
 				throw new WireException(basename($source) . " - not enough memory to crop to the final image");
 			}
-
 			$thumb = imagecreatetruecolor($targetWidth, $targetHeight);
 			$this->prepareImageLayer($thumb, $image);
 			imagecopyresampled($thumb, $thumb2, 0, 0, $x1, $y1, $targetWidth, $targetHeight, $targetWidth, $targetHeight);
 			imagedestroy($thumb2);
 		}
 
+		if(isset($image) && is_resource($image)) @imagedestroy($image); // @horst
+		if(isset($thumb2) && is_resource($thumb2)) @imagedestroy($thumb2);
+		if(isset($image)) $image = null;
+		if(isset($thumb2)) $thumb2 = null;
+
 		// optionally apply sharpening to the final thumb
 		if($this->sharpening && $this->sharpening != 'none') { // @horst
 			if(IMAGETYPE_PNG != $this->imageType || ! $this->hasAlphaChannel()) {
-				// is needed for the USM sharpening function to calculate the best sharpening params
-				$this->usmValue = $this->calculateUSMfactor($targetWidth, $targetHeight);
-				$thumb = $this->imSharpen($thumb, $this->sharpening);
+				$w = imagesx($thumb);
+				$h = imagesy($thumb);
+				if($this->useUSM) {
+					// calculate if there is enough memory available to apply the USM algorithm, if enabled
+					if(true === ($this->useUSM = self::checkMemoryForImage(array($w, $h, 3), array($w, $h, 3)))) {
+						// is needed for the USM sharpening function to calculate the best sharpening params
+						$this->usmValue = $this->calculateUSMfactor($targetWidth, $targetHeight);
+						$thumb = $this->imSharpen($thumb, $this->sharpening);
+					}
+				}
+				if(!$this->useUSM) {
+					if(false !== self::checkMemoryForImage(array($w, $h, 3))) {
+						$thumb = $this->imSharpen($thumb, $this->sharpening);
+					}
+				}
 			}
 		}
 
@@ -479,13 +492,8 @@ class ImageSizer extends Wire {
 				break;
 		}
 
-		if(isset($image) && is_resource($image)) @imagedestroy($image); // @horst
 		if(isset($thumb) && is_resource($thumb)) @imagedestroy($thumb);
-		if(isset($thumb2) && is_resource($thumb2)) @imagedestroy($thumb2);
-		
-		if(isset($image)) $image = null;
 		if(isset($thumb)) $thumb = null;
-		if(isset($thumb2)) $thumb2 = null;
 
 		if($result === false) {
 			if(is_file($dest)) @unlink($dest); 
@@ -1002,6 +1010,18 @@ class ImageSizer extends Wire {
 	}
 	
 	/**
+	 * Toggle on/off the usage of USM algorithm for sharpening
+	 * 
+	 * @param bool $value Whether to USM is used or not (default = true)
+	 * @return $this
+	 * 
+	 */
+	public function setUseUSM($value = true) {
+		$this->useUSM = true === $this->getBooleanValue($value) ? true : false;
+		return $this; 
+	}
+	
+	/**
 	 * Set flip
 	 *
 	 * Specify one of: 'vertical' or 'horizontal', also accepts
@@ -1049,6 +1069,7 @@ class ImageSizer extends Wire {
 				case 'hidpi': $this->setHidpi($value); break;
 				case 'rotate': $this->setRotate($value); break;
 				case 'flip': $this->setFlip($value); break;
+				case 'useUSM': $this->setUseUsm($value); break;
 							  
 				default: 
 					// unknown or 3rd party option
@@ -1218,6 +1239,10 @@ class ImageSizer extends Wire {
 	protected function imFlip($im, $vertical = false) {
 		$sx  = imagesx($im);
 		$sy  = imagesy($im);
+		if(self::checkMemoryForImage(array($sx, $sy, 3)) === false) {
+			#throw new WireException("Not enough memory to process flip conversion for: " . basename($this->filename));
+			return $im2;
+		}
 		$im2 = @imagecreatetruecolor($sx, $sy);
 		if($vertical === true) {
 			@imagecopyresampled($im2, $im, 0, 0, 0, ($sy-1), $sx, $sy, $sx, 0-$sy);
@@ -1237,16 +1262,15 @@ class ImageSizer extends Wire {
 	 */
 	protected function imSharpen($im, $mode) {
 
-		// check if we have to use an individual value for "useUSM"
-		if(isset($this->options['useUSM'])) {
-			$this->useUSM = $this->getBooleanValue($this->options['useUSM']);
-		}
-
 		// due to a bug in PHP's bundled GD-Lib with the function imageconvolution in some PHP versions
 		// we have to bypass this for those who have to run on this PHP versions
 		// see: https://bugs.php.net/bug.php?id=66714
 		// and here under GD: http://php.net/ChangeLog-5.php#5.5.11
 		$buggyPHP = (version_compare(phpversion(), '5.5.8', '>') && version_compare(phpversion(), '5.5.11', '<')) ? true : false;
+		if($buggyPHP && !$this->useUSM && self::checkMemoryForImage(array(imagesx($im), imagesy($im), 3), array(imagesx($im), imagesy($im), 3)) !== true) {
+			// we have not enough memory available for USM and cannot use the other algorithm because of the buggy PHP version
+			return $im;
+		}
 
 		// USM method is used for buggy PHP versions
 		// for regular versions it can be omitted per: useUSM = false passes as pageimage option
@@ -1614,7 +1638,6 @@ class ImageSizer extends Wire {
 	 *
 	 */
 	protected function unsharpMask($img, $amount, $radius, $threshold) {
-
 
 		// Attempt to calibrate the parameters to Photoshop:
 		if($amount > 500) $amount = 500;

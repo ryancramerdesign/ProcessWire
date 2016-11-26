@@ -298,7 +298,8 @@ class Pageimage extends Pagefile {
 			'hidpi' => false, 
 			'cleanFilename' => false, // clean filename of historial resize information
 			'rotate' => 0,
-			'flip' => '', 
+			'flip' => '',
+			'useUSM' => true,
 			);
 
 		$this->error = '';
