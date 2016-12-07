@@ -54,8 +54,8 @@ function ProcessWireBootConfig() {
 
 	} else {
 		// when included from another app or command line script
-		$httpHost = '';
-		$rootURL = '/';
+		$httpHost = getenv("PROCESSWIRE_HOST") ? getenv("PROCESSWIRE_HOST") : '';
+		$rootURL  = getenv("PROCESSWIRE_ROOT") ? getenv("PROCESSWIRE_ROOT") : '/';
 	}
 
 	/*
