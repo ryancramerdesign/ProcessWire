@@ -1,5 +1,7 @@
 # Welcome to ProcessWire 2.7
 
+[![Deploy to Azure](http://azuredeploy.net/deploybutton.png)](https://azuredeploy.net/)
+
 This document is in Markdown. An HTML formatted version of this document 
 can be read at: https://processwire.com/download/readme
 
