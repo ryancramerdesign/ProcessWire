@@ -1,3 +1,9 @@
+# Deploy to Azure Support
+
+Now you can deploy ProcessWire to Azure (Web App) with InApp MYSQL.
+
+[![Deploy to Azure](http://azuredeploy.net/deploybutton.png)](https://azuredeploy.net/)
+
 # Welcome to ProcessWire 2.7
 
 This document is in Markdown. An HTML formatted version of this document 
