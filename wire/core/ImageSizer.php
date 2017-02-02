@@ -114,7 +114,7 @@ class ImageSizer extends Wire {
 	 * default sharpening mode: [ none | soft | medium | strong ]
 	 *
 	 */
-	protected $sharpening = 'soft';
+	protected $sharpening = 'none';
 
 	/**
 	 * Degrees to rotate: -270, -180, -90, 90, 180, 270
