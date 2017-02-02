@@ -25,8 +25,11 @@ if(!defined("PROCESSWIRE")) die();
  * This value must start with 'site-', i.e. 'site-domain' or 'site-something'. This is to
  * ensure that ProcessWire's htaccess file can recognize and protect files in that directory.
  *
- * Note that if your site may be accessed at either domain.com OR www.domain.com, then you'll
- * want to include entries for both, pointing to the same /site-domain/ directory. 
+ * Please note that this function does not check for subfolders. The used domains need to be 
+ * different. Do not include subfolders as keys below.
+ *
+ * Also note that if your site may be accessed at either domain.com OR www.domain.com, then
+ * you'll want to include entries for both, pointing to the same /site-domain/ directory. 
  * 
  * Each /site/ dir has it's own /site/config.php file that should be pointing to a separate
  * database. You shouldn't have two different /site/ dirs sharing the same database. 
