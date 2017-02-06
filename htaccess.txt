@@ -139,16 +139,6 @@ DirectoryIndex index.php index.html index.htm
   # RewriteCond %{HTTP_HOST} !^www\. [NC]
   # RewriteRule ^ http://www.%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
-  # ----------------------------------------------------------------------------------------------- 
-  # OPTIONAL: Send URLs with non name-format characters to 404 page
-  # Remove this section if it interferes with URLs of any other software you may be running. 
-  # ----------------------------------------------------------------------------------------------- 
-
-  RewriteCond %{REQUEST_URI} "[^-_.a-zA-Z0-9/~]"
-  RewriteCond %{REQUEST_FILENAME} !-f
-  RewriteCond %{REQUEST_FILENAME} !-d
-  RewriteRule ^(.*)$ index.php?it=/http404/ [L,QSA]
-
   # -----------------------------------------------------------------------------------------------
   # Access Restrictions: Protect ProcessWire system files
   # -----------------------------------------------------------------------------------------------
@@ -181,12 +171,6 @@ DirectoryIndex index.php index.html index.htm
   RewriteCond %{REQUEST_URI} (^|/)site-default/
   # If any conditions above match, isssue a 403 forbidden
   RewriteRule ^.*$ - [F,L]
-
-  # ----------------------------------------------------------------------------------------------- 
-  # Ensure that the URL follows the name-format specification required by ProcessWire
-  # ----------------------------------------------------------------------------------------------- 
-
-  RewriteCond %{REQUEST_URI} "^/~?[-_.a-zA-Z0-9/]*$"
 
   # -----------------------------------------------------------------------------------------------
   # If the request is for a file or directory that physically exists on the server,
