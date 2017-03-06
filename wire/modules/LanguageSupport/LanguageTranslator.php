@@ -463,11 +463,14 @@ class LanguageTranslator extends Wire {
 	 *
 	 */
 	public function encodeJSON($str) {
-		if(defined("JSON_PRETTY_PRINT")) {
-			return json_encode($str, JSON_PRETTY_PRINT); 
-		} else {
-			return json_encode($str); 
-		}
+		$options = 0;
+		if(defined("JSON_PRETTY_PRINT")) $options = $options | JSON_PRETTY_PRINT; 
+		// encode multibyte Unicode characters unescaped
+		if(defined("JSON_UNESCAPED_UNICODE")) $options = $options | JSON_UNESCAPED_UNICODE;
+		// don't escape slashes
+		if(defined("JSON_UNESCAPED_SLASHES")) $options = $options | JSON_UNESCAPED_SLASHES;
+		
+		return json_encode($str, $options);
 	}
 
 }
