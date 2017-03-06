@@ -1931,6 +1931,7 @@ class ImageSizer extends Wire {
 			}
 		}
 
+        if($phpMaxMem === -1) return true; // memory explicitly set to unlimited
 		if($phpMaxMem <= 0) return null; // we couldn't read the MaxMemorySetting or there isn't one set, so in both cases we do not know if there is enough or not
 
 		// calculate $sourceDimensions
