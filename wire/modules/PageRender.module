@@ -167,9 +167,13 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 					$secondaryID .= $this->sanitizer->pageName($urlSegment) . '+';
 				}
 			}
-
-			if($options['prependFile'] || $options['appendFile'] || $options['filename']) {
-				$secondaryID .= md5($options['prependFile'] . '+' . $options['appendFile'] . '+' . $options['filename']) . '+';
+			if(isset($options['prependFile']) || isset($options['appendFile']) || isset($options['filename'])) {
+				$idSuffix = array(
+					isset($options['prependFile']) ? $options['prependFile'] : '',
+					isset($options['appendFile']) ? $options['appendFile'] : '',
+					isset($options['filename']) ? $options['filename'] : '',
+				);
+				$secondaryID .= md5(implode('+', $idSuffix)) . '+';
 			}
 			if($config->ajax) $secondaryID .= 'ajax+'; // #1262
 			if($config->https) $secondaryID .= 'https+';
